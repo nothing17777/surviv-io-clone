@@ -32,6 +32,7 @@ echo "SURVIV_API_URL=$SURVIV_API_URL"
 echo "SURVIV_GAME_ADDRESS=$SURVIV_GAME_ADDRESS"
 echo "==================================================================================="
 echo
+printf 'SURVIV_API_URL=%s\nSURVIV_GAME_ADDRESS=%s\n' "$SURVIV_API_URL" "$SURVIV_GAME_ADDRESS" > current-urls.txt
 
 node scripts/gameProxy.mjs &
 (cd server && pnpm dev:api) &
