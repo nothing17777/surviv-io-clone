@@ -62,10 +62,11 @@ export interface GodLoadout {
     primary: string;
     secondary: string;
     throwable: string;
+    melee: string;
 }
 
 export function loadGodLoadout(): GodLoadout {
-    const loadout: GodLoadout = { primary: "m4a1", secondary: "mp220", throwable: "frag" };
+    const loadout: GodLoadout = { primary: "m4a1", secondary: "mp220", throwable: "frag", melee: "fists" };
     try {
         Object.assign(loadout, JSON.parse(localStorage.getItem(godLoadoutKey) || "{}"));
     } catch {}
@@ -75,6 +76,7 @@ export function loadGodLoadout(): GodLoadout {
     if (!valid(loadout.primary, "gun")) loadout.primary = "m4a1";
     if (!valid(loadout.secondary, "gun")) loadout.secondary = "mp220";
     if (!valid(loadout.throwable, "throwable")) loadout.throwable = "frag";
+    if (!valid(loadout.melee, "melee")) loadout.melee = "fists";
     return loadout;
 }
 
@@ -91,30 +93,60 @@ function defsOfType(type: string) {
         .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export function initGodLoadoutPicker() {
-    const loadout = loadGodLoadout();
-    const guns = defsOfType("gun");
-    const throwables = defsOfType("throwable");
+/** loot icon for an item, e.g. img/loot/loot-weapon-m4a1.svg */
+export function itemImage(id: string) {
+    const def = (RawGameObjectDefs as Record<string, { lootImg?: { sprite?: string } }>)[id];
+    const sprite = def?.lootImg?.sprite;
+    return sprite ? `img/loot/${sprite.replace(/\.img$/, ".svg")}` : "";
+}
 
-    const fill = (sel: JQuery<HTMLElement>, list: Array<{ id: string; name: string }>, value: string) => {
+const pickerSlots = ["primary", "secondary", "melee", "throwable"] as const;
+
+/**
+ * Fills the gun / throwable pickers with a given id prefix ("god" on the main
+ * menu, "team-god" in the party menu). Both sets share the saved loadout.
+ */
+export function initGodLoadoutPicker(prefix = "god") {
+    const lists = {
+        primary: defsOfType("gun"),
+        secondary: defsOfType("gun"),
+        melee: defsOfType("melee"),
+        throwable: defsOfType("throwable"),
+    };
+
+    for (const slot of pickerSlots) {
+        const sel = $(`#${prefix}-${slot}`);
+        if (!sel.length) continue;
         sel.empty();
-        for (const item of list) {
+        for (const item of lists[slot]) {
             sel.append($("<option>", { value: item.id, text: item.name }));
         }
-        sel.val(value);
-    };
-    const primary = $("#god-primary");
-    const secondary = $("#god-secondary");
-    const throwable = $("#god-throwable");
-    fill(primary, guns, loadout.primary);
-    fill(secondary, guns, loadout.secondary);
-    fill(throwable, throwables, loadout.throwable);
 
-    $("#god-primary, #god-secondary, #god-throwable").on("change", () => {
-        saveGodLoadout({
-            primary: primary.val() as string,
-            secondary: secondary.val() as string,
-            throwable: throwable.val() as string,
+        // picture of the picked item, shown left of the dropdown
+        if (!sel.parent().hasClass("god-row")) {
+            sel.wrap($("<div>", { class: "god-row" }));
+            sel.before($("<img>", { class: "god-item-img", alt: "", id: `${prefix}-${slot}-img` }));
+        }
+
+        sel.on("change", () => {
+            const loadout = loadGodLoadout();
+            loadout[slot] = sel.val() as string;
+            saveGodLoadout(loadout);
+            syncGodLoadoutPickers();
         });
-    });
+    }
+    syncGodLoadoutPickers();
+}
+
+/** Shows the saved loadout (and its pictures) in every picker on the page */
+export function syncGodLoadoutPickers() {
+    const loadout = loadGodLoadout();
+    for (const prefix of ["god", "team-god"]) {
+        for (const slot of pickerSlots) {
+            $(`#${prefix}-${slot}`).val(loadout[slot]);
+            const img = $(`#${prefix}-${slot}-img`);
+            const src = itemImage(loadout[slot]);
+            img.attr("src", src).toggle(!!src);
+        }
+    }
 }

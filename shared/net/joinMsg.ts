@@ -19,6 +19,7 @@ export class JoinMsg implements AbstractMsg {
         primary: "",
         secondary: "",
         throwable: "",
+        melee: "",
     };
 
     serialize(s: BitStream) {
@@ -44,6 +45,7 @@ export class JoinMsg implements AbstractMsg {
         s.writeGameType(this.godLoadout.primary);
         s.writeGameType(this.godLoadout.secondary);
         s.writeGameType(this.godLoadout.throwable);
+        s.writeGameType(this.godLoadout.melee);
     }
 
     deserialize(s: BitStream) {
@@ -67,5 +69,6 @@ export class JoinMsg implements AbstractMsg {
         this.godLoadout.primary = s.readGameType();
         this.godLoadout.secondary = s.readGameType();
         this.godLoadout.throwable = s.readGameType();
+        this.godLoadout.melee = s.readGameType();
     }
 }

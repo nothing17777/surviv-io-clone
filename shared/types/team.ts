@@ -14,6 +14,7 @@ export type TeamMenuErrorType =
     | "find_game_full"
     | "find_game_invalid_protocol"
     | "find_game_invalid_captcha"
+    | "private_teams_invalid"
     | "kicked"
     | "banned"
     | "behind_proxy"
@@ -29,6 +30,12 @@ export interface RoomData {
     gameModeIdx: number;
     maxPlayers: number;
     captchaEnabled: boolean;
+    /** private party match: only this party, split into Team A / Team B */
+    privateMatch: boolean;
+    privateMapName: string;
+    /** players per side, 1-4 (1v1 .. 4v4) */
+    privateTeamSize: number;
+    privateGodLoadout: boolean;
 }
 
 //
@@ -48,6 +55,8 @@ export interface TeamMenuPlayer {
     playerId: number;
     isLeader: boolean;
     inGame: boolean;
+    /** private match side, 0 = Team A, 1 = Team B */
+    team: number;
 }
 
 /**
@@ -95,6 +104,10 @@ export const zClientRoomData = z.object({
     region: z.string(),
     autoFill: z.boolean(),
     gameModeIdx: z.number(),
+    privateMatch: z.boolean().optional(),
+    privateMapName: z.string().optional(),
+    privateTeamSize: z.number().optional(),
+    privateGodLoadout: z.boolean().optional(),
 });
 
 export type ClientRoomData = z.infer<typeof zClientRoomData>;
@@ -165,6 +178,16 @@ export const zTeamPlayGameMsg = z.object({
 
 export type TeamPlayGameMsg = z.infer<typeof zTeamPlayGameMsg>;
 
+export const zTeamSetTeamMsg = z.object({
+    type: z.literal("setTeam"),
+    data: z.object({
+        playerId: z.number(),
+        team: z.number(),
+    }),
+});
+
+export type TeamSetTeamMsg = z.infer<typeof zTeamSetTeamMsg>;
+
 export const zGameCompleteMsg = z.object({
     type: z.literal("gameComplete"),
     data: z.object({}).optional(),
@@ -179,6 +202,7 @@ export const zTeamClientMsg = z.discriminatedUnion("type", [
     zTeamPlayGameMsg,
     zTeamKickMsg,
     zTeamChangeNameMsg,
+    zTeamSetTeamMsg,
     zGameCompleteMsg,
     zKeepAliveMsg,
 ]);
@@ -190,5 +214,6 @@ export type ClientToServerTeamMsg =
     | TeamSetRoomPropsMsg
     | TeamCreateMsg
     | TeamKickMsg
+    | TeamSetTeamMsg
     | TeamGameCompleteMsg
     | TeamPlayGameMsg;

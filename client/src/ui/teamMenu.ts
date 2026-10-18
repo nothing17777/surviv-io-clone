@@ -34,6 +34,7 @@ function errorTypeToString(type: TeamMenuErrorType, localization: Localization) 
         find_game_invalid_protocol: localization.translate("index-invalid-protocol"),
         find_game_invalid_captcha: localization.translate("index-invalid-captcha"),
         kicked: localization.translate("index-team-kicked"),
+        private_teams_invalid: "Too many players on one side for this team size",
         banned: localization.translate("index-ip-banned"),
         behind_proxy: "behind_proxy", // this will get passed to the main app to show a modal
     } as Record<TeamMenuErrorType, string>;
@@ -51,6 +52,12 @@ export class TeamMenu {
     serverSelect = $("#team-server-select");
     mapSelect = $("#team-map-select");
     queueModes = $("#team-queue-modes");
+    typeQueue = $("#btn-team-type-queue");
+    typePrivate = $("#btn-team-type-private");
+    privateMapSelect = $("#team-private-map-select");
+    privateSizes = $("#team-private-sizes");
+    kitOn = $("#btn-team-kit-on");
+    kitOff = $("#btn-team-kit-off");
     fillAuto = $("#btn-team-fill-auto");
     fillNone = $("#btn-team-fill-none");
 
@@ -71,6 +78,7 @@ export class TeamMenu {
         inGame: boolean;
         name: string;
         isLeader: boolean;
+        team: number;
     }> = [];
 
     prevPlayerCount = 0;
@@ -107,6 +115,25 @@ export class TeamMenu {
             const idx = this.roomData.enabledGameModeIdxs.find((i) => modes[i]?.mapName === mapName);
             if (idx !== undefined) this.setRoomProperty("gameModeIdx", idx);
         });
+        // private match: leader picks map, side size and kit, players pick sides
+        this.typeQueue.on("click", () => this.setRoomProperty("privateMatch", false));
+        this.typePrivate.on("click", () => this.setRoomProperty("privateMatch", true));
+        this.privateMapSelect.on("change", () => {
+            this.setRoomProperty("privateMapName", this.privateMapSelect.val() as string);
+        });
+        this.privateSizes.on("click", ".btn-team-private-size", (e) => {
+            this.setRoomProperty("privateTeamSize", Number($(e.currentTarget).attr("data-size")));
+        });
+        this.kitOn.on("click", () => this.setRoomProperty("privateGodLoadout", true));
+        this.kitOff.on("click", () => this.setRoomProperty("privateGodLoadout", false));
+        $("#team-menu-member-list").on("click", ".team-side.can-switch", (e) => {
+            const el = $(e.currentTarget);
+            this.sendMessage("setTeam", {
+                playerId: Number(el.attr("data-playerid")),
+                team: Number(el.attr("data-team")) === 0 ? 1 : 0,
+            });
+        });
+
         this.fillAuto.on("click", () => {
             this.setRoomProperty("autoFill", true);
         });
@@ -482,6 +509,30 @@ export class TeamMenu {
                 setButtonState(btn, this.roomData.gameModeIdx == i, this.isLeader);
             }
 
+            // Queue vs private match
+            const isPrivate = !!this.roomData.privateMatch;
+            setButtonState(this.typeQueue, !isPrivate, this.isLeader);
+            setButtonState(this.typePrivate, isPrivate, this.isLeader);
+            $("#team-queue-options").toggle(!isPrivate);
+            $("#team-private-options").toggle(isPrivate);
+            if (isPrivate) {
+                fillMapSelect(this.privateMapSelect, getModeMaps(modes), this.roomData.privateMapName);
+                this.privateMapSelect.prop("disabled", !this.isLeader);
+                this.privateSizes.empty();
+                for (let size = 1; size <= 4; size++) {
+                    const btn = $("<a>", {
+                        class: "btn-hollow btn-hollow-selected btn-darken team-menu-option btn-team-private-size",
+                        text: `${size}v${size}`,
+                        "data-size": size,
+                    });
+                    this.privateSizes.append(btn);
+                    setButtonState(btn, this.roomData.privateTeamSize == size, this.isLeader);
+                }
+                setButtonState(this.kitOn, this.roomData.privateGodLoadout, this.isLeader);
+                setButtonState(this.kitOff, !this.roomData.privateGodLoadout, this.isLeader);
+                $("#team-god-loadout").toggle(!!this.roomData.privateGodLoadout);
+            }
+
             // Fill mode
             setButtonState(this.fillAuto, this.roomData.autoFill, this.isLeader);
             setButtonState(this.fillNone, !this.roomData.autoFill, this.isLeader);
@@ -595,6 +646,7 @@ export class TeamMenu {
                     isLeader: false,
                     inGame: false,
                     self: false,
+                    team: -1,
                 };
                 if (t < this.players.length) {
                     const player = this.players[t];
@@ -604,6 +656,7 @@ export class TeamMenu {
                         isLeader: player.isLeader,
                         inGame: player.inGame,
                         self: player.playerId == this.localPlayerId,
+                        team: player.team,
                     };
                 }
 
@@ -625,6 +678,21 @@ export class TeamMenu {
                         "data-playerid": playerStatus.playerId,
                     }),
                 );
+                // private match side tag, click to switch (own row, or any row for the leader)
+                if (this.roomData.privateMatch && playerStatus.team >= 0) {
+                    const canSwitch = playerStatus.self || this.isLeader;
+                    member.append(
+                        $("<div/>", {
+                            class: `team-side ${playerStatus.team === 1 ? "side-b" : "side-a"}${
+                                canSwitch ? " can-switch" : ""
+                            }`,
+                            text: playerStatus.team === 1 ? "B" : "A",
+                            title: canSwitch ? "Switch side" : "",
+                            "data-playerid": playerStatus.playerId,
+                            "data-team": playerStatus.team,
+                        }),
+                    );
+                }
                 let nameInput: JQuery<HTMLInputElement> | null = null;
                 let submitButton: JQuery<HTMLDivElement> | null = null;
                 if (this.editingName && playerStatus.self) {

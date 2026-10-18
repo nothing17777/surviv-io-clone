@@ -169,7 +169,8 @@ export class Application {
                     this.tryQuickStartGame(idx);
                 });
             });
-            initGodLoadoutPicker();
+            initGodLoadoutPicker("god");
+            initGodLoadoutPicker("team-god");
 
             this.serverSelect.on("change", () => {
                 const t = this.serverSelect.find(":selected").val();

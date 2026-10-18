@@ -40,6 +40,9 @@ class Player {
 
     inGame = false;
 
+    /** private match side, 0 = Team A, 1 = Team B */
+    team = 0;
+
     get isLeader() {
         // first player is always leader
         return !!this.room && this.room.players[0] == this;
@@ -55,6 +58,7 @@ class Player {
             inGame: this.inGame,
             isLeader: this.isLeader,
             playerId: this.playerId,
+            team: this.team,
         };
     }
 
@@ -109,6 +113,10 @@ class Room {
         gameModeIdx: 1,
         maxPlayers: 4,
         captchaEnabled: false,
+        privateMatch: false,
+        privateMapName: "duel",
+        privateTeamSize: 1,
+        privateGodLoadout: true,
     };
 
     constructor(
@@ -128,6 +136,10 @@ class Room {
 
         this.players.push(player);
         player.room = this;
+        // keep private match sides even: join the smaller one
+        const teamA = this.players.filter((p) => p !== player && p.team === 0).length;
+        const teamB = this.players.filter((p) => p !== player && p.team === 1).length;
+        player.team = teamB < teamA ? 1 : 0;
 
         clearTimeout(player.disconnectTimeout);
 
@@ -163,6 +175,15 @@ class Room {
                 this.kick(msg.data.playerId);
                 break;
             }
+            case "setTeam": {
+                // players pick their own side, the leader can move anyone
+                const target = this.players[msg.data.playerId];
+                if (!target) break;
+                if (target !== player && !player.isLeader) break;
+                target.team = msg.data.team === 1 ? 1 : 0;
+                this.sendState();
+                break;
+            }
             case "playGame": {
                 if (!player.isLeader) break;
                 this.findGame(msg.data);
@@ -190,8 +211,20 @@ class Room {
 
         this.data.gameModeIdx = gameModeIdx;
 
-        this.data.maxPlayers = modes[gameModeIdx].teamMode;
         this.data.autoFill = props.autoFill;
+
+        this.data.privateMatch = !!props.privateMatch;
+        const mapNames = this.teamMenu.privateMapNames();
+        if (props.privateMapName && mapNames.includes(props.privateMapName)) {
+            this.data.privateMapName = props.privateMapName;
+        } else if (!mapNames.includes(this.data.privateMapName)) {
+            this.data.privateMapName = mapNames[0];
+        }
+        this.data.privateTeamSize = Math.min(4, Math.max(1, Math.round(props.privateTeamSize ?? this.data.privateTeamSize)));
+        this.data.privateGodLoadout = props.privateGodLoadout ?? this.data.privateGodLoadout;
+
+        // a private match holds both sides, so up to 8 players
+        this.data.maxPlayers = this.data.privateMatch ? 8 : modes[gameModeIdx].teamMode;
 
         // kick players that don't fit on the new max players
         while (this.players.length > this.data.maxPlayers) {
@@ -257,8 +290,23 @@ class Room {
         );
 
         const mode = this.teamMenu.server.modes[this.data.gameModeIdx];
-        if (!mode || !mode.enabled) {
+        if (!this.data.privateMatch && (!mode || !mode.enabled)) {
             return;
+        }
+
+        if (this.data.privateMatch) {
+            const size = this.data.privateTeamSize;
+            const sideA = this.players.filter((p) => p.team === 0).length;
+            const sideB = this.players.length - sideA;
+            if (sideA > size || sideB > size) {
+                this.data.lastError = "private_teams_invalid";
+                this.data.findingGame = false;
+                this.sendState();
+                return;
+            }
+            playerData.forEach((data, i) => {
+                data.team = this.players[i].team;
+            });
         }
 
         if (this.data.captchaEnabled) {
@@ -283,9 +331,10 @@ class Room {
         }
 
         const res = await this.teamMenu.server.findGame({
-            mapName: mode.mapName,
-            teamMode: mode.teamMode,
-            autoFill: this.data.autoFill,
+            mapName: this.data.privateMatch ? this.data.privateMapName : mode.mapName,
+            teamMode: this.data.privateMatch ? this.data.privateTeamSize : mode.teamMode,
+            privateMatch: this.data.privateMatch ? { godLoadout: this.data.privateGodLoadout } : undefined,
+            autoFill: this.data.privateMatch ? false : this.data.autoFill,
             region: region,
             version: data.version,
             playerData,
@@ -389,6 +438,15 @@ export class TeamMenu {
                 }
             }
         }, 1000);
+    }
+
+    /** maps a private match can use: every map that has a mode in the config */
+    privateMapNames() {
+        const names: string[] = [];
+        for (const mode of this.server.modes) {
+            if (mode.enabled && !names.includes(mode.mapName)) names.push(mode.mapName);
+        }
+        return names;
     }
 
     allowedGameModeIdxs() {

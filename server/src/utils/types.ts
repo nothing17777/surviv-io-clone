@@ -31,6 +31,10 @@ export interface SaveGameBody {
 export interface ServerGameConfig {
     readonly mapName: MapDefKey;
     readonly teamMode: TeamMode;
+    /** set for a party's private match: duel rules (two sides) on any map */
+    readonly privateMatch?: {
+        godLoadout: boolean;
+    };
 }
 
 export const zFindGamePrivateBody = z.object({
@@ -46,8 +50,15 @@ export const zFindGamePrivateBody = z.object({
             ip: z.string(),
             loadout: loadoutSchema.optional(),
             quests: z.array(z.string()).optional(),
+            /** private match side */
+            team: z.number().optional(),
         }),
     ),
+    privateMatch: z
+        .object({
+            godLoadout: z.boolean(),
+        })
+        .optional(),
 });
 
 export type FindGamePrivateBody = z.infer<typeof zFindGamePrivateBody>;

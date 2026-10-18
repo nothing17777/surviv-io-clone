@@ -1,7 +1,7 @@
 import { type ChildProcess, fork } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { getModeMaxPlayers, type MapDefKey, MapDefs } from "../../../shared/defs/mapDefs.ts";
-import type { TeamMode } from "../../../shared/gameConfig.ts";
+import { TeamMode } from "../../../shared/gameConfig.ts";
 import { util } from "../../../shared/utils/util.ts";
 import { Config } from "../config.ts";
 import { ServerLogger } from "../utils/logger.ts";
@@ -126,6 +126,7 @@ export class GameProcess {
         this.gameData.id = id;
         this.gameData.teamMode = config.teamMode;
         this.gameData.mapName = config.mapName;
+        this.gameData.privateMatch = !!config.privateMatch;
         this.gameData.stopped = false;
         this.state = ProcState.CreatingGame;
 
@@ -281,12 +282,17 @@ export class GameProcessManager {
     }
 
     async findGame(body: FindGamePrivateBody): Promise<GameProcess | undefined> {
+        if (body.privateMatch) {
+            return await this.createPrivateMatch(body);
+        }
+
         let proc: GameProcess | undefined = this.processes
             .filter((proc) => {
                 const game = proc.gameData;
                 return (
                     (game.canJoin || proc.state === ProcState.CreatingGame)
                     && proc.avaliableSlots > 0
+                    && !game.privateMatch
                     && game.teamMode === body.teamMode
                     && game.mapName === body.mapName
                 );
@@ -319,6 +325,47 @@ export class GameProcessManager {
 
         proc.addJoinTokens(body.playerData, body.autoFill);
 
+        return proc;
+    }
+
+    /**
+     * A party's private match: always a fresh game holding only that party,
+     * with one group per side so Team A and Team B fight each other.
+     */
+    async createPrivateMatch(body: FindGamePrivateBody): Promise<GameProcess | undefined> {
+        const proc = this.newGame({
+            teamMode: body.teamMode,
+            mapName: body.mapName as MapDefKey,
+            privateMatch: body.privateMatch,
+        });
+        if (!proc) return undefined;
+
+        const addSides = (proc: GameProcess) => {
+            const sides = new Map<number, FindGamePrivateBody["playerData"]>();
+            for (const player of body.playerData) {
+                const team = player.team ?? 0;
+                if (!sides.has(team)) sides.set(team, []);
+                sides.get(team)!.push(player);
+            }
+            for (const players of sides.values()) {
+                if (body.teamMode === TeamMode.Solo) {
+                    // free for all: everyone is on their own
+                    for (const player of players) proc.addJoinTokens([player], false);
+                } else {
+                    proc.addJoinTokens(players, false);
+                }
+            }
+        };
+
+        if (proc.state !== ProcState.Running) {
+            return await new Promise((resolve) => {
+                proc.onCreatedCbs.push((proc) => {
+                    addSides(proc);
+                    resolve(proc);
+                });
+            });
+        }
+        addSides(proc);
         return proc;
     }
 

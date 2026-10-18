@@ -12,6 +12,8 @@ export interface GameData {
     startedTime: number;
     stopped: boolean;
     timeRunning: number;
+    /** private party matches are never offered to other players */
+    privateMatch?: boolean;
 
     livingPlayers: Array<{
         id: number;

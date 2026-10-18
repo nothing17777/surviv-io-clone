@@ -7237,3 +7237,60 @@ input [type="image"]:focus {
         top: 310px;
     }
 }
+
+#team-private-sizes > a {
+    flex: 1 1 22%;
+}
+
+#team-private-hint {
+    color: #ccc;
+    font-size: 12px;
+    margin: 0 0 6px;
+    text-align: center;
+}
+
+.team-menu-member > .team-side {
+    border-radius: 6px;
+    color: #fff;
+    cursor: default;
+    font-weight: bold;
+    height: 36px;
+    line-height: 36px;
+    margin: 2px 4px 0;
+    min-width: 36px;
+    text-align: center;
+}
+
+.team-menu-member > .team-side.side-a {
+    background: #2f6fd6;
+}
+
+.team-menu-member > .team-side.side-b {
+    background: #d63a2f;
+}
+
+.team-menu-member > .team-side.can-switch {
+    cursor: pointer;
+}
+
+.god-row {
+    align-items: center;
+    display: flex;
+    gap: 6px;
+}
+
+.god-row > select {
+    flex: 1;
+    min-width: 0;
+}
+
+.god-item-img {
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: 6px;
+    flex: 0 0 auto;
+    height: 40px;
+    margin-bottom: 8px;
+    object-fit: contain;
+    padding: 2px;
+    width: 40px;
+}

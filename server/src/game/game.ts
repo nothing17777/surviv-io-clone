@@ -1,4 +1,4 @@
-import { getModeMaxPlayers, type MapDefKey } from "../../../shared/defs/mapDefs.ts";
+import { getModeMaxPlayers, type MapDefKey, MapDefs } from "../../../shared/defs/mapDefs.ts";
 import { TeamMode } from "../../../shared/gameConfig.ts";
 import type { Loadout } from "../../../shared/utils/loadout.ts";
 import { math } from "../../../shared/utils/math.ts";
@@ -67,6 +67,8 @@ export class Game {
     teamMode: TeamMode;
     mapName: MapDefKey;
     isTeamMode: boolean;
+    /** spawn everyone with the duel kit (duel maps, or a private match with it on) */
+    godLoadout: boolean;
     config: ServerGameConfig;
     modeManager: GameModeManager;
 
@@ -122,6 +124,10 @@ export class Game {
         this.teamMode = config.teamMode;
         this.mapName = config.mapName;
         this.isTeamMode = this.teamMode !== TeamMode.Solo;
+        const mapGameMode = MapDefs[this.mapName].gameMode;
+        this.godLoadout = config.privateMatch
+            ? config.privateMatch.godLoadout
+            : !!mapGameMode.godLoadout;
 
         this.map = new GameMap(this);
         this.grid = new Grid(this.map.width, this.map.height);

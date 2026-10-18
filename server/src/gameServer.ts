@@ -69,6 +69,7 @@ class GameServer {
             mapName: body.mapName,
             teamMode: body.teamMode,
             playerData: body.playerData,
+            privateMatch: body.privateMatch,
         });
         if (!game) {
             return {

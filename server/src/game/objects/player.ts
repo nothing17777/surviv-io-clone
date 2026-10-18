@@ -198,7 +198,7 @@ export class PlayerBarn {
         );
 
         this.activatePlayer(player, group, team);
-        const godLoadout = !!this.game.map.mapDef.gameMode.godLoadout;
+        const godLoadout = this.game.godLoadout;
         player.setLoadout(
             joinData.loadout ? joinData.loadout : joinMsg.loadout,
             // god loadout maps let everyone use every skin / melee
@@ -4372,6 +4372,12 @@ export class Player extends BaseGameObject {
         const throwDef = GameObjectDefs.typeToDefSafe(godLoadout.throwable);
         const throwable = throwDef?.type === "throwable" ? godLoadout.throwable : "frag";
         this.weaponManager.setWeapon(GameConfig.WeaponSlot.Throwable, throwable, 0);
+
+        // any melee weapon, no unlock needed (empty keeps the normal loadout melee)
+        const meleeDef = GameObjectDefs.typeToDefSafe(godLoadout.melee);
+        if (meleeDef?.type === "melee") {
+            this.weaponManager.setWeapon(GameConfig.WeaponSlot.Melee, godLoadout.melee, 0);
+        }
 
         this.weaponManager.showNextThrowable();
         this.recalculateScale();
