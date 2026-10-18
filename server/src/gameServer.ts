@@ -43,7 +43,12 @@ class GameServer {
         const mainPortUrl = new URL(`${protocol}://${this.region.address}/play`);
 
         const gamePortUrl = new URL(mainPortUrl.toString());
-        gamePortUrl.port = game.port.toString();
+        if (process.env["SURVIV_GAME_PATH_ROUTING"] === "true") {
+            // single public port, scripts/gameProxy.mjs forwards to the game's port
+            gamePortUrl.pathname = `/play/${game.port}`;
+        } else {
+            gamePortUrl.port = game.port.toString();
+        }
 
         return [gamePortUrl.toString()];
     }

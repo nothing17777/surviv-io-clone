@@ -109,8 +109,9 @@ export function getConfig(isProduction: boolean, dir: string) {
     }
     const envGameAddress = process.env["SURVIV_GAME_ADDRESS"];
     if (envGameAddress) {
+        // keyed by the game server's own region so the API can match them up
         config.regions = {
-            na: {
+            [config.gameServer.thisRegion]: {
                 https: process.env["SURVIV_GAME_HTTPS"] !== "false",
                 address: envGameAddress,
                 l10n: "index-north-america",
