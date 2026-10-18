@@ -17,7 +17,13 @@ const server = http.createServer((req, res) => {
             upRes.pipe(res);
         },
     );
-    upstream.on("error", () => res.writeHead(502).end());
+    upstream.on("error", () => {
+        // the reply may already be streaming, so only send a 502 if it hasn't started
+        if (!res.headersSent) res.writeHead(502);
+        res.end();
+    });
+    req.on("error", () => upstream.destroy());
+    res.on("error", () => upstream.destroy());
     req.pipe(upstream);
 });
 
@@ -40,6 +46,11 @@ server.on("upgrade", (req, socket, head) => {
     });
     upstream.on("error", () => socket.destroy());
     socket.on("error", () => upstream.destroy());
+});
+
+// one bad connection must never take the whole proxy down
+process.on("uncaughtException", (err) => {
+    console.error("game proxy error:", err);
 });
 
 server.listen(listenPort, "127.0.0.1", () => {

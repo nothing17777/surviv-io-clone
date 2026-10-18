@@ -34,7 +34,8 @@ echo "==========================================================================
 echo
 printf 'SURVIV_API_URL=%s\nSURVIV_GAME_ADDRESS=%s\n' "$SURVIV_API_URL" "$SURVIV_GAME_ADDRESS" > current-urls.txt
 
-node scripts/gameProxy.mjs &
+# keep the proxy alive even if it ever exits
+(while true; do node scripts/gameProxy.mjs; sleep 1; done) &
 (cd server && pnpm dev:api) &
 (cd server && pnpm dev:game) &
 wait
