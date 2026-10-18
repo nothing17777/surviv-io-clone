@@ -2,6 +2,7 @@ import type { Hono } from "hono";
 import { getCookie } from "hono/cookie";
 import type { UpgradeWebSocket, WSContext } from "hono/ws";
 import { randomUUID } from "node:crypto";
+import { type MapDefKey, MapDefs } from "../../shared/defs/mapDefs.ts";
 import type { FindGamePrivateError } from "../../shared/types/api.ts";
 import {
     type ClientRoomData,
@@ -184,7 +185,7 @@ class Room {
         if (!this.data.enabledGameModeIdxs.includes(gameModeIdx)) {
             // we don't allow creating teams if there's no valid team mode
             // so this will never be -1
-            gameModeIdx = modes.findIndex((mode) => mode.enabled && mode.teamMode > 1);
+            gameModeIdx = modes.findIndex((mode) => isPartyMode(mode));
         }
 
         this.data.gameModeIdx = gameModeIdx;
@@ -353,6 +354,11 @@ function generateTeamCode(): string {
     return `${str}`;
 }
 
+/** team modes, plus 1v1 duels so a party leader can host those too */
+function isPartyMode(mode: { mapName: MapDefKey; teamMode: number; enabled: boolean }) {
+    return mode.enabled && (mode.teamMode > 1 || !!MapDefs[mode.mapName]?.gameMode.duelMode);
+}
+
 export class TeamMenu {
     rooms = new Map<string, Room>();
 
@@ -389,8 +395,7 @@ export class TeamMenu {
         return this.server.modes
             .map((_, i) => i)
             .filter((i) => {
-                const mode = this.server.modes[i];
-                return mode.enabled && mode.teamMode > 1;
+                return isPartyMode(this.server.modes[i]);
             });
     }
 

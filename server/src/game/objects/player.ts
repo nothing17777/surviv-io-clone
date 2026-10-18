@@ -198,10 +198,15 @@ export class PlayerBarn {
         );
 
         this.activatePlayer(player, group, team);
+        const godLoadout = !!this.game.map.mapDef.gameMode.godLoadout;
         player.setLoadout(
             joinData.loadout ? joinData.loadout : joinMsg.loadout,
-            !joinData.loadout,
+            // god loadout maps let everyone use every skin / melee
+            !joinData.loadout && !godLoadout,
         );
+        if (godLoadout) {
+            player.applyGodLoadout(joinMsg.godLoadout);
+        }
 
         return player;
     }
@@ -4336,6 +4341,41 @@ export class Player extends BaseGameObject {
 
             this.loadout.emotes[i] = emote;
         }
+    }
+
+    /**
+     * Duel "god" kit: max armor, backpack and scope, full ammo and heals,
+     * plus the guns / throwable the player picked in the menu.
+     */
+    applyGodLoadout(godLoadout: net.JoinMsg["godLoadout"]) {
+        this.helmet = "helmet03";
+        this.chest = "chest03";
+        this.backpack = "backpack03";
+
+        for (const item of Object.keys(GameConfig.bagSizes) as InventoryItem[]) {
+            this.invManager.set(item, this.invManager.getMaxCapacity(item));
+        }
+        this.scope = "8xscope";
+        this.zoom = this.scopeZoomRadius[this.scope];
+
+        const guns: Array<[number, string, string]> = [
+            [GameConfig.WeaponSlot.Primary, godLoadout.primary, "m4a1"],
+            [GameConfig.WeaponSlot.Secondary, godLoadout.secondary, "mp220"],
+        ];
+        for (const [slot, picked, fallback] of guns) {
+            const def = GameObjectDefs.typeToDefSafe(picked);
+            const type = def?.type === "gun" ? picked : fallback;
+            const gunDef = GameObjectDefs.typeToDef(type, "gun");
+            this.weaponManager.setWeapon(slot, type, gunDef.maxClip);
+        }
+
+        const throwDef = GameObjectDefs.typeToDefSafe(godLoadout.throwable);
+        const throwable = throwDef?.type === "throwable" ? godLoadout.throwable : "frag";
+        this.weaponManager.setWeapon(GameConfig.WeaponSlot.Throwable, throwable, 0);
+
+        this.weaponManager.showNextThrowable();
+        this.recalculateScale();
+        this.setDirty();
     }
 
     emoteFromMsg(msg: net.EmoteMsg) {

@@ -1,4 +1,4 @@
-import type { MapDefKey } from "../../../shared/defs/mapDefs.ts";
+import { getModeMaxPlayers, type MapDefKey } from "../../../shared/defs/mapDefs.ts";
 import { TeamMode } from "../../../shared/gameConfig.ts";
 import type { Loadout } from "../../../shared/utils/loadout.ts";
 import { math } from "../../../shared/utils/math.ts";
@@ -343,7 +343,7 @@ export class Game {
 
     get canJoin(): boolean {
         return (
-            this.aliveCount < this.map.mapDef.gameMode.maxPlayers
+            this.aliveCount < getModeMaxPlayers(this.map.mapDef, this.teamMode)
             && !this.over
             && this.startedTime < 60
         );

@@ -16,6 +16,7 @@ export const zMatchHistoryRequest = z.object({
     teamModeFilter: z.union([
         z.literal(TeamMode.Solo),
         z.literal(TeamMode.Duo),
+        z.literal(TeamMode.Trio),
         z.literal(TeamMode.Squad),
         z.literal(ALL_TEAM_MODES),
     ]),

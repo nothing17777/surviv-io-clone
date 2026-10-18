@@ -101,6 +101,23 @@ export function getConfig(isProduction: boolean, dir: string) {
 
     util.mergeDeep(config, localConfig);
 
+    // Static client builds (e.g. Vercel) can't read a config file from the server,
+    // so let env vars point the client at the separately hosted API + game server.
+    const envApiUrl = process.env["SURVIV_API_URL"];
+    if (envApiUrl) {
+        config.proxies.default = { ...config.proxies.default, apiUrl: envApiUrl };
+    }
+    const envGameAddress = process.env["SURVIV_GAME_ADDRESS"];
+    if (envGameAddress) {
+        config.regions = {
+            na: {
+                https: process.env["SURVIV_GAME_HTTPS"] !== "false",
+                address: envGameAddress,
+                l10n: "index-north-america",
+            },
+        };
+    }
+
     if (!config.oauthRedirectURI) {
         // apply this default after merging the local config
         // so if the local config changes the vite host and port it will still be right

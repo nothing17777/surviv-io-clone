@@ -133,6 +133,7 @@ export enum Rarity {
 export enum TeamMode {
     Solo = 1,
     Duo = 2,
+    Trio = 3,
     Squad = 4,
 }
 
@@ -170,6 +171,7 @@ export const GameConfig = {
     TeamModeToString: {
         [TeamMode.Solo]: "solo",
         [TeamMode.Duo]: "duo",
+        [TeamMode.Trio]: "trio",
         [TeamMode.Squad]: "squad",
     },
     FactionTeam,

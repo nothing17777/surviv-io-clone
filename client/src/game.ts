@@ -11,6 +11,7 @@ import { Camera } from "./camera.ts";
 import type { ConfigManager, DebugRendererOpts } from "./config.ts";
 import { DebugHUD } from "./debug/debugHUD.ts";
 import { debugLines } from "./debug/debugLines.ts";
+import { loadGodLoadout } from "./ui/modePicker.ts";
 
 /* STRIP_FROM_PROD_CLIENT:START */
 import { Editor } from "./debug/editor.ts";
@@ -169,6 +170,7 @@ export class Game {
                 joinMessage.isMobile = device.mobile || window.mobile!;
                 joinMessage.bot = false;
                 joinMessage.loadout = this.m_config.get("loadout")!;
+                joinMessage.godLoadout = loadGodLoadout();
                 this.m_sendMessage(net.MsgType.Join, joinMessage, 8192);
             };
             this.m_connection.onMessage = (data) => {

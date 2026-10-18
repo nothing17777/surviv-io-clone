@@ -19,6 +19,7 @@ import type { PingTest } from "../pingTest.ts";
 import { SDK } from "../sdk/sdk.ts";
 import type { SiteInfo } from "../siteInfo.ts";
 import type { Localization } from "./localization.ts";
+import { fillMapSelect, getModeMaps, modeLabel } from "./modePicker.ts";
 
 function errorTypeToString(type: TeamMenuErrorType, localization: Localization) {
     const typeMap = {
@@ -44,12 +45,12 @@ export class TeamMenu {
     playBtn = $("#btn-start-team");
     serverWarning = $("#server-warning");
     teamOptions = $(
-        "#btn-team-queue-mode-1, #btn-team-queue-mode-2, #btn-team-fill-auto, #btn-team-fill-none",
+        "#btn-team-fill-auto, #btn-team-fill-none",
     );
 
     serverSelect = $("#team-server-select");
-    queueMode1 = $("#btn-team-queue-mode-1");
-    queueMode2 = $("#btn-team-queue-mode-2");
+    mapSelect = $("#team-map-select");
+    queueModes = $("#team-queue-modes");
     fillAuto = $("#btn-team-fill-auto");
     fillNone = $("#btn-team-fill-none");
 
@@ -95,11 +96,16 @@ export class TeamMenu {
             this.pingTest.start([e]);
             this.setRoomProperty("region", e);
         });
-        this.queueMode1.on("click", () => {
-            this.setRoomProperty("gameModeIdx", 1);
+        this.queueModes.on("click", ".btn-team-queue", (e) => {
+            const idx = Number($(e.currentTarget).attr("data-mode-idx"));
+            this.setRoomProperty("gameModeIdx", idx);
         });
-        this.queueMode2.on("click", () => {
-            this.setRoomProperty("gameModeIdx", 2);
+        this.mapSelect.on("change", () => {
+            // switch to the first allowed mode on the picked map
+            const mapName = this.mapSelect.val() as string;
+            const modes = this.siteInfo.info.modes || [];
+            const idx = this.roomData.enabledGameModeIdxs.find((i) => modes[i]?.mapName === mapName);
+            if (idx !== undefined) this.setRoomProperty("gameModeIdx", idx);
         });
         this.fillAuto.on("click", () => {
             this.setRoomProperty("autoFill", true);
@@ -454,16 +460,27 @@ export class TeamMenu {
             });
 
             // Modes btns
-            setButtonState(
-                this.queueMode1,
-                this.roomData.gameModeIdx == 1,
-                this.isLeader && this.roomData.enabledGameModeIdxs.includes(1),
+            const modes = this.siteInfo.info.modes || [];
+            const allowed = this.roomData.enabledGameModeIdxs || [];
+            const curMap = modes[this.roomData.gameModeIdx]?.mapName || "main";
+            fillMapSelect(
+                this.mapSelect,
+                getModeMaps(modes, (m) => allowed.includes(modes.indexOf(m))),
+                curMap,
             );
-            setButtonState(
-                this.queueMode2,
-                this.roomData.gameModeIdx == 2,
-                this.isLeader && this.roomData.enabledGameModeIdxs.includes(2),
-            );
+            this.mapSelect.prop("disabled", !this.isLeader);
+            this.queueModes.empty();
+            for (const i of allowed) {
+                const mode = modes[i];
+                if (!mode || mode.mapName !== curMap) continue;
+                const btn = $("<a>", {
+                    class: "btn-hollow btn-hollow-selected btn-darken team-menu-option btn-team-queue",
+                    text: modeLabel(mode),
+                    "data-mode-idx": i,
+                });
+                this.queueModes.append(btn);
+                setButtonState(btn, this.roomData.gameModeIdx == i, this.isLeader);
+            }
 
             // Fill mode
             setButtonState(this.fillAuto, this.roomData.autoFill, this.isLeader);

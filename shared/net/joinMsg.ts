@@ -14,6 +14,12 @@ export class JoinMsg implements AbstractMsg {
         boost: "",
         emotes: [] as string[],
     };
+    /** guns picked in the menu, only used on god loadout (duel) maps */
+    godLoadout = {
+        primary: "",
+        secondary: "",
+        throwable: "",
+    };
 
     serialize(s: BitStream) {
         // NEVER PUT THIS ANYWHERE ELSE OR CHANGE ITS SIZE!!
@@ -34,6 +40,10 @@ export class JoinMsg implements AbstractMsg {
         s.writeArray(this.loadout.emotes, 8, (emote) => {
             s.writeGameType(emote);
         });
+
+        s.writeGameType(this.godLoadout.primary);
+        s.writeGameType(this.godLoadout.secondary);
+        s.writeGameType(this.godLoadout.throwable);
     }
 
     deserialize(s: BitStream) {
@@ -53,5 +63,9 @@ export class JoinMsg implements AbstractMsg {
         this.loadout.emotes = s.readArray(8, () => {
             return s.readGameType();
         });
+
+        this.godLoadout.primary = s.readGameType();
+        this.godLoadout.secondary = s.readGameType();
+        this.godLoadout.throwable = s.readGameType();
     }
 }

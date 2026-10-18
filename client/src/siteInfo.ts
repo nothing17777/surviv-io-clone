@@ -6,6 +6,7 @@ import { api } from "./api.ts";
 import type { ConfigManager } from "./config.ts";
 import { device } from "./device.ts";
 import type { Localization } from "./ui/localization.ts";
+import { fillMapSelect, getModeMaps, isGodLoadoutMap, modeLabel } from "./ui/modePicker.ts";
 
 export class SiteInfo {
     info = {} as SiteInfoRes;
@@ -59,42 +60,59 @@ export class SiteInfo {
         return availableModes;
     }
 
+    /** map picked in the main menu map dropdown */
+    selectedMap = "";
+
+    /**
+     * Builds one play button per mode (btn-start-mode-<modeIdx>), shown only
+     * for the map picked in #mode-map-select.
+     */
+    renderModeButtons() {
+        const modes = this.info.modes || [];
+        const maps = getModeMaps(modes);
+        if (!maps.includes(this.selectedMap)) {
+            let saved = "";
+            try {
+                saved = localStorage.getItem("survev_mode_map") || "";
+            } catch {}
+            this.selectedMap = maps.includes(saved) ? saved : maps[0] || "main";
+        }
+
+        const select = $("#mode-map-select");
+        fillMapSelect(select, maps, this.selectedMap);
+        select.off("change").on("change", () => {
+            this.selectedMap = select.val() as string;
+            try {
+                localStorage.setItem("survev_mode_map", this.selectedMap);
+            } catch {}
+            this.renderModeButtons();
+        });
+
+        const container = $("#btns-quick-start");
+        container.empty();
+        for (let i = 0; i < modes.length; i++) {
+            const mode = modes[i];
+            if (!mode.enabled || mode.mapName !== this.selectedMap) continue;
+            const label = `Play ${modeLabel(mode)}`;
+            const btn = $("<a>", {
+                id: `btn-start-mode-${i}`,
+                class: "btn-green btn-darken menu-option btn-start-mode",
+                text: label,
+            });
+            btn.attr("data-label", label);
+            btn.attr("data-mode-idx", i);
+            container.append(btn);
+        }
+
+        $("#god-loadout-picker").toggle(isGodLoadoutMap(this.selectedMap));
+    }
+
     updatePageFromInfo() {
         if (this.loaded) {
-            const getGameModeStyles = this.getGameModeStyles();
-            for (let i = 0; i < getGameModeStyles.length; i++) {
-                const style = getGameModeStyles[i];
-                const selector = `index-play-${style.buttonText}`;
-                const btn = $(`#btn-start-mode-${i}`);
-                btn.data("l10n", selector);
-                btn.html(this.localization.translate(selector));
-                if (style.icon || style.buttonCss) {
-                    if (i == 0) {
-                        btn.addClass("btn-custom-mode-no-indent");
-                    } else {
-                        btn.addClass("btn-custom-mode-main");
-                    }
-                    btn.addClass(style.buttonCss);
-                    btn.css({
-                        "background-image": `url(${style.icon})`,
-                    });
-                }
-                const l = $(`#btn-team-queue-mode-${i}`);
-                if (l.length) {
-                    const c = `index-${style.buttonText}`;
-                    l.data("l10n", c);
-                    l.html(this.localization.translate(c));
-                    if (style.icon) {
-                        l.addClass("btn-custom-mode-select");
-                        l.css({
-                            "background-image": `url(${style.icon})`,
-                        });
-                    }
-                }
-
-                btn.toggle(style.enabled);
-            }
-            const supportsTeam = this.info.modes.some((s) => s.enabled && s.teamMode > 1);
+            this.renderModeButtons();
+            const supportsTeam = this.info.modes.some((s) =>
+                s.enabled && (s.teamMode > 1 || !!MapDefs[s.mapName as MapDefKey]?.gameMode.duelMode)
+            );
             $("#btn-join-team, #btn-create-team").toggle(supportsTeam);
 
             // Region pops

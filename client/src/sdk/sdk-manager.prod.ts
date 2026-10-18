@@ -145,7 +145,7 @@ export class SDKManager implements BaseSDKManager {
         } else {
             $(".btn-kofi").show();
             $(".surviv-shirts")
-                .css("background-image", "url(./img/survev-kofi.png)")
+                .css("background-image", "url(./img/surviv-kofi.png)")
                 .html(`<a href="https://ko-fi.com/survev" target="_blank"></a>`);
 
             await this.initNitro();

@@ -1,6 +1,6 @@
 import { type ChildProcess, fork } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { type MapDefKey, MapDefs } from "../../../shared/defs/mapDefs.ts";
+import { getModeMaxPlayers, type MapDefKey, MapDefs } from "../../../shared/defs/mapDefs.ts";
 import type { TeamMode } from "../../../shared/gameConfig.ts";
 import { util } from "../../../shared/utils/util.ts";
 import { Config } from "../config.ts";
@@ -130,7 +130,7 @@ export class GameProcess {
         this.state = ProcState.CreatingGame;
 
         const mapDef = MapDefs[this.gameData.mapName as MapDefKey];
-        this.avaliableSlots = mapDef.gameMode.maxPlayers;
+        this.avaliableSlots = getModeMaxPlayers(mapDef, config.teamMode);
 
         this.reusedCount++;
     }

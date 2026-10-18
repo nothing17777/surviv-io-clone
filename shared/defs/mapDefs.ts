@@ -8,6 +8,7 @@ import { Beach } from "./maps/beachDefs.ts";
 import { Birthday } from "./maps/birthdayDefs.ts";
 import { Cobalt } from "./maps/cobaltDefs.ts";
 import { Desert } from "./maps/desertDefs.ts";
+import { Duel, DuelClassic } from "./maps/duelDefs.ts";
 import { Faction } from "./maps/factionDefs.ts";
 import { FactionPotato } from "./maps/factionPotatoDefs.ts";
 import { Halloween } from "./maps/halloweenDefs.ts";
@@ -59,6 +60,8 @@ const _MapDefs = {
     turkey: Turkey,
     birthday: Birthday,
     beach: Beach,
+    duel: Duel,
+    duel_classic: DuelClassic,
 
     /* STRIP_FROM_PROD_CLIENT:START */
     test_normal: testNormal,
@@ -69,6 +72,11 @@ const _MapDefs = {
 export type MapDefKey = keyof typeof _MapDefs;
 
 export const MapDefs = _MapDefs as Record<MapDefKey, MapDef>;
+
+/** Player capacity of a game; duel maps only fit exactly two teams. */
+export function getModeMaxPlayers(mapDef: MapDef, teamMode: number) {
+    return mapDef.gameMode.duelMode ? teamMode * 2 : mapDef.gameMode.maxPlayers;
+}
 
 export interface MapDef {
     mapId: MapId;
@@ -133,6 +141,10 @@ export interface MapDef {
         perkMode?: boolean;
         perkModeRoles?: string[];
         turkeyMode?: boolean;
+        /** two teams only, max players = teamMode * 2 */
+        duelMode?: boolean;
+        /** spawn players with max gear and their chosen guns */
+        godLoadout?: boolean;
         spookyKillSounds?: boolean;
     };
     gameConfig: {

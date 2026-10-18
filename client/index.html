@@ -4,7 +4,7 @@
         %VITE_TURNSTILE_SCRIPT%
         <!-- Meta Properties -->
         <meta charset="UTF-8">
-        <title>survev.io - 2d battle royale game</title>
+        <title>surviv.io - 2d battle royale game</title>
         <meta
             name="viewport"
             content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, viewport-fit=cover, user-scalable=no"
@@ -12,9 +12,9 @@
         <link rel="manifest" href="manifest.json">
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-title" content="survev.io">
+        <meta name="apple-mobile-web-app-title" content="surviv.io">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-        <meta name="application-name" content="survev.io">
+        <meta name="application-name" content="surviv.io">
         <meta
             name="description"
             content="Like games such as Player Unknown's Battlegrounds (PUBG), Fortnite or Apex Legends? Play this free 2d battle royale io game in your browser!"
@@ -25,14 +25,14 @@
         >
         <meta
             name="keywords"
-            content="survev, resurviv, survivio, surviv, 2d battle royale, io, battle royale browser game, 2d battlegrounds, battlegrounds, battleroyale, battle, royale, browser game, br, survival, game, web game, multiplayer"
+            content="surviv, resurviv, survivio, surviv, 2d battle royale, io, battle royale browser game, 2d battlegrounds, battlegrounds, battleroyale, battle, royale, browser game, br, survival, game, web game, multiplayer"
         >
         <meta property="og:type" content="website">
-        <meta property="og:title" content="survev.io">
-        <meta property="og:url" content="https://survev.io/">
-        <meta property="og:site_name" content="survev.io">
-        <meta content="https://survev.io/img/survev_title.png" property="og:image">
-        <link rel="canonical" href="https://survev.io" />
+        <meta property="og:title" content="surviv.io">
+        <meta property="og:url" content="https://surviv.io/">
+        <meta property="og:site_name" content="surviv.io">
+        <meta content="https://surviv.io/img/surviv_title.png" property="og:image">
+        <link rel="canonical" href="https://surviv.io" />
         <link rel="apple-touch-icon-precomposed" href="img/icon_app.png">
         <link rel="icon" href="favicon.ico" type="image/x-icon">
 
@@ -1056,9 +1056,9 @@
                                 <div id="social-share-block" class="menu-block">
                                     <div class="btn-social-wrapper">
                                         <!--
-                                            <a href="https://facebook.com/survev" target="_blank" class="btn-social btn-darken btn-facebook"></a>
-                                            <a href="https://twitter.com/survev" target="_blank" class="btn-social btn-darken btn-twitter"></a>
-                                            <a href="https://www.instagram.com/survev/" target="_blank" class="btn-social btn-darken btn-instagram"></a>
+                                            <a href="https://facebook.com/surviv" target="_blank" class="btn-social btn-darken btn-facebook"></a>
+                                            <a href="https://twitter.com/surviv" target="_blank" class="btn-social btn-darken btn-twitter"></a>
+                                            <a href="https://www.instagram.com/surviv/" target="_blank" class="btn-social btn-darken btn-instagram"></a>
                                         -->
                                         <a
                                             href="https://discord.gg/75RAK3p3K2"
@@ -1066,18 +1066,18 @@
                                             class="btn-social btn-darken btn-discord"
                                         ></a>
                                         <a
-                                            href="https://ko-fi.com/survev"
+                                            href="https://ko-fi.com/surviv"
                                             target="_blank"
                                             style="display: none"
                                             class="btn-social btn-darken btn-kofi"
                                         ></a>
                                         <a
-                                            href="https://survev.wiki.gg/"
+                                            href="https://surviv.wiki.gg/"
                                             target="_blank"
                                             class="btn-social btn-darken btn-wiki"
                                         ></a>
                                         <!--
-                                            <a href="https://www.youtube.com/c/survev?sub_confirmation=1" target="_blank" class="btn-social btn-darken btn-youtube"></a>
+                                            <a href="https://www.youtube.com/c/surviv?sub_confirmation=1" target="_blank" class="btn-social btn-darken btn-youtube"></a>
                                         -->
                                     </div>
                                 </div>
@@ -1108,22 +1108,25 @@
                                 >
                                     <optgroup id="server-opts" label="Region" data-l10n="index-region"></optgroup>
                                 </select>
-                                <a
-                                    class="btn-green btn-darken menu-option"
-                                    id="btn-start-mode-0"
-                                    data-l10n="index-play-solo"
-                                >Play Solo</a>
-                                <div id="btns-quick-start">
-                                    <a
-                                        class="btn-green btn-darken menu-option"
-                                        id="btn-start-mode-1"
-                                        data-l10n="index-play-duo"
-                                    >Play Duo</a>
-                                    <a
-                                        class="btn-green btn-darken menu-option"
-                                        id="btn-start-mode-2"
-                                        data-l10n="index-play-squad"
-                                    >Play Squad</a>
+                                <select
+                                    id="mode-map-select"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
+                                <div id="btns-quick-start"></div>
+                                <div id="god-loadout-picker" style="display: none">
+                                    <div class="god-loadout-title">God Loadout</div>
+                                    <select
+                                        id="god-primary"
+                                        class="server-select menu-option btn-hollow btn-hollow-selected"
+                                    ></select>
+                                    <select
+                                        id="god-secondary"
+                                        class="server-select menu-option btn-hollow btn-hollow-selected"
+                                    ></select>
+                                    <select
+                                        id="god-throwable"
+                                        class="server-select menu-option btn-hollow btn-hollow-selected"
+                                    ></select>
                                 </div>
                                 <div class="btns-double-row">
                                     <a
@@ -1249,13 +1252,13 @@
                                     </p>
                                     <h1 data-l10n="index-how-to-play">How to Play</h1>
                                     <p data-l10n="index-tips-1-desc">
-                                        The goal of survev.io is to be the last player standing. You only live once per
+                                        The goal of surviv.io is to be the last player standing. You only live once per
                                         game - there is no respawn!
                                     </p>
                                     <h1 data-l10n="index-tips-2">2D PUBG</h1>
                                     <p data-l10n="index-tips-2-desc">
                                         If you've played other battle royale games like PUBG, Fortnite or H1Z1, then
-                                        you're already halfway there! Think of survev.io as 2D PUBG (with slightly less
+                                        you're already halfway there! Think of surviv.io as 2D PUBG (with slightly less
                                         desync and more chicken).
                                     </p>
                                     <h1 data-l10n="index-tips-3">Loot and Kill</h1>
@@ -1315,18 +1318,11 @@
                                             >
                                                 <optgroup id="team-server-opts" label="Region"></optgroup>
                                             </select>
-                                            <div class="team-menu-options-buttons">
-                                                <a
-                                                    class="btn-hollow btn-hollow-selected btn-darken team-menu-option btn-team-queue"
-                                                    id="btn-team-queue-mode-1"
-                                                    data-l10n="index-duo"
-                                                >Duo</a>
-                                                <a
-                                                    class="btn-hollow btn-hollow-selected btn-darken team-menu-option btn-team-queue"
-                                                    id="btn-team-queue-mode-2"
-                                                    data-l10n="index-squad"
-                                                >Squad</a>
-                                            </div>
+                                            <select
+                                                id="team-map-select"
+                                                class="btn-hollow btn-hollow-selected server-select menu-option"
+                                            ></select>
+                                            <div class="team-menu-options-buttons" id="team-queue-modes"></div>
                                             <div class="team-menu-options-buttons">
                                                 <a
                                                     class="btn-hollow btn-hollow-selected btn-darken team-menu-option btn-team-fill"
@@ -1524,10 +1520,10 @@
                                             <small class="news-date">September 8th, 2026</small>
                                             <p class="news-paragraph"><strong>Cosmetic Craze</strong></p>
                                             <p class="news-paragraph">
-                                                <span class="highlight">Survevr Pass 2</span> has arrived to the island
+                                                <span class="highlight">Survivr Pass 2</span> has arrived to the island
                                                 with a new batch of over 20 cosmetics, some being community creations!
                                                 For a full list of cosmetics, check out the <a
-                                                    href="https://survev.wiki.gg/wiki/Survevr_Passes#Survevr_Pass_2"
+                                                    href="https://surviv.wiki.gg/wiki/Survivr_Passes#Survivr_Pass_2"
                                                 >wiki</a>.
                                             </p>
                                             <p class="news-paragraph">
@@ -1551,10 +1547,10 @@
                                                 entirely on your quest for the chicken dinner...
                                             </p>
                                             <p class="news-paragraph">
-                                                Additionally, be sure to push for your final cosmetics, as Survevr Pass
+                                                Additionally, be sure to push for your final cosmetics, as Survivr Pass
                                                 1 will be coming to a close with the next update! If you need a
                                                 refresher on what the current pass has in store, be sure to check out
-                                                the <a href="https://survev.wiki.gg/wiki/Survevr_Passes#Survevr_Pass_1"
+                                                the <a href="https://surviv.wiki.gg/wiki/Survivr_Passes#Survivr_Pass_1"
                                                 >wiki</a>.
                                             </p>
                                         </div>
@@ -1571,21 +1567,21 @@
                                                 For those who want to get up to speed with the latest leeks, news, and
                                                 updates, be sure to check out our <a
                                                     href="https://discord.gg/75RAK3p3K2"
-                                                >Discord Server</a>! or our <a href="https://survev.wiki.gg">wiki</a>!
+                                                >Discord Server</a>! or our <a href="https://surviv.wiki.gg">wiki</a>!
                                             </p>
                                         </div>
                                         <div data-date="2026-07-15">
                                             <small class="news-date">July 15th, 2026</small>
                                             <p class="news-paragraph"><strong>Breaking the Bank</strong></p>
                                             <p class="news-paragraph">
-                                                As the island aridifies, enterprising survevrs may notice that a new
+                                                As the island aridifies, enterprising survivrs may notice that a new
                                                 monetary institution has risen out of the sands: <span class="highlight"
                                                 >The Reserve</span>. A massive bank constructed to hide PARMA's best
                                                 kept secrets, the vault is rumoured to contain exotic and powerful
                                                 weaponry.
                                             </p>
                                             <p class="news-paragraph">
-                                                For survevrs trudging through the desert heat, find respite, resources,
+                                                For survivrs trudging through the desert heat, find respite, resources,
                                                 and fresh water in the <span class="highlight">oasis</span>. Or, join
                                                 the hunt for the last supplies sent to the front during the Incursion,
                                                 and try to find out why a familiar club's insignia keeps on appearing on
@@ -1605,7 +1601,7 @@
                                             <p class="news-paragraph"><strong>The Eleventh Hour</strong></p>
                                             <p class="news-paragraph">
                                                 As we continue to work on our next big update, enjoy another round of
-                                                50v50 along with a requested change: Lone Survevrs can now ping all
+                                                50v50 along with a requested change: Lone Survivrs can now ping all
                                                 allies, regardless of their original squads!
                                             </p>
                                         </div>
@@ -1627,19 +1623,19 @@
                                             <p class="news-paragraph"><strong>Precursor</strong></p>
                                             <p class="news-paragraph">
                                                 Before the Soviet incursion and brutal fighting that ensued, PARMA
-                                                scientists were given a directive: create the strongest survevr they
+                                                scientists were given a directive: create the strongest survivr they
                                                 possibly could. Their work now lies deep within the Twins...
                                             </p>
                                             <p class="news-paragraph">
                                                 Project: COBALT has returned! Along with much-needed adjustments for the
                                                 Medic and Demo classes, PARMA is proud to announce a new perk: <span
                                                     class="highlight"
-                                                >Indomitable Spirit</span>, allowing survevrs to shrug off fatal
+                                                >Indomitable Spirit</span>, allowing survivrs to shrug off fatal
                                                 injuries through (quite literally) pure adrenaline.
                                             </p>
                                             <p class="news-paragraph">
                                                 Additionally, the long-anticipated <span class="highlight"
-                                                >Survevr Pass 1</span> has arrived, allowing you to flex your style with
+                                                >Survivr Pass 1</span> has arrived, allowing you to flex your style with
                                                 over 20 different cosmetics! The pass is completely <span
                                                     class="highlight"
                                                 >free</span>; just <span class="highlight">log in</span> and complete
@@ -1656,15 +1652,15 @@
                                             </p>
                                             <p class="news-paragraph">
                                                 Over the past couple of years, PARMA has relied on third-party archives
-                                                to train newbie survevrs, many of which were either misleading or hard
+                                                to train newbie survivrs, many of which were either misleading or hard
                                                 to navigate. We've taken matters into our own hands and begun developing
-                                                a comprehensive guide: the <a href="https://survev.wiki.gg"
-                                                >Survev.io Wiki</a>!
+                                                a comprehensive guide: the <a href="https://surviv.wiki.gg"
+                                                >Surviv.io Wiki</a>!
                                             </p>
                                             <p class="news-paragraph">
                                                 However, many of the sections are still yet to be filled, so we're
                                                 welcoming our veterans to help contribute! For easier communication
-                                                between survevrs, be sure to join the <a
+                                                between survivrs, be sure to join the <a
                                                     href="https://discord.gg/75RAK3p3K2"
                                                 >Discord Server</a>!
                                             </p>
@@ -1673,7 +1669,7 @@
                                             <small class="news-date">April 1st, 2026</small>
                                             <p class="news-paragraph"><strong>Potato vs. Tomato</strong></p>
                                             <p class="news-paragraph">
-                                                While survevrs have since become accustomed to the periodical spuddy
+                                                While survivrs have since become accustomed to the periodical spuddy
                                                 incursions on the island, life was not always this way. Once, botanist
                                                 brothers Spud and Percy Solanum worked in tandem, seeking to uncover the
                                                 mysteries of the <span class="highlight">[REDACTED]</span>. In an act of
@@ -1709,7 +1705,7 @@
                     </div>
                 </div>
 
-                <div class="ad-block-leaderboard-bottom" id="survevio_728x90"></div>
+                <div class="ad-block-leaderboard-bottom" id="survivio_728x90"></div>
                 <div id="start-bottom-left">
                     <div id="mobile-settings-front">
                         <div class="btn-settings menu-option btn-darken btn-start-option"></div>
@@ -2060,11 +2056,11 @@
                         <div class="modal-divider"></div>
                         <!--
                             <div class="btn-social-wrapper">
-                              <a href="https://facebook.com/survev" target="_blank" class="btn-social btn-darken btn-facebook"></a>
-                              <a href="https://twitter.com/survev" target="_blank" class="btn-social btn-darken btn-twitter"></a>
-                              <a href="https://www.instagram.com/survev/" target="_blank" class="btn-social btn-darken btn-instagram"></a>
-                              <a href="https://discord.gg/survev" target="_blank" class="btn-social btn-darken btn-discord"></a>
-                              <a href="https://www.youtube.com/c/survev?sub_confirmation=1" target="_blank" class="btn-social btn-darken btn-youtube"></a>
+                              <a href="https://facebook.com/surviv" target="_blank" class="btn-social btn-darken btn-facebook"></a>
+                              <a href="https://twitter.com/surviv" target="_blank" class="btn-social btn-darken btn-twitter"></a>
+                              <a href="https://www.instagram.com/surviv/" target="_blank" class="btn-social btn-darken btn-instagram"></a>
+                              <a href="https://discord.gg/surviv" target="_blank" class="btn-social btn-darken btn-discord"></a>
+                              <a href="https://www.youtube.com/c/surviv?sub_confirmation=1" target="_blank" class="btn-social btn-darken btn-youtube"></a>
                             </div>
                         -->
                         <div class="modal-divider"></div>
@@ -2102,7 +2098,7 @@
                     </div>
                     <div class="modal-body">
                         <p class="modal-body-text">
-                            A new version of survev.io is available!<br><br>Press "OK" below to reload the page.
+                            A new version of surviv.io is available!<br><br>Press "OK" below to reload the page.
                         </p>
                     </div>
                     <div class="modal-footer modal-footer-round">
