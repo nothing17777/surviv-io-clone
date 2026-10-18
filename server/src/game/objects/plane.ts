@@ -312,7 +312,12 @@ export class PlaneBarn {
             return;
         }
 
-        type ||= util.weightedRandom(this.game.map.mapDef.gameConfig.planes.crates).name;
+        const crates = this.game.map.mapDef.gameConfig.planes.crates;
+        if (!type && !crates.length) {
+            this.game.logger.warn("Plane Barn: map has no airdrop crates");
+            return;
+        }
+        type ||= util.weightedRandom(crates).name;
 
         const def = MapObjectDefs.typeToDef(type, "obstacle");
 

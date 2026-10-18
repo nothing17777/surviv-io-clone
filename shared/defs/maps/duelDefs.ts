@@ -22,9 +22,10 @@ const mapDef: PartialMapDef = {
     },
     /* STRIP_FROM_PROD_CLIENT:START */
     gameConfig: {
+        // no scheduled planes, but keep the normal crate list so a flare gun
+        // can still call in an airdrop (an empty list crashed the game)
         planes: {
             timings: [],
-            crates: [],
         },
     },
     mapGen: {
