@@ -7455,3 +7455,50 @@ input [type="image"]:focus {
     vertical-align: middle;
     width: 26px;
 }
+
+/* The private match kit controls make the options column taller than the
+   menu's fixed height, which pushed Play off the bottom with no way to
+   reach it. Let the panel grow with the viewport and scroll the column. */
+#team-menu {
+    height: auto;
+    min-height: 325px;
+    max-height: 88vh;
+}
+
+/* scoped to the team menu so the main start menu keeps its fixed height */
+#team-menu .play-button-container, #team-menu-contents {
+    height: auto;
+}
+
+/* the columns float, so contain them or the panel keeps its old height
+   and the taller column spills off the bottom of the screen */
+#team-menu-columns {
+    height: auto;
+    overflow: hidden;
+}
+
+#team-menu-options {
+    max-height: 50vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* keep Play reachable no matter how far the kit list scrolls */
+#team-menu-options-start {
+    position: sticky;
+    bottom: 0;
+    padding-top: 6px;
+    background: rgba(0, 0, 0, 0.55);
+}
+
+#team-god-heals {
+    gap: 3px;
+}
+
+.god-heal {
+    font-size: 13px;
+}
+
+.god-heal input {
+    width: 48px;
+}

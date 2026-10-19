@@ -1361,6 +1361,7 @@
                                                     Click a player's A / B tag to switch sides.
                                                 </div>
                                                 <div id="team-god-loadout">
+                                                    <div class="god-loadout-title" id="team-god-title"></div>
                                                     <select
                                                         id="team-god-primary"
                                                         class="server-select menu-option btn-hollow btn-hollow-selected"
@@ -1377,61 +1378,63 @@
                                                         id="team-god-throwable"
                                                         class="server-select menu-option btn-hollow btn-hollow-selected"
                                                     ></select>
-                                                    <select
-                                                        id="team-god-armor"
-                                                        class="server-select menu-option btn-hollow btn-hollow-selected"
-                                                    >
-                                                        <option value="0">No armor</option>
-                                                        <option value="1">Level 1 armor</option>
-                                                        <option value="2">Level 2 armor</option>
-                                                        <option value="3">Level 3 armor</option>
-                                                    </select>
-                                                    <div id="team-god-heals">
-                                                        <label class="god-heal"><span>Throwables</span>
-                                                            <input
-                                                                id="team-god-throwable-count"
-                                                                type="number"
-                                                                min="0"
-                                                                max="40"
-                                                                class="menu-option"
-                                                            />
-                                                        </label>
-                                                        <label class="god-heal"><span>Bandages</span>
-                                                            <input
-                                                                id="team-god-bandage"
-                                                                type="number"
-                                                                min="0"
-                                                                max="30"
-                                                                class="menu-option"
-                                                            />
-                                                        </label>
-                                                        <label class="god-heal"><span>Med Kits</span>
-                                                            <input
-                                                                id="team-god-healthkit"
-                                                                type="number"
-                                                                min="0"
-                                                                max="4"
-                                                                class="menu-option"
-                                                            />
-                                                        </label>
-                                                        <label class="god-heal"><span>Sodas</span>
-                                                            <input
-                                                                id="team-god-soda"
-                                                                type="number"
-                                                                min="0"
-                                                                max="15"
-                                                                class="menu-option"
-                                                            />
-                                                        </label>
-                                                        <label class="god-heal"><span>Pills</span>
-                                                            <input
-                                                                id="team-god-painkiller"
-                                                                type="number"
-                                                                min="0"
-                                                                max="4"
-                                                                class="menu-option"
-                                                            />
-                                                        </label>
+                                                    <div id="team-god-shared-only">
+                                                        <select
+                                                            id="team-god-armor"
+                                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                                        >
+                                                            <option value="0">No armor</option>
+                                                            <option value="1">Level 1 armor</option>
+                                                            <option value="2">Level 2 armor</option>
+                                                            <option value="3">Level 3 armor</option>
+                                                        </select>
+                                                        <div id="team-god-heals">
+                                                            <label class="god-heal"><span>Throwables</span>
+                                                                <input
+                                                                    id="team-god-throwable-count"
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max="40"
+                                                                    class="menu-option"
+                                                                />
+                                                            </label>
+                                                            <label class="god-heal"><span>Bandages</span>
+                                                                <input
+                                                                    id="team-god-bandage"
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max="30"
+                                                                    class="menu-option"
+                                                                />
+                                                            </label>
+                                                            <label class="god-heal"><span>Med Kits</span>
+                                                                <input
+                                                                    id="team-god-healthkit"
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max="4"
+                                                                    class="menu-option"
+                                                                />
+                                                            </label>
+                                                            <label class="god-heal"><span>Sodas</span>
+                                                                <input
+                                                                    id="team-god-soda"
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max="15"
+                                                                    class="menu-option"
+                                                                />
+                                                            </label>
+                                                            <label class="god-heal"><span>Pills</span>
+                                                                <input
+                                                                    id="team-god-painkiller"
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max="4"
+                                                                    class="menu-option"
+                                                                />
+                                                            </label>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>

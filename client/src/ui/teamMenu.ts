@@ -19,7 +19,16 @@ import type { PingTest } from "../pingTest.ts";
 import { SDK } from "../sdk/sdk.ts";
 import type { SiteInfo } from "../siteInfo.ts";
 import type { Localization } from "./localization.ts";
-import { fillItemPicker, fillMapSelect, getModeMaps, modeLabel, pickerSlotType } from "./modePicker.ts";
+import {
+    fillItemPicker,
+    fillMapSelect,
+    getModeMaps,
+    loadGodLoadout,
+    modeLabel,
+    pickerSlotType,
+    saveGodLoadout,
+    syncGodLoadoutPickers,
+} from "./modePicker.ts";
 
 /** how many of a throwable a level 3 backpack holds */
 function throwableMax(throwable: string) {
@@ -135,8 +144,20 @@ export class TeamMenu {
         this.privateSizes.on("click", ".btn-team-private-size", (e) => {
             this.setRoomProperty("privateTeamSize", Number($(e.currentTarget).attr("data-size")));
         });
-        // the leader owns the one kit everyone in a private match spawns with
-        this.godPickers.add(this.godHeals).on("change", () => this.sendPrivateLoadout());
+        // Same Kit edits the room's shared kit, God Kit edits your own saved one
+        this.godPickers.add(this.godHeals).on("change", () => {
+            if (this.sharedKitActive()) {
+                this.sendPrivateLoadout();
+            } else {
+                const own = loadGodLoadout();
+                for (const slot of Object.keys(pickerSlotType) as Array<keyof typeof pickerSlotType>) {
+                    own[slot] = $(`#team-god-${slot}`).val() as string;
+                }
+                saveGodLoadout(own);
+                syncGodLoadoutPickers();
+                this.refreshUi();
+            }
+        });
         // Same Kit = the god kit, but one the leader picks for everyone
         this.kitShared.on("click", () => {
             this.setRoomProperty("privateSharedKit", true);
@@ -410,6 +431,11 @@ export class TeamMenu {
         }
     }
 
+    /** true when the leader's one kit is what everyone spawns with */
+    sharedKitActive() {
+        return !!this.roomData.privateGodLoadout && !!this.roomData.privateSharedKit;
+    }
+
     /** reads the kit pickers and pushes them to the room (leader only) */
     sendPrivateLoadout() {
         if (!this.isLeader) return;
@@ -585,23 +611,36 @@ export class TeamMenu {
                 setButtonState(this.kitShared, shared, this.isLeader);
                 setButtonState(this.kitOn, god && !shared, this.isLeader);
                 setButtonState(this.kitOff, !god, this.isLeader);
-                // the pickers only mean anything when the kit is shared
-                $("#team-god-loadout").toggle(shared);
-                if (this.roomData.privateGodLoadout) {
-                    const kit = this.roomData.privateLoadout || defaultPrivateLoadout;
+                // Pickers show the shared kit under Same Kit, and your own
+                // saved kit under God Kit. Loot has no kit to show.
+                $("#team-god-loadout").toggle(god);
+                $("#team-god-shared-only").toggle(shared);
+                if (god) {
+                    const kit = shared
+                        ? this.roomData.privateLoadout || defaultPrivateLoadout
+                        : { ...defaultPrivateLoadout, ...loadGodLoadout() };
+
+                    $("#team-god-title").text(shared ? "Everyone's Kit" : "Your Kit");
                     for (const [slot, type] of Object.entries(pickerSlotType)) {
                         fillItemPicker("team-god", slot, type, kit[slot as keyof typeof pickerSlotType]);
                     }
-                    $("#team-god-armor").val(String(kit.armor));
-                    // the cap depends on which throwable is picked
-                    const throwMax = throwableMax(kit.throwable);
-                    $("#team-god-throwable-count").attr("max", throwMax).val(Math.min(kit.throwableCount, throwMax));
-                    $("#team-god-bandage").val(kit.bandage);
-                    $("#team-god-healthkit").val(kit.healthkit);
-                    $("#team-god-soda").val(kit.soda);
-                    $("#team-god-painkiller").val(kit.painkiller);
-                    // only the leader picks; everyone else just sees the kit
-                    this.godPickers.add(this.godHeals).prop("disabled", !this.isLeader);
+
+                    if (shared) {
+                        $("#team-god-armor").val(String(kit.armor));
+                        // the cap depends on which throwable is picked
+                        const throwMax = throwableMax(kit.throwable);
+                        $("#team-god-throwable-count").attr("max", throwMax).val(
+                            Math.min(kit.throwableCount, throwMax),
+                        );
+                        $("#team-god-bandage").val(kit.bandage);
+                        $("#team-god-healthkit").val(kit.healthkit);
+                        $("#team-god-soda").val(kit.soda);
+                        $("#team-god-painkiller").val(kit.painkiller);
+                    }
+
+                    // the shared kit is the leader's to set; your own always is
+                    this.godPickers.prop("disabled", shared && !this.isLeader);
+                    this.godHeals.prop("disabled", !this.isLeader);
                 }
             }
 
