@@ -174,7 +174,15 @@ export class Application {
 
             initArmory();
             const armoryModal = new MenuModal($("#modal-armory"));
-            $("#btn-armory").on("click", () => {
+            // the corner icons sit under the catalog, so tuck them away while it's up
+            armoryModal.onShow(() => {
+                $("#start-bottom-right, #start-top-right").fadeOut(200);
+            });
+            armoryModal.onHide(() => {
+                $("#start-bottom-right, #start-top-right").fadeIn(200);
+            });
+            // menu button, plus the icon next to the settings cog (also up in the party menu)
+            $("#btn-armory, .btn-armory").on("click", () => {
                 armoryModal.show();
                 return false;
             });
