@@ -10,11 +10,6 @@
     { mapName: "duel_classic", teamMode: 2, enabled: true },
     { mapName: "duel_classic", teamMode: 3, enabled: true },
     { mapName: "duel_classic", teamMode: 4, enabled: true },
-    // party only: the leader picks one kit that everyone spawns with
-    { mapName: "duel_restricted", teamMode: 1, enabled: true },
-    { mapName: "duel_restricted", teamMode: 2, enabled: true },
-    { mapName: "duel_restricted", teamMode: 3, enabled: true },
-    { mapName: "duel_restricted", teamMode: 4, enabled: true },
     { mapName: "main", teamMode: 1, enabled: true },
     { mapName: "main", teamMode: 2, enabled: true },
     { mapName: "main", teamMode: 3, enabled: true },

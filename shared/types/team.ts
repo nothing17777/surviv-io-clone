@@ -36,6 +36,8 @@ export interface RoomData {
     /** players per side, 1-4 (1v1 .. 4v4) */
     privateTeamSize: number;
     privateGodLoadout: boolean;
+    /** god kit, but one kit chosen by the leader instead of each player's own */
+    privateSharedKit: boolean;
     /** the one kit everyone spawns with when privateGodLoadout is on */
     privateLoadout: PrivateLoadout;
 }
@@ -107,6 +109,7 @@ export const zClientRoomData = z.object({
     autoFill: z.boolean(),
     gameModeIdx: z.number(),
     privateMatch: z.boolean().optional(),
+    privateSharedKit: z.boolean().optional(),
     privateLoadout: zPrivateLoadout.optional(),
     privateMapName: z.string().optional(),
     privateTeamSize: z.number().optional(),

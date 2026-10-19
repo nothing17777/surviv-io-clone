@@ -2,7 +2,7 @@ import type { Hono } from "hono";
 import { getCookie } from "hono/cookie";
 import type { UpgradeWebSocket, WSContext } from "hono/ws";
 import { randomUUID } from "node:crypto";
-import { isPartyOnlyMap, type MapDefKey, MapDefs } from "../../shared/defs/mapDefs.ts";
+import { type MapDefKey, MapDefs } from "../../shared/defs/mapDefs.ts";
 import { defaultPrivateLoadout, type FindGamePrivateError } from "../../shared/types/api.ts";
 import {
     type ClientRoomData,
@@ -117,6 +117,7 @@ class Room {
         privateMapName: "duel",
         privateTeamSize: 1,
         privateGodLoadout: true,
+        privateSharedKit: true,
         privateLoadout: { ...defaultPrivateLoadout },
     };
 
@@ -226,11 +227,7 @@ class Room {
             Math.max(1, Math.round(props.privateTeamSize ?? this.data.privateTeamSize)),
         );
         this.data.privateGodLoadout = props.privateGodLoadout ?? this.data.privateGodLoadout;
-        // the whole point of this map is one shared kit, so it can't be turned off
-        if (isPartyOnlyMap(this.data.privateMapName)) {
-            this.data.privateMatch = true;
-            this.data.privateGodLoadout = true;
-        }
+        this.data.privateSharedKit = props.privateSharedKit ?? this.data.privateSharedKit;
         // the leader owns the kit; zod already clamped the numbers
         if (props.privateLoadout) {
             this.data.privateLoadout = props.privateLoadout;
@@ -349,7 +346,8 @@ class Room {
             privateMatch: this.data.privateMatch
                 ? {
                     godLoadout: this.data.privateGodLoadout,
-                    loadout: this.data.privateLoadout,
+                    // without this every player keeps their own picks
+                    loadout: this.data.privateSharedKit ? this.data.privateLoadout : undefined,
                 }
                 : undefined,
             autoFill: this.data.privateMatch ? false : this.data.autoFill,

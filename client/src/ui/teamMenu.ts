@@ -1,5 +1,4 @@
 import $ from "jquery";
-import { isPartyOnlyMap } from "../../../shared/defs/mapDefs.ts";
 import { GameConfig } from "../../../shared/gameConfig.ts";
 import * as net from "../../../shared/net/net.ts";
 import { defaultPrivateLoadout, type FindGameMatchData, type PrivateLoadout } from "../../../shared/types/api.ts";
@@ -67,6 +66,7 @@ export class TeamMenu {
     godHeals = $(
         "#team-god-throwable-count, #team-god-bandage, #team-god-healthkit, #team-god-soda, #team-god-painkiller",
     );
+    kitShared = $("#btn-team-kit-shared");
     kitOn = $("#btn-team-kit-on");
     kitOff = $("#btn-team-kit-off");
     fillAuto = $("#btn-team-fill-auto");
@@ -137,7 +137,15 @@ export class TeamMenu {
         });
         // the leader owns the one kit everyone in a private match spawns with
         this.godPickers.add(this.godHeals).on("change", () => this.sendPrivateLoadout());
-        this.kitOn.on("click", () => this.setRoomProperty("privateGodLoadout", true));
+        // Same Kit = the god kit, but one the leader picks for everyone
+        this.kitShared.on("click", () => {
+            this.setRoomProperty("privateSharedKit", true);
+            this.setRoomProperty("privateGodLoadout", true);
+        });
+        this.kitOn.on("click", () => {
+            this.setRoomProperty("privateSharedKit", false);
+            this.setRoomProperty("privateGodLoadout", true);
+        });
         this.kitOff.on("click", () => this.setRoomProperty("privateGodLoadout", false));
         $("#team-menu-member-list").on("click", ".team-side.can-switch", (e) => {
             const el = $(e.currentTarget);
@@ -571,13 +579,14 @@ export class TeamMenu {
                     this.privateSizes.append(btn);
                     setButtonState(btn, this.roomData.privateTeamSize == size, this.isLeader);
                 }
-                // Duel Restricted is defined by its shared kit, so the kit
-                // toggle doesn't apply there
-                const lockedKit = isPartyOnlyMap(this.roomData.privateMapName);
-                $("#team-kit-buttons").toggle(!lockedKit);
-                setButtonState(this.kitOn, this.roomData.privateGodLoadout, this.isLeader && !lockedKit);
-                setButtonState(this.kitOff, !this.roomData.privateGodLoadout, this.isLeader && !lockedKit);
-                $("#team-god-loadout").toggle(lockedKit || !!this.roomData.privateGodLoadout);
+                // Same Kit / God Kit / Loot
+                const god = !!this.roomData.privateGodLoadout;
+                const shared = god && !!this.roomData.privateSharedKit;
+                setButtonState(this.kitShared, shared, this.isLeader);
+                setButtonState(this.kitOn, god && !shared, this.isLeader);
+                setButtonState(this.kitOff, !god, this.isLeader);
+                // the pickers only mean anything when the kit is shared
+                $("#team-god-loadout").toggle(shared);
                 if (this.roomData.privateGodLoadout) {
                     const kit = this.roomData.privateLoadout || defaultPrivateLoadout;
                     for (const [slot, type] of Object.entries(pickerSlotType)) {
