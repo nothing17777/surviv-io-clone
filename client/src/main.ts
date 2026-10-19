@@ -26,6 +26,7 @@ import { proxy } from "./proxy.ts";
 import { ResourceManager } from "./resources.ts";
 import { SDK } from "./sdk/sdk.ts";
 import { SiteInfo } from "./siteInfo.ts";
+import { initArmory } from "./ui/armory.ts";
 import { LoadoutMenu } from "./ui/loadoutMenu.ts";
 import { Localization } from "./ui/localization.ts";
 import Menu from "./ui/menu.ts";
@@ -171,6 +172,13 @@ export class Application {
             });
             initGodLoadoutPicker("god");
             initGodLoadoutPicker("team-god");
+
+            initArmory();
+            const armoryModal = new MenuModal($("#modal-armory"));
+            $("#btn-armory").on("click", () => {
+                armoryModal.show();
+                return false;
+            });
 
             this.serverSelect.on("change", () => {
                 const t = this.serverSelect.find(":selected").val();

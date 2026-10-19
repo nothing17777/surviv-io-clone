@@ -1130,6 +1130,9 @@
                                 <div id="btn-help" class="menu-option btn-darken" data-l10n="index-how-to-play">
                                     How to Play
                                 </div>
+                                <div id="btn-armory" class="menu-option btn-darken">
+                                    Armory
+                                </div>
                                 <div id="start-help">
                                     <h1 data-l10n="index-controls">Controls</h1>
                                     <p>
@@ -1782,6 +1785,28 @@
                                     <div class="customize-col customize-col-large" draggable="true"></div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="modal-armory" class="modal">
+                <div class="modal-content modal-close">
+                    <div class="modal-header">
+                        <span class="close close-corner"></span>
+                        <h2>Armory</h2>
+                    </div>
+                    <div class="modal-body">
+                        <div id="armory-controls">
+                            <div id="armory-tabs">
+                                <div class="armory-tab armory-tab-selected" data-tab="gun">Guns</div>
+                                <div class="armory-tab" data-tab="melee">Melee</div>
+                                <div class="armory-tab" data-tab="throwable">Throwables</div>
+                            </div>
+                            <input id="armory-search" type="text" placeholder="Search" autocomplete="off">
+                            <span id="armory-count"></span>
+                        </div>
+                        <div id="armory-table-wrap">
+                            <table id="armory-table"></table>
                         </div>
                     </div>
                 </div>

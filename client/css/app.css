@@ -7294,3 +7294,139 @@ input [type="image"]:focus {
     padding: 2px;
     width: 40px;
 }
+
+#team-god-heals {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.god-heal {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    font-size: 14px;
+    color: #ffffff;
+}
+
+.god-heal input {
+    width: 56px;
+    text-align: center;
+    padding: 2px 4px;
+}
+
+#modal-armory {
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 110;
+}
+
+#modal-armory .modal-body {
+    background-color: #000000;
+}
+
+#modal-armory .modal-content {
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 1100px;
+}
+
+#armory-controls {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+#armory-tabs {
+    display: flex;
+    gap: 6px;
+}
+
+.armory-tab {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 5px 12px;
+}
+
+.armory-tab:hover {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.armory-tab-selected {
+    background: #83af50;
+}
+
+#armory-search {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 4px;
+    color: #ffffff;
+    font-size: 14px;
+    padding: 5px 8px;
+    width: 160px;
+}
+
+#armory-count {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+    margin-left: auto;
+}
+
+#armory-table-wrap {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+#armory-table {
+    border-collapse: collapse;
+    font-size: 13px;
+    width: 100%;
+}
+
+#armory-table th, #armory-table td {
+    padding: 4px 6px;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.armory-th {
+    background: #2e2e2e;
+    cursor: pointer;
+    position: sticky;
+    top: 0;
+    user-select: none;
+}
+
+.armory-th:hover {
+    background: #3e3e3e;
+}
+
+.armory-th.sort-asc::after {
+    content: " \25B2";
+}
+
+.armory-th.sort-desc::after {
+    content: " \25BC";
+}
+
+.armory-th-name, .armory-name {
+    text-align: left;
+}
+
+.armory-row:nth-child(even) {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.armory-img {
+    height: 26px;
+    margin-right: 6px;
+    object-fit: contain;
+    vertical-align: middle;
+    width: 26px;
+}
