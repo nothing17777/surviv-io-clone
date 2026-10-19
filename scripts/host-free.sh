@@ -34,6 +34,10 @@ echo "==========================================================================
 echo
 printf 'SURVIV_API_URL=%s\nSURVIV_GAME_ADDRESS=%s\n' "$SURVIV_API_URL" "$SURVIV_GAME_ADDRESS" > current-urls.txt
 
+# push the new addresses to Vercel, if credentials for it are set up.
+# never fatal: the game must keep running even if Vercel is unreachable.
+scripts/sync-vercel.sh "$SURVIV_API_URL" "$SURVIV_GAME_ADDRESS" || echo "Vercel sync failed, continuing."
+
 # keep the proxy alive even if it ever exits
 (while true; do node scripts/gameProxy.mjs; sleep 1; done) &
 (cd server && pnpm dev:api) &
