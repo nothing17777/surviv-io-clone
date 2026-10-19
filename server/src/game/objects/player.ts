@@ -27,6 +27,7 @@ import {
 } from "../../../../shared/gameConfig.ts";
 import * as net from "../../../../shared/net/net.ts";
 import { ObjectType } from "../../../../shared/net/objectSerializeFns.ts";
+import type { PrivateLoadout } from "../../../../shared/types/api.ts";
 import { type Circle, coldet } from "../../../../shared/utils/coldet.ts";
 import { collider } from "../../../../shared/utils/collider.ts";
 import { math } from "../../../../shared/utils/math.ts";
@@ -205,7 +206,10 @@ export class PlayerBarn {
             !joinData.loadout && !godLoadout,
         );
         if (godLoadout) {
-            player.applyGodLoadout(joinMsg.godLoadout);
+            // in a private match the leader's kit wins over whatever the
+            // client asks for, so everyone spawns identical
+            const fixed = this.game.fixedLoadout;
+            player.applyGodLoadout(fixed ?? joinMsg.godLoadout, !!fixed);
         }
 
         return player;
@@ -4344,16 +4348,29 @@ export class Player extends BaseGameObject {
     }
 
     /**
-     * Duel "god" kit: max armor, backpack and scope, full ammo and heals,
-     * plus the guns / throwable the player picked in the menu.
+     * Duel "god" kit: armor, backpack and scope, full ammo and heals, plus the
+     * guns / melee / throwable that were picked. In a private match every field
+     * comes from the party leader instead of the joining player.
      */
-    applyGodLoadout(godLoadout: net.JoinMsg["godLoadout"]) {
-        this.helmet = "helmet03";
-        this.chest = "chest03";
+    applyGodLoadout(
+        godLoadout: net.JoinMsg["godLoadout"] & Partial<PrivateLoadout>,
+        /** the kit was fixed by a party leader, so nothing extra is handed out */
+        fixed = false,
+    ) {
+        const armor = godLoadout.armor ?? 3;
+        this.helmet = armor > 0 ? `helmet0${armor}` : "";
+        this.chest = armor > 0 ? `chest0${armor}` : "";
         this.backpack = "backpack03";
 
         for (const item of Object.keys(GameConfig.bagSizes) as InventoryItem[]) {
             this.invManager.set(item, this.invManager.getMaxCapacity(item));
+        }
+
+        // a private match leader can hand out fewer heals than a full bag
+        for (const item of ["bandage", "healthkit", "soda", "painkiller"] as const) {
+            const count = godLoadout[item];
+            if (count === undefined) continue;
+            this.invManager.set(item, math.min(count, this.invManager.getMaxCapacity(item)));
         }
         this.scope = "8xscope";
         this.zoom = this.scopeZoomRadius[this.scope];
@@ -4371,6 +4388,15 @@ export class Player extends BaseGameObject {
 
         const throwDef = GameObjectDefs.typeToDefSafe(godLoadout.throwable);
         const throwable = throwDef?.type === "throwable" ? godLoadout.throwable : "frag";
+        // a fixed kit means only the picked throwable, otherwise the full bag
+        // would equip whatever sorts first instead of what was chosen
+        if (fixed) {
+            for (const item of Object.keys(GameConfig.bagSizes) as InventoryItem[]) {
+                if (item !== throwable && GameObjectDefs.typeToDefSafe(item)?.type === "throwable") {
+                    this.invManager.set(item, 0);
+                }
+            }
+        }
         this.weaponManager.setWeapon(GameConfig.WeaponSlot.Throwable, throwable, 0);
 
         // any melee weapon, no unlock needed (empty keeps the normal loadout melee)

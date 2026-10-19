@@ -7243,7 +7243,7 @@ input [type="image"]:focus {
 }
 
 #team-private-hint {
-    color: #ccc;
+    color: #cccccc;
     font-size: 12px;
     margin: 0 0 6px;
     text-align: center;
@@ -7251,7 +7251,7 @@ input [type="image"]:focus {
 
 .team-menu-member > .team-side {
     border-radius: 6px;
-    color: #fff;
+    color: #ffffff;
     cursor: default;
     font-weight: bold;
     height: 36px;

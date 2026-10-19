@@ -1,7 +1,7 @@
 import $ from "jquery";
 import { GameConfig } from "../../../shared/gameConfig.ts";
 import * as net from "../../../shared/net/net.ts";
-import type { FindGameMatchData } from "../../../shared/types/api.ts";
+import { defaultPrivateLoadout, type FindGameMatchData, type PrivateLoadout } from "../../../shared/types/api.ts";
 import type {
     RoomData,
     ServerToClientTeamMsg,
@@ -19,7 +19,7 @@ import type { PingTest } from "../pingTest.ts";
 import { SDK } from "../sdk/sdk.ts";
 import type { SiteInfo } from "../siteInfo.ts";
 import type { Localization } from "./localization.ts";
-import { fillMapSelect, getModeMaps, modeLabel } from "./modePicker.ts";
+import { fillItemPicker, fillMapSelect, getModeMaps, modeLabel, pickerSlotType } from "./modePicker.ts";
 
 function errorTypeToString(type: TeamMenuErrorType, localization: Localization) {
     const typeMap = {
@@ -56,6 +56,8 @@ export class TeamMenu {
     typePrivate = $("#btn-team-type-private");
     privateMapSelect = $("#team-private-map-select");
     privateSizes = $("#team-private-sizes");
+    godPickers = $("#team-god-primary, #team-god-secondary, #team-god-melee, #team-god-throwable, #team-god-armor");
+    godHeals = $("#team-god-bandage, #team-god-healthkit, #team-god-soda, #team-god-painkiller");
     kitOn = $("#btn-team-kit-on");
     kitOff = $("#btn-team-kit-off");
     fillAuto = $("#btn-team-fill-auto");
@@ -124,6 +126,8 @@ export class TeamMenu {
         this.privateSizes.on("click", ".btn-team-private-size", (e) => {
             this.setRoomProperty("privateTeamSize", Number($(e.currentTarget).attr("data-size")));
         });
+        // the leader owns the one kit everyone in a private match spawns with
+        this.godPickers.add(this.godHeals).on("change", () => this.sendPrivateLoadout());
         this.kitOn.on("click", () => this.setRoomProperty("privateGodLoadout", true));
         this.kitOff.on("click", () => this.setRoomProperty("privateGodLoadout", false));
         $("#team-menu-member-list").on("click", ".team-side.can-switch", (e) => {
@@ -234,6 +238,7 @@ export class TeamMenu {
                 autoFill: this.config.get("teamAutoFill")!,
                 findingGame: false,
                 lastError: undefined,
+                privateLoadout: { ...defaultPrivateLoadout },
             } as RoomData;
             this.displayedInvalidProtocolModal = false;
 
@@ -343,6 +348,9 @@ export class TeamMenu {
                 // most recent change request.
                 if (this.isLeader) {
                     this.roomData.region = ourRoomData.region;
+                    if (ourRoomData.privateLoadout) {
+                        this.roomData.privateLoadout = ourRoomData.privateLoadout;
+                    }
                     this.roomData.autoFill = ourRoomData.autoFill;
                 }
                 this.refreshUi();
@@ -383,6 +391,31 @@ export class TeamMenu {
             this.roomData[prop] = val;
             this.sendMessage("setRoomProps", this.roomData);
         }
+    }
+
+    /** reads the kit pickers and pushes them to the room (leader only) */
+    sendPrivateLoadout() {
+        if (!this.isLeader) return;
+
+        const num = (id: string, max: number) => {
+            const val = Math.round(Number($(id).val()));
+            return Number.isFinite(val) ? Math.min(max, Math.max(0, val)) : 0;
+        };
+        const loadout: PrivateLoadout = {
+            primary: $("#team-god-primary").val() as string,
+            secondary: $("#team-god-secondary").val() as string,
+            melee: $("#team-god-melee").val() as string,
+            throwable: $("#team-god-throwable").val() as string,
+            armor: num("#team-god-armor", 3),
+            bandage: num("#team-god-bandage", 30),
+            healthkit: num("#team-god-healthkit", 4),
+            soda: num("#team-god-soda", 15),
+            painkiller: num("#team-god-painkiller", 4),
+        };
+
+        this.roomData.privateLoadout = loadout;
+        this.sendMessage("setRoomProps", this.roomData);
+        this.refreshUi();
     }
 
     tryStartGame() {
@@ -531,6 +564,19 @@ export class TeamMenu {
                 setButtonState(this.kitOn, this.roomData.privateGodLoadout, this.isLeader);
                 setButtonState(this.kitOff, !this.roomData.privateGodLoadout, this.isLeader);
                 $("#team-god-loadout").toggle(!!this.roomData.privateGodLoadout);
+                if (this.roomData.privateGodLoadout) {
+                    const kit = this.roomData.privateLoadout || defaultPrivateLoadout;
+                    for (const [slot, type] of Object.entries(pickerSlotType)) {
+                        fillItemPicker("team-god", slot, type, kit[slot as keyof typeof pickerSlotType]);
+                    }
+                    $("#team-god-armor").val(String(kit.armor));
+                    $("#team-god-bandage").val(kit.bandage);
+                    $("#team-god-healthkit").val(kit.healthkit);
+                    $("#team-god-soda").val(kit.soda);
+                    $("#team-god-painkiller").val(kit.painkiller);
+                    // only the leader picks; everyone else just sees the kit
+                    this.godPickers.add(this.godHeals).prop("disabled", !this.isLeader);
+                }
             }
 
             // Fill mode

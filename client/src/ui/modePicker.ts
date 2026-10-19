@@ -86,7 +86,7 @@ export function saveGodLoadout(loadout: GodLoadout) {
     } catch {}
 }
 
-function defsOfType(type: string) {
+export function defsOfType(type: string) {
     return Object.entries(RawGameObjectDefs as Record<string, { type: string; name?: string }>)
         .filter(([, def]) => def.type === type)
         .map(([id, def]) => ({ id, name: def.name || id }))
@@ -101,6 +101,39 @@ export function itemImage(id: string) {
 }
 
 const pickerSlots = ["primary", "secondary", "melee", "throwable"] as const;
+
+export const pickerSlotType = {
+    primary: "gun",
+    secondary: "gun",
+    melee: "melee",
+    throwable: "throwable",
+} as const;
+
+/**
+ * Fills one picker with every item of a type and shows the picked item's loot
+ * icon beside it. Options are only rebuilt when they change, so an open
+ * dropdown isn't closed by a refresh.
+ */
+export function fillItemPicker(prefix: string, slot: string, type: string, value: string) {
+    const sel = $(`#${prefix}-${slot}`);
+    if (!sel.length) return;
+
+    const items = defsOfType(type);
+    if (sel.children().length !== items.length) {
+        sel.empty();
+        for (const item of items) {
+            sel.append($("<option>", { value: item.id, text: item.name }));
+        }
+    }
+    if (!sel.parent().hasClass("god-row")) {
+        sel.wrap($("<div>", { class: "god-row" }));
+        sel.before($("<img>", { class: "god-item-img", alt: "", id: `${prefix}-${slot}-img` }));
+    }
+    sel.val(value);
+    const img = $(`#${prefix}-${slot}-img`);
+    const src = itemImage(value);
+    img.attr("src", src).toggle(!!src);
+}
 
 /**
  * Fills the gun / throwable pickers with a given id prefix ("god" on the main
@@ -141,7 +174,7 @@ export function initGodLoadoutPicker(prefix = "god") {
 /** Shows the saved loadout (and its pictures) in every picker on the page */
 export function syncGodLoadoutPickers() {
     const loadout = loadGodLoadout();
-    for (const prefix of ["god", "team-god"]) {
+    for (const prefix of ["god"]) {
         for (const slot of pickerSlots) {
             $(`#${prefix}-${slot}`).val(loadout[slot]);
             const img = $(`#${prefix}-${slot}-img`);

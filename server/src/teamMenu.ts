@@ -3,7 +3,7 @@ import { getCookie } from "hono/cookie";
 import type { UpgradeWebSocket, WSContext } from "hono/ws";
 import { randomUUID } from "node:crypto";
 import { type MapDefKey, MapDefs } from "../../shared/defs/mapDefs.ts";
-import type { FindGamePrivateError } from "../../shared/types/api.ts";
+import { defaultPrivateLoadout, type FindGamePrivateError } from "../../shared/types/api.ts";
 import {
     type ClientRoomData,
     type ClientToServerTeamMsg,
@@ -117,6 +117,7 @@ class Room {
         privateMapName: "duel",
         privateTeamSize: 1,
         privateGodLoadout: true,
+        privateLoadout: { ...defaultPrivateLoadout },
     };
 
     constructor(
@@ -220,8 +221,15 @@ class Room {
         } else if (!mapNames.includes(this.data.privateMapName)) {
             this.data.privateMapName = mapNames[0];
         }
-        this.data.privateTeamSize = Math.min(4, Math.max(1, Math.round(props.privateTeamSize ?? this.data.privateTeamSize)));
+        this.data.privateTeamSize = Math.min(
+            4,
+            Math.max(1, Math.round(props.privateTeamSize ?? this.data.privateTeamSize)),
+        );
         this.data.privateGodLoadout = props.privateGodLoadout ?? this.data.privateGodLoadout;
+        // the leader owns the kit; zod already clamped the numbers
+        if (props.privateLoadout) {
+            this.data.privateLoadout = props.privateLoadout;
+        }
 
         // a private match holds both sides, so up to 8 players
         this.data.maxPlayers = this.data.privateMatch ? 8 : modes[gameModeIdx].teamMode;
@@ -333,7 +341,12 @@ class Room {
         const res = await this.teamMenu.server.findGame({
             mapName: this.data.privateMatch ? this.data.privateMapName : mode.mapName,
             teamMode: this.data.privateMatch ? this.data.privateTeamSize : mode.teamMode,
-            privateMatch: this.data.privateMatch ? { godLoadout: this.data.privateGodLoadout } : undefined,
+            privateMatch: this.data.privateMatch
+                ? {
+                    godLoadout: this.data.privateGodLoadout,
+                    loadout: this.data.privateLoadout,
+                }
+                : undefined,
             autoFill: this.data.privateMatch ? false : this.data.autoFill,
             region: region,
             version: data.version,

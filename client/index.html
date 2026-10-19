@@ -1309,27 +1309,33 @@
                                                 <optgroup id="team-server-opts" label="Region"></optgroup>
                                             </select>
                                             <div class="team-menu-options-buttons">
-                                                <a class="btn-hollow btn-darken team-menu-option" id="btn-team-type-queue">Queue</a>
-                                                <a class="btn-hollow btn-darken team-menu-option" id="btn-team-type-private">Private Match</a>
+                                                <a
+                                                    class="btn-hollow btn-darken team-menu-option"
+                                                    id="btn-team-type-queue"
+                                                >Queue</a>
+                                                <a
+                                                    class="btn-hollow btn-darken team-menu-option"
+                                                    id="btn-team-type-private"
+                                                >Private Match</a>
                                             </div>
                                             <div id="team-queue-options">
-                                            <select
-                                                id="team-map-select"
-                                                class="btn-hollow btn-hollow-selected server-select menu-option"
-                                            ></select>
-                                            <div class="team-menu-options-buttons" id="team-queue-modes"></div>
-                                            <div class="team-menu-options-buttons">
-                                                <a
-                                                    class="btn-hollow btn-hollow-selected btn-darken team-menu-option btn-team-fill"
-                                                    id="btn-team-fill-auto"
-                                                    data-l10n="index-auto-fill"
-                                                >Auto Fill</a>
-                                                <a
-                                                    class="btn-hollow btn-darken team-menu-option btn-team-fill"
-                                                    id="btn-team-fill-none"
-                                                    data-l10n="index-no-fill"
-                                                >No Fill</a>
-                                            </div>
+                                                <select
+                                                    id="team-map-select"
+                                                    class="btn-hollow btn-hollow-selected server-select menu-option"
+                                                ></select>
+                                                <div class="team-menu-options-buttons" id="team-queue-modes"></div>
+                                                <div class="team-menu-options-buttons">
+                                                    <a
+                                                        class="btn-hollow btn-hollow-selected btn-darken team-menu-option btn-team-fill"
+                                                        id="btn-team-fill-auto"
+                                                        data-l10n="index-auto-fill"
+                                                    >Auto Fill</a>
+                                                    <a
+                                                        class="btn-hollow btn-darken team-menu-option btn-team-fill"
+                                                        id="btn-team-fill-none"
+                                                        data-l10n="index-no-fill"
+                                                    >No Fill</a>
+                                                </div>
                                             </div>
                                             <div id="team-private-options" style="display: none">
                                                 <select
@@ -1338,15 +1344,82 @@
                                                 ></select>
                                                 <div class="team-menu-options-buttons" id="team-private-sizes"></div>
                                                 <div class="team-menu-options-buttons">
-                                                    <a class="btn-hollow btn-darken team-menu-option" id="btn-team-kit-on">God Kit</a>
-                                                    <a class="btn-hollow btn-darken team-menu-option" id="btn-team-kit-off">Loot</a>
+                                                    <a
+                                                        class="btn-hollow btn-darken team-menu-option"
+                                                        id="btn-team-kit-on"
+                                                    >God Kit</a>
+                                                    <a
+                                                        class="btn-hollow btn-darken team-menu-option"
+                                                        id="btn-team-kit-off"
+                                                    >Loot</a>
                                                 </div>
-                                                <div id="team-private-hint">Click a player's A / B tag to switch sides.</div>
+                                                <div id="team-private-hint">
+                                                    Click a player's A / B tag to switch sides.
+                                                </div>
                                                 <div id="team-god-loadout">
-                                                    <select id="team-god-primary" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                                    <select id="team-god-secondary" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                                    <select id="team-god-melee" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                                    <select id="team-god-throwable" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
+                                                    <select
+                                                        id="team-god-primary"
+                                                        class="server-select menu-option btn-hollow btn-hollow-selected"
+                                                    ></select>
+                                                    <select
+                                                        id="team-god-secondary"
+                                                        class="server-select menu-option btn-hollow btn-hollow-selected"
+                                                    ></select>
+                                                    <select
+                                                        id="team-god-melee"
+                                                        class="server-select menu-option btn-hollow btn-hollow-selected"
+                                                    ></select>
+                                                    <select
+                                                        id="team-god-throwable"
+                                                        class="server-select menu-option btn-hollow btn-hollow-selected"
+                                                    ></select>
+                                                    <select
+                                                        id="team-god-armor"
+                                                        class="server-select menu-option btn-hollow btn-hollow-selected"
+                                                    >
+                                                        <option value="0">No armor</option>
+                                                        <option value="1">Level 1 armor</option>
+                                                        <option value="2">Level 2 armor</option>
+                                                        <option value="3">Level 3 armor</option>
+                                                    </select>
+                                                    <div id="team-god-heals">
+                                                        <label class="god-heal"><span>Bandages</span>
+                                                            <input
+                                                                id="team-god-bandage"
+                                                                type="number"
+                                                                min="0"
+                                                                max="30"
+                                                                class="menu-option"
+                                                            />
+                                                        </label>
+                                                        <label class="god-heal"><span>Med Kits</span>
+                                                            <input
+                                                                id="team-god-healthkit"
+                                                                type="number"
+                                                                min="0"
+                                                                max="4"
+                                                                class="menu-option"
+                                                            />
+                                                        </label>
+                                                        <label class="god-heal"><span>Sodas</span>
+                                                            <input
+                                                                id="team-god-soda"
+                                                                type="number"
+                                                                min="0"
+                                                                max="15"
+                                                                class="menu-option"
+                                                            />
+                                                        </label>
+                                                        <label class="god-heal"><span>Pills</span>
+                                                            <input
+                                                                id="team-god-painkiller"
+                                                                type="number"
+                                                                min="0"
+                                                                max="4"
+                                                                class="menu-option"
+                                                            />
+                                                        </label>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div id="team-menu-options-start">
@@ -1521,9 +1594,9 @@
                                             <small class="news-date">October 18th, 2026</small>
                                             <p class="news-paragraph"><strong>Private Matches</strong></p>
                                             <p class="news-paragraph">
-                                                Make a team, pick <strong>Private Match</strong>, and fight your friends on any
-                                                map: up to 8 players, 1v1 to 4v4. Turn the God Kit on to spawn with the guns,
-                                                melee and throwable you picked.
+                                                Make a team, pick <strong>Private Match</strong>, and fight your friends
+                                                on any map: up to 8 players, 1v1 to 4v4. Turn the God Kit on to spawn
+                                                with the guns, melee and throwable you picked.
                                             </p>
                                             <p class="news-paragraph">
                                                 This is a fan project to bring back the feeling of the old surviv.io.

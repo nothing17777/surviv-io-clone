@@ -1,7 +1,7 @@
 // /api/team_v2 websocket msgs typing
 
 import { z } from "zod";
-import type { FindGameMatchData } from "./api.ts";
+import { type FindGameMatchData, type PrivateLoadout, zPrivateLoadout } from "./api.ts";
 
 export type TeamMenuErrorType =
     | "join_full"
@@ -36,6 +36,8 @@ export interface RoomData {
     /** players per side, 1-4 (1v1 .. 4v4) */
     privateTeamSize: number;
     privateGodLoadout: boolean;
+    /** the one kit everyone spawns with when privateGodLoadout is on */
+    privateLoadout: PrivateLoadout;
 }
 
 //
@@ -105,6 +107,7 @@ export const zClientRoomData = z.object({
     autoFill: z.boolean(),
     gameModeIdx: z.number(),
     privateMatch: z.boolean().optional(),
+    privateLoadout: zPrivateLoadout.optional(),
     privateMapName: z.string().optional(),
     privateTeamSize: z.number().optional(),
     privateGodLoadout: z.boolean().optional(),

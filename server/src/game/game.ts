@@ -1,5 +1,6 @@
 import { getModeMaxPlayers, type MapDefKey, MapDefs } from "../../../shared/defs/mapDefs.ts";
 import { TeamMode } from "../../../shared/gameConfig.ts";
+import type { PrivateLoadout } from "../../../shared/types/api.ts";
 import type { Loadout } from "../../../shared/utils/loadout.ts";
 import { math } from "../../../shared/utils/math.ts";
 import { Config } from "../config.ts";
@@ -69,6 +70,9 @@ export class Game {
     isTeamMode: boolean;
     /** spawn everyone with the duel kit (duel maps, or a private match with it on) */
     godLoadout: boolean;
+
+    /** private match: the one kit every player spawns with */
+    fixedLoadout?: PrivateLoadout;
     config: ServerGameConfig;
     modeManager: GameModeManager;
 
@@ -128,6 +132,8 @@ export class Game {
         this.godLoadout = config.privateMatch
             ? config.privateMatch.godLoadout
             : !!mapGameMode.godLoadout;
+        // private matches force the party leader's kit on everyone
+        this.fixedLoadout = config.privateMatch?.loadout;
 
         this.map = new GameMap(this);
         this.grid = new Grid(this.map.width, this.map.height);

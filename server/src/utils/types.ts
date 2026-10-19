@@ -1,7 +1,13 @@
 import { z } from "zod";
 import type { MapDefKey } from "../../../shared/defs/mapDefs.ts";
 import { TeamMode } from "../../../shared/gameConfig.ts";
-import { type FindGameMatchData, type FindGamePrivateError, loadoutSchema } from "../../../shared/types/api.ts";
+import {
+    type FindGameMatchData,
+    type FindGamePrivateError,
+    loadoutSchema,
+    type PrivateLoadout,
+    zPrivateLoadout,
+} from "../../../shared/types/api.ts";
 import { zSpectateFilter } from "../../../shared/types/moderation.ts";
 import type { MatchDataTable } from "../api/db/schema.ts";
 
@@ -34,6 +40,8 @@ export interface ServerGameConfig {
     /** set for a party's private match: duel rules (two sides) on any map */
     readonly privateMatch?: {
         godLoadout: boolean;
+        /** the one kit every player spawns with */
+        loadout?: PrivateLoadout;
     };
 }
 
@@ -57,6 +65,7 @@ export const zFindGamePrivateBody = z.object({
     privateMatch: z
         .object({
             godLoadout: z.boolean(),
+            loadout: zPrivateLoadout.optional(),
         })
         .optional(),
 });

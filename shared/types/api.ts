@@ -19,6 +19,37 @@ export interface FindGameMatchData {
     joinToken: string;
 }
 
+/**
+ * The single kit a party leader forces on everyone in a private match.
+ * Heal counts are capped at what a level 3 backpack holds.
+ */
+export const zPrivateLoadout = z.object({
+    primary: z.string().max(32),
+    secondary: z.string().max(32),
+    melee: z.string().max(32),
+    throwable: z.string().max(32),
+    /** 0 = no armor, 1-3 = helmet / chest tier */
+    armor: z.number().int().min(0).max(3),
+    bandage: z.number().int().min(0).max(30),
+    healthkit: z.number().int().min(0).max(4),
+    soda: z.number().int().min(0).max(15),
+    painkiller: z.number().int().min(0).max(4),
+});
+
+export type PrivateLoadout = z.infer<typeof zPrivateLoadout>;
+
+export const defaultPrivateLoadout: PrivateLoadout = {
+    primary: "m4a1",
+    secondary: "mp220",
+    melee: "fists",
+    throwable: "frag",
+    armor: 3,
+    bandage: 30,
+    healthkit: 4,
+    soda: 15,
+    painkiller: 4,
+};
+
 export const loadoutSchema = z.object({
     outfit: z.string(),
     melee: z.string(),

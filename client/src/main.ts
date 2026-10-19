@@ -171,7 +171,6 @@ export class Application {
                 });
             });
             initGodLoadoutPicker("god");
-            initGodLoadoutPicker("team-god");
 
             initArmory();
             const armoryModal = new MenuModal($("#modal-armory"));
