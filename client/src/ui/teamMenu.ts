@@ -1,4 +1,5 @@
 import $ from "jquery";
+import { isPartyOnlyMap } from "../../../shared/defs/mapDefs.ts";
 import { GameConfig } from "../../../shared/gameConfig.ts";
 import * as net from "../../../shared/net/net.ts";
 import { defaultPrivateLoadout, type FindGameMatchData, type PrivateLoadout } from "../../../shared/types/api.ts";
@@ -20,6 +21,12 @@ import { SDK } from "../sdk/sdk.ts";
 import type { SiteInfo } from "../siteInfo.ts";
 import type { Localization } from "./localization.ts";
 import { fillItemPicker, fillMapSelect, getModeMaps, modeLabel, pickerSlotType } from "./modePicker.ts";
+
+/** how many of a throwable a level 3 backpack holds */
+function throwableMax(throwable: string) {
+    const sizes = (GameConfig.bagSizes as Record<string, number[]>)[throwable];
+    return sizes ? sizes[sizes.length - 2] : 12;
+}
 
 function errorTypeToString(type: TeamMenuErrorType, localization: Localization) {
     const typeMap = {
@@ -57,7 +64,9 @@ export class TeamMenu {
     privateMapSelect = $("#team-private-map-select");
     privateSizes = $("#team-private-sizes");
     godPickers = $("#team-god-primary, #team-god-secondary, #team-god-melee, #team-god-throwable, #team-god-armor");
-    godHeals = $("#team-god-bandage, #team-god-healthkit, #team-god-soda, #team-god-painkiller");
+    godHeals = $(
+        "#team-god-throwable-count, #team-god-bandage, #team-god-healthkit, #team-god-soda, #team-god-painkiller",
+    );
     kitOn = $("#btn-team-kit-on");
     kitOff = $("#btn-team-kit-off");
     fillAuto = $("#btn-team-fill-auto");
@@ -406,6 +415,7 @@ export class TeamMenu {
             secondary: $("#team-god-secondary").val() as string,
             melee: $("#team-god-melee").val() as string,
             throwable: $("#team-god-throwable").val() as string,
+            throwableCount: num("#team-god-throwable-count", throwableMax($("#team-god-throwable").val() as string)),
             armor: num("#team-god-armor", 3),
             bandage: num("#team-god-bandage", 30),
             healthkit: num("#team-god-healthkit", 4),
@@ -561,15 +571,22 @@ export class TeamMenu {
                     this.privateSizes.append(btn);
                     setButtonState(btn, this.roomData.privateTeamSize == size, this.isLeader);
                 }
-                setButtonState(this.kitOn, this.roomData.privateGodLoadout, this.isLeader);
-                setButtonState(this.kitOff, !this.roomData.privateGodLoadout, this.isLeader);
-                $("#team-god-loadout").toggle(!!this.roomData.privateGodLoadout);
+                // Duel Restricted is defined by its shared kit, so the kit
+                // toggle doesn't apply there
+                const lockedKit = isPartyOnlyMap(this.roomData.privateMapName);
+                $("#team-kit-buttons").toggle(!lockedKit);
+                setButtonState(this.kitOn, this.roomData.privateGodLoadout, this.isLeader && !lockedKit);
+                setButtonState(this.kitOff, !this.roomData.privateGodLoadout, this.isLeader && !lockedKit);
+                $("#team-god-loadout").toggle(lockedKit || !!this.roomData.privateGodLoadout);
                 if (this.roomData.privateGodLoadout) {
                     const kit = this.roomData.privateLoadout || defaultPrivateLoadout;
                     for (const [slot, type] of Object.entries(pickerSlotType)) {
                         fillItemPicker("team-god", slot, type, kit[slot as keyof typeof pickerSlotType]);
                     }
                     $("#team-god-armor").val(String(kit.armor));
+                    // the cap depends on which throwable is picked
+                    const throwMax = throwableMax(kit.throwable);
+                    $("#team-god-throwable-count").attr("max", throwMax).val(Math.min(kit.throwableCount, throwMax));
                     $("#team-god-bandage").val(kit.bandage);
                     $("#team-god-healthkit").val(kit.healthkit);
                     $("#team-god-soda").val(kit.soda);

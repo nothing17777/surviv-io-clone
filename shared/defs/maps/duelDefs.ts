@@ -85,3 +85,17 @@ export const DuelClassic = util.mergeDeep(
         gameMode: { godLoadout: false },
     } satisfies PartialMapDef,
 ) as MapDef;
+
+/**
+ * Duel Restricted: the same arena, but the kit isn't each player's own —
+ * the party leader picks one loadout and everyone spawns with it. Party only,
+ * so it never shows on the main menu or in public matchmaking.
+ */
+export const DuelRestricted = util.mergeDeep(
+    {},
+    Duel,
+    {
+        desc: { name: "Duel Restricted" },
+        gameMode: { restrictedLoadout: true },
+    } satisfies PartialMapDef,
+) as MapDef;

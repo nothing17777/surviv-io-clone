@@ -1343,7 +1343,7 @@
                                                     class="btn-hollow btn-hollow-selected server-select menu-option"
                                                 ></select>
                                                 <div class="team-menu-options-buttons" id="team-private-sizes"></div>
-                                                <div class="team-menu-options-buttons">
+                                                <div class="team-menu-options-buttons" id="team-kit-buttons">
                                                     <a
                                                         class="btn-hollow btn-darken team-menu-option"
                                                         id="btn-team-kit-on"
@@ -1383,6 +1383,15 @@
                                                         <option value="3">Level 3 armor</option>
                                                     </select>
                                                     <div id="team-god-heals">
+                                                        <label class="god-heal"><span>Throwables</span>
+                                                            <input
+                                                                id="team-god-throwable-count"
+                                                                type="number"
+                                                                min="0"
+                                                                max="40"
+                                                                class="menu-option"
+                                                            />
+                                                        </label>
                                                         <label class="god-heal"><span>Bandages</span>
                                                             <input
                                                                 id="team-god-bandage"

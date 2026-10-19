@@ -7,6 +7,7 @@ import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { randomUUID } from "node:crypto";
 import pkgJson from "../../../package.json" with { type: "json" };
+import { isPartyOnlyMap } from "../../../shared/defs/mapDefs.ts";
 import { type FindGameResponse, type SiteInfoRes, zFindGameBody } from "../../../shared/types/api.ts";
 import { Config } from "../config.ts";
 import { GIT_VERSION } from "../utils/gitRevision.ts";
@@ -142,7 +143,8 @@ app.post("/api/find_game_v2", validateParams(zFindGameBody), async (c) => {
     const body = c.req.valid("json");
 
     const mode = server.modes[body.gameModeIdx];
-    if (!mode || !mode.enabled) {
+    // party only modes can't be started from the main menu
+    if (!mode || !mode.enabled || isPartyOnlyMap(mode.mapName)) {
         return c.json<FindGameResponse>({ type: "error", error: "mode_disabled" });
     }
 

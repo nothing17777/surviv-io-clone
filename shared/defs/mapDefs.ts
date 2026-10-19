@@ -8,7 +8,7 @@ import { Beach } from "./maps/beachDefs.ts";
 import { Birthday } from "./maps/birthdayDefs.ts";
 import { Cobalt } from "./maps/cobaltDefs.ts";
 import { Desert } from "./maps/desertDefs.ts";
-import { Duel, DuelClassic } from "./maps/duelDefs.ts";
+import { Duel, DuelClassic, DuelRestricted } from "./maps/duelDefs.ts";
 import { Faction } from "./maps/factionDefs.ts";
 import { FactionPotato } from "./maps/factionPotatoDefs.ts";
 import { Halloween } from "./maps/halloweenDefs.ts";
@@ -62,6 +62,7 @@ const _MapDefs = {
     beach: Beach,
     duel: Duel,
     duel_classic: DuelClassic,
+    duel_restricted: DuelRestricted,
 
     /* STRIP_FROM_PROD_CLIENT:START */
     test_normal: testNormal,
@@ -76,6 +77,11 @@ export const MapDefs = _MapDefs as Record<MapDefKey, MapDef>;
 /** Player capacity of a game; duel maps only fit exactly two teams. */
 export function getModeMaxPlayers(mapDef: MapDef, teamMode: number) {
     return mapDef.gameMode.duelMode ? teamMode * 2 : mapDef.gameMode.maxPlayers;
+}
+
+/** Maps that can only be played from a party, never from the main menu. */
+export function isPartyOnlyMap(mapName: string) {
+    return !!MapDefs[mapName as MapDefKey]?.gameMode.restrictedLoadout;
 }
 
 export interface MapDef {
@@ -145,6 +151,8 @@ export interface MapDef {
         duelMode?: boolean;
         /** spawn players with max gear and their chosen guns */
         godLoadout?: boolean;
+        /** party only: the leader picks the one kit everyone spawns with */
+        restrictedLoadout?: boolean;
         spookyKillSounds?: boolean;
     };
     gameConfig: {

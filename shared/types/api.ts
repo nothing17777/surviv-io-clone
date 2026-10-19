@@ -28,6 +28,8 @@ export const zPrivateLoadout = z.object({
     secondary: z.string().max(32),
     melee: z.string().max(32),
     throwable: z.string().max(32),
+    /** how many of that throwable; capped by what the bag holds */
+    throwableCount: z.number().int().min(0).max(40),
     /** 0 = no armor, 1-3 = helmet / chest tier */
     armor: z.number().int().min(0).max(3),
     bandage: z.number().int().min(0).max(30),
@@ -43,6 +45,7 @@ export const defaultPrivateLoadout: PrivateLoadout = {
     secondary: "mp220",
     melee: "fists",
     throwable: "frag",
+    throwableCount: 12,
     armor: 3,
     bandage: 30,
     healthkit: 4,

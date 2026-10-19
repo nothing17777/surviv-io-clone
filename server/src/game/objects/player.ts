@@ -4398,6 +4398,12 @@ export class Player extends BaseGameObject {
             }
         }
         this.weaponManager.setWeapon(GameConfig.WeaponSlot.Throwable, throwable, 0);
+        if (godLoadout.throwableCount !== undefined) {
+            this.invManager.set(
+                throwable as InventoryItem,
+                math.min(godLoadout.throwableCount, this.invManager.getMaxCapacity(throwable as InventoryItem)),
+            );
+        }
 
         // any melee weapon, no unlock needed (empty keeps the normal loadout melee)
         const meleeDef = GameObjectDefs.typeToDefSafe(godLoadout.melee);

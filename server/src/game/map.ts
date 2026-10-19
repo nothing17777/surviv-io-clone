@@ -282,6 +282,17 @@ export class GameMap {
 
         const scale = (this.scale = game.teamMode > TeamMode.Duo ? "large" : "small");
 
+        // Every duel plays on the same small arena, whichever map was picked:
+        // a 1v1 spread over a 50v50 sized map is mostly walking. Density
+        // spawns scale with area on their own; fixed spawns that no longer fit
+        // are simply skipped by the placement retries.
+        if (game.duelRules) {
+            mapDef.mapGen.map = {
+                ...mapDef.mapGen.map,
+                ...util.cloneDeep(MapDefs.duel.mapGen.map),
+            };
+        }
+
         const mapConfig = mapDef.mapGen.map;
         this.width = mapConfig.baseWidth * mapConfig.scale[scale] + mapConfig.extension;
         this.height = mapConfig.baseHeight * mapConfig.scale[scale] + mapConfig.extension;

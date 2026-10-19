@@ -71,6 +71,9 @@ export class Game {
     /** spawn everyone with the duel kit (duel maps, or a private match with it on) */
     godLoadout: boolean;
 
+    /** two sides on one small arena: duel maps, and any private match */
+    duelRules: boolean;
+
     /** private match: the one kit every player spawns with */
     fixedLoadout?: PrivateLoadout;
     config: ServerGameConfig;
@@ -134,6 +137,7 @@ export class Game {
             : !!mapGameMode.godLoadout;
         // private matches force the party leader's kit on everyone
         this.fixedLoadout = config.privateMatch?.loadout;
+        this.duelRules = !!config.privateMatch || !!mapGameMode.duelMode;
 
         this.map = new GameMap(this);
         this.grid = new Grid(this.map.width, this.map.height);

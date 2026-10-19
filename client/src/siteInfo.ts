@@ -1,5 +1,5 @@
 import $ from "jquery";
-import { type MapDefKey, MapDefs } from "../../shared/defs/mapDefs.ts";
+import { isPartyOnlyMap, type MapDefKey, MapDefs } from "../../shared/defs/mapDefs.ts";
 import { GameConfig } from "../../shared/gameConfig.ts";
 import type { SiteInfoRes } from "../../shared/types/api.ts";
 import { api } from "./api.ts";
@@ -69,7 +69,8 @@ export class SiteInfo {
      */
     renderModeButtons() {
         const modes = this.info.modes || [];
-        const maps = getModeMaps(modes);
+        // party only modes are picked in the team menu, not here
+        const maps = getModeMaps(modes, (m) => !isPartyOnlyMap(m.mapName));
         if (!maps.includes(this.selectedMap)) {
             let saved = "";
             try {
@@ -93,6 +94,7 @@ export class SiteInfo {
         for (let i = 0; i < modes.length; i++) {
             const mode = modes[i];
             if (!mode.enabled || mode.mapName !== this.selectedMap) continue;
+            if (isPartyOnlyMap(mode.mapName)) continue;
             const label = `Play ${modeLabel(mode)}`;
             const btn = $("<a>", {
                 id: `btn-start-mode-${i}`,

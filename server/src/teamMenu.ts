@@ -2,7 +2,7 @@ import type { Hono } from "hono";
 import { getCookie } from "hono/cookie";
 import type { UpgradeWebSocket, WSContext } from "hono/ws";
 import { randomUUID } from "node:crypto";
-import { type MapDefKey, MapDefs } from "../../shared/defs/mapDefs.ts";
+import { isPartyOnlyMap, type MapDefKey, MapDefs } from "../../shared/defs/mapDefs.ts";
 import { defaultPrivateLoadout, type FindGamePrivateError } from "../../shared/types/api.ts";
 import {
     type ClientRoomData,
@@ -226,6 +226,11 @@ class Room {
             Math.max(1, Math.round(props.privateTeamSize ?? this.data.privateTeamSize)),
         );
         this.data.privateGodLoadout = props.privateGodLoadout ?? this.data.privateGodLoadout;
+        // the whole point of this map is one shared kit, so it can't be turned off
+        if (isPartyOnlyMap(this.data.privateMapName)) {
+            this.data.privateMatch = true;
+            this.data.privateGodLoadout = true;
+        }
         // the leader owns the kit; zod already clamped the numbers
         if (props.privateLoadout) {
             this.data.privateLoadout = props.privateLoadout;
