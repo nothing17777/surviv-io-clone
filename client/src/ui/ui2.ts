@@ -32,6 +32,12 @@ import type { Localization } from "./localization.ts";
 
 const maxKillFeedLines = 6;
 const touchHoldDuration = 0.75 * 1000;
+// Dropping gear is destructive and there is no way to undo it, so it asks for a
+// longer, more deliberate hold than tapping an item to use it.
+const touchDropHoldDuration = 1.25 * 1000;
+// A hold that drifts this far is the player reaching across the HUD, not
+// holding the slot.
+const touchDropMoveCancelPx = 16;
 const perkUiCount = 4;
 
 enum InteractionType {
@@ -328,6 +334,7 @@ export class UiManager2 {
         actionQueued: boolean;
         actionTime: number;
         touchOsId?: number;
+        touchPos?: { x: number; y: number };
     }>;
 
     constructor(
@@ -494,6 +501,11 @@ export class UiManager2 {
         for (let i = 0; i < this.dom.perks.length; i++) {
             addItemAction("drop", "perk", i as unknown as string, this.dom.perks[i].div);
         }
+        const cancelItemAction = (item: (typeof this.itemActions)[number]) => {
+            item.actionQueued = false;
+            item.div.classList.remove("ui-drop-holding");
+        };
+
         for (let i = 0; i < this.itemActions.length; i++) {
             const item = this.itemActions[i];
             setEventListener("mousedown", item.div, (e) => {
@@ -519,9 +531,26 @@ export class UiManager2 {
             setEventListener("touchstart", item.div, (e) => {
                 if (e.changedTouches.length > 0) {
                     e.stopPropagation();
+                    const touch = e.changedTouches[0];
                     item.actionQueued = true;
                     item.actionTime = new Date().getTime();
-                    item.touchOsId = e.changedTouches[0].identifier;
+                    item.touchOsId = touch.identifier;
+                    item.touchPos = { x: touch.clientX, y: touch.clientY };
+                    if (item.action == "drop") {
+                        item.div.classList.add("ui-drop-holding");
+                    }
+                }
+            });
+            setEventListener("touchmove", item.div, (e) => {
+                if (!item.actionQueued || !item.touchPos) return;
+                for (let j = 0; j < e.changedTouches.length; j++) {
+                    const touch = e.changedTouches[j];
+                    if (touch.identifier != item.touchOsId) continue;
+                    const dx = touch.clientX - item.touchPos.x;
+                    const dy = touch.clientY - item.touchPos.y;
+                    if (Math.sqrt(dx * dx + dy * dy) > touchDropMoveCancelPx) {
+                        cancelItemAction(item);
+                    }
                 }
             });
             setEventListener("touchend", item.div, (_e) => {
@@ -532,17 +561,17 @@ export class UiManager2 {
                 ) {
                     this.pushAction(item);
                 }
-                item.actionQueued = false;
+                cancelItemAction(item);
             });
             setEventListener("touchcancel", item.div, (_e) => {
-                item.actionQueued = false;
+                cancelItemAction(item);
             });
         }
 
         const canvas = document.getElementById("cvs")!;
         this.clearQueuedItemActions = () => {
             for (let i = 0; i < this.itemActions.length; i++) {
-                this.itemActions[i].actionQueued = false;
+                cancelItemAction(this.itemActions[i]);
             }
 
             // @HACK: Get rid of :hover styling when using touch
@@ -611,10 +640,11 @@ export class UiManager2 {
                 if (itemAction.actionQueued && itemAction.action == "drop") {
                     const time = new Date().getTime();
                     const elapsed = time - itemAction.actionTime;
-                    if (elapsed >= touchHoldDuration) {
+                    if (elapsed >= touchDropHoldDuration) {
                         this.pushAction(itemAction);
                         itemAction.actionTime = time;
                         itemAction.actionQueued = false;
+                        itemAction.div.classList.remove("ui-drop-holding");
                     }
                 }
             }

@@ -256,3 +256,51 @@ html.device-mobile:not(.device-portrait) #btns-extra-row > div {
     font-size: 12px;
     margin-top: 0;
 }
+
+/* ------------------------------------------------------------- in game --- */
+
+/*
+ * Holding a gear or loot slot drops the item, which cannot be undone, so show
+ * the hold building up rather than dropping out of nowhere. The duration
+ * matches touchDropHoldDuration in ui2.ts.
+ */
+.ui-drop-holding {
+    animation: ui-drop-hold 1.25s linear forwards;
+}
+
+@keyframes ui-drop-hold {
+    from {
+        transform: scale(1);
+        filter: none;
+    }
+    to {
+        transform: scale(0.8);
+        filter: brightness(1.6);
+    }
+}
+
+/* The inactive scopes are scaled to 60% and overlapped by negative margins,
+   which leaves roughly a 25px target: too small to hit 15x on a phone. */
+html.device-touch .ui-zoom-inactive {
+    margin-left: -2px;
+    margin-right: -2px;
+    transform: scale(0.8);
+}
+
+html.device-touch #ui-top-center-scopes .ui-zoom {
+    margin-left: -2px;
+    margin-right: -2px;
+}
+
+/* Extend the touch target into the gap between scopes without making the
+   buttons themselves any bigger. */
+html.device-touch #ui-top-center-scopes .ui-zoom::after {
+    content: "";
+    position: absolute;
+    inset: -5px;
+    border-radius: inherit;
+}
+
+html.device-touch #ui-top-center-scopes .ui-zoom {
+    position: relative;
+}
