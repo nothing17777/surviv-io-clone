@@ -116,6 +116,30 @@ const GasStages: StageData[] = [
     },
 ];
 
+/**
+ * Storm mode: shorter waits, quicker shrinks, and each circle's timing and size
+ * is jittered so no two games play the same.
+ */
+const StormStages: StageData[] = [
+    { mode: GasMode.Inactive, duration: 0, rad: 0.7425, damage: 0 },
+    { mode: GasMode.Waiting, duration: 45, rad: 0.5, damage: 1.6 },
+    { mode: GasMode.Moving, duration: 20, rad: 0.5, damage: 1.6 },
+    { mode: GasMode.Waiting, duration: 35, rad: 0.34, damage: 2.6 },
+    { mode: GasMode.Moving, duration: 18, rad: 0.34, damage: 2.6 },
+    { mode: GasMode.Waiting, duration: 28, rad: 0.22, damage: 4 },
+    { mode: GasMode.Moving, duration: 15, rad: 0.22, damage: 4 },
+    { mode: GasMode.Waiting, duration: 22, rad: 0.14, damage: 8 },
+    { mode: GasMode.Moving, duration: 12, rad: 0.14, damage: 8 },
+    { mode: GasMode.Waiting, duration: 18, rad: 0.08, damage: 11 },
+    { mode: GasMode.Moving, duration: 10, rad: 0.08, damage: 11 },
+    { mode: GasMode.Waiting, duration: 14, rad: 0.045, damage: 15 },
+    { mode: GasMode.Moving, duration: 8, rad: 0.045, damage: 15 },
+    { mode: GasMode.Waiting, duration: 10, rad: 0.02, damage: 22 },
+    { mode: GasMode.Moving, duration: 8, rad: 0.02, damage: 22 },
+    { mode: GasMode.Waiting, duration: 8, rad: 0, damage: 22 },
+    { mode: GasMode.Moving, duration: 10, rad: 0, damage: 22 },
+];
+
 export class Gas {
     /**
      * Current gas mode
@@ -214,8 +238,13 @@ export class Gas {
 
     mapSize: number;
 
+    private _stages: StageData[];
+    private _storm: boolean;
+
     constructor(readonly game: Game) {
         const map = game.map;
+        this._storm = !!map.mapDef.gameMode.stormMode;
+        this._stages = this._storm ? StormStages : GasStages;
         this.mapSize = (map.width + map.height) / 2;
         this.posOld = v2.create(map.width / 2, map.height / 2);
         this.posNew = v2.copy(this.posOld);
@@ -267,8 +296,18 @@ export class Gas {
 
         this.mode = stage.mode;
         this.radOld = this.currentRad;
-        this.radNew = stage.rad * this.mapSize;
         this.duration = stage.duration;
+        if (this._storm) {
+            this.duration *= util.random(0.7, 1.3);
+        }
+        if (this.mode === GasMode.Waiting) {
+            let rad = stage.rad;
+            if (this._storm && rad > 0) {
+                // only shrink, never grow past the current circle
+                rad = Math.min(rad * util.random(0.8, 1.2), this.radOld / this.mapSize);
+            }
+            this.radNew = rad * this.mapSize;
+        }
         this.damage = stage.damage;
 
         const circleIdxOld = this.circleIdx;
@@ -276,10 +315,13 @@ export class Gas {
         if (this.mode === GasMode.Waiting) {
             this.posOld = v2.copy(this.posNew);
 
-            this.posNew = v2.add(
-                this.posNew,
-                util.randomPointInCircle(this.radOld - this.radNew),
-            );
+            // Normal: next circle sits fully inside the current one.
+            // Storm: next center can be anywhere up to the current edge, so part
+            // of the new circle can sit in today's storm and the zone drifts.
+            const maxOffset = this._storm
+                ? this.radOld * util.random(0.6, 1)
+                : this.radOld - this.radNew;
+            this.posNew = v2.add(this.posNew, util.randomPointInCircle(maxOffset));
 
             const rad = this.radNew * 0.75; // ensure at least 75% of the safe zone will be inside map bounds
             this.posNew = math.v2Clamp(
@@ -318,7 +360,7 @@ export class Gas {
     }
 
     private _getStageData() {
-        return GasStages[this.stage];
+        return this._stages[this.stage];
     }
 
     isInGas(pos: Vec2) {

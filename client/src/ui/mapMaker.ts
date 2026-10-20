@@ -53,6 +53,7 @@ const categoryIcons: Record<Category, string> = {
     Cover: "img/map/map-crate-01.svg",
     Buildings: "img/map/map-building-house-ceiling.svg",
     Bunkers: "img/map/map-bunker-hydra-ceiling-01.svg",
+    Tunnels: "img/map/map-bunker-hydra-ceiling-01.svg",
     Walls: "img/map/map-wall-02.svg",
     Loot: "img/loot/loot-ammo-box.svg",
     All: "",
@@ -79,8 +80,8 @@ interface SavedMap {
 // Object catalog
 //
 
-type Category = "Nature" | "Cover" | "Buildings" | "Bunkers" | "Walls" | "Loot" | "All";
-const categories: Category[] = ["Nature", "Cover", "Buildings", "Bunkers", "Walls", "Loot", "All"];
+type Category = "Nature" | "Cover" | "Buildings" | "Bunkers" | "Tunnels" | "Walls" | "Loot" | "All";
+const categories: Category[] = ["Nature", "Cover", "Buildings", "Bunkers", "Tunnels", "Walls", "Loot", "All"];
 
 interface CatalogItem {
     id: string;
@@ -151,10 +152,13 @@ function getCatalog() {
     for (const [id, def] of Object.entries(RawMapObjectDefs) as Array<[string, Record<string, any>]>) {
         if (!["obstacle", "building", "structure", "loot_spawner"].includes(def.type)) continue;
         const shapes = localShapes(id);
+        let category = categoryOf(id, def.type);
+        // a structure with several stairs is an underground passage between entrances
+        if (category === "Bunkers" && id.startsWith("bunker_") && (def.stairs?.length ?? 0) >= 2) category = "Tunnels";
         catalog.push({
             id,
             name: prettyName(id),
-            category: categoryOf(id, def.type),
+            category,
             img: spriteOf(def),
             color: hex((shapes.find((s) => s.z < 2000) ?? shapes[0])?.color ?? 0x888888),
         });
@@ -238,6 +242,35 @@ function localShapes(type: string, depth = 0): Shape[] {
         out.push({ col: collider.copy(col), color: 0x8a8a8a, scale: 1, z: 0 });
     }
     shapeCache.set(type, out);
+    return out;
+}
+
+const undergroundCache = new Map<string, Shape[]>();
+const tunnelColor = 0x6b5a48;
+const stairsColor = 0xe0b84d;
+
+/** Below-ground view of a structure: its sublevel floors plus the stairs leading down. */
+function undergroundShapes(type: string): Shape[] {
+    const cached = undergroundCache.get(type);
+    if (cached) return cached;
+    const def = MapObjectDefs.typeToDefSafe(type) as Record<string, any> | undefined;
+    const out: Shape[] = [];
+    if (def?.type === "structure") {
+        for (const layer of def.layers.slice(1)) {
+            const sub = MapObjectDefs.typeToDefSafe(pickType(layer.type)) as Record<string, any> | undefined;
+            if (!sub) continue;
+            const cols: Collider[] = [
+                ...(sub.floor?.surfaces ?? []).flatMap((f: { collision: Collider[] }) => f.collision),
+                ...(sub.ceiling?.zoomRegions ?? []).map((z: { zoomIn?: Collider }) => z.zoomIn).filter(Boolean),
+            ];
+            const local = cols.map((c) => ({ col: collider.copy(c), color: tunnelColor, scale: 1, z: 0 }));
+            out.push(...transformShapes(local, layer.pos, layer.ori, 1));
+        }
+        for (const st of def.stairs ?? []) {
+            out.push({ col: collider.copy(st.collision), color: stairsColor, scale: 1, z: 1 });
+        }
+    }
+    undergroundCache.set(type, out);
     return out;
 }
 
@@ -512,6 +545,7 @@ class MapMaker {
     dirty = false;
 
     tool: Tool = "select";
+    underground = false;
     placeType = "tree_01";
     placeOri = 0;
     snap = true;
@@ -591,6 +625,7 @@ class MapMaker {
                         <button class="mm-btn" id="mm-zoom-in" title="Zoom in (+)">+</button>
                         <button class="mm-btn" id="mm-zoom-out" title="Zoom out (-)">&minus;</button>
                         <button class="mm-btn" id="mm-fit" title="Fit map (F)">Fit</button>
+                        <button class="mm-btn" id="mm-under" title="Show tunnels and bunkers below ground (U)">Underground</button>
                     </div>
                     <div class="mm-toast"></div>
                 </div>
@@ -656,6 +691,7 @@ class MapMaker {
         this.root.find("#mm-zoom-in").on("click", () => this.zoomBy(1.25));
         this.root.find("#mm-zoom-out").on("click", () => this.zoomBy(0.8));
         this.root.find("#mm-fit").on("click", () => this.fit());
+        this.root.find("#mm-under").on("click", () => this.toggleUnderground());
         this.root.find("#mm-name").on("change", (e) => {
             const name = String($(e.currentTarget).val()).trim().slice(0, 32) || "My Map";
             this.edit(() => (this.map.name = name));
@@ -1089,6 +1125,13 @@ class MapMaker {
         this.selection = null;
         this.dirty = true;
         this.syncUi();
+    }
+
+    toggleUnderground() {
+        this.underground = !this.underground;
+        this.root.find("#mm-under").toggleClass("mm-active", this.underground);
+        this.toast(this.underground ? "Underground view: tunnels and bunker floors" : "Surface view");
+        this.dirty = true;
     }
 
     setTool(tool: Tool) {
@@ -1576,6 +1619,10 @@ class MapMaker {
             case "F":
                 this.fit();
                 break;
+            case "u":
+            case "U":
+                this.toggleUnderground();
+                break;
             case "+":
             case "=":
                 this.zoomBy(1.25);
@@ -1676,7 +1723,7 @@ class MapMaker {
             (rect.width / 2 - this.cam.x * zoom) * dpr,
             (rect.height / 2 + this.cam.y * zoom) * dpr,
         );
-        drawMap(ctx, this.map, this.getTerrain(), zoom);
+        drawMap(ctx, this.map, this.getTerrain(), zoom, this.underground);
 
         // grid
         const grid = GameConfig.map.gridSize;
@@ -1774,6 +1821,7 @@ function drawMap(
     map: CustomMap,
     terrain: ReturnType<typeof buildTerrain>,
     zoom: number,
+    underground = false,
 ) {
     const colors = MapDefs[map.biome].biome.colors;
     ctx.fillStyle = hex(colors.water);
@@ -1805,6 +1853,16 @@ function drawMap(
     }
     shapes.sort((a, b) => a.z - b.z);
     for (const s of shapes) drawShape(ctx, s);
+
+    if (underground) {
+        // dim the surface, then draw the tunnels on top
+        ctx.fillStyle = "rgba(12,10,8,0.72)";
+        ctx.fillRect(0, 0, map.width, map.height);
+        for (const obj of map.objects) {
+            const under = transformShapes(undergroundShapes(obj.type), v2.create(obj.x, obj.y), obj.ori, obj.scale ?? 1);
+            for (const s of under) drawShape(ctx, s);
+        }
+    }
     void zoom;
 }
 

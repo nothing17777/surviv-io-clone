@@ -18,6 +18,7 @@ import { Potato } from "./maps/potatoDefs.ts";
 import { PotatoSpring } from "./maps/potatoSpringDefs.ts";
 import { Savannah } from "./maps/savannahDefs.ts";
 import { Snow } from "./maps/snowDefs.ts";
+import { Storm } from "./maps/stormDefs.ts";
 import { testFaction, testNormal } from "./maps/testDefs.ts";
 import { Turkey } from "./maps/turkeyDefs.ts";
 import { Woods } from "./maps/woodsDefs.ts";
@@ -62,6 +63,7 @@ const _MapDefs = {
     beach: Beach,
     duel: Duel,
     duel_classic: DuelClassic,
+    storm: Storm,
 
     /* STRIP_FROM_PROD_CLIENT:START */
     test_normal: testNormal,
@@ -145,6 +147,8 @@ export interface MapDef {
         duelMode?: boolean;
         /** spawn players with max gear and their chosen guns */
         godLoadout?: boolean;
+        /** faster, jittered gas whose next circle can overlap the storm */
+        stormMode?: boolean;
         spookyKillSounds?: boolean;
     };
     gameConfig: {
