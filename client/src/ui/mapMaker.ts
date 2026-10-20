@@ -642,6 +642,8 @@ class MapMaker {
                         </label>
                         <label class="mm-check"><input id="mm-noloot" type="checkbox"> No loot
                             <span class="mm-sub">crates, buildings and airdrops drop nothing</span></label>
+                        <label class="mm-check"><input id="mm-storm" type="checkbox"> Storm
+                            <span class="mm-sub">faster gas, next circle can overlap the storm</span></label>
                         <label class="mm-check"><input id="mm-snap" type="checkbox"> Snap to grid <span class="mm-key">G</span></label>
                         <div class="mm-stats"></div>
                     </div>
@@ -710,6 +712,9 @@ class MapMaker {
         });
         this.root.find("#mm-noloot").on("change", (e) => {
             this.edit(() => (this.map.noLoot = (e.currentTarget as HTMLInputElement).checked));
+        });
+        this.root.find("#mm-storm").on("change", (e) => {
+            this.edit(() => (this.map.storm = (e.currentTarget as HTMLInputElement).checked));
         });
         this.root.find("#mm-snap").on("change", (e) => {
             this.snap = (e.currentTarget as HTMLInputElement).checked;
@@ -882,7 +887,7 @@ class MapMaker {
                         `${
                             customMapBiomes[s.map.biome]
                         } · ${s.map.width}×${s.map.height} · ${s.map.objects.length} objects`
-                        + (s.map.noLoot ? " · no loot" : "") + ` · ${new Date(s.savedAt).toLocaleDateString()}`,
+                        + (s.map.noLoot ? " · no loot" : "") + (s.map.storm ? " · storm" : "") + ` · ${new Date(s.savedAt).toLocaleDateString()}`,
                 }),
             );
             row.append(info);
@@ -946,6 +951,7 @@ class MapMaker {
         this.root.find("#mm-width").val(this.map.width);
         this.root.find("#mm-height").val(this.map.height);
         this.root.find("#mm-noloot").prop("checked", this.map.noLoot);
+        this.root.find("#mm-storm").prop("checked", !!this.map.storm);
         this.root.find("#mm-snap").prop("checked", this.snap);
         this.root.find("#mm-use").toggle(!!this.partyHook);
         this.root.find(".mm-tool").each((_i, el) => {

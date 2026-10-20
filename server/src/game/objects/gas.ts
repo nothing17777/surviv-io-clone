@@ -243,7 +243,7 @@ export class Gas {
 
     constructor(readonly game: Game) {
         const map = game.map;
-        this._storm = !!map.mapDef.gameMode.stormMode;
+        this._storm = !!map.mapDef.gameMode.stormMode || !!game.customMap?.storm;
         this._stages = this._storm ? StormStages : GasStages;
         this.mapSize = (map.width + map.height) / 2;
         this.posOld = v2.create(map.width / 2, map.height / 2);

@@ -48,6 +48,8 @@ export const zCustomMap = z.object({
     height: z.number().int().min(CustomMapLimits.minSize).max(CustomMapLimits.maxSize),
     /** no loot from crates, buildings, loot spots or airdrops */
     noLoot: z.boolean(),
+    /** faster, drifting storm gas (see Gas); missing in older map files */
+    storm: z.boolean().optional(),
     rivers: z
         .array(
             z.object({
