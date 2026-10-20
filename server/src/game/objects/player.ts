@@ -2031,7 +2031,7 @@ export class Player extends BaseGameObject {
         this.pickupTicker -= dt;
 
         //
-        // Auto pickup on touch (everyone); auto-opening doors stays mobile only
+        // Auto pickup and door opening on touch, for every player
         //
         this.mobileDropTicker -= dt;
         if (this.mobileDropTicker <= 0 && !this.downed && !this.dead) {
@@ -2099,7 +2099,7 @@ export class Player extends BaseGameObject {
                 }
             }
 
-            const obstacles = this.isMobile ? this.getInteractableObstacles() : [];
+            const obstacles = this.getInteractableObstacles();
             for (let i = 0; i < obstacles.length; i++) {
                 const obstacle = obstacles[i];
                 if (obstacle.isDoor && obstacle.door && !obstacle.door.open) {
