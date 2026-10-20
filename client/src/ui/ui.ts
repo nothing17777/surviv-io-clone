@@ -160,6 +160,7 @@ export class UiManager {
     bigmapClose = $("#big-map-close");
     moveStyleButton = $("#btn-game-move-style");
     aimLineButton = $("#btn-game-aim-line");
+    aimAssistButton = $("#btn-game-aim-assist");
     aimStyleButton = $("#btn-game-aim-style");
 
     fullScreenButton = $("#btn-game-fullscreen");
@@ -318,6 +319,9 @@ export class UiManager {
         });
         this.aimLineButton.on("touchstart", () => {
             touch.toggleAimLine();
+        });
+        this.aimAssistButton.on("touchstart", () => {
+            touch.toggleAimAssist();
         });
         this.onTouchScreen = (e: Event) => {
             if ((e.target as HTMLElement)?.id == "cvs") {
@@ -564,6 +568,7 @@ export class UiManager {
         this.moveStyleButton.off("touchstart");
         this.aimStyleButton.off("touchstart");
         this.aimLineButton.off("touchstart");
+        this.aimAssistButton.off("touchstart");
         $(document).off("touchstart", this.onTouchScreen);
         this.bigmapClose.off("touchend");
         this.bigmapClose.off("mousedown");

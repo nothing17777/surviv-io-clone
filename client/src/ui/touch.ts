@@ -49,6 +49,7 @@ export class Touch {
     moveStyle = "locked";
     aimStyle = "locked";
     touchAimLine = true;
+    touchAimAssist = true;
 
     touchPads: [Pad, Pad];
 
@@ -120,6 +121,7 @@ export class Touch {
         this.setMoveStyle(moveStyle);
         this.setAimStyle(aimStyle);
         this.setTouchAimLine(!!config.get("touchAimLine"));
+        this.setTouchAimAssist(config.get("touchAimAssist") !== false);
         this.init();
     }
 
@@ -331,6 +333,23 @@ export class Touch {
 
     toggleAimLine() {
         this.setTouchAimLine(!this.touchAimLine);
+    }
+
+    toggleAimAssist() {
+        this.setTouchAimAssist(!this.touchAimAssist);
+    }
+
+    setTouchAimAssist(isOn: boolean) {
+        this.touchAimAssist = isOn;
+        this.config.set("touchAimAssist", this.touchAimAssist);
+        const elem = document.getElementById("btn-game-aim-assist")!;
+        if (this.touchAimAssist) {
+            elem.classList.remove("unlocked-on-icon");
+            elem.classList.add("locked-on-icon");
+        } else {
+            elem.classList.remove("locked-on-icon");
+            elem.classList.add("unlocked-on-icon");
+        }
     }
 
     setTouchAimLine(isOn: boolean) {

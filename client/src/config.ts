@@ -109,6 +109,7 @@ const defaultConfig = {
     touchMoveStyle: "anywhere" as AimStyle,
     touchAimStyle: "anywhere" as AimStyle,
     touchAimLine: true,
+    touchAimAssist: true,
 
     binds: "",
     clientTheme: "main" as MapDefKey,

@@ -4,7 +4,7 @@ import { GameConfig, Input, TeamMode, WeaponSlot } from "../../shared/gameConfig
 import * as net from "../../shared/net/net.ts";
 import { ObjectType } from "../../shared/net/objectSerializeFns.ts";
 import { math } from "../../shared/utils/math.ts";
-import { v2 } from "../../shared/utils/v2.ts";
+import { v2, type Vec2 } from "../../shared/utils/v2.ts";
 import type { Ambiance } from "./ambiance.ts";
 import type { AudioManager } from "./audioManager.ts";
 import { Camera } from "./camera.ts";
@@ -53,6 +53,12 @@ import type { Localization } from "./ui/localization.ts";
 import { Touch } from "./ui/touch.ts";
 import { UiManager } from "./ui/ui.ts";
 import { UiManager2 } from "./ui/ui2.ts";
+
+// How far away touch aim assist will look for a target, in game units.
+const aimAssistRange = 40;
+// cos(20 degrees): the assist only engages when the player is already pointing
+// within this cone of the target.
+const aimAssistMinDot = 0.94;
 
 export interface Ctx {
     audioManager: AudioManager;
@@ -518,6 +524,10 @@ export class Game {
                 if (touchAimMovement.touched) {
                     this.m_touch.turnDirTicker = this.m_touch.turnDirCooldown;
                 }
+                if (this.m_touch.touchAimAssist) {
+                    aimDir = this.m_getAimAssistDir(aimDir);
+                    this.m_touch.setAimDir(aimDir);
+                }
                 if (this.m_touch.moveDetected) {
                     inputMsg.touchMoveDir = v2.normalizeSafe(
                         touchPlayerMovement.toMoveDir,
@@ -981,6 +991,52 @@ export class Game {
         }
 
         this.m_render(dt, debug);
+    }
+
+    /**
+     * Pull the touch aim towards the nearest enemy that is already roughly in
+     * front of the player. A thumbstick is far less precise than a mouse, so
+     * without this a phone player cannot land shots at range. It only snaps
+     * inside a narrow cone, so it will not find targets for you.
+     */
+    m_getAimAssistDir(aimDir: Vec2) {
+        const activePlayer = this.m_activePlayer;
+        if (!activePlayer || activePlayer.m_netData.m_dead) return aimDir;
+
+        const activeInfo = this.m_playerBarn.getPlayerInfo(activePlayer.__id);
+        const players = this.m_playerBarn.playerPool.m_getPool();
+
+        let bestDir = aimDir;
+        let bestDot = aimAssistMinDot;
+
+        for (let i = 0; i < players.length; i++) {
+            const player = players[i];
+            if (
+                !player.active
+                || player.__id == activePlayer.__id
+                || player.m_netData.m_dead
+                || player.m_netData.m_layer != activePlayer.m_netData.m_layer
+            ) {
+                continue;
+            }
+
+            const info = this.m_playerBarn.getPlayerInfo(player.__id);
+            if (info && activeInfo && info.groupId == activeInfo.groupId) continue;
+
+            const toTarget = v2.sub(player.m_pos, activePlayer.m_pos);
+            const dist = v2.length(toTarget);
+            if (dist < 0.01 || dist > aimAssistRange) continue;
+
+            const dir = v2.div(toTarget, dist);
+            const dot = v2.dot(dir, aimDir);
+            // Whichever target is closest to where the thumb already points.
+            if (dot > bestDot) {
+                bestDot = dot;
+                bestDir = dir;
+            }
+        }
+
+        return bestDir;
     }
 
     m_render(dt: number, debug: DebugRendererOpts) {

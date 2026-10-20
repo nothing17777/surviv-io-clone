@@ -304,3 +304,20 @@ html.device-touch #ui-top-center-scopes .ui-zoom::after {
 html.device-touch #ui-top-center-scopes .ui-zoom {
     position: relative;
 }
+
+/*
+ * The scope column is pinned 132px from the top, so on a short phone in
+ * landscape the last scope (15x) falls past the bottom of the screen. Centre
+ * it in the visible area instead and keep it clear of the safe area.
+ */
+html.device-touch #ui-top-center-scopes-wrapper {
+    top: 50%;
+    bottom: auto;
+    transform: translateY(-50%);
+    left: calc(6px + env(safe-area-inset-left));
+    max-height: calc(var(--app-height) - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);
+}
+
+html.device-touch #ui-top-center-scopes {
+    margin-top: 0;
+}

@@ -241,6 +241,7 @@ export class UiManager2 {
         menu: {
             touchStyles: domElemById("btn-touch-styles"),
             aimLine: domElemById("btn-game-aim-line"),
+            aimAssist: domElemById("btn-game-aim-assist"),
         },
         rareLootMessage: {
             icon: domElemById("ui-perk-message-image-icon"),
@@ -1041,6 +1042,7 @@ export class UiManager2 {
             }
             dom.menu.touchStyles.style.display = state.touch ? "flex" : "none";
             dom.menu.aimLine.style.display = state.touch ? "block" : "none";
+            dom.menu.aimAssist.style.display = state.touch ? "block" : "none";
             dom.ammo.reloadButton.style.display = state.touch ? "block" : "none";
             dom.emoteButton.style.display = state.touch ? "block" : "none";
             if (dom.debugButton) {
