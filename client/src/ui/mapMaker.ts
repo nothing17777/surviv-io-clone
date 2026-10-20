@@ -1131,7 +1131,7 @@ class MapMaker {
         this.underground = !this.underground;
         this.root.find("#mm-under").toggleClass("mm-active", this.underground);
         this.toast(this.underground ? "Underground view: tunnels and bunker floors" : "Surface view");
-        this.dirty = true;
+        this.queueRender();
     }
 
     setTool(tool: Tool) {
