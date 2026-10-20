@@ -171,7 +171,8 @@ export class ResourceManager {
         atlas.spritesheets = [];
     }
 
-    loadMapAssets(mapName: string) {
+    /** extraAtlases: sprites a map maker map borrowed from other biomes */
+    loadMapAssets(mapName: string, extraAtlases: Atlas[] = []) {
         console.log("Load map", mapName);
 
         const mapDef = MapDefs[mapName as MapDefKey];
@@ -182,7 +183,7 @@ export class ResourceManager {
         //
         // Textures
         //
-        const atlasList = mapDef.assets.atlases;
+        const atlasList = [...mapDef.assets.atlases, ...extraAtlases];
 
         // Unload all atlases that aren't in the new list
         const keys = Object.keys(this.atlases) as Atlas[];

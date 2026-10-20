@@ -1133,6 +1133,9 @@
                                 <div id="btn-armory" class="menu-option btn-darken">
                                     Armory
                                 </div>
+                                <div id="btn-map-maker" class="menu-option btn-darken">
+                                    Map Maker
+                                </div>
                                 <div id="start-help">
                                     <h1 data-l10n="index-controls">Controls</h1>
                                     <p>
@@ -1342,6 +1345,32 @@
                                                     id="team-private-map-select"
                                                     class="btn-hollow btn-hollow-selected server-select menu-option"
                                                 ></select>
+                                                <div id="team-custom-map">
+                                                    <div id="team-custom-map-info">
+                                                        <div id="team-custom-map-name"></div>
+                                                        <div id="team-custom-map-desc"></div>
+                                                    </div>
+                                                    <div class="team-menu-options-buttons">
+                                                        <a
+                                                            class="btn-hollow btn-darken team-menu-option"
+                                                            id="btn-team-map-upload"
+                                                        >Upload Map</a>
+                                                        <a
+                                                            class="btn-hollow btn-darken team-menu-option"
+                                                            id="btn-team-map-clear"
+                                                        >Remove</a>
+                                                        <a
+                                                            class="btn-hollow btn-darken team-menu-option"
+                                                            id="btn-team-map-maker"
+                                                        >Map Maker</a>
+                                                    </div>
+                                                    <input
+                                                        type="file"
+                                                        id="team-map-file"
+                                                        accept=".json, application/json"
+                                                        hidden
+                                                    >
+                                                </div>
                                                 <div class="team-menu-options-buttons" id="team-private-sizes"></div>
                                                 <div class="team-menu-options-buttons" id="team-kit-buttons">
                                                     <a
@@ -1879,6 +1908,7 @@
                     </div>
                 </div>
             </div>
+            <div id="map-maker"></div>
             <div id="modal-armory" class="modal">
                 <div class="modal-content modal-close">
                     <div class="modal-header">

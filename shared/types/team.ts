@@ -1,6 +1,7 @@
 // /api/team_v2 websocket msgs typing
 
 import { z } from "zod";
+import type { CustomMapSummary } from "../utils/customMap.ts";
 import { type FindGameMatchData, type PrivateLoadout, zPrivateLoadout } from "./api.ts";
 
 export type TeamMenuErrorType =
@@ -15,6 +16,7 @@ export type TeamMenuErrorType =
     | "find_game_invalid_protocol"
     | "find_game_invalid_captcha"
     | "private_teams_invalid"
+    | "custom_map_invalid"
     | "kicked"
     | "banned"
     | "behind_proxy"
@@ -40,6 +42,8 @@ export interface RoomData {
     privateSharedKit: boolean;
     /** the one kit everyone spawns with when privateGodLoadout is on */
     privateLoadout: PrivateLoadout;
+    /** map uploaded from the map maker; when set it replaces privateMapName */
+    customMap: CustomMapSummary | null;
 }
 
 //
@@ -194,6 +198,16 @@ export const zTeamSetTeamMsg = z.object({
 
 export type TeamSetTeamMsg = z.infer<typeof zTeamSetTeamMsg>;
 
+/** the whole map file, or null to go back to the normal maps */
+export const zTeamSetCustomMapMsg = z.object({
+    type: z.literal("setCustomMap"),
+    data: z.object({
+        map: z.unknown(),
+    }),
+});
+
+export type TeamSetCustomMapMsg = z.infer<typeof zTeamSetCustomMapMsg>;
+
 export const zGameCompleteMsg = z.object({
     type: z.literal("gameComplete"),
     data: z.object({}).optional(),
@@ -209,6 +223,7 @@ export const zTeamClientMsg = z.discriminatedUnion("type", [
     zTeamKickMsg,
     zTeamChangeNameMsg,
     zTeamSetTeamMsg,
+    zTeamSetCustomMapMsg,
     zGameCompleteMsg,
     zKeepAliveMsg,
 ]);
@@ -221,5 +236,6 @@ export type ClientToServerTeamMsg =
     | TeamCreateMsg
     | TeamKickMsg
     | TeamSetTeamMsg
+    | TeamSetCustomMapMsg
     | TeamGameCompleteMsg
     | TeamPlayGameMsg;

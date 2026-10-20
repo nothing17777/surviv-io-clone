@@ -103,6 +103,8 @@ export class LootBarn {
             source,
             ownerId,
         } = options;
+        if (this.game.noLoot && (source === "map" || source === "obstacle")) return;
+
         const def = GameObjectDefs.typeToDef(type);
 
         if (!("lootImg" in def)) {

@@ -162,7 +162,7 @@ export class PlayerBarn {
             pos = spawnBuilding.pos;
             layer = spawnBuilding.layer;
         } else {
-            pos = this.game.map.getSpawnPos(group, team);
+            pos = this.game.map.getSpawnPos(group, team, joinData.groupData.side);
             if (group && !group.spawnPosition) {
                 group.spawnPosition = v2.copy(pos);
             }

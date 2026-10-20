@@ -9,6 +9,7 @@ import {
     zPrivateLoadout,
 } from "../../../shared/types/api.ts";
 import { zSpectateFilter } from "../../../shared/types/moderation.ts";
+import { type CustomMap, zCustomMap } from "../../../shared/utils/customMap.ts";
 import type { MatchDataTable } from "../api/db/schema.ts";
 
 export const zUpdateRegionBody = z.object({
@@ -42,6 +43,8 @@ export interface ServerGameConfig {
         godLoadout: boolean;
         /** the one kit every player spawns with */
         loadout?: PrivateLoadout;
+        /** a map made in the map maker; mapName is then its biome */
+        customMap?: CustomMap;
     };
 }
 
@@ -66,6 +69,7 @@ export const zFindGamePrivateBody = z.object({
         .object({
             godLoadout: z.boolean(),
             loadout: zPrivateLoadout.optional(),
+            customMap: zCustomMap.optional(),
         })
         .optional(),
 });

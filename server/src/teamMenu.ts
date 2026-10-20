@@ -15,6 +15,7 @@ import {
     type TeamPlayGameMsg,
     zTeamClientMsg,
 } from "../../shared/types/team.ts";
+import { type CustomMap, CustomMapLimits, parseCustomMap, summarizeCustomMap } from "../../shared/utils/customMap.ts";
 import { assert, util } from "../../shared/utils/util.ts";
 import { getFindGamePlayerData, getHonoIp, verifyTurnsStile } from "./api/apiHelpers.ts";
 import type { ApiServer } from "./api/apiServer.ts";
@@ -119,7 +120,11 @@ class Room {
         privateGodLoadout: true,
         privateSharedKit: true,
         privateLoadout: { ...defaultPrivateLoadout },
+        customMap: null,
     };
+
+    /** the full map file; data.customMap is just its summary for the menu */
+    customMap: CustomMap | null = null;
 
     constructor(
         public teamMenu: TeamMenu,
@@ -189,6 +194,24 @@ class Room {
             case "playGame": {
                 if (!player.isLeader) break;
                 this.findGame(msg.data);
+                break;
+            }
+            case "setCustomMap": {
+                if (!player.isLeader || this.data.findingGame) break;
+                if (msg.data.map === null) {
+                    this.customMap = null;
+                    this.data.customMap = null;
+                } else {
+                    const res = parseCustomMap(msg.data.map);
+                    if ("error" in res) {
+                        this.data.lastError = "custom_map_invalid";
+                    } else {
+                        this.customMap = res.map;
+                        this.data.customMap = summarizeCustomMap(res.map);
+                        this.data.lastError = undefined;
+                    }
+                }
+                this.sendState();
                 break;
             }
         }
@@ -340,14 +363,16 @@ class Room {
             }
         }
 
+        const customMap = this.data.privateMatch ? this.customMap : null;
         const res = await this.teamMenu.server.findGame({
-            mapName: this.data.privateMatch ? this.data.privateMapName : mode.mapName,
+            mapName: customMap ? customMap.biome : this.data.privateMatch ? this.data.privateMapName : mode.mapName,
             teamMode: this.data.privateMatch ? this.data.privateTeamSize : mode.teamMode,
             privateMatch: this.data.privateMatch
                 ? {
                     godLoadout: this.data.privateGodLoadout,
                     // without this every player keeps their own picks
                     loadout: this.data.privateSharedKit ? this.data.privateLoadout : undefined,
+                    customMap: customMap ?? undefined,
                 }
                 : undefined,
             autoFill: this.data.privateMatch ? false : this.data.autoFill,
@@ -592,9 +617,11 @@ export class TeamMenu {
     onMsg(ws: WSContext<SocketData>, data: string) {
         let msg: ClientToServerTeamMsg;
         try {
-            assert(data.length < 1024);
+            // map uploads are the one big message; everything else stays tiny
+            assert(data.length < CustomMapLimits.maxBytes + 1024);
             msg = JSON.parse(data);
             zTeamClientMsg.parse(msg);
+            assert(msg.type === "setCustomMap" || data.length < 1024);
         } catch (e) {
             this.logger.warn("Failed to parse message, closing socket.", e);
             ws.close();

@@ -10,6 +10,7 @@ import { MsgStream, MsgType } from "../../../shared/net/net.ts";
 import { ObjectType } from "../../../shared/net/objectSerializeFns.ts";
 import { type AABB, coldet, type Collider } from "../../../shared/utils/coldet.ts";
 import { collider } from "../../../shared/utils/collider.ts";
+import { customMapGrassInset, customMapShoreInset, smoothRiverPoints } from "../../../shared/utils/customMap.ts";
 import { mapHelpers } from "../../../shared/utils/mapHelpers.ts";
 import { math } from "../../../shared/utils/math.ts";
 import type { River } from "../../../shared/utils/river.ts";
@@ -297,6 +298,14 @@ export class GameMap {
         this.width = mapConfig.baseWidth * mapConfig.scale[scale] + mapConfig.extension;
         this.height = mapConfig.baseHeight * mapConfig.scale[scale] + mapConfig.extension;
 
+        const customMap = game.customMap;
+        if (customMap) {
+            this.width = customMap.width;
+            this.height = customMap.height;
+            mapConfig.shoreInset = customMapShoreInset;
+            mapConfig.grassInset = customMapGrassInset;
+        }
+
         this.bounds = collider.createAabb(
             v2.create(0, 0),
             v2.create(this.width, this.height),
@@ -346,17 +355,17 @@ export class GameMap {
         this.msg.rivers = this.riverDescs;
         this.msg.grassInset = this.mapDef.mapGen.map.grassInset;
         this.msg.shoreInset = this.mapDef.mapGen.map.shoreInset;
-        this.msg.places = [...this.mapDef.mapGen.places];
-
-        this.placeSpawns = [...this.mapDef.mapGen.customSpawnRules.placeSpawns];
-        this.msg.places = [...this.mapDef.mapGen.places];
+        const custom = !!this.game.customMap;
+        this.msg.places = custom ? [] : [...this.mapDef.mapGen.places];
+        this.placeSpawns = custom ? [] : [...this.mapDef.mapGen.customSpawnRules.placeSpawns];
 
         this.riverMasks = [];
         this.placesToSpawn = [];
 
-        this.generateRiverMasks();
-
-        this.generatePlaceSpawns();
+        if (!custom) {
+            this.generateRiverMasks();
+            this.generatePlaceSpawns();
+        }
 
         if (this.factionMode) {
             this.factionModeSplitOri = util.randomInt(0, 1) as 0 | 1;
@@ -659,6 +668,18 @@ export class GameMap {
     }
 
     generateTerrain(): void {
+        if (this.game.customMap) {
+            for (const river of this.game.customMap.rivers) {
+                this.riverDescs.push({
+                    width: river.width,
+                    looped: river.looped,
+                    points: smoothRiverPoints(river.points, river.looped),
+                    noRiverObjs: true,
+                });
+            }
+            return;
+        }
+
         const mapConfig = this.mapDef.mapGen.map;
 
         const randomGenerator = util.seededRand(this.seed);
@@ -869,6 +890,14 @@ export class GameMap {
     }
 
     generateObjects() {
+        if (this.game.customMap) {
+            // exactly what was placed in the editor, no spawn replacements or retries
+            for (const obj of this.game.customMap.objects) {
+                this.genAuto(obj.type, v2.create(obj.x, obj.y), 0, obj.ori, obj.scale ?? 1, undefined, undefined, true);
+            }
+            return true;
+        }
+
         const mapGen = this.mapDef.mapGen;
 
         // generate faction bridges here
@@ -2152,14 +2181,23 @@ export class GameMap {
         }
     }
 
-    getSpawnPos(group?: Group, team?: Team): Vec2 {
+    getSpawnPos(group?: Group, team?: Team, side?: number): Vec2 {
         if (Config.debug.spawnMode === "fixed") {
             return v2.copy(Config.debug.spawnPos ?? this.center);
         }
 
         let getPos: () => Vec2;
 
-        if (!group?.spawnPosition) {
+        const customSpawns = this.game.customMap?.spawns ?? [];
+        const sideSpawns = customSpawns.filter((s) => s.side === side);
+        const spawnPoints = sideSpawns.length ? sideSpawns : customSpawns;
+
+        if (!group?.spawnPosition && spawnPoints.length) {
+            getPos = () => {
+                const point = spawnPoints[util.randomInt(0, spawnPoints.length - 1)];
+                return v2.add(v2.create(point.x, point.y), util.randomPointInCircle(3));
+            };
+        } else if (!group?.spawnPosition) {
             const spawnMin = v2.create(this.shoreInset, this.shoreInset);
             const spawnMax = v2.create(
                 this.width - this.shoreInset,

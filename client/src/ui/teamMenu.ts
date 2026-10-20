@@ -10,6 +10,7 @@ import type {
     TeamPlayGameMsg,
     TeamStateMsg,
 } from "../../../shared/types/team.ts";
+import { customMapBiomes, parseCustomMap } from "../../../shared/utils/customMap.ts";
 import { api } from "../api.ts";
 import type { AudioManager } from "../audioManager.ts";
 import type { ConfigManager } from "../config.ts";
@@ -19,6 +20,7 @@ import type { PingTest } from "../pingTest.ts";
 import { SDK } from "../sdk/sdk.ts";
 import type { SiteInfo } from "../siteInfo.ts";
 import type { Localization } from "./localization.ts";
+import { setMapMakerPartyHook } from "./mapMaker.ts";
 import {
     fillItemPicker,
     fillMapSelect,
@@ -50,6 +52,7 @@ function errorTypeToString(type: TeamMenuErrorType, localization: Localization) 
         find_game_invalid_captcha: localization.translate("index-invalid-captcha"),
         kicked: localization.translate("index-team-kicked"),
         private_teams_invalid: "Too many players on one side for this team size",
+        custom_map_invalid: "That map file couldn't be used",
         banned: localization.translate("index-ip-banned"),
         behind_proxy: "behind_proxy", // this will get passed to the main app to show a modal
     } as Record<TeamMenuErrorType, string>;
@@ -168,6 +171,27 @@ export class TeamMenu {
             this.setRoomProperty("privateGodLoadout", true);
         });
         this.kitOff.on("click", () => this.setRoomProperty("privateGodLoadout", false));
+        // custom maps from the map maker
+        $("#btn-team-map-upload").on("click", () => {
+            if (this.isLeader) $("#team-map-file").trigger("click");
+        });
+        $("#team-map-file").on("change", async (e) => {
+            const input = e.currentTarget as HTMLInputElement;
+            const file = input.files?.[0];
+            input.value = "";
+            if (!file) return;
+            const res = parseCustomMap(await file.text());
+            if ("error" in res) {
+                this.customMapError = res.error;
+                this.refreshUi();
+                return;
+            }
+            this.customMapError = "";
+            this.sendMessage("setCustomMap", { map: res.map });
+        });
+        $("#btn-team-map-clear").on("click", () => {
+            if (this.isLeader) this.sendMessage("setCustomMap", { map: null });
+        });
         $("#team-menu-member-list").on("click", ".team-side.can-switch", (e) => {
             const el = $(e.currentTarget);
             this.sendMessage("setTeam", {
@@ -432,6 +456,9 @@ export class TeamMenu {
     }
 
     /** true when the leader's one kit is what everyone spawns with */
+    /** shown under the map buttons when a picked file isn't a valid map */
+    customMapError = "";
+
     sharedKitActive() {
         return !!this.roomData.privateGodLoadout && !!this.roomData.privateSharedKit;
     }
@@ -511,6 +538,14 @@ export class TeamMenu {
             }
             el.prop("disabled", !enabled);
         };
+        setMapMakerPartyHook(
+            this.active && this.isLeader && !!this.roomData.privateMatch
+                ? (map) => {
+                    this.customMapError = "";
+                    this.sendMessage("setCustomMap", { map });
+                }
+                : null,
+        );
         $("#team-menu").css("display", this.active ? "block" : "none");
         $("#start-menu").css("display", this.active ? "none" : "block");
         $("#right-column").css("display", this.active ? "none" : "block");
@@ -595,6 +630,25 @@ export class TeamMenu {
             if (isPrivate) {
                 fillMapSelect(this.privateMapSelect, getModeMaps(modes), this.roomData.privateMapName);
                 this.privateMapSelect.prop("disabled", !this.isLeader);
+
+                // an uploaded map replaces the map picker
+                const custom = this.roomData.customMap;
+                this.privateMapSelect.toggle(!custom);
+                $("#team-custom-map-info").toggle(!!custom || !!this.customMapError);
+                $("#team-custom-map-name").text(custom ? `Custom map: ${custom.name}` : "");
+                $("#team-custom-map-desc")
+                    .toggleClass("team-custom-map-error", !!this.customMapError)
+                    .text(
+                        this.customMapError
+                            || (custom
+                                ? `${
+                                    customMapBiomes[custom.biome] ?? custom.biome
+                                } · ${custom.width}×${custom.height} · `
+                                    + `${custom.objects} objects${custom.noLoot ? " · no loot" : ""}`
+                                : ""),
+                    );
+                $("#btn-team-map-upload").toggle(this.isLeader).text(custom ? "Replace" : "Upload Map");
+                $("#btn-team-map-clear").toggle(this.isLeader && !!custom);
                 this.privateSizes.empty();
                 for (let size = 1; size <= 4; size++) {
                     const btn = $("<a>", {

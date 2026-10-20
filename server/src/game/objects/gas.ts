@@ -303,7 +303,7 @@ export class Gas {
             }
 
             for (const plane of this.game.map.mapDef.gameConfig.planes.timings) {
-                if (plane.circleIdx === this.circleIdx) {
+                if (plane.circleIdx === this.circleIdx && !this.game.noLoot) {
                     this.game.planeBarn.schedulePlane(plane.wait, plane.options);
                 }
             }

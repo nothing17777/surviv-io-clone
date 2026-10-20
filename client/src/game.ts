@@ -17,6 +17,7 @@ import { loadGodLoadout } from "./ui/modePicker.ts";
 import { Editor } from "./debug/editor.ts";
 /* STRIP_FROM_PROD_CLIENT:END */
 
+import { MapDefs } from "../../shared/defs/mapDefs.ts";
 import { GameObjectDefs } from "../../shared/defs/register.ts";
 import { type Connection, ConnectionState, WebsocketConnection } from "../../shared/net/connection.ts";
 import { SpectateAction } from "../../shared/net/spectateMsg.ts";
@@ -47,6 +48,7 @@ import { SmokeBarn } from "./objects/smoke.ts";
 import { Renderer } from "./renderer.ts";
 import type { ResourceManager } from "./resources.ts";
 import { SDK } from "./sdk/sdk.ts";
+import { extraAtlasesFor } from "./spriteAtlases.ts";
 import type { Localization } from "./ui/localization.ts";
 import { Touch } from "./ui/touch.ts";
 import { UiManager } from "./ui/ui.ts";
@@ -1276,7 +1278,13 @@ export class Game {
                 );
 
                 this.m_ambience.setMap(this.m_map.mapName, this.m_audioManager);
-                this.m_resourceManager.loadMapAssets(this.m_map.mapName);
+                this.m_resourceManager.loadMapAssets(
+                    this.m_map.mapName,
+                    extraAtlasesFor(
+                        new Set(msg.objects.map((o) => o.type)),
+                        MapDefs[this.m_map.mapName].assets.atlases,
+                    ),
+                );
                 this.m_map.renderMap(this.m_pixi.renderer, this.m_canvasMode);
                 this.m_renderer.resize(this.m_map, this.m_camera);
                 this.m_bulletBarn.onMapLoad(this.m_map);

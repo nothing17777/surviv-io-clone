@@ -29,6 +29,7 @@ import { SiteInfo } from "./siteInfo.ts";
 import { initArmory } from "./ui/armory.ts";
 import { LoadoutMenu } from "./ui/loadoutMenu.ts";
 import { Localization } from "./ui/localization.ts";
+import { openMapMaker } from "./ui/mapMaker.ts";
 import Menu from "./ui/menu.ts";
 import { MenuModal } from "./ui/menuModal.ts";
 import { initGodLoadoutPicker } from "./ui/modePicker.ts";
@@ -184,6 +185,10 @@ export class Application {
             // menu button, plus the icon next to the settings cog (also up in the party menu)
             $("#btn-armory, .btn-armory").on("click", () => {
                 armoryModal.show();
+                return false;
+            });
+            $("#btn-map-maker, #btn-team-map-maker").on("click", () => {
+                openMapMaker();
                 return false;
             });
 

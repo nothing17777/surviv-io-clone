@@ -1,6 +1,7 @@
 import { getModeMaxPlayers, type MapDefKey, MapDefs } from "../../../shared/defs/mapDefs.ts";
 import { TeamMode } from "../../../shared/gameConfig.ts";
 import type { PrivateLoadout } from "../../../shared/types/api.ts";
+import type { CustomMap } from "../../../shared/utils/customMap.ts";
 import type { Loadout } from "../../../shared/utils/loadout.ts";
 import { math } from "../../../shared/utils/math.ts";
 import { Config } from "../config.ts";
@@ -31,6 +32,8 @@ export interface JoinTokenData {
     loadout?: Loadout;
     quests?: string[];
     groupData: {
+        /** private match side, 0 = Team A, 1 = Team B */
+        side?: number;
         autoFill: boolean;
         playerCount: number;
         groupHashToJoin: string;
@@ -76,6 +79,10 @@ export class Game {
 
     /** private match: the one kit every player spawns with */
     fixedLoadout?: PrivateLoadout;
+    /** built from the map maker instead of generated */
+    customMap?: CustomMap;
+    /** no loot from the map, obstacles or airdrops */
+    noLoot: boolean;
     config: ServerGameConfig;
     modeManager: GameModeManager;
 
@@ -138,6 +145,8 @@ export class Game {
         // private matches force the party leader's kit on everyone
         this.fixedLoadout = config.privateMatch?.loadout;
         this.duelRules = !!config.privateMatch || !!mapGameMode.duelMode;
+        this.customMap = config.privateMatch?.customMap;
+        this.noLoot = !!this.customMap?.noLoot;
 
         this.map = new GameMap(this);
         this.grid = new Grid(this.map.width, this.map.height);
@@ -393,6 +402,7 @@ export class Game {
 
     addJoinTokens(tokens: FindGamePrivateBody["playerData"], autoFill: boolean) {
         const groupData = {
+            side: tokens[0]?.team,
             playerCount: tokens.length,
             groupHashToJoin: "",
             autoFill,
