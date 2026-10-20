@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { MapObjectDefs } from "../defs/register.ts";
+import { collider } from "./collider.ts";
+import { mapHelpers } from "./mapHelpers.ts";
 import { math } from "./math.ts";
 import { Spline } from "./spline.ts";
 import { v2, type Vec2 } from "./v2.ts";
@@ -101,7 +103,34 @@ const placeableTypes = new Set(["obstacle", "building", "structure", "loot_spawn
 
 export function isPlaceableType(type: string) {
     const def = MapObjectDefs.typeToDefSafe(type);
-    return !!def && placeableTypes.has(def.type);
+    // the *_test loot tiers point at loot tables that don't exist
+    return !!def && placeableTypes.has(def.type) && !type.endsWith("_test");
+}
+
+/**
+ * Where an object has to sit so all of it, children included, stays on the
+ * map. Big buildings near the edge otherwise put parts outside the map,
+ * which the map message can't encode.
+ */
+export function fitInsideMap(obj: CustomMapObject, width: number, height: number): { x: number; y: number } {
+    const aabb = collider.toAabb(
+        collider.transform(
+            mapHelpers.getBoundingCollider(obj.type),
+            v2.create(0, 0),
+            math.oriToRad(obj.ori),
+            obj.scale ?? 1,
+        ),
+    );
+    const fit = (pos: number, min: number, max: number, size: number) => {
+        // some buildings have parts a few units past their listed bounds
+        const lo = -min + 10;
+        const hi = size - max - 10;
+        return lo > hi ? size / 2 : math.clamp(pos, lo, hi);
+    };
+    return {
+        x: fit(obj.x, aabb.min.x, aabb.max.x, width),
+        y: fit(obj.y, aabb.min.y, aabb.max.y, height),
+    };
 }
 
 /**

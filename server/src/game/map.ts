@@ -10,7 +10,12 @@ import { MsgStream, MsgType } from "../../../shared/net/net.ts";
 import { ObjectType } from "../../../shared/net/objectSerializeFns.ts";
 import { type AABB, coldet, type Collider } from "../../../shared/utils/coldet.ts";
 import { collider } from "../../../shared/utils/collider.ts";
-import { customMapGrassInset, customMapShoreInset, smoothRiverPoints } from "../../../shared/utils/customMap.ts";
+import {
+    customMapGrassInset,
+    customMapShoreInset,
+    fitInsideMap,
+    smoothRiverPoints,
+} from "../../../shared/utils/customMap.ts";
 import { mapHelpers } from "../../../shared/utils/mapHelpers.ts";
 import { math } from "../../../shared/utils/math.ts";
 import type { River } from "../../../shared/utils/river.ts";
@@ -893,7 +898,22 @@ export class GameMap {
         if (this.game.customMap) {
             // exactly what was placed in the editor, no spawn replacements or retries
             for (const obj of this.game.customMap.objects) {
-                this.genAuto(obj.type, v2.create(obj.x, obj.y), 0, obj.ori, obj.scale ?? 1, undefined, undefined, true);
+                const pos = fitInsideMap(obj, this.width, this.height);
+                try {
+                    this.genAuto(
+                        obj.type,
+                        v2.create(pos.x, pos.y),
+                        0,
+                        obj.ori,
+                        obj.scale ?? 1,
+                        undefined,
+                        undefined,
+                        true,
+                    );
+                } catch (err) {
+                    // one bad object shouldn't stop the whole match from starting
+                    this.game.logger.warn(`Custom map: couldn't place ${obj.type}:`, err);
+                }
             }
             return true;
         }

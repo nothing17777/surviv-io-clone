@@ -12,6 +12,7 @@ import {
     customMapGrassInset,
     CustomMapLimits,
     customMapShoreInset,
+    fitInsideMap,
     parseCustomMap,
     smoothRiverPoints,
 } from "../../../shared/utils/customMap.ts";
@@ -20,6 +21,7 @@ import { math } from "../../../shared/utils/math.ts";
 import { generateTerrain } from "../../../shared/utils/terrainGen.ts";
 import { util } from "../../../shared/utils/util.ts";
 import { v2, type Vec2 } from "../../../shared/utils/v2.ts";
+import { itemImage } from "./modePicker.ts";
 
 /**
  * Map maker: a top-down editor drawn the same way as the in-game minimap
@@ -29,6 +31,32 @@ import { v2, type Vec2 } from "../../../shared/utils/v2.ts";
  */
 
 type Tool = "select" | "place" | "erase" | "river" | "spawnA" | "spawnB";
+
+const svg = (body: string) =>
+    `<svg class="mm-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
+
+const toolIcons: Record<Tool, string> = {
+    select: svg(`<path d="M5 3l14 8-6 2-3 6z" fill="currentColor"/>`),
+    place: svg(`<path d="M12 5v14M5 12h14"/>`),
+    erase: svg(`<path d="M7 21h10M4 15l9-9 6 6-7 7H8z"/>`),
+    river: svg(`<path d="M3 8c3-3 6 3 9 0s6 3 9 0M3 16c3-3 6 3 9 0s6 3 9 0"/>`),
+    spawnA: svg(
+        `<circle cx="12" cy="12" r="9" fill="#3d8bff" stroke="none"/><text x="12" y="16.5" font-size="12" text-anchor="middle" fill="#fff" stroke="none" font-weight="bold">A</text>`,
+    ),
+    spawnB: svg(
+        `<circle cx="12" cy="12" r="9" fill="#ff4d4d" stroke="none"/><text x="12" y="16.5" font-size="12" text-anchor="middle" fill="#fff" stroke="none" font-weight="bold">B</text>`,
+    ),
+};
+
+const categoryIcons: Record<Category, string> = {
+    Nature: "img/map/map-tree-01.svg",
+    Cover: "img/map/map-crate-01.svg",
+    Buildings: "img/map/map-building-house-ceiling.svg",
+    Bunkers: "img/map/map-bunker-hydra-ceiling-01.svg",
+    Walls: "img/map/map-wall-02.svg",
+    Loot: "img/loot/loot-ammo-box.svg",
+    All: "",
+};
 
 const tools: Array<{ id: Tool; label: string; key: string; tip: string }> = [
     { id: "select", label: "Select", key: "1", tip: "Click to select, drag to move. Drag empty ground to pan." },
@@ -105,7 +133,14 @@ function spriteOf(def: Record<string, any>): string {
         const top = MapObjectDefs.typeToDefSafe(def.layers?.[0]?.type) as Record<string, any> | undefined;
         if (top) return spriteOf(top);
     }
+    if (def.type === "loot_spawner") return lootIcon(def);
     return sprite && sprite !== "none" && sprite.endsWith(".img") ? `img/map/${sprite.replace(/\.img$/, ".svg")}` : "";
+}
+
+/** a loot spot shows the item it drops when it's a single item, a crate otherwise */
+function lootIcon(def: Record<string, any>) {
+    const tier = String(def.loot?.[0]?.tier ?? "").replace(/^tier_/, "");
+    return itemImage(tier) || "img/loot/loot-ammo-box.svg";
 }
 
 let catalog: CatalogItem[] | undefined;
@@ -518,10 +553,16 @@ class MapMaker {
         const toolButtons = tools
             .map((t) =>
                 `<button class="mm-tool" data-tool="${t.id}" title="${t.tip} (${t.key})">`
-                + `<span class="mm-key">${t.key}</span>${t.label}</button>`
+                + `${toolIcons[t.id]}${t.label}<span class="mm-key">${t.key}</span></button>`
             )
             .join("");
-        const catTabs = categories.map((c) => `<button class="mm-cat" data-cat="${c}">${c}</button>`).join("");
+        const catTabs = categories
+            .map((c) =>
+                `<button class="mm-cat" data-cat="${c}">`
+                + (categoryIcons[c] ? `<img class="mm-cat-icon" src="${categoryIcons[c]}" alt="">` : "")
+                + `${c}</button>`
+            )
+            .join("");
 
         this.root.html(`
             <div class="mm-topbar">
@@ -993,11 +1034,7 @@ class MapMaker {
                     const src = this.map.objects[sel.idx];
                     if (!this.roomForObjects()) return;
                     this.edit(() => {
-                        this.map.objects.push({
-                            ...src,
-                            x: this.clampX(src.x + 8),
-                            y: this.clampY(src.y - 8),
-                        });
+                        this.map.objects.push(this.keepInside({ ...src, x: src.x + 8, y: src.y - 8 }));
                         this.selection = { kind: "object", idx: this.map.objects.length - 1 };
                     });
                 }
@@ -1066,6 +1103,7 @@ class MapMaker {
         this.map.height = h;
         // keep everything on the map
         this.map.objects = this.map.objects.filter((o) => o.x <= w && o.y <= h);
+        for (const o of this.map.objects) this.keepInside(o);
         this.map.spawns = this.map.spawns.filter((s) => s.x <= w && s.y <= h);
         for (const r of this.map.rivers) {
             for (const p of r.points) {
@@ -1100,12 +1138,16 @@ class MapMaker {
     placeAt(world: Vec2) {
         if (!this.roomForObjects()) return;
         const p = this.snapPos(world);
-        this.map.objects.push({
-            type: this.placeType,
-            x: this.clampX(p.x),
-            y: this.clampY(p.y),
-            ori: this.placeOri,
-        });
+        const obj = { type: this.placeType, x: p.x, y: p.y, ori: this.placeOri };
+        this.map.objects.push(this.keepInside(obj));
+    }
+
+    /** big buildings can't hang off the edge, the server can't send that map */
+    keepInside<T extends CustomMap["objects"][number]>(obj: T): T {
+        const pos = fitInsideMap(obj, this.map.width, this.map.height);
+        obj.x = Math.round(pos.x * 4) / 4;
+        obj.y = Math.round(pos.y * 4) / 4;
+        return obj;
     }
 
     rotate(dir: number) {
@@ -1114,6 +1156,7 @@ class MapMaker {
             this.edit(() => {
                 const o = this.map.objects[sel.idx];
                 o.ori = (o.ori + dir + 4) % 4;
+                this.keepInside(o);
             });
         } else if (this.tool === "place") {
             this.placeOri = (this.placeOri + dir + 4) % 4;
@@ -1393,8 +1436,9 @@ class MapMaker {
                 case "object": {
                     const o = this.map.objects[drag.idx];
                     const p = this.snapPos(v2.add(world, drag.offset));
-                    o.x = this.clampX(p.x);
-                    o.y = this.clampY(p.y);
+                    o.x = p.x;
+                    o.y = p.y;
+                    this.keepInside(o);
                     drag.moved = true;
                     break;
                 }
@@ -1578,6 +1622,7 @@ class MapMaker {
                     const t = sel.kind === "object" ? this.map.objects[sel.idx] : this.map.spawns[sel.idx];
                     t.x = this.clampX(t.x + d[0]);
                     t.y = this.clampY(t.y + d[1]);
+                    if (sel.kind === "object") this.keepInside(this.map.objects[sel.idx]);
                 });
                 break;
             }
