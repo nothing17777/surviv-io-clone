@@ -130,6 +130,19 @@ export const helpers = {
             elem.webkitRequestFullscreen?.();
         }
     },
+    // Best effort: iOS Safari on iPhone has no element fullscreen at all, and
+    // every browser rejects the request outside a user gesture.
+    tryEnterFullScreen: function() {
+        if (document.fullscreenElement) return;
+        const elem = document.documentElement;
+        const request = elem.requestFullscreen
+            ?? elem.webkitRequestFullscreen
+            ?? elem.mozRequestFullScreen
+            ?? elem.msRequestFullscreen;
+        try {
+            request?.call(elem)?.catch?.(() => {});
+        } catch {}
+    },
     copyTextToClipboard: async function(text: string) {
         navigator.clipboard.writeText(text).catch(err => {
             console.error("Failed to copy text to clipboard", err);

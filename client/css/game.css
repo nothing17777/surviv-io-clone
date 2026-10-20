@@ -69,7 +69,7 @@ img {
     }
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #ui-center {
         pointer-events: all;
         transform: translateX(-50%) translateY(-50%) scale(0.85);
@@ -77,7 +77,7 @@ img {
     }
 }
 
-@media (max-width: 850px) and (max-height: 300px) {
+@media (max-width: 1000px) and (max-height: 300px) {
     #ui-center {
         transform: translateX(-50%) translateY(-50%) scale(0.775);
     }
@@ -246,7 +246,7 @@ img {
     padding: 10px 15px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #ui-game-menu {
         height: initial;
         padding: 4px 10px;
@@ -254,7 +254,7 @@ img {
     }
 }
 
-@media (max-width: 850px) and (max-height: 300px) {
+@media (max-width: 1000px) and (max-height: 300px) {
     #ui-game-menu {
         margin-top: 0px;
     }
@@ -267,7 +267,7 @@ img {
     position: relative;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #ui-game-menu p {
         bottom: 0px;
         font-size: 12px;
@@ -759,7 +759,7 @@ img {
     top: 16px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #ui-reload-button-container {
         left: 162px;
         top: 3px;
@@ -781,7 +781,7 @@ img {
     width: 32px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #ui-reload-button {
         background-position: 4px 3px;
         background-size: 14px;
@@ -821,7 +821,7 @@ img {
     width: 42px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #ui-emote-button {
         background-size: 20px;
         border-radius: 14px;
@@ -852,39 +852,39 @@ img {
     top: 60px !important;
 }
 
-@media (max-width: 850px) and (max-height: 320px) {
+@media (max-width: 1000px) and (max-height: 320px) {
     .ui-slider-container {
         margin-bottom: 0px;
     }
 }
 
-@media (max-width: 850px) and (max-height: 320px) {
+@media (max-width: 1000px) and (max-height: 320px) {
     .ui-slider-container > p {
         width: 75px;
     }
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .ui-slider-container > .slider-text {
         margin-bottom: 0px;
     }
 }
 
-@media (max-width: 850px) and (max-height: 320px) {
+@media (max-width: 1000px) and (max-height: 320px) {
     .ui-slider-container > .slider {
         bottom: 3px;
         width: 85px;
     }
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .ui-slider-container > .slider::-webkit-slider-thumb {
         width: 24px;
         height: 24px;
     }
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .ui-slider-container > .slider::-moz-range-thumb {
         width: 24px;
         height: 24px;
@@ -914,7 +914,7 @@ img {
     }
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #ui-stats-logo {
         background-size: 124px;
         bottom: 4px;
@@ -930,7 +930,7 @@ img {
     display: inline-block;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .ui-scope {
         display: flex;
     }
@@ -2444,7 +2444,7 @@ img {
     }
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #ui-perk-message-wrapper {
         bottom: 78px;
         transform: scale(0.5);
@@ -2701,7 +2701,7 @@ img {
     z-index: 2;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .ui-ability-cooldown {
         font-size: 20px;
     }
@@ -2884,7 +2884,7 @@ img {
     }
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #ui-stats-contents-inner {
         margin-top: 0px;
     }
@@ -3288,7 +3288,7 @@ span.ui-stats-header-value {
     display: none;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     * {
         -webkit-touch-callout: none;
         user-select: none;
@@ -5127,30 +5127,30 @@ span.ui-stats-header-value {
     }
 }
 
-@media (max-width: 850px) and (max-height: 360px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (max-height: 360px),
-    (max-width: 850px) and (max-width: 640px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (max-width: 640px) {
+@media (max-width: 1000px) and (max-height: 360px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (max-height: 360px),
+    (max-width: 1000px) and (max-width: 640px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (max-width: 640px) {
     #ui-top-center {
         transform-origin: top;
         transform: translateX(-50%) scale(0.85);
     }
 }
 
-@media (max-width: 850px) and (max-height: 360px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (max-height: 360px),
-    (max-width: 850px) and (max-width: 640px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (max-width: 640px) {
+@media (max-width: 1000px) and (max-height: 360px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (max-height: 360px),
+    (max-width: 1000px) and (max-width: 640px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (max-width: 640px) {
     #ui-bottom-center-0 {
         transform-origin: bottom;
         transform: translateX(-50%) scale(0.85);
     }
 }
 
-@media (max-width: 850px) and (max-height: 360px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (max-height: 360px),
-    (max-width: 850px) and (max-width: 640px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (max-width: 640px) {
+@media (max-width: 1000px) and (max-height: 360px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (max-height: 360px),
+    (max-width: 1000px) and (max-width: 640px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (max-width: 640px) {
     #ui-bottom-right {
         top: 200px;
         transform-origin: top right;
@@ -5158,8 +5158,8 @@ span.ui-stats-header-value {
     }
 }
 
-@media (max-width: 850px) and (max-width: 850px) and (orientation: landscape),
-    (max-width: 900px) and (min-resolution: 3dppx) and (max-width: 850px) and (orientation: landscape) {
+@media (max-width: 1000px) and (max-width: 1000px) and (orientation: landscape),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (max-width: 1000px) and (orientation: landscape) {
     .ui-stats-header-overview .ui-stats-header-left {
         position: fixed;
         top: -4px;
@@ -5173,16 +5173,16 @@ span.ui-stats-header-value {
     }
 }
 
-@media (max-width: 850px) and (max-height: 360px) and (max-width: 640px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (max-height: 360px) and (max-width: 640px) {
+@media (max-width: 1000px) and (max-height: 360px) and (max-width: 640px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (max-height: 360px) and (max-width: 640px) {
     .ui-stats-ad-container {
         margin-top: 0px;
         transform: scale(0.6);
     }
 }
 
-@media (max-width: 850px) and (max-width: 850px) and (max-height: 320px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (max-width: 850px) and (max-height: 320px) {
+@media (max-width: 1000px) and (max-width: 1000px) and (max-height: 320px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (max-width: 1000px) and (max-height: 320px) {
     .ui-stats-ad-container {
         position: fixed;
         right: 10px;
@@ -5192,8 +5192,8 @@ span.ui-stats-header-value {
     }
 }
 
-@media (max-width: 850px) and (orientation: portrait),
-    (max-width: 900px) and (min-resolution: 3dppx) and (orientation: portrait) {
+@media (max-width: 1000px) and (orientation: portrait),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (orientation: portrait) {
     #ui-stats-contents {
         margin-top: 32px;
         margin-bottom: 16px;
@@ -5432,8 +5432,8 @@ span.ui-stats-header-value {
     }
 }
 
-@media (max-width: 850px) and (orientation: portrait) and (min-height: 668px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (orientation: portrait) and (min-height: 668px) {
+@media (max-width: 1000px) and (orientation: portrait) and (min-height: 668px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (orientation: portrait) and (min-height: 668px) {
     #ui-stats-contents {
         margin-top: 32px;
     }
@@ -5472,8 +5472,8 @@ span.ui-stats-header-value {
     }
 }
 
-@media (max-width: 850px) and (orientation: portrait) and (max-height: 667px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (orientation: portrait) and (max-height: 667px) {
+@media (max-width: 1000px) and (orientation: portrait) and (max-height: 667px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (orientation: portrait) and (max-height: 667px) {
     #ui-stats-contents {
         margin-top: 0px;
     }
@@ -5483,8 +5483,8 @@ span.ui-stats-header-value {
     }
 }
 
-@media (max-width: 850px) and (orientation: portrait) and (max-height: 568px) and (max-width: 375px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (orientation: portrait) and (max-height: 568px) and
+@media (max-width: 1000px) and (orientation: portrait) and (max-height: 568px) and (max-width: 375px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (orientation: portrait) and (max-height: 568px) and
         (max-width: 375px) {
     #ui-bottom-center-right {
         left: 22px;

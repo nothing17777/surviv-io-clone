@@ -1,0 +1,258 @@
+/*
+ * Mobile layout fixes.
+ *
+ * Loaded after app.css / game.css. The original stylesheets size the menu for
+ * a phone from 2017 with a fixed pixel height, which no longer fits the extra
+ * buttons this build adds, and they assume a viewport that never changes size.
+ * Everything here is scoped to html.device-mobile / html.device-touch, which
+ * device.ts sets from the same check that drives the small UI layout.
+ */
+
+:root {
+    /* Real visible height, kept up to date by device.ts. */
+    --app-height: 100vh;
+}
+
+@supports (height: 100dvh) {
+    :root {
+        --app-height: 100dvh;
+    }
+}
+
+html.device-mobile, html.device-mobile body {
+    height: var(--app-height);
+    width: 100%;
+    overflow: hidden;
+    /* Pinning the body stops iOS Safari from scrolling the page under its
+       bars, which is what leaves the bottom of the UI out of reach. */
+    position: fixed;
+    top: 0;
+    left: 0;
+    overscroll-behavior: none;
+}
+
+html.device-mobile #cvs {
+    height: var(--app-height);
+    bottom: auto;
+}
+
+/* ---------------------------------------------------------------- menu --- */
+
+html.device-mobile #start-menu-wrapper {
+    height: var(--app-height);
+    /* Notch and home indicator. */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    box-sizing: border-box;
+    align-items: flex-start;
+    overflow: hidden;
+}
+
+html.device-mobile #start-main {
+    height: 100%;
+    width: 100%;
+    margin-bottom: 0;
+    justify-content: flex-start;
+}
+
+html.device-mobile #start-main-center {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+html.device-mobile #start-row-top {
+    width: 100%;
+    min-height: 0;
+    flex: 1;
+    /* The menu is taller than a phone in landscape: let it scroll. */
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding-bottom: 12px;
+    box-sizing: border-box;
+    /* Columns are flex items here; stretching them crops their backgrounds. */
+    align-items: flex-start;
+}
+
+/* The fixed 216px height cuts off every button below the mode picker. */
+html.device-mobile #start-menu {
+    position: static;
+    transform: none;
+    height: auto;
+    align-self: flex-start;
+    flex: 0 0 auto;
+    max-width: calc(100vw - 24px);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Portrait has no room for side by side columns. */
+html.device-mobile.device-portrait #start-row-top {
+    flex-direction: column;
+    align-items: center;
+}
+
+html.device-mobile.device-portrait #start-menu {
+    width: min(340px, calc(100vw - 24px));
+}
+
+/* Tap targets: 28px rows are below the 44px minimum both platforms ask for. */
+html.device-touch .menu-option {
+    height: 38px;
+    line-height: 36px;
+    font-size: 14px;
+}
+
+html.device-touch #btn-help {
+    height: 38px;
+    line-height: 36px;
+    font-size: 14px;
+}
+
+html.device-touch .server-select {
+    /* Keeps iOS from zooming the page when a select or input is focused. */
+    font-size: 16px;
+}
+
+html.device-touch .player-name-input {
+    font-size: 16px;
+}
+
+/* Side columns steal the width the menu needs on a phone. */
+html.device-mobile #left-column,
+html.device-mobile #start-bottom-right-wrapper,
+html.device-mobile .ad-block-header,
+html.device-mobile .ad-block-left-center,
+html.device-mobile .ad-block-right-center {
+    display: none;
+}
+
+html.device-mobile.device-portrait #start-top-right {
+    display: none;
+}
+
+/* The news column squeezes the menu off centre on a phone. */
+html.device-mobile #right-column {
+    display: none;
+}
+
+html.device-mobile #start-bottom-left, html.device-mobile #start-bottom-middle {
+    bottom: env(safe-area-inset-bottom);
+    left: env(safe-area-inset-left);
+}
+
+/* Modals (settings, armory, map maker, team) need to scroll too. */
+html.device-mobile .modal-content {
+    max-height: calc(var(--app-height) - 32px);
+    max-width: calc(100vw - 24px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ---------------------------------------------------------------- game --- */
+
+html.device-mobile #game-area-wrapper, html.device-mobile #ui-game {
+    height: var(--app-height);
+}
+
+/* Keep the HUD clear of the notch and the home indicator. */
+html.device-mobile #ui-top-left, html.device-mobile #ui-team {
+    margin-left: env(safe-area-inset-left);
+    margin-top: env(safe-area-inset-top);
+}
+
+html.device-mobile #ui-right-center, html.device-mobile #ui-settings-container-mobile {
+    margin-right: env(safe-area-inset-right);
+}
+
+html.device-mobile #ui-weapon-container {
+    margin-bottom: env(safe-area-inset-bottom);
+}
+
+/* Browser pan and pinch gestures over the play area fight the game's own
+   touch controls. */
+html.device-touch #game-touch-area {
+    touch-action: none;
+}
+
+/* ----------------------------------------------------- phone landscape --- */
+/*
+ * Landscape is how the game is actually played, so the whole menu has to fit
+ * on screen there. A phone in landscape is roughly 350-430px tall, which the
+ * stock single column menu overflows by more than 200px once the loadout
+ * pickers are shown; side by side columns bring it back under 300px.
+ */
+
+html.device-mobile:not(.device-portrait) #start-row-header {
+    background-size: 150px;
+    height: 54px;
+    width: 150px;
+    margin-top: 4px;
+    margin-bottom: 6px;
+}
+
+html.device-mobile:not(.device-portrait) #start-main-center {
+    width: 100%;
+    margin-top: 0;
+}
+
+html.device-mobile:not(.device-portrait) #start-menu {
+    width: min(460px, calc(100vw - 24px));
+}
+
+html.device-mobile:not(.device-portrait) .play-button-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 10px;
+    align-content: start;
+}
+
+html.device-mobile:not(.device-portrait) .play-button-container > * {
+    grid-column: 1;
+}
+
+/* The loadout pickers get their own column beside the play buttons. */
+html.device-mobile:not(.device-portrait) #god-loadout-picker {
+    grid-column: 2;
+    grid-row: 1 / span 20;
+}
+
+html.device-mobile:not(.device-portrait) .god-loadout-title {
+    margin: 0 0 4px;
+}
+
+/* All four quick start buttons on one row. */
+html.device-mobile:not(.device-portrait) #btns-quick-start {
+    flex-wrap: nowrap;
+}
+
+html.device-mobile:not(.device-portrait) #btns-quick-start > a {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+/* How to Play / Armory / Map Maker share a row. */
+html.device-mobile:not(.device-portrait) #btns-extra-row {
+    display: flex;
+    gap: 4px;
+}
+
+html.device-mobile:not(.device-portrait) #btns-extra-row > div {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+/* The buttons are a third of their usual width here: no room for the icon. */
+html.device-mobile:not(.device-portrait) #btn-armory {
+    background-image: none;
+    text-align: center;
+}
+
+html.device-mobile:not(.device-portrait) #btns-extra-row > div {
+    font-size: 12px;
+    margin-top: 0;
+}

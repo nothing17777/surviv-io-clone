@@ -58,15 +58,42 @@ class Device {
     }
 
     onResize() {
-        this.screenWidth = window.innerWidth;
-        this.screenHeight = window.innerHeight;
+        // On iOS Safari window.innerHeight includes the strip hidden behind the
+        // browser bars, so the canvas ends up taller than what you can see and
+        // the bottom of the HUD is unreachable. The visual viewport is the part
+        // actually on screen.
+        const visual = this.touch ? window.visualViewport : null;
+        this.screenWidth = Math.round(visual?.width ?? window.innerWidth);
+
+        const visualHeight = Math.round(visual?.height ?? window.innerHeight);
+        // The on screen keyboard also shrinks the visual viewport; that is not
+        // the game getting smaller, so ignore anything that drastic.
+        this.screenHeight = visualHeight < window.innerHeight * 0.7
+            ? window.innerHeight
+            : visualHeight;
 
         this.isLandscape = window.innerWidth > window.innerHeight;
 
         const layoutDim = this.isLandscape ? this.screenWidth : this.screenHeight;
-        this.uiLayout = this.mobile || layoutDim <= 850 || (layoutDim <= 900 && this.pixelRatio >= 3)
+        this.uiLayout = this.mobile || layoutDim <= 1000
             ? this.UiLayout.Sm
             : this.UiLayout.Lg;
+
+        this.refreshDocumentState();
+    }
+
+    // Mirror the layout state onto <html> so the stylesheets can react to
+    // UA-detected phones that are too wide for the width based media queries,
+    // and expose the real visible height (iOS Safari shrinks it with its bars).
+    refreshDocumentState() {
+        const root = document.documentElement;
+        if (!root) return;
+
+        root.classList.toggle("device-touch", this.touch);
+        root.classList.toggle("device-mobile", this.uiLayout == this.UiLayout.Sm);
+        root.classList.toggle("device-portrait", !this.isLandscape);
+
+        root.style.setProperty("--app-height", `${this.screenHeight}px`);
     }
 }
 

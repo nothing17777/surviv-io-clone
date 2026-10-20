@@ -15,7 +15,7 @@ html, body {
     background: #80af49;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     html, body {
         font-size: 14px;
         position: fixed;
@@ -65,7 +65,7 @@ a:active {
     width: 1em;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .ui-spinner {
         font-size: 8px;
     }
@@ -91,7 +91,7 @@ a:active {
     width: 12px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     ::-webkit-scrollbar {
         width: 10px;
     }
@@ -123,7 +123,7 @@ a:active {
     margin-bottom: 124px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #start-main {
         margin-bottom: 0;
         height: 100%;
@@ -181,7 +181,7 @@ a:active {
     background-image: url(/img/surviv_logo_full.svg);
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #start-row-header {
         background-size: 220px;
         height: 80px;
@@ -210,7 +210,7 @@ a:active {
     width: 300px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #server-warning {
         font-size: 12px;
         height: 18px;
@@ -232,7 +232,7 @@ a:active {
     }
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #start-main-center {
         margin-top: 10px;
         width: 636px;
@@ -241,7 +241,7 @@ a:active {
     }
 }
 
-@media (max-width: 850px) and (max-height: 320px) {
+@media (max-width: 1000px) and (max-height: 320px) {
     #start-main-center {
         transform: scale(0.8);
         transform-origin: top;
@@ -269,7 +269,7 @@ a:active {
     max-height: 325px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .menu-block {
         max-height: initial;
     }
@@ -307,9 +307,9 @@ a:active {
     width: var(--width);
 }
 
-@media (max-width: 850px),
-    (max-width: 900px) and (-webkit-min-device-pixel-ratio: 3),
-    (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px),
+    (max-width: 1000px) and (-webkit-min-device-pixel-ratio: 3),
+    (max-width: 1000px) and (min-resolution: 3dppx) {
     #ad-block-left {
         margin-right: 18px;
         --height: 165px;
@@ -489,7 +489,7 @@ a:active {
     width: 300px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #start-menu {
         height: 216px;
         padding: 10px;
@@ -511,7 +511,7 @@ a:active {
     width: 100%;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #btn-help {
         box-shadow: none;
         font-size: 12px;
@@ -532,7 +532,7 @@ a:active {
     margin-top: 30px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #start-help > h1 {
         margin-top: 12px;
     }
@@ -542,7 +542,7 @@ a:active {
     margin: 6px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #start-help > p {
         margin: 2px;
         font-size: 11px;
@@ -554,7 +554,7 @@ a:active {
     font-weight: 400;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #start-help span.help-action {
         font-size: 11px;
     }
@@ -564,7 +564,7 @@ a:active {
     font-weight: 700;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #start-help span.help-control {
         font-size: 11px;
     }
@@ -608,9 +608,9 @@ a:active {
     width: 300px;
 }
 
-@media (max-width: 850px),
-    (max-width: 900px) and (-webkit-min-device-pixel-ratio: 3),
-    (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px),
+    (max-width: 1000px) and (-webkit-min-device-pixel-ratio: 3),
+    (max-width: 1000px) and (min-resolution: 3dppx) {
     .ad-block-med-rect {
         position: absolute;
         transform: scale(0.67);
@@ -632,7 +632,7 @@ a:active {
     cursor: pointer;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .menu-option {
         font-size: 12px;
         line-height: 26px;
@@ -651,7 +651,7 @@ a:active {
     cursor: initial;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .player-name-input {
         font-size: 16px;
     }
@@ -688,7 +688,7 @@ a:active {
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-green {
         background: #9850af;
         border-bottom: 2px solid #683679;
@@ -712,7 +712,7 @@ a:active {
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-brown {
         background: #8f5827;
         border-bottom: 2px solid #563619;
@@ -733,7 +733,7 @@ a:active {
     height: 41px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-special-mode {
         background-position: 0 2px;
         background-size: 22px;
@@ -754,7 +754,7 @@ a:active {
     height: 41px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-potato-mode {
         background-position: 0 2px;
         background-size: 22px;
@@ -771,7 +771,7 @@ a:active {
     text-indent: 18px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-team-queue-potato-mode {
         background-position: 0 2px;
         background-size: 22px;
@@ -791,7 +791,7 @@ a:active {
     height: 41px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-flare-mode {
         background-position: 0 2px;
         background-size: 22px;
@@ -808,7 +808,7 @@ a:active {
     text-indent: 18px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-team-queue-flare-mode {
         background-position: 0 2px;
         background-size: 22px;
@@ -828,7 +828,7 @@ a:active {
     height: 41px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-woods-mode {
         background-position: 0 2px;
         background-size: 22px;
@@ -845,7 +845,7 @@ a:active {
     text-indent: 18px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-team-queue-woods-mode {
         background-position: 0 2px;
         background-size: 22px;
@@ -865,7 +865,7 @@ a:active {
     height: 41px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-woods-spring-mode {
         background-position: 0 2px;
         background-size: 22px;
@@ -895,7 +895,7 @@ a:active {
     text-indent: 18px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-team-queue-woods-spring-mode {
         background-position: 0 2px;
         background-size: 22px;
@@ -915,7 +915,7 @@ a:active {
     height: 41px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-halloween-mode {
         background-position: 0 2px;
         background-size: 22px;
@@ -936,7 +936,7 @@ a:active {
     height: 41px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-faction-mode {
         background-position: 0 2px;
         background-size: 22px;
@@ -953,7 +953,7 @@ a:active {
     text-indent: 18px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-team-queue-faction-mode {
         background-position: 0 2px;
         background-size: 22px;
@@ -961,7 +961,7 @@ a:active {
     }
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-faction-mode {
         background-position: 0 2px;
         background-size: 22px;
@@ -982,7 +982,7 @@ a:active {
     height: 41px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-savannah-mode {
         background-position: 0 2px;
         background-size: 22px;
@@ -999,7 +999,7 @@ a:active {
     text-indent: 18px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-team-queue-savannah-mode {
         background-position: 0 2px;
         background-size: 22px;
@@ -1016,7 +1016,7 @@ a:active {
     height: 41px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-custom-mode-main {
         background-position: 0 2px;
         background-size: 22px;
@@ -1035,7 +1035,7 @@ a:active {
     height: 41px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-custom-mode-main {
         background-position: 0 2px;
         background-size: 22px;
@@ -1053,7 +1053,7 @@ a:active {
     height: 41px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-custom-mode-no-indent {
         background-position: 0 2px;
         background-size: 22px;
@@ -1068,7 +1068,7 @@ a:active {
     text-indent: 18px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-custom-mode-select {
         background-position: 0 2px;
         background-size: 22px;
@@ -1147,7 +1147,7 @@ a:active {
     width: 20%;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #btn-customize {
         background-position: center;
         background-size: 20px;
@@ -1167,7 +1167,7 @@ a:active {
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-team-option {
         border-bottom: none;
     }
@@ -1201,7 +1201,7 @@ a:active {
     }
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #btn-team-leave {
         box-shadow: none;
         font-size: 14px;
@@ -1220,7 +1220,7 @@ a:active {
     width: 625px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #team-menu {
         height: 230px;
         width: 418px;
@@ -1231,7 +1231,7 @@ a:active {
     height: 225px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #team-menu-columns {
         margin-top: -4px;
     }
@@ -1244,7 +1244,7 @@ a:active {
     width: 100%;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #team-menu-connecting {
         margin-top: 64px;
     }
@@ -1272,7 +1272,7 @@ a:active {
     width: 320px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #team-menu-members {
         width: 220px;
     }
@@ -1292,7 +1292,7 @@ a:active {
     width: 36px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .team-menu-member > .icon {
         height: 28px;
         width: 28px;
@@ -1344,7 +1344,7 @@ a:active {
     width: 230px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .name {
         padding: 4px;
         width: 130px;
@@ -1360,7 +1360,7 @@ a:active {
     white-space: nowrap;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .name-text {
         font-size: 16px;
     }
@@ -1398,7 +1398,7 @@ a:active {
     width: 60%;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #team-code-text {
         font-size: 12px;
         margin-top: initial;
@@ -1411,7 +1411,7 @@ a:active {
     font-weight: 400;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #invite-code-text {
         font-size: 12px;
         margin-top: initial;
@@ -1427,7 +1427,7 @@ a:active {
     text-align: center;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #msg-wait-reason {
         margin-top: 0;
     }
@@ -1458,7 +1458,7 @@ a:active {
     width: 625px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #team-mobile-link {
         width: 418px;
         height: 186px;
@@ -1476,7 +1476,7 @@ a:active {
     width: 100%;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .team-mobile-link-text {
         font-size: 16px;
         margin-top: 24px;
@@ -1499,7 +1499,7 @@ a:active {
     width: 75%;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #team-link-input {
         width: 100%;
     }
@@ -1511,7 +1511,7 @@ a:active {
     padding: 12px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #team-menu-options {
         float: right;
         padding: 12px 0;
@@ -1540,7 +1540,7 @@ a:active {
     width: 190px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #btn-team-mobile-link-leave {
         background: #7a7a7a;
         border-bottom: none;
@@ -1913,7 +1913,7 @@ a:active {
     z-index: 4;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #modal-account-name-change .player-name-input {
         height: 32px;
     }
@@ -1978,7 +1978,7 @@ a:active {
     transform: translate(-50%, -50%);
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #modal-create-account .modal-content {
         transform: translate(-50%, -50%) scale(0.8);
     }
@@ -2010,7 +2010,7 @@ a:active {
     padding-top: 16px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #modal-create-account .modal-body .menu-option {
         height: 32px;
     }
@@ -2057,7 +2057,7 @@ a:active {
     transform: translate(-50%, -50%);
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #modal-item-confirm .modal-content {
         transform: translate(-50%, -50%) scale(0.8);
     }
@@ -2175,14 +2175,14 @@ a:active {
     margin-bottom: 8px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .login-button-name > .icon {
         height: 18px !important;
         width: 18px !important;
     }
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .login-button-name > .icon::after {
         height: 20px !important;
     }
@@ -2193,7 +2193,7 @@ a:active {
 }
 
 /*
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
   .account-buttons-wrapper {
     background-color: transparent !important;
     margin: auto !important;
@@ -2202,7 +2202,7 @@ a:active {
 }
 */
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #modal-account-avatar > .modal-content {
         top: 48%;
         left: 50%;
@@ -2211,20 +2211,20 @@ a:active {
     }
 }
 
-@media (max-width: 850px) and (max-height: 320px) {
+@media (max-width: 1000px) and (max-height: 320px) {
     #modal-account-avatar > .modal-content {
         transform: translateY(-50%) translateX(-50%) scale(0.45);
     }
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #customize-account-avatar {
         right: 124px;
         transform: scale(2);
     }
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-leaderboard-stats-link {
         background-size: 22px !important;
         box-shadow: inset 0 -1px #1871c8 !important;
@@ -2239,7 +2239,7 @@ a:active {
     }
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-player-stats-link {
         background-size: 22px !important;
     }
@@ -2275,7 +2275,7 @@ a:active {
     width: 100%;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .account-details-top-buttons {
         padding: 2px 10px;
         top: 70px;
@@ -2307,14 +2307,14 @@ a:active {
     margin-top: 8px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .account-details-top-buttons > .account-details-button-wrapper {
         height: 36px;
         line-height: 36px;
     }
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .account-details-top-buttons > .account-details-button-wrapper > .account-details-button > .account-link > span {
         font-size: 20px;
     }
@@ -2872,7 +2872,7 @@ a:active {
     z-index: 1;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #start-top-left-lower {
         display: none;
     }
@@ -3185,7 +3185,7 @@ a:active {
     }
 }
 
-@media screen and (max-width: 900px) {
+@media screen and (max-width: 1000px) {
     .cc-btn {
         white-space: normal;
     }
@@ -3271,7 +3271,7 @@ a:active {
     border-bottom: 4px solid #668b95 !important;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-mode-snow {
         border-bottom: 2px solid #668b95 !important;
     }
@@ -3284,7 +3284,7 @@ a:active {
     box-shadow: inset 0 -2px #563619 !important;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-mode-potato {
         border-bottom: 2px solid #563619 !important;
     }
@@ -3324,7 +3324,7 @@ a:active {
     box-shadow: inset 0 -2px #853500 !important;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-mode-desert {
         border-bottom: 2px solid #853500 !important;
     }
@@ -3336,7 +3336,7 @@ a:active {
     box-shadow: inset 0 -2px #696726 !important;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-mode-woods {
         border-bottom: 2px solid #696726 !important;
     }
@@ -3361,7 +3361,7 @@ a:active {
     border-bottom: 4px solid #00448a;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-mode-faction {
         border-bottom: 2px solid #00448a;
     }
@@ -3397,7 +3397,7 @@ a:active {
     text-indent: 18px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-team-queue-mode-faction-potato {
         background-position: 0 2px;
         background-size: 22px;
@@ -3441,7 +3441,7 @@ a:active {
         -webkit-box-shadow: 0 0 9px #c7a726;
     }
 }
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-mode-savannah {
         border-bottom: 2px solid #947c1c;
     }
@@ -3452,7 +3452,7 @@ a:active {
     border-bottom: 4px solid #2d0000;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-mode-halloween {
         border-bottom: 2px solid #2d0000;
     }
@@ -3490,7 +3490,7 @@ a:active {
     border-bottom: 4px solid #1d252e;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-mode-cobalt {
         border-bottom: 2px solid #1d252e;
     }
@@ -3517,7 +3517,7 @@ a:active {
     border-bottom: 4px solid #8484ac;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     /* for phone */
     .btn-mode-birthday {
         border-bottom: 2px solid #8484ac;
@@ -3552,7 +3552,7 @@ a:active {
     color: #343434;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-mode-beach {
         background-position: 0 2px;
         background-size: 22px;
@@ -3569,7 +3569,7 @@ a:active {
     text-indent: 18px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-team-queue-mode-beach {
         background-position: 0 2px;
         background-size: 22px;
@@ -5607,7 +5607,7 @@ input [type="image"]:focus {
     width: 578px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #modal-customize-unlocks {
         bottom: 0;
         left: 600px;
@@ -5627,7 +5627,7 @@ input [type="image"]:focus {
     background-position: right 2px bottom 4px;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     .btn-social-unlock {
         background-size: 24px;
         padding-right: 32px;
@@ -5948,7 +5948,7 @@ input [type="image"]:focus {
     display: none;
 }
 
-@media (max-width: 850px), (max-width: 900px) and (min-resolution: 3dppx) {
+@media (max-width: 1000px), (max-width: 1000px) and (min-resolution: 3dppx) {
     #right-column, #pass-wrapper, #news-wrapper {
         width: 210px;
     }
@@ -6734,87 +6734,87 @@ input [type="image"]:focus {
     }
 }
 
-@media (max-width: 850px) and (max-height: 374px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (max-height: 374px) {
+@media (max-width: 1000px) and (max-height: 374px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (max-height: 374px) {
     #news-block {
         height: 186px;
     }
 }
 
-@media (max-width: 850px) and (max-height: 374px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (max-height: 374px) {
+@media (max-width: 1000px) and (max-height: 374px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (max-height: 374px) {
     .pass-column {
         height: 276px;
     }
 }
 
-@media (max-width: 850px) and (max-height: 374px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (max-height: 374px) {
+@media (max-width: 1000px) and (max-height: 374px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (max-height: 374px) {
     #pass-progress {
         top: 0;
     }
 }
 
-@media (max-width: 850px) and (max-height: 374px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (max-height: 374px) {
+@media (max-width: 1000px) and (max-height: 374px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (max-height: 374px) {
     #pass-progress-bar {
         width: 110px;
     }
 }
 
-@media (max-width: 850px) and (max-height: 374px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (max-height: 374px) {
+@media (max-width: 1000px) and (max-height: 374px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (max-height: 374px) {
     #pass-progress-unlock-wrapper {
         transform: scale(0.75);
     }
 }
 
-@media (max-width: 850px) and (max-height: 374px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (max-height: 374px) {
+@media (max-width: 1000px) and (max-height: 374px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (max-height: 374px) {
     #pass-quest-wrapper {
         top: -25px;
     }
 }
 
-@media (max-width: 850px) and (max-height: 374px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (max-height: 374px) {
+@media (max-width: 1000px) and (max-height: 374px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (max-height: 374px) {
     .pass-quest {
         padding-bottom: 0;
     }
 }
 
-@media (max-width: 850px) and (max-width: 850px) and (max-height: 320px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (max-width: 850px) and (max-height: 320px) {
+@media (max-width: 1000px) and (max-width: 1000px) and (max-height: 320px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (max-width: 1000px) and (max-height: 320px) {
     #start-top-right {
         transform: scale(0.7);
         transform-origin: top right;
     }
 }
 
-@media (max-width: 850px) and (max-height: 374px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (max-height: 374px) {
+@media (max-width: 1000px) and (max-height: 374px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (max-height: 374px) {
     #mobile-download-app {
         display: none !important;
     }
 }
 
-@media (max-width: 850px) and (max-width: 850px) and (max-height: 320px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (max-width: 850px) and (max-height: 320px) {
+@media (max-width: 1000px) and (max-width: 1000px) and (max-height: 320px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (max-width: 1000px) and (max-height: 320px) {
     .modal-divider {
         margin-top: 10px;
         margin-bottom: 10px;
     }
 }
 
-@media (max-width: 850px) and (max-width: 850px) and (max-height: 320px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (max-width: 850px) and (max-height: 320px) {
+@media (max-width: 1000px) and (max-width: 1000px) and (max-height: 320px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (max-width: 1000px) and (max-height: 320px) {
     .slider-container {
         margin-bottom: 10px;
     }
 }
 
-@media (max-width: 850px) and (max-width: 850px) and (max-height: 320px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (max-width: 850px) and (max-height: 320px) {
+@media (max-width: 1000px) and (max-width: 1000px) and (max-height: 320px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (max-width: 1000px) and (max-height: 320px) {
     .slider {
         bottom: 10px;
         position: relative;
@@ -6822,36 +6822,36 @@ input [type="image"]:focus {
     }
 }
 
-@media (max-width: 850px) and (max-height: 375px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (max-height: 375px) {
+@media (max-width: 1000px) and (max-height: 375px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (max-height: 375px) {
     #modal-customize-wrapper {
         transform: translateX(-50%) translateY(-50%) scale(0.7);
     }
 }
 
-@media (max-width: 850px) and (max-height: 360px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (max-height: 360px) {
+@media (max-width: 1000px) and (max-height: 360px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (max-height: 360px) {
     #modal-customize-wrapper {
         transform: translateX(-50%) translateY(-50%) scale(0.66);
     }
 }
 
-@media (max-width: 850px) and (max-height: 320px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (max-height: 320px) {
+@media (max-width: 1000px) and (max-height: 320px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (max-height: 320px) {
     #modal-customize-wrapper {
         transform: translateX(-50%) translateY(-50%) scale(0.6);
     }
 }
 
-@media (max-width: 850px) and (max-width: 850px) and (max-height: 320px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (max-width: 850px) and (max-height: 320px) {
+@media (max-width: 1000px) and (max-width: 1000px) and (max-height: 320px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (max-width: 1000px) and (max-height: 320px) {
     .modal-body p.slider-text {
         width: 90px;
     }
 }
 
-@media (max-width: 850px) and (orientation: portrait),
-    (max-width: 900px) and (min-resolution: 3dppx) and (orientation: portrait) {
+@media (max-width: 1000px) and (orientation: portrait),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (orientation: portrait) {
     #modal-notification .modal-content {
         top: 20%;
         bottom: 60%;
@@ -7118,8 +7118,8 @@ input [type="image"]:focus {
     }
 }
 
-@media (max-width: 850px) and (orientation: portrait) and (min-height: 668px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (orientation: portrait) and (min-height: 668px) {
+@media (max-width: 1000px) and (orientation: portrait) and (min-height: 668px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (orientation: portrait) and (min-height: 668px) {
     #start-main-center {
         margin-top: 36px;
         transform: scale(0.9);
@@ -7127,8 +7127,8 @@ input [type="image"]:focus {
     }
 }
 
-@media (max-width: 850px) and (orientation: portrait) and (max-height: 667px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (orientation: portrait) and (max-height: 667px) {
+@media (max-width: 1000px) and (orientation: portrait) and (max-height: 667px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (orientation: portrait) and (max-height: 667px) {
     #start-row-header {
         background-size: 170px;
         width: 170px;
@@ -7168,9 +7168,9 @@ input [type="image"]:focus {
     }
 }
 
-@media (max-width: 850px) and (orientation: portrait) and (max-height: 667px) and (min-height: 569px) and
+@media (max-width: 1000px) and (orientation: portrait) and (max-height: 667px) and (min-height: 569px) and
         (max-width: 360px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (orientation: portrait) and (max-height: 667px) and
+    (max-width: 1000px) and (min-resolution: 3dppx) and (orientation: portrait) and (max-height: 667px) and
         (min-height: 569px) and (max-width: 360px) {
     #start-main-center {
         margin-top: -24px;
@@ -7199,8 +7199,8 @@ input [type="image"]:focus {
     }
 }
 
-@media (max-width: 850px) and (orientation: portrait) and (max-height: 568px) and (max-width: 375px),
-    (max-width: 900px) and (min-resolution: 3dppx) and (orientation: portrait) and (max-height: 568px) and
+@media (max-width: 1000px) and (orientation: portrait) and (max-height: 568px) and (max-width: 375px),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (orientation: portrait) and (max-height: 568px) and
         (max-width: 375px) {
     #start-main-center {
         margin-top: -36px;
@@ -7321,6 +7321,21 @@ input [type="image"]:focus {
     background-image: url(/img/gui/armory.svg);
     background-size: 34px;
     background-position: center;
+}
+
+#btn-map-maker {
+    background: #7a7a7a;
+    border-bottom: 2px solid #3e3e3e;
+    box-shadow: inset 0 -2px #3e3e3e;
+    color: #ffffff;
+    cursor: pointer;
+    display: block;
+    font-size: 16px;
+    height: 40px;
+    line-height: 36px;
+    margin-top: 4px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    width: 100%;
 }
 
 #btn-armory {

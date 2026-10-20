@@ -5,6 +5,7 @@ import type { GasData } from "../../shared/net/updateMsg.ts";
 import { math } from "../../shared/utils/math.ts";
 import { v2, type Vec2 } from "../../shared/utils/v2.ts";
 import type { Camera } from "./camera.ts";
+import { device } from "./device.ts";
 import { helpers } from "./helpers.ts";
 import type { UiManager } from "./ui/ui.ts";
 
@@ -24,8 +25,8 @@ export class GasRenderer {
     ) {
         if (canvasMode) {
             this.canvas = document.createElement("canvas");
-            this.canvas.width = window.innerWidth;
-            this.canvas.height = window.innerHeight;
+            this.canvas.width = device.screenWidth;
+            this.canvas.height = device.screenHeight;
             this.display = new PIXI.Sprite(PIXI.Texture.from(this.canvas));
             this.gasColorDOMString = helpers.colorToDOMString(gasColor, 0.6);
         } else {
@@ -57,8 +58,8 @@ export class GasRenderer {
 
     resize() {
         if (this.canvas != null) {
-            this.canvas.width = window.innerWidth;
-            this.canvas.height = window.innerHeight;
+            this.canvas.width = device.screenWidth;
+            this.canvas.height = device.screenHeight;
             (this.display as PIXI.Sprite).texture.update();
         }
     }
