@@ -319,7 +319,10 @@ export class Application {
             this.setAppActive(true);
             const domCanvas = document.querySelector<HTMLCanvasElement>("#cvs")!;
 
-            const rendererRes = window.devicePixelRatio > 1 ? 2 : 1;
+            // Rendering at the full device pixel ratio costs four times the fill
+            // rate of 1x on a 2x display and nine times on a phone, which is the
+            // single biggest frame time cost here. 1.5x still looks sharp.
+            const rendererRes = Math.min(window.devicePixelRatio || 1, 1.5);
 
             if (device.os == "ios") {
                 PIXI.settings.PRECISION_FRAGMENT = PIXI.PRECISION.HIGH;
