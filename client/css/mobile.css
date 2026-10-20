@@ -187,12 +187,42 @@ html.device-touch #game-touch-area {
  * pickers are shown; side by side columns bring it back under 300px.
  */
 
+/*
+ * Sizes scale with the height actually available rather than snapping to one
+ * compact size, so a 430px tall phone is not stuck with controls drawn for a
+ * 343px one. --app-height is the visible height, kept current by device.ts.
+ */
+html.device-mobile:not(.device-portrait) {
+    --phone-row-h: clamp(28px, calc(var(--app-height) * 0.09), 40px);
+    --phone-font: clamp(12px, calc(var(--app-height) * 0.037), 16px);
+    --phone-logo: clamp(130px, calc(var(--app-height) * 0.42), 230px);
+}
+
 html.device-mobile:not(.device-portrait) #start-row-header {
-    background-size: 150px;
-    height: 54px;
-    width: 150px;
+    background-size: var(--phone-logo);
+    height: calc(var(--phone-logo) * 0.36);
+    width: var(--phone-logo);
     margin-top: 4px;
     margin-bottom: 6px;
+}
+
+/* Centre the menu in the leftover space instead of leaving a dead band under
+   it. "safe" keeps the top reachable if it ever does overflow. */
+html.device-mobile:not(.device-portrait) #start-row-top {
+    align-items: safe center;
+}
+
+html.device-mobile:not(.device-portrait) .menu-option,
+html.device-mobile:not(.device-portrait) #btn-help,
+html.device-mobile:not(.device-portrait) #btn-armory,
+html.device-mobile:not(.device-portrait) #btn-map-maker {
+    height: var(--phone-row-h);
+    line-height: calc(var(--phone-row-h) - 2px);
+    font-size: var(--phone-font);
+}
+
+html.device-mobile:not(.device-portrait) .god-loadout-title {
+    font-size: var(--phone-font);
 }
 
 html.device-mobile:not(.device-portrait) #start-main-center {
@@ -201,7 +231,8 @@ html.device-mobile:not(.device-portrait) #start-main-center {
 }
 
 html.device-mobile:not(.device-portrait) #start-menu {
-    width: min(460px, calc(100vw - 24px));
+    width: clamp(380px, 56vw, 560px);
+    max-width: calc(100vw - 24px);
 }
 
 html.device-mobile:not(.device-portrait) .play-button-container {
@@ -233,6 +264,11 @@ html.device-mobile:not(.device-portrait) #btns-quick-start {
 html.device-mobile:not(.device-portrait) #btns-quick-start > a {
     flex: 1 1 0;
     min-width: 0;
+    /* Four buttons sharing one narrow column: keep "Play 1v1" on one line
+       rather than wrapping the mode onto a clipped second line. */
+    white-space: nowrap;
+    font-size: calc(var(--phone-font) * 0.8);
+    padding: 0 2px;
 }
 
 /* How to Play / Armory / Map Maker share a row. */
@@ -253,7 +289,7 @@ html.device-mobile:not(.device-portrait) #btn-armory {
 }
 
 html.device-mobile:not(.device-portrait) #btns-extra-row > div {
-    font-size: 12px;
+    font-size: calc(var(--phone-font) * 0.85);
     margin-top: 0;
 }
 
