@@ -2031,10 +2031,10 @@ export class Player extends BaseGameObject {
         this.pickupTicker -= dt;
 
         //
-        // Mobile auto interaction
+        // Auto pickup on touch (everyone); auto-opening doors stays mobile only
         //
         this.mobileDropTicker -= dt;
-        if (this.isMobile && this.mobileDropTicker <= 0 && !this.downed && !this.dead) {
+        if (this.mobileDropTicker <= 0 && !this.downed && !this.dead) {
             const closestLoot = this.getClosestLoot();
 
             if (closestLoot) {
@@ -2099,7 +2099,7 @@ export class Player extends BaseGameObject {
                 }
             }
 
-            const obstacles = this.getInteractableObstacles();
+            const obstacles = this.isMobile ? this.getInteractableObstacles() : [];
             for (let i = 0; i < obstacles.length; i++) {
                 const obstacle = obstacles[i];
                 if (obstacle.isDoor && obstacle.door && !obstacle.door.open) {
