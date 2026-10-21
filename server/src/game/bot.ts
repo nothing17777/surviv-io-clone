@@ -1129,8 +1129,9 @@ export function addBot(game: Game, level: BotLevel, side?: number): Player {
     });
     client.player = player;
     const settings = game.config.privateMatch?.botSettings?.[level];
-    // the leader's kit for this level replaces whatever the match handed out
-    if (settings?.kit) player.applyGodLoadout(settings.kit, true);
+    // the leader's kit for this level replaces whatever the match handed out,
+    // except under Same Kit, where bots keep the kit everyone else has
+    if (settings?.kit && !(game.godLoadout && game.fixedLoadout)) player.applyGodLoadout(settings.kit, true);
     player.botBrain = new BotBrain(player, level, settings);
     return player;
 }
