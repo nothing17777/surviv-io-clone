@@ -298,6 +298,9 @@ export class Gas {
 
         this.mode = stage.mode;
         this.radOld = this.currentRad;
+        // roaming at the smallest zone: keep cycling wait/move at the min radius
+        const roamRad = this.game.customMap?.zoneRoam ? (this.game.customMap.zoneMinRadius ?? 0) : 0;
+        const roaming = roamRad > 0 && this.radOld <= roamRad;
         // how unpredictable circles are: 0 = classic nested circles, 1 = storm
         const v = this._volatility;
         this.duration = stage.duration;
@@ -326,7 +329,16 @@ export class Gas {
             // Storm: next center can be anywhere up to the current edge, so part
             // of the new circle can sit in today's storm and the zone drifts.
             const zoneEnd = this.game.customMap?.zoneEnd;
-            if (zoneEnd) {
+            if (roaming) {
+                // drift a full circle width each time, staying inside the map
+                this.posNew = v2.add(this.posNew, util.randomPointInCircle(this.radNew * 2));
+                const rad = this.radNew;
+                this.posNew = math.v2Clamp(
+                    this.posNew,
+                    v2.create(rad, rad),
+                    v2.create(this.game.map.width - rad, this.game.map.height - rad),
+                );
+            } else if (zoneEnd) {
                 // Shrink toward the map maker's end point: scaling the circle about
                 // that point keeps it inside every circle, so the zone always ends there.
                 const end = v2.create(zoneEnd.x, zoneEnd.y);
@@ -379,6 +391,11 @@ export class Gas {
     }
 
     private _getStageData() {
+        const n = this._stages.length;
+        if (this.stage >= n && this.game.customMap?.zoneRoam && this.game.customMap.zoneMinRadius) {
+            // repeat the final wait/move pair forever
+            return this._stages[n - 2 + ((this.stage - n) % 2)];
+        }
         return this._stages[this.stage];
     }
 

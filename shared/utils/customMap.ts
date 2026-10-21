@@ -69,6 +69,8 @@ export const zCustomMap = z.object({
     zoneVolatility: z.number().min(0).max(1).optional(),
     /** the zone stops shrinking at this radius, in game units; missing = closes completely */
     zoneMinRadius: z.number().min(0).max(300).optional(),
+    /** once the zone reaches zoneMinRadius it keeps moving around instead of stopping */
+    zoneRoam: z.boolean().optional(),
     /** where the final zone closes; missing = random, like normal games */
     zoneEnd: z.object({ x: zPos, y: zPos }).optional(),
     rivers: z

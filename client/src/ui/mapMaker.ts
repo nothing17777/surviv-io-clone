@@ -760,6 +760,8 @@ class MapMaker {
                             <input id="mm-zonespeed" type="range" min="0.25" max="4" step="0.25"></label>
                         <label>Smallest zone <span id="mm-zonemin-val"></span>
                             <input id="mm-zonemin" type="range" min="0" max="120" step="2"></label>
+                        <label class="mm-check"><input id="mm-zoneroam" type="checkbox"> Roaming final zone
+                            <span class="mm-sub">at the smallest size the zone keeps moving around</span></label>
                         <label>Circle volatility <span id="mm-zonevol-val"></span>
                             <input id="mm-zonevol" type="range" min="0" max="100" step="5"></label>
                         <div class="mm-sub">0% keeps each circle inside the last. Higher shifts timing and size, and lets new circles reach into the storm.</div>
@@ -848,6 +850,9 @@ class MapMaker {
             this.root.find("#mm-zonemin-val").text(v ? `${v} wide` : "closes fully");
             if (e.type === "change") this.edit(() => (this.map.zoneMinRadius = v ? v / 2 : undefined));
             else this.queueRender();
+        });
+        this.root.find("#mm-zoneroam").on("change", (e) => {
+            this.edit(() => (this.map.zoneRoam = (e.currentTarget as HTMLInputElement).checked || undefined));
         });
         this.root.find("#mm-zonevol").on("input change", (e) => {
             const v = Number($(e.currentTarget).val());
@@ -1124,6 +1129,7 @@ class MapMaker {
         const minWide = Math.round((this.map.zoneMinRadius ?? 0) * 2);
         this.root.find("#mm-zonemin").val(String(minWide));
         this.root.find("#mm-zonemin-val").text(minWide ? `${minWide} wide` : "closes fully");
+        this.root.find("#mm-zoneroam").prop("checked", !!this.map.zoneRoam).prop("disabled", !minWide);
         const vol = Math.round((this.map.zoneVolatility ?? (this.map.storm ? 1 : 0)) * 100);
         this.root.find("#mm-zonevol").val(String(vol));
         this.root.find("#mm-zonevol-val").text(`${vol}%`);
