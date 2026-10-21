@@ -304,7 +304,7 @@ export class TeamMenu {
         });
     }
 
-    connect(create: boolean, roomUrl: string) {
+    connect(create: boolean, roomUrl: string, roomPreset?: Partial<RoomData>) {
         if (!this.active || roomUrl !== this.roomData.roomUrl) {
             const roomHost = api.resolveRoomHost();
             const url = `w${window.location.protocol === "https:" ? "ss" : "s"}://${roomHost}/team_v2`;
@@ -327,6 +327,7 @@ export class TeamMenu {
                 findingGame: false,
                 lastError: undefined,
                 privateLoadout: { ...defaultPrivateLoadout },
+                ...roomPreset,
             } as RoomData;
             this.displayedInvalidProtocolModal = false;
 

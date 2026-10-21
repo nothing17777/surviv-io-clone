@@ -7377,6 +7377,21 @@ input [type="image"]:focus {
     width: 100%;
 }
 
+#btn-vs-bots {
+    background: #b5473a;
+    border-bottom: 2px solid #7e3128;
+    box-shadow: inset 0 -2px #7e3128;
+    color: #ffffff;
+    cursor: pointer;
+    display: block;
+    font-size: 16px;
+    height: 40px;
+    line-height: 36px;
+    margin-top: 4px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    width: 100%;
+}
+
 #btn-armory {
     background: #af7a50;
     background-image: url(/img/gui/armory.svg);

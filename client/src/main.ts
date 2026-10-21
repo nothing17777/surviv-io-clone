@@ -9,6 +9,7 @@ import type {
     FindGameResponse,
     GameWsDisconnectReason,
 } from "../../shared/types/api.ts";
+import type { RoomData } from "../../shared/types/team.ts";
 import { math } from "../../shared/utils/math.ts";
 import { Account } from "./account.ts";
 import { Ambiance } from "./ambiance.ts";
@@ -260,6 +261,10 @@ export class Application {
             });
             $("#btn-create-team").on("click", () => {
                 this.tryJoinTeam(true);
+            });
+            // straight into a private party set up to fight bots
+            $("#btn-vs-bots").on("click", () => {
+                this.tryJoinTeam(true, undefined, { privateMatch: true, privateVsBots: true });
             });
             $("#btn-team-mobile-link-join").on("click", () => {
                 let t = $<HTMLInputElement>("#team-link-input").val()!.trim()!;
@@ -654,7 +659,7 @@ export class Application {
         }
     }
 
-    tryJoinTeam(create: boolean, url?: string) {
+    tryJoinTeam(create: boolean, url?: string, roomPreset?: Partial<RoomData>) {
         if (this.active && this.quickPlayPendingModeIdx === -1) {
             // Join team if the url contains a team address
             let roomUrl = url || window.location.hash.slice(1);
@@ -671,7 +676,7 @@ export class Application {
                 // selected region. We will stash the menu values
                 // into the config so the team menu can read them.
                 this.setConfigFromDOM();
-                this.teamMenu.connect(create, roomUrl);
+                this.teamMenu.connect(create, roomUrl, roomPreset);
                 this.refreshUi();
             }
         }
