@@ -167,8 +167,10 @@ export class PlayerBarn {
             pos = spawnBuilding.pos;
             layer = spawnBuilding.layer;
         } else {
-            pos = this.game.map.getSpawnPos(group, team, joinData.groupData.side);
-            if (group && !group.spawnPosition) {
+            // bots outside private matches each drop somewhere of their own
+            const ownSpot = joinData.bot && !this.game.duelRules;
+            pos = this.game.map.getSpawnPos(ownSpot ? undefined : group, team, joinData.groupData.side);
+            if (group && !group.spawnPosition && !ownSpot) {
                 group.spawnPosition = v2.copy(pos);
             }
             layer = 0;

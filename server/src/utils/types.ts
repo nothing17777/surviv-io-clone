@@ -7,7 +7,9 @@ import {
     type FindGamePrivateError,
     loadoutSchema,
     type PrivateLoadout,
+    type VsBots,
     zBotCounts,
+    zVsBots,
     zPrivateLoadout,
 } from "../../../shared/types/api.ts";
 import { zSpectateFilter } from "../../../shared/types/moderation.ts";
@@ -49,6 +51,7 @@ export interface ServerGameConfig {
         customMap?: CustomMap;
         /** bots the party leader added */
         bots?: BotCounts;
+        vsBots?: VsBots;
     };
 }
 
@@ -75,6 +78,7 @@ export const zFindGamePrivateBody = z.object({
             loadout: zPrivateLoadout.optional(),
             customMap: zCustomMap.optional(),
             bots: zBotCounts.optional(),
+            vsBots: zVsBots.optional(),
         })
         .optional(),
 });

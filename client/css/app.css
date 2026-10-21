@@ -7324,6 +7324,11 @@ input [type="image"]:focus {
     width: 40px;
 }
 
+.team-vs-bot select {
+    width: 60%;
+    margin: 2px 0;
+}
+
 #team-bots-counts,
 #team-god-heals {
     display: grid;

@@ -7,7 +7,7 @@ import { math } from "../../../shared/utils/math.ts";
 import { Config } from "../config.ts";
 import { ServerLogger } from "../utils/logger.ts";
 import { type FindGamePrivateBody, type ServerGameConfig } from "../utils/types.ts";
-import { addPrivateBots, BotFiller } from "./bot.ts";
+import { addPrivateBots, addVsBots, BotFiller } from "./bot.ts";
 import { ClientBarn } from "./client.ts";
 import { GameModeManager } from "./gameModeManager.ts";
 import { Grid } from "./grid.ts";
@@ -32,6 +32,8 @@ export interface JoinTokenData {
     findGameIp: string;
     loadout?: Loadout;
     quests?: string[];
+    /** server-side bot: spawns on its own spot instead of next to its group */
+    bot?: boolean;
     groupData: {
         /** private match side, 0 = Team A, 1 = Team B */
         side?: number;
@@ -396,7 +398,10 @@ export class Game {
         if (this._botsAdded) return;
         this._botsAdded = true;
         const bots = this.config.privateMatch?.bots;
-        if (bots) {
+        const vsBots = this.config.privateMatch?.vsBots;
+        if (vsBots) {
+            addVsBots(this, vsBots);
+        } else if (bots) {
             addPrivateBots(this, bots);
         } else {
             this.botFiller?.start();
@@ -463,7 +468,7 @@ export class Game {
     addSpectateToken(token: string, data: SpectateTokenData) {
         this.joinTokens.set(token, {
             type: "spectate",
-            expiresAt: Date.now() + 60000,
+            expiresAt: Date.now() + 10000,
             data,
         });
     }

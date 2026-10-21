@@ -2,6 +2,7 @@ import $ from "jquery";
 import { GameConfig } from "../../../shared/gameConfig.ts";
 import * as net from "../../../shared/net/net.ts";
 import {
+    type BotLevel,
     BotLevels,
     defaultPrivateLoadout,
     type FindGameMatchData,
@@ -178,6 +179,15 @@ export class TeamMenu {
             this.setRoomProperty("privateGodLoadout", true);
         });
         this.kitOff.on("click", () => this.setRoomProperty("privateGodLoadout", false));
+        // Vs Bots: pick the opponent bots, and bot teammates for 2v2 and up
+        $("#btn-team-bots-custom").on("click", () => this.setRoomProperty("privateVsBots", false));
+        $("#btn-team-bots-vs").on("click", () => this.setRoomProperty("privateVsBots", true));
+        $("#team-bot-enemy").on("change", () => {
+            this.setRoomProperty("privateBotEnemy", $("#team-bot-enemy").val() as BotLevel);
+        });
+        $("#team-bot-ally").on("change", () => {
+            this.setRoomProperty("privateBotAlly", $("#team-bot-ally").val() as BotLevel);
+        });
         // bots of each level for the private match
         $("#team-bots-counts").on("change", ".team-bot-count", () => {
             const bots = { ...this.roomData.privateBots };
@@ -675,6 +685,22 @@ export class TeamMenu {
                     this.privateSizes.append(btn);
                     setButtonState(btn, this.roomData.privateTeamSize == size, this.isLeader);
                 }
+                const vsBots = !!this.roomData.privateVsBots;
+                setButtonState($("#btn-team-bots-custom"), !vsBots, this.isLeader);
+                setButtonState($("#btn-team-bots-vs"), vsBots, this.isLeader);
+                $("#team-vs-bots").toggle(vsBots);
+                $("#team-bots-title, #team-bots-counts").toggle(!vsBots);
+                // teammates only matter when the party doesn't already fill the side
+                $("#team-bot-ally").closest("label").toggle(
+                    this.roomData.privateTeamSize > this.players.length,
+                );
+                $("#team-bot-enemy")
+                    .val(this.roomData.privateBotEnemy ?? "intermediate")
+                    .prop("disabled", !this.isLeader);
+                $("#team-bot-ally")
+                    .val(this.roomData.privateBotAlly ?? "intermediate")
+                    .prop("disabled", !this.isLeader);
+                $("#team-private-hint").toggle(!vsBots);
                 for (const level of BotLevels) {
                     $(`#team-bots-${level}`)
                         .val(this.roomData.privateBots?.[level] ?? 0)

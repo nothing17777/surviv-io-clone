@@ -4,7 +4,7 @@ import { GameObjectDefs, MapObjectDefs } from "../../../shared/defs/register.ts"
 import { GameConfig, type InventoryItem, WeaponSlot } from "../../../shared/gameConfig.ts";
 import * as net from "../../../shared/net/net.ts";
 import { ObjectType } from "../../../shared/net/objectSerializeFns.ts";
-import { type BotCounts, type BotLevel, BotLevels } from "../../../shared/types/api.ts";
+import { type BotCounts, type BotLevel, BotLevels, type VsBots } from "../../../shared/types/api.ts";
 import { collider } from "../../../shared/utils/collider.ts";
 import { math } from "../../../shared/utils/math.ts";
 import { util } from "../../../shared/utils/util.ts";
@@ -44,14 +44,6 @@ const Skills: Record<BotLevel, BotSkill> = {
     },
     advanced: { accuracy: 0.9, dodge: 0.9, reaction: 0.2, spin: false, quickSwitch: true, strafeTime: [0.35, 0.9] },
     hacker: { accuracy: 1, dodge: 1, reaction: 0, spin: true, quickSwitch: true, strafeTime: [0.2, 0.6] },
-};
-
-/** public games: mostly easy bots, the odd hacker */
-const PublicLevelWeights: Record<BotLevel, number> = {
-    beginner: 40,
-    intermediate: 35,
-    advanced: 20,
-    hacker: 5,
 };
 
 const BotNames = [
@@ -108,16 +100,6 @@ const BotNames = [
 function randomBotName() {
     const name = BotNames[util.randomInt(0, BotNames.length - 1)];
     return Math.random() < 0.5 ? `${name}${util.randomInt(1, 999)}` : name;
-}
-
-function randomPublicLevel(): BotLevel {
-    const total = BotLevels.reduce((a, l) => a + PublicLevelWeights[l], 0);
-    let r = Math.random() * total;
-    for (const level of BotLevels) {
-        r -= PublicLevelWeights[level];
-        if (r <= 0) return level;
-    }
-    return "beginner";
 }
 
 /** a client that never sends anything: bots have no socket */
@@ -666,7 +648,9 @@ export function addBot(game: Game, level: BotLevel, side?: number): Player {
     const player = game.playerBarn.addPlayer(client, joinMsg, {
         userId: null,
         findGameIp: "",
-        groupData: { side, autoFill: true, playerCount: 1, groupHashToJoin },
+        // side bots must never autofill into the other side's group
+        groupData: { side, autoFill: side === undefined, playerCount: 1, groupHashToJoin },
+        bot: true,
     });
     client.player = player;
     player.botBrain = new BotBrain(player, level);
@@ -695,6 +679,12 @@ export function addPrivateBots(game: Game, counts: BotCounts) {
     }
 }
 
+/** vs bots: teammates join the party's side, the other side is all bots */
+export function addVsBots(game: Game, vs: VsBots) {
+    for (let i = 0; i < vs.allies; i++) addBot(game, vs.ally, 0);
+    for (let i = 0; i < vs.enemies; i++) addBot(game, vs.enemy, 1);
+}
+
 /** public games: trickle bots in until the lobby looks alive */
 export class BotFiller {
     target = 0;
@@ -704,9 +694,26 @@ export class BotFiller {
 
     start() {
         if (this.target) return;
-        // leave a few slots so real players can still get in
-        const room = Math.max(this.maxPlayers - 4, 1);
-        this.target = Math.max(1, Math.floor(room * util.random(0.6, 0.9)));
+        // small (duel) games fill every other slot; big ones leave room for real players
+        this.target = this.maxPlayers <= 8
+            ? this.maxPlayers - 1
+            : Math.floor((this.maxPlayers - 4) * util.random(0.6, 0.9));
+        // beginners and intermediates, plus one or two advanced at random spots in the order
+        // a 1v1 duel would otherwise always be an advanced bot, so small games roll for one
+        const advanced = this.maxPlayers <= 8
+            ? Math.random() < 0.5 ? 1 : 0
+            : Math.min(util.randomInt(1, 2), this.target);
+        const order = Array.from({ length: this.target }, (_, i) => i);
+        util.shuffleArray(order);
+        this._advancedSlots = new Set(order.slice(0, advanced));
+    }
+
+    private _advancedSlots = new Set<number>();
+    private _added = 0;
+
+    private nextLevel(): BotLevel {
+        if (this._advancedSlots.has(this._added++)) return "advanced";
+        return Math.random() < 0.5 ? "beginner" : "intermediate";
     }
 
     update(dt: number) {
@@ -716,7 +723,7 @@ export class BotFiller {
         this._ticker = util.random(0.1, 0.6);
         // only while people can still join
         if (!this.game.canJoin) return;
-        if (this.game.playerBarn.players.length >= this.target) return;
-        addBot(this.game, randomPublicLevel());
+        if (this._added >= this.target) return;
+        addBot(this.game, this.nextLevel());
     }
 }

@@ -1389,7 +1389,41 @@
                                                 </div>
                                                 <div class="team-menu-options-buttons" id="team-private-sizes"></div>
                                                 <div id="team-bots">
-                                                    <div class="god-loadout-title">Bots (max 16, 0 = none)</div>
+                                                    <div class="team-menu-options-buttons">
+                                                        <a
+                                                            class="btn-hollow btn-darken team-menu-option"
+                                                            id="btn-team-bots-custom"
+                                                        >Custom Bots</a>
+                                                        <a
+                                                            class="btn-hollow btn-darken team-menu-option"
+                                                            id="btn-team-bots-vs"
+                                                        >Vs Bots</a>
+                                                    </div>
+                                                    <div id="team-vs-bots">
+                                                    <label class="god-heal team-vs-bot"><span>Opponent bots</span>
+                                                        <select
+                                                            id="team-bot-enemy"
+                                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                                        >
+                                                            <option value="beginner">Beginner</option>
+                                                            <option value="intermediate">Intermediate</option>
+                                                            <option value="advanced">Advanced</option>
+                                                            <option value="hacker">Hacker</option>
+                                                        </select>
+                                                    </label>
+                                                    <label class="god-heal team-vs-bot"><span>Bot teammates</span>
+                                                        <select
+                                                            id="team-bot-ally"
+                                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                                        >
+                                                            <option value="beginner">Beginner</option>
+                                                            <option value="intermediate">Intermediate</option>
+                                                            <option value="advanced">Advanced</option>
+                                                            <option value="hacker">Hacker</option>
+                                                        </select>
+                                                    </label>
+                                                    </div>
+                                                    <div class="god-loadout-title" id="team-bots-title">Bots (max 16, 0 = none)</div>
                                                     <div id="team-bots-counts">
                                                         <label class="god-heal"><span>Beginner</span>
                                                             <input

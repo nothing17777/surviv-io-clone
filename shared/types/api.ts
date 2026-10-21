@@ -66,6 +66,15 @@ export const zBotCounts = z.object({
 export type BotCounts = z.infer<typeof zBotCounts>;
 export const MaxPrivateBots = 16;
 
+/** private match against bots: bot teammates fill your side, the other side is all bots */
+export const zVsBots = z.object({
+    ally: z.enum(BotLevels),
+    allies: z.number().int().min(0).max(4),
+    enemy: z.enum(BotLevels),
+    enemies: z.number().int().min(1).max(4),
+});
+export type VsBots = z.infer<typeof zVsBots>;
+
 export const loadoutSchema = z.object({
     outfit: z.string(),
     melee: z.string(),

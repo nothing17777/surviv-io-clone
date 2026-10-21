@@ -122,6 +122,9 @@ class Room {
         privateLoadout: { ...defaultPrivateLoadout },
         customMap: null,
         privateBots: { beginner: 0, intermediate: 0, advanced: 0, hacker: 0 },
+        privateVsBots: false,
+        privateBotEnemy: "intermediate",
+        privateBotAlly: "intermediate",
     };
 
     /** the full map file; data.customMap is just its summary for the menu */
@@ -266,6 +269,9 @@ class Room {
             }
             this.data.privateBots = bots;
         }
+        this.data.privateVsBots = props.privateVsBots ?? this.data.privateVsBots;
+        this.data.privateBotEnemy = props.privateBotEnemy ?? this.data.privateBotEnemy;
+        this.data.privateBotAlly = props.privateBotAlly ?? this.data.privateBotAlly;
 
         // a private match holds both sides, so up to 8 players
         this.data.maxPlayers = this.data.privateMatch ? 8 : modes[gameModeIdx].teamMode;
@@ -340,7 +346,9 @@ class Room {
 
         if (this.data.privateMatch) {
             const size = this.data.privateTeamSize;
-            const sideA = this.players.filter((p) => p.team === 0).length;
+            const sideA = this.data.privateVsBots
+                ? this.players.length
+                : this.players.filter((p) => p.team === 0).length;
             const sideB = this.players.length - sideA;
             if (sideA > size || sideB > size) {
                 this.data.lastError = "private_teams_invalid";
@@ -349,7 +357,8 @@ class Room {
                 return;
             }
             playerData.forEach((data, i) => {
-                data.team = this.players[i].team;
+                // vs bots: the whole party is Team A
+                data.team = this.data.privateVsBots ? 0 : this.players[i].team;
             });
         }
 
@@ -384,7 +393,15 @@ class Room {
                     // without this every player keeps their own picks
                     loadout: this.data.privateSharedKit ? this.data.privateLoadout : undefined,
                     customMap: customMap ?? undefined,
-                    bots: this.data.privateBots,
+                    bots: this.data.privateVsBots ? undefined : this.data.privateBots,
+                    vsBots: this.data.privateVsBots
+                        ? {
+                            ally: this.data.privateBotAlly,
+                            allies: Math.max(0, this.data.privateTeamSize - this.players.length),
+                            enemy: this.data.privateBotEnemy,
+                            enemies: this.data.privateTeamSize,
+                        }
+                        : undefined,
                 }
                 : undefined,
             autoFill: this.data.privateMatch ? false : this.data.autoFill,

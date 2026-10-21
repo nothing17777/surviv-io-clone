@@ -2,7 +2,11 @@
 
 import { z } from "zod";
 import type { CustomMapSummary } from "../utils/customMap.ts";
-import { type BotCounts, type FindGameMatchData, type PrivateLoadout, zBotCounts, zPrivateLoadout } from "./api.ts";
+import {
+    type BotCounts,
+    type BotLevel,
+    BotLevels,
+    type FindGameMatchData, type PrivateLoadout, zBotCounts, zPrivateLoadout } from "./api.ts";
 
 export type TeamMenuErrorType =
     | "join_full"
@@ -46,6 +50,10 @@ export interface RoomData {
     customMap: CustomMapSummary | null;
     /** bots of each level added to the private match, all 0 = no bots */
     privateBots: BotCounts;
+    /** Vs Bots: your party on Team A, bot teammates fill it, Team B is all bots */
+    privateVsBots: boolean;
+    privateBotEnemy: BotLevel;
+    privateBotAlly: BotLevel;
 }
 
 //
@@ -121,6 +129,9 @@ export const zClientRoomData = z.object({
     privateTeamSize: z.number().optional(),
     privateGodLoadout: z.boolean().optional(),
     privateBots: zBotCounts.optional(),
+    privateVsBots: z.boolean().optional(),
+    privateBotEnemy: z.enum(BotLevels).optional(),
+    privateBotAlly: z.enum(BotLevels).optional(),
 });
 
 export type ClientRoomData = z.infer<typeof zClientRoomData>;
