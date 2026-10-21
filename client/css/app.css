@@ -7796,8 +7796,13 @@ body.mm-body-lock {
     border-radius: 6px 0 0 6px;
 }
 
-.mm-layers .mm-btn:last-child {
+.mm-layers .mm-btn:nth-child(2) {
     border-radius: 0 6px 6px 0;
+}
+
+.mm-layers .mm-insides {
+    border-radius: 6px;
+    margin-left: 6px;
 }
 
 .mm-zoom {

@@ -67,6 +67,8 @@ export const zCustomMap = z.object({
     zoneSpeed: z.number().min(0.25).max(4).optional(),
     /** 0 = classic nested circles, 1 = storm style drift; missing = 1 with Storm on, else 0 */
     zoneVolatility: z.number().min(0).max(1).optional(),
+    /** the zone stops shrinking at this radius, in game units; missing = closes completely */
+    zoneMinRadius: z.number().min(0).max(300).optional(),
     /** where the final zone closes; missing = random, like normal games */
     zoneEnd: z.object({ x: zPos, y: zPos }).optional(),
     rivers: z

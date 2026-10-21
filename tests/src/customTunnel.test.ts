@@ -9,7 +9,7 @@ import { type CustomMap, parseCustomMap } from "../../shared/utils/customMap.ts"
 import { v2 } from "../../shared/utils/v2.ts";
 import "./testHelpers.ts";
 
-function tunnelGame(objects: CustomMap["objects"] = []) {
+function tunnelGame(objects: CustomMap["objects"] = [], width = 6) {
     Config.logging.logDate = false;
     Config.logging.debugLogs = false;
     Config.logging.infoLogs = false;
@@ -25,7 +25,7 @@ function tunnelGame(objects: CustomMap["objects"] = []) {
         objects,
         spawns: [],
         // an L: west to east, then north
-        tunnels: [{ width: 6, points: [{ x: 80, y: 120 }, { x: 160, y: 120 }, { x: 160, y: 170 }] }],
+        tunnels: [{ width, points: [{ x: 80, y: 120 }, { x: 160, y: 120 }, { x: 160, y: 170 }] }],
     };
     const res = parseCustomMap(file);
     if ("error" in res) throw new Error(res.error);
@@ -109,5 +109,19 @@ test("the far end's stairs work too", () => {
         game.step(1 / 30);
     }
     expect(player.pos.y).toBeLessThan(165);
+    expect(player.layer & 1).toBe(1);
+});
+
+test("odd widths work: a 5 wide tunnel still lets players through", () => {
+    const game = tunnelGame([], 5);
+    // with half width 2.5 the west stair well runs x 77.5 to 72.5
+    const player = game.playerBarn.addTestPlayer({ pos: v2.create(70, 120) });
+    const msg = new InputMsg();
+    msg.moveRight = true;
+    for (let t = 0; t < 2; t += 1 / 30) {
+        player.handleInput(msg);
+        game.step(1 / 30);
+    }
+    expect(player.pos.x).toBeGreaterThan(85);
     expect(player.layer & 1).toBe(1);
 });

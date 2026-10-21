@@ -303,6 +303,32 @@ function undergroundContents(sub: Record<string, any>, depth = 0): Shape[] {
     return out;
 }
 
+const insideCache = new Map<string, Shape[]>();
+
+/** Ground floor of a building or structure with its roof off: floors, walls, furniture, loot. */
+function insideShapes(type: string): Shape[] {
+    const cached = insideCache.get(type);
+    if (cached) return cached;
+    let def = MapObjectDefs.typeToDefSafe(type) as Record<string, any> | undefined;
+    let at = { pos: v2.create(0, 0), ori: 0 };
+    if (def?.type === "structure") {
+        const top = def.layers?.[0];
+        at = { pos: top?.pos ?? v2.create(0, 0), ori: top?.ori ?? 0 };
+        def = top ? (MapObjectDefs.typeToDefSafe(pickType(top.type)) as Record<string, any> | undefined) : undefined;
+    }
+    const out: Shape[] = [];
+    if (def?.type === "building") {
+        const local: Shape[] = (def.floor?.surfaces ?? []).flatMap((f: { collision: Collider[] }) =>
+            f.collision.map((c) => ({ col: collider.copy(c), color: 0x8f7d62, scale: 1, z: 0 }))
+        );
+        local.push(...undergroundContents(def));
+        out.push(...transformShapes(local, at.pos, at.ori, 1));
+        out.sort((a, b) => a.z - b.z);
+    }
+    insideCache.set(type, out);
+    return out;
+}
+
 /** Below-ground view of a structure: its sublevel floors, what's in them, and the stairs leading down. */
 function undergroundShapes(type: string): Shape[] {
     const cached = undergroundCache.get(type);
@@ -582,6 +608,7 @@ type Drag =
     | { kind: "object"; idx: number; offset: Vec2; moved: boolean; before: string }
     | { kind: "spawn"; idx: number; moved: boolean; before: string }
     | { kind: "riverPoint"; river: number; point: number; moved: boolean; before: string }
+    | { kind: "tunnelPoint"; tunnel: number; point: number; moved: boolean; before: string }
     | { kind: "paint"; last: Vec2 }
     | { kind: "erase" };
 
@@ -620,6 +647,8 @@ class MapMaker {
     riverWidth = 8;
     riverLake = false;
 
+    /** Insides: show rooms and contents instead of roofs */
+    insides = false;
     tunnelDraft: Vec2[] = [];
     tunnelWidth = 6;
     /** this map's generated tunnels (see applyCustomMapBuilds) */
@@ -684,6 +713,7 @@ class MapMaker {
                     <div class="mm-layers" title="Which layer you're looking at (U switches)">
                         <button class="mm-btn" data-layer="surface">Surface</button>
                         <button class="mm-btn" data-layer="under">Underground</button>
+                        <button class="mm-btn mm-insides" title="See inside buildings and bunkers: floors, walls, furniture and loot (I)">Insides</button>
                     </div>
                     <div class="mm-hint"></div>
                     <div class="mm-coords"></div>
@@ -711,6 +741,8 @@ class MapMaker {
                             <span class="mm-sub">faster gas, next circle can overlap the storm</span></label>
                         <label>Zone speed <span id="mm-zonespeed-val"></span>
                             <input id="mm-zonespeed" type="range" min="0.25" max="4" step="0.25"></label>
+                        <label>Smallest zone <span id="mm-zonemin-val"></span>
+                            <input id="mm-zonemin" type="range" min="0" max="120" step="2"></label>
                         <label>Circle volatility <span id="mm-zonevol-val"></span>
                             <input id="mm-zonevol" type="range" min="0" max="100" step="5"></label>
                         <div class="mm-sub">0% keeps each circle inside the last. Higher shifts timing and size, and lets new circles reach into the storm.</div>
@@ -766,6 +798,7 @@ class MapMaker {
         this.root.find("#mm-zoom-out").on("click", () => this.zoomBy(0.8));
         this.root.find("#mm-fit").on("click", () => this.fit());
         this.root.on("click", "[data-layer]", (e) => this.setLayer($(e.currentTarget).attr("data-layer") === "under"));
+        this.root.on("click", ".mm-insides", () => this.toggleInsides());
         this.root.find("#mm-name").on("change", (e) => {
             const name = String($(e.currentTarget).val()).trim().slice(0, 32) || "My Map";
             this.edit(() => (this.map.name = name));
@@ -792,6 +825,12 @@ class MapMaker {
             const v = Number($(e.currentTarget).val()) || 1;
             this.root.find("#mm-zonespeed-val").text(`×${v}`);
             if (e.type === "change") this.edit(() => (this.map.zoneSpeed = v === 1 ? undefined : v));
+        });
+        this.root.find("#mm-zonemin").on("input change", (e) => {
+            const v = Number($(e.currentTarget).val());
+            this.root.find("#mm-zonemin-val").text(v ? `${v} wide` : "closes fully");
+            if (e.type === "change") this.edit(() => (this.map.zoneMinRadius = v ? v / 2 : undefined));
+            else this.queueRender();
         });
         this.root.find("#mm-zonevol").on("input change", (e) => {
             const v = Number($(e.currentTarget).val());
@@ -1048,7 +1087,7 @@ class MapMaker {
         } catch {
             this.applied = { tunnelTypes: [] };
         }
-        for (const cache of [shapeCache, undergroundCache]) {
+        for (const cache of [shapeCache, undergroundCache, insideCache]) {
             for (const k of [...cache.keys()]) if (isCustomBuildType(k)) cache.delete(k);
         }
     }
@@ -1065,6 +1104,9 @@ class MapMaker {
         this.root.find("#mm-zonespeed").val(String(speed));
         this.root.find("#mm-zonespeed-val").text(`×${speed}`);
         // same default as the server: full volatility with Storm on
+        const minWide = Math.round((this.map.zoneMinRadius ?? 0) * 2);
+        this.root.find("#mm-zonemin").val(String(minWide));
+        this.root.find("#mm-zonemin-val").text(minWide ? `${minWide} wide` : "closes fully");
         const vol = Math.round((this.map.zoneVolatility ?? (this.map.storm ? 1 : 0)) * 100);
         this.root.find("#mm-zonevol").val(String(vol));
         this.root.find("#mm-zonevol-val").text(`${vol}%`);
@@ -1161,7 +1203,7 @@ class MapMaker {
         } else if (sel?.kind === "tunnel" && this.map.tunnels?.[sel.idx]) {
             const t = this.map.tunnels[sel.idx];
             box.html(`<h3>Tunnel</h3>
-                <div class="mm-sub">${t.points.length} points. Drag the width slider to resize it.</div>
+                <div class="mm-sub">${t.points.length} points. Drag the white corners to move them; the rest of the tunnel follows.</div>
                 ${this.tunnelWidthControl(t.width)}
                 <div class="mm-row">${btn("del", "Delete", "mm-btn-danger")}</div>`);
         } else if (this.tool === "tunnel") {
@@ -1237,7 +1279,7 @@ class MapMaker {
 
     tunnelWidthControl(width: number) {
         return `<label>Width <span id="mm-tunnel-width-val">${width}</span>
-            <input id="mm-tunnel-width" type="range" step="2" min="${CustomBuildLimits.minTunnelWidth}" max="${CustomBuildLimits.maxTunnelWidth}" value="${width}"></label>`;
+            <input id="mm-tunnel-width" type="range" step="1" min="${CustomBuildLimits.minTunnelWidth}" max="${CustomBuildLimits.maxTunnelWidth}" value="${width}"></label>`;
     }
 
     toast(msg: string) {
@@ -1279,6 +1321,14 @@ class MapMaker {
         this.selection = null;
         this.dirty = true;
         this.syncUi();
+    }
+
+    toggleInsides() {
+        this.insides = !this.insides;
+        this.root.find(".mm-insides").toggleClass("mm-active", this.insides);
+        if (this.insides && this.underground) this.setLayer(false);
+        this.toast(this.insides ? "Insides: rooms, furniture and loot shown, zoom in for names" : "Roofs back on");
+        this.queueRender();
     }
 
     toggleUnderground() {
@@ -1544,6 +1594,34 @@ class MapMaker {
         return point >= 0 ? { river: sel.idx, point } : null;
     }
 
+    hitTunnelPoint(world: Vec2): { tunnel: number; point: number } | null {
+        const sel = this.selection;
+        if (sel?.kind !== "tunnel" || !this.map.tunnels?.[sel.idx]) return null;
+        const rad = Math.max(2, 9 / this.cam.zoom);
+        const pts = this.map.tunnels[sel.idx].points;
+        const point = pts.findIndex((p) => Math.hypot(p.x - world.x, p.y - world.y) < rad);
+        return point >= 0 ? { tunnel: sel.idx, point } : null;
+    }
+
+    /**
+     * Move one corner of a tunnel; its neighbours slide with it so every
+     * segment stays straight across or straight up and down.
+     */
+    moveTunnelPoint(tunnel: number, point: number, world: Vec2) {
+        const pts = this.map.tunnels![tunnel].points;
+        const p = pts[point];
+        const nx = Math.round(this.clampX(world.x));
+        const ny = Math.round(this.clampY(world.y));
+        for (const j of [point - 1, point + 1]) {
+            const q = pts[j];
+            if (!q) continue;
+            if (q.y === p.y && q.x !== p.x) q.y = ny; // horizontal segment
+            else if (q.x === p.x) q.x = nx; // vertical segment
+        }
+        p.x = nx;
+        p.y = ny;
+    }
+
     eraseAt(world: Vec2) {
         if (this.underground) {
             // only what's on this layer: underground objects, then tunnels
@@ -1612,6 +1690,11 @@ class MapMaker {
         switch (this.tool) {
             case "select": {
                 const before = JSON.stringify(this.map);
+                const tp = this.hitTunnelPoint(world);
+                if (tp) {
+                    this.drag = { kind: "tunnelPoint", ...tp, moved: false, before };
+                    return;
+                }
                 if (this.underground && this.hitObject(world) < 0) {
                     // underground objects first (handled below), then tunnels
                     const t = this.hitTunnel(world);
@@ -1754,6 +1837,12 @@ class MapMaker {
                     drag.moved = true;
                     break;
                 }
+                case "tunnelPoint": {
+                    this.moveTunnelPoint(drag.tunnel, drag.point, world);
+                    drag.moved = true;
+                    this.applyBuilds();
+                    break;
+                }
                 case "riverPoint": {
                     const pt = this.map.rivers[drag.river].points[drag.point];
                     const p = this.snapPos(world);
@@ -1791,6 +1880,17 @@ class MapMaker {
         if (!drag) return;
         this.drag = null;
         this.canvas.classList.remove("mm-panning");
+        if (drag.kind === "tunnelPoint" && drag.moved) {
+            this.edit(() => {
+                // drop corners that ended up on top of each other
+                const t = this.map.tunnels![drag.tunnel];
+                t.points = t.points.filter((p, i) => i === 0 || p.x !== t.points[i - 1].x || p.y !== t.points[i - 1].y);
+                if (t.points.length < 2) {
+                    this.map.tunnels!.splice(drag.tunnel, 1);
+                    this.selection = null;
+                }
+            }, drag.before);
+        }
         if ((drag.kind === "object" || drag.kind === "spawn" || drag.kind === "riverPoint") && drag.moved) {
             this.edit(() => {}, drag.before);
         }
@@ -1883,6 +1983,10 @@ class MapMaker {
             case "u":
             case "U":
                 this.toggleUnderground();
+                break;
+            case "i":
+            case "I":
+                this.toggleInsides();
                 break;
             case "+":
             case "=":
@@ -1988,7 +2092,7 @@ class MapMaker {
             (rect.width / 2 - this.cam.x * zoom) * dpr,
             (rect.height / 2 + this.cam.y * zoom) * dpr,
         );
-        drawMap(ctx, this.map, this.getTerrain(), zoom, this.underground, this.applied);
+        drawMap(ctx, this.map, this.getTerrain(), zoom, this.underground, this.applied, this.insides);
 
         // grid
         const grid = GameConfig.map.gridSize;
@@ -2020,7 +2124,9 @@ class MapMaker {
             ctx.strokeRect(b.min.x - 0.5, b.min.y - 0.5, b.max.x - b.min.x + 1, b.max.y - b.min.y + 1);
             ctx.setLineDash([]);
         } else if (sel?.kind === "tunnel" && this.map.tunnels?.[sel.idx]) {
-            drawPolyline(ctx, this.map.tunnels[sel.idx].points, "#ffe14d", 2 / zoom, [6 / zoom, 4 / zoom]);
+            const t = this.map.tunnels[sel.idx];
+            drawPolyline(ctx, t.points, "#ffe14d", 2 / zoom, [6 / zoom, 4 / zoom]);
+            for (const p of t.points) drawHandle(ctx, p, zoom);
         } else if (sel?.kind === "spawn" && this.map.spawns[sel.idx]) {
             const s = this.map.spawns[sel.idx];
             ctx.strokeStyle = "#ffe14d";
@@ -2096,6 +2202,7 @@ function drawMap(
     zoom: number,
     underground = false,
     applied?: AppliedCustomBuilds,
+    insides = false,
 ) {
     const colors = MapDefs[map.biome].biome.colors;
     ctx.fillStyle = hex(colors.water);
@@ -2127,11 +2234,17 @@ function drawMap(
     );
     for (const t of applied?.tunnelTypes ?? []) placed.push({ type: t.type, x: t.pos.x, y: t.pos.y, ori: 0 });
     const shapes: Shape[] = [];
+    const opened: Shape[] = [];
     for (const obj of placed) {
-        shapes.push(...transformShapes(localShapes(obj.type), v2.create(obj.x, obj.y), obj.ori, obj.scale ?? 1));
+        // with Insides on, buildings and bunkers show their rooms instead of their roofs
+        const inside = insides && !underground ? insideShapes(obj.type) : [];
+        const t = transformShapes(inside.length ? inside : localShapes(obj.type), v2.create(obj.x, obj.y), obj.ori, obj.scale ?? 1);
+        (inside.length ? opened : shapes).push(...t);
     }
     shapes.sort((a, b) => a.z - b.z);
     for (const s of shapes) drawShape(ctx, s);
+    for (const s of opened) drawShape(ctx, s);
+    if (opened.length && zoom >= 3) drawLabels(ctx, opened, zoom);
 
     if (underground) {
         // solid rock with just the island's outline, then everything below ground
@@ -2156,6 +2269,23 @@ function drawMap(
         under.sort((a, b) => a.z - b.z);
         for (const s of under) drawShape(ctx, s);
         if (zoom >= 3) drawLabels(ctx, under, zoom);
+
+        // what's above: surface buildings and bunkers as outlines, to line tunnels up with
+        ctx.save();
+        ctx.strokeStyle = "rgba(255,255,255,0.35)";
+        ctx.lineWidth = Math.max(0.5, 1 / zoom);
+        ctx.setLineDash([4 / zoom, 3 / zoom]);
+        const ghosts: Shape[] = [];
+        for (const obj of map.objects) {
+            if (obj.layer) continue;
+            const t = MapObjectDefs.typeToDefSafe(obj.type)?.type;
+            if (t !== "building" && t !== "structure") continue;
+            const b = objectBounds(obj);
+            ctx.strokeRect(b.min.x, b.min.y, b.max.x - b.min.x, b.max.y - b.min.y);
+            ghosts.push({ col: collider.createAabb(b.min, b.max), color: 0, scale: 1, z: 0, label: prettyName(obj.type) });
+        }
+        ctx.restore();
+        if (zoom >= 2) drawLabels(ctx, ghosts, zoom);
     }
     if (!underground) {
         // tunnel paths seen from above
@@ -2219,6 +2349,13 @@ function drawSpawns(ctx: CanvasRenderingContext2D, map: CustomMap, zoom: number)
             ctx.stroke();
         }
         ctx.setLineDash([]);
+        if (map.zoneMinRadius) {
+            // the smallest the zone gets
+            ctx.strokeStyle = "rgba(255,90,90,0.95)";
+            ctx.beginPath();
+            ctx.arc(x, y, map.zoneMinRadius, 0, Math.PI * 2);
+            ctx.stroke();
+        }
         ctx.fillStyle = "#fff";
         ctx.beginPath();
         ctx.arc(x, y, rad * 0.6, 0, Math.PI * 2);

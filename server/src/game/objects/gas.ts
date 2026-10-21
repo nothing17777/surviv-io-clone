@@ -311,7 +311,9 @@ export class Gas {
                 // only shrink, never grow past the current circle
                 rad = Math.min(rad * util.random(1 - 0.2 * v, 1 + 0.2 * v), this.radOld / this.mapSize);
             }
-            this.radNew = rad * this.mapSize;
+            // the map maker's smallest zone: hold there instead of closing
+            const minRad = this.game.customMap?.zoneMinRadius ?? 0;
+            this.radNew = Math.min(Math.max(rad * this.mapSize, minRad), this.radOld);
         }
         this.damage = stage.damage;
 

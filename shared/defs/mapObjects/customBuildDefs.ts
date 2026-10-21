@@ -18,15 +18,15 @@ import type { StructureDef } from "./structureDefs.ts";
  * Only one game runs per server process, so slots never clash.
  */
 
-export const customWallMaterials = ["wood", "brick", "metal", "concrete"] as const;
+export const customWallMaterials = ["metal", "concrete"] as const;
 export type CustomWallMaterial = (typeof customWallMaterials)[number];
 
 export const CustomBuildLimits = {
     maxWallLen: 64,
     buildingSlots: 160,
     structureSlots: 40,
-    minTunnelWidth: 4,
-    maxTunnelWidth: 12,
+    minTunnelWidth: 3,
+    maxTunnelWidth: 16,
     stairsLen: 5,
 };
 
@@ -41,8 +41,6 @@ export interface CustomBuildSpec {
 }
 
 const wallTemplates: Record<CustomWallMaterial, RegExp> = {
-    wood: /^house_wall_int_\d+$/,
-    brick: /^brick_wall_ext_\d+$/,
     metal: /^metal_wall_ext_\d+$/,
     concrete: /^concrete_wall_ext_\d+$/,
 };
@@ -74,7 +72,9 @@ export function createCustomBuildDefs(obstacles: Record<string, ObstacleDef>) {
     for (const material of customWallMaterials) {
         const templateKey = Object.keys(obstacles).find((k) => wallTemplates[material].test(k))!;
         const template = obstacles[templateKey];
-        for (let len = 1; len <= CustomBuildLimits.maxWallLen; len++) {
+        // half unit steps, so tunnels can be any whole width
+        for (let half = 1; half <= CustomBuildLimits.maxWallLen * 2; half++) {
+            const len = half / 2;
             const def = util.cloneDeep(template);
             // ori 0 runs along y, like the game's own walls
             def.collision = collider.createAabbExtents(v2.create(0, 0), v2.create(0.5, len / 2));
@@ -114,7 +114,7 @@ function wallRun(material: CustomWallMaterial, x0: number, y0: number, x1: numbe
     let a = vertical ? Math.min(y0, y1) : Math.min(x0, x1);
     const b = vertical ? Math.max(y0, y1) : Math.max(x0, x1);
     while (b - a > 0.01) {
-        const len = Math.min(CustomBuildLimits.maxWallLen, Math.max(1, Math.round(b - a)));
+        const len = Math.min(CustomBuildLimits.maxWallLen, Math.max(0.5, Math.round((b - a) * 2) / 2));
         const mid = a + len / 2;
         out.push({
             type: customWallType(material, len),
@@ -183,18 +183,19 @@ export function createCustomTunnelDefs(t: CustomTunnel) {
         wells.push(rect(near.x - side.x, near.y - side.y, far.x + side.x, far.y + side.y));
     }
 
-    // occupancy grid over everything
+    // occupancy grid over everything, in half unit cells (G per unit) so odd widths line up
+    const G = 2;
     const all = [...boxes, ...wells];
-    const minX = Math.floor(Math.min(...all.map((r) => r.min.x))) - 1;
-    const minY = Math.floor(Math.min(...all.map((r) => r.min.y))) - 1;
-    const maxX = Math.ceil(Math.max(...all.map((r) => r.max.x))) + 1;
-    const maxY = Math.ceil(Math.max(...all.map((r) => r.max.y))) + 1;
+    const minX = Math.floor(Math.min(...all.map((r) => r.min.x)) * G) - 1;
+    const minY = Math.floor(Math.min(...all.map((r) => r.min.y)) * G) - 1;
+    const maxX = Math.ceil(Math.max(...all.map((r) => r.max.x)) * G) + 1;
+    const maxY = Math.ceil(Math.max(...all.map((r) => r.max.y)) * G) + 1;
     const W = maxX - minX;
     const H = maxY - minY;
     const grid = new Uint8Array(W * H);
     for (const r of all) {
-        for (let y = Math.round(r.min.y); y < Math.round(r.max.y); y++) {
-            for (let x = Math.round(r.min.x); x < Math.round(r.max.x); x++) grid[(y - minY) * W + (x - minX)] = 1;
+        for (let y = Math.round(r.min.y * G); y < Math.round(r.max.y * G); y++) {
+            for (let x = Math.round(r.min.x * G); x < Math.round(r.max.x * G); x++) grid[(y - minY) * W + (x - minX)] = 1;
         }
     }
     const at = (x: number, y: number) => x >= minX && y >= minY && x < maxX && y < maxY && grid[(y - minY) * W + (x - minX)] === 1;
@@ -215,10 +216,10 @@ export function createCustomTunnelDefs(t: CustomTunnel) {
             const key = `${s},${e}`;
             const prev = open.get(key);
             if (prev) {
-                prev.max.y = y + 1;
+                prev.max.y = (y + 1) / G;
                 next.set(key, prev);
             } else {
-                const r = rect(s, y, e, y + 1);
+                const r = rect(s / G, y / G, e / G, (y + 1) / G);
                 floorRects.push(r);
                 next.set(key, r);
             }
@@ -231,6 +232,7 @@ export function createCustomTunnelDefs(t: CustomTunnel) {
     const subChildren: Child[] = [];
     const wallImgs: FloorImage[] = [];
     const addWall = (x0: number, y0: number, x1: number, y1: number) => {
+        [x0, y0, x1, y1] = [x0 / G, y0 / G, x1 / G, y1 / G];
         wallRun("concrete", x0, y0, x1, y1, subChildren);
         wallImgs.push(solid(rect(x0 - 0.5, y0 - 0.5, x1 + 0.5, y1 + 0.5), tunnelWallColor));
     };
