@@ -3,7 +3,7 @@ import { ExplosionDefs } from "../../../shared/defs/gameObjects/explosionsDefs.t
 import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
 import type { ThrowableDef } from "../../../shared/defs/gameObjects/throwableDefs.ts";
 import { GameObjectDefs, MapObjectDefs } from "../../../shared/defs/register.ts";
-import { GameConfig, type InventoryItem, WeaponSlot } from "../../../shared/gameConfig.ts";
+import { GameConfig, GasMode, type InventoryItem, WeaponSlot } from "../../../shared/gameConfig.ts";
 import * as net from "../../../shared/net/net.ts";
 import { ObjectType } from "../../../shared/net/objectSerializeFns.ts";
 import {
@@ -253,6 +253,8 @@ export class BotBrain {
     /** loot / crates we couldn't path to, by object id -> seconds left to ignore them */
     private _unreachable = new Map<number, number>();
     private _zoneRun = false;
+    /** the zone will catch us unless we go now, so even a fight moves toward it */
+    private _zoneUrgent = false;
     private _throw?: { prev: number; timer: number; released: boolean; cook: number; error: Vec2 };
     private _throwCooldown = util.random(3, 8);
     private _path?: Vec2[];
@@ -374,9 +376,12 @@ export class BotBrain {
             }
         }
 
+        this._zoneUrgent = this.zoneUrgent();
+
         if (player.downed) {
-            // crawl away from whoever downed us
-            if (this.target) this._goal = v2.add(player.pos, v2.sub(player.pos, this.target.pos));
+            // crawl into the zone if it's coming, else away from whoever downed us
+            if (this._zoneUrgent) this._goal = v2.copy(this.game.gas.posNew);
+            else if (this.target) this._goal = v2.add(player.pos, v2.sub(player.pos, this.target.pos));
             return;
         }
 
@@ -408,7 +413,7 @@ export class BotBrain {
 
         // the zone always wins; once heading in, keep going until well inside
         const zoneDist = v2.distance(player.pos, gas.posNew);
-        if (gas.isInGas(player.pos) || zoneDist > gas.radNew * 0.95) this._zoneRun = true;
+        if (this._zoneUrgent || gas.isInGas(player.pos) || zoneDist > gas.radNew * 0.95) this._zoneRun = true;
         else if (zoneDist < gas.radNew * 0.75) this._zoneRun = false;
         if (this._zoneRun) {
             this._goal = v2.copy(gas.posNew);
@@ -771,6 +776,8 @@ export class BotBrain {
             if (!gunDef) move = this.settings.chase || dist < 4 ? dirTo : strafe; // melee: rush in
             // low on health: back off to cover while still shooting
             if (this._retreat) move = this.followPath(this._retreat, dt);
+            // the zone comes first: walk into it, shooting on the way
+            if (this._zoneUrgent) move = this.followPath(this.game.gas.posNew, dt);
 
             // don't fight in the gas
             if (this.game.gas.isInGas(player.pos)) {
@@ -999,6 +1006,22 @@ export class BotBrain {
             if (caught(player) || player.group?.players.some((p) => p !== player && caught(p))) return obj;
         }
         return undefined;
+    }
+
+    /**
+     * True when we're in the gas, or outside the next circle and it would
+     * close on us before we could walk in (with slack for fighting on the way).
+     */
+    private zoneUrgent(): boolean {
+        const gas = this.game.gas;
+        if (gas.mode === GasMode.Inactive) return false;
+        const pos = this.player.pos;
+        if (gas.isInGas(pos)) return true;
+        const outside = v2.distance(pos, gas.posNew) - gas.radNew;
+        if (outside <= -3) return false;
+        if (gas.mode === GasMode.Moving) return true;
+        const timeLeft = (1 - gas.gasT) * gas.duration;
+        return (outside + 10) / 7 > timeLeft;
     }
 
     /** drops the part of `move` that heads out of the safe zone, and pulls back in near the edge */
