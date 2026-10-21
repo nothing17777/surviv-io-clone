@@ -8283,3 +8283,62 @@ body.mm-body-lock {
 #team-menu-options-start {
     background: rgba(25, 25, 25, 0.95);
 }
+
+/* home panel: like the party panel, the fixed-height row stretched the
+   background to 360px while the buttons ran past it */
+#start-menu {
+    align-self: flex-start;
+    height: auto;
+    max-height: none;
+}
+
+#start-menu .play-button-container {
+    height: auto;
+}
+
+#start-menu .menu-option {
+    margin-bottom: 6px;
+}
+
+/* bot levels side by side instead of two full rows */
+#btns-quick-start > #bot-duel-enemy,
+#btns-quick-start > #bot-duel-ally {
+    flex: 1 1 45%;
+    font-size: 12px;
+}
+
+/* secondary tools: colored, but smaller than the play buttons */
+#btns-extra-row > #btn-help,
+#btns-extra-row > #btn-armory,
+#btns-extra-row > #btn-map-maker,
+#btns-extra-row > #btn-vs-bots {
+    font-size: 14px;
+    height: 36px;
+    line-height: 34px;
+    border-radius: 5px;
+    margin: 0;
+}
+
+#btns-extra-row > #btn-help {
+    background-color: #5b6cc4;
+    border-bottom: 2px solid #3d4a8c;
+}
+
+#btns-extra-row > #btn-armory {
+    background-color: #af7a50;
+    border-bottom: 2px solid #7c5538;
+}
+
+#btns-extra-row > #btn-map-maker {
+    background-color: #3f9b4a;
+    border-bottom: 2px solid #2b6e33;
+}
+
+#btns-extra-row > #btn-vs-bots {
+    background-color: #b5473a;
+    border-bottom: 2px solid #7e3128;
+}
+
+#btns-extra-row > div:hover {
+    filter: brightness(1.15);
+}
