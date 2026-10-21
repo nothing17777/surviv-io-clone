@@ -6897,8 +6897,9 @@ input [type="image"]:focus {
         right: 6px;
     }
 
+    /* hidden: it sat behind the menu and peeked out next to the Skins button */
     #start-rotate-reminder {
-        display: block;
+        display: none;
         position: absolute;
         width: 275px;
         top: 0;
@@ -7352,9 +7353,13 @@ input [type="image"]:focus {
 }
 
 #btn-map-maker {
-    background: #7a7a7a;
-    border-bottom: 2px solid #3e3e3e;
-    box-shadow: inset 0 -2px #3e3e3e;
+    background: #3f9b4a;
+    background-image: url(/img/gui/map-maker.svg);
+    background-position: 10px center;
+    background-repeat: no-repeat;
+    background-size: 26px;
+    border-bottom: 2px solid #2b6e33;
+    box-shadow: inset 0 -2px #2b6e33;
     color: #ffffff;
     cursor: pointer;
     display: block;
@@ -8077,4 +8082,35 @@ body.mm-body-lock {
 .mm-tool .mm-key {
     margin: 0 0 0 2px;
     opacity: 0.7;
+}
+
+/* phones held upright: the party panel was 275px with a 170px options column,
+   and Leave Team floated over Auto Fill. Use the screen width and give Leave
+   Team its own row under Play. */
+@media (max-width: 1000px) and (orientation: portrait),
+    (max-width: 1000px) and (min-resolution: 3dppx) and (orientation: portrait) {
+    #team-menu {
+        width: min(92vw, 380px);
+        box-sizing: border-box;
+    }
+
+    #team-menu-members,
+    #team-menu-options {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .team-menu-member .name {
+        width: auto;
+    }
+
+    #btn-team-leave {
+        position: relative;
+        top: auto;
+        right: auto;
+        bottom: auto;
+        transform: none;
+        width: 100%;
+        margin-bottom: 8px;
+    }
 }
