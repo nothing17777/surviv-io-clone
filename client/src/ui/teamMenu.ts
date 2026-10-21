@@ -14,6 +14,7 @@ import {
     type PrivateBot,
     type PrivateLoadout,
     zBotSettingsByLevel,
+    zPrivateLoadout,
 } from "../../../shared/types/api.ts";
 import type {
     RoomData,
@@ -81,6 +82,17 @@ function loadSavedBotSettings(): BotSettingsByLevel {
         if (parsed.success) return parsed.data;
     } catch {}
     return defaultBotSettings();
+}
+
+const sameKitKey = "survev_same_kit";
+
+/** the Same Kit loadout this browser last set, or the default kit */
+function loadSavedSameKit(): PrivateLoadout {
+    try {
+        const parsed = zPrivateLoadout.safeParse(JSON.parse(localStorage.getItem(sameKitKey) || "null"));
+        if (parsed.success) return parsed.data;
+    } catch {}
+    return { ...defaultPrivateLoadout };
 }
 
 /** highlight a toggle-style button without touching its enabled state */
@@ -360,7 +372,8 @@ export class TeamMenu {
                 autoFill: this.config.get("teamAutoFill")!,
                 findingGame: false,
                 lastError: undefined,
-                privateLoadout: { ...defaultPrivateLoadout },
+                // the kit they set last time, so a new party doesn't reset it
+                privateLoadout: loadSavedSameKit(),
                 // the leader's saved bot settings come along to every party they make
                 privateBotSettings: loadSavedBotSettings(),
                 ...roomPreset,
@@ -884,6 +897,9 @@ export class TeamMenu {
         };
 
         this.roomData.privateLoadout = loadout;
+        try {
+            localStorage.setItem(sameKitKey, JSON.stringify(loadout));
+        } catch {}
         this.sendMessage("setRoomProps", this.roomData);
         this.refreshUi();
     }
