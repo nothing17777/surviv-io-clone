@@ -106,7 +106,7 @@ const levelAimDodge: Record<BotLevel, [number, number]> = {
     intermediate: [50, 35],
     advanced: [75, 70],
     hacker: [100, 90],
-    scripter: [100, 95],
+    scripter: [100, 99],
 };
 
 export function defaultBotSettings(): BotSettingsByLevel {

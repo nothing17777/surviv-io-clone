@@ -55,8 +55,6 @@ interface BotSkill {
     throwError: number;
     /** sees through walls and tracks enemies anywhere on the map */
     wallhack?: boolean;
-    /** bullets always land; dodging means actually stepping out of their path */
-    realDodge?: boolean;
 }
 
 const Skills: Record<BotLevel, BotSkill> = {
@@ -122,7 +120,7 @@ const Skills: Record<BotLevel, BotSkill> = {
     },
     scripter: {
         accuracy: 1,
-        dodge: 0.95,
+        dodge: 0.99,
         reaction: 0.05,
         lead: true,
         turnRate: 60,
@@ -135,7 +133,6 @@ const Skills: Record<BotLevel, BotSkill> = {
         cook: 2.2,
         throwError: 0.5,
         wallhack: true,
-        realDodge: true,
     },
 };
 
@@ -288,17 +285,28 @@ export class BotBrain {
         v2.set(this._stuckCheckPos, player.pos);
     }
 
+    /** only hackers phase through bullets; everyone else has to step out of the way */
+    get phaseDodge(): boolean {
+        return this.level === "hacker";
+    }
+
     /**
-     * Rolled once per bullet: true lets the bullet pass through.
+     * Rolled once per bullet: does this bot react to it.
      * Bullets get re-used, so the roll is keyed on the bullet and its start pos.
      */
-    dodgeBullet(bullet: Bullet): boolean {
-        if (bullet.player === this.player || this.skill.realDodge) return false;
-        if (bullet.player && bullet.player.teamId === this.player.teamId) return false;
+    private rollDodge(bullet: Bullet): boolean {
         const roll = this._dodgeRolls.get(bullet);
         if (roll && roll.start === bullet.startPos) return roll.dodge;
         const dodge = Math.random() < this.skill.dodge;
         this._dodgeRolls.set(bullet, { start: bullet.startPos, dodge });
+        return dodge;
+    }
+
+    /** hackers only: true lets the bullet pass through */
+    dodgeBullet(bullet: Bullet): boolean {
+        if (bullet.player === this.player || !this.phaseDodge) return false;
+        if (bullet.player && bullet.player.teamId === this.player.teamId) return false;
+        const dodge = this.rollDodge(bullet);
         // sidestep away from the shot so the dodge reads on screen
         if (dodge) this._strafeSign = v2.dot(v2.perp(bullet.dir), v2.sub(this.player.pos, bullet.pos)) > 0 ? 1 : -1;
         return dodge;
@@ -856,7 +864,7 @@ export class BotBrain {
         }
 
         // step out of the line of incoming bullets
-        const sidestep = this.skill.realDodge && !escape ? this.bulletDodge() : undefined;
+        const sidestep = !this.phaseDodge && !escape && !player.downed ? this.bulletDodge() : undefined;
         if (sidestep) move = v2.add(v2.mul(v2.normalize(sidestep), 3), v2.mul(move, 0.3));
 
         // combat strafing has no path: just sidestep whatever is in the way
@@ -987,6 +995,8 @@ export class BotBrain {
             if (ahead < 0 || ahead > 40) continue;
             const side = v2.dot(rel, v2.perp(b.dir));
             if (Math.abs(side) > player.rad + 1.5) continue;
+            // the dodge % is the chance it notices this shot in time
+            if (!this.rollDodge(b)) continue;
             const away = v2.mul(v2.perp(b.dir), side >= 0 ? 1 : -1);
             out = out ? v2.add(out, away) : away;
         }
