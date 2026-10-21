@@ -128,6 +128,7 @@ export class SiteInfo {
         $("#god-loadout-picker").toggle(kind !== "locked");
         $("#bot-loadout-column").toggle(kind === "botDuel");
         $("#you-counts").toggle(kind === "botDuel");
+        $("body").toggleClass("bot-duel-menu", kind === "botDuel");
         $("#locked-loadout").toggle(kind === "locked");
     }
 

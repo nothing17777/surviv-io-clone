@@ -989,6 +989,7 @@ export class TeamMenu {
         $("#team-menu").css("display", this.active ? "block" : "none");
         $("#start-menu").css("display", this.active ? "none" : "block");
         $("#right-column").css("display", this.active ? "none" : "block");
+        $("body").toggleClass("team-menu-open", this.active);
         $("#social-share-block").css("display", this.active ? "none" : "block");
 
         // Error text
