@@ -42,6 +42,7 @@ import {
     loadBotDuelKit,
     loadDuelCounts,
     loadGodLoadout,
+    loadoutToKit,
 } from "./ui/modePicker.ts";
 import { LoadoutDisplay } from "./ui/opponentDisplay.ts";
 import { Pass } from "./ui/pass.ts";
@@ -294,11 +295,11 @@ export class Application {
                         // your picks and counts go out as the match kit; bots get their own side's kit
                         privateGodLoadout: true,
                         privateSharedKit: true,
-                        privateLoadout: { ...defaultPrivateLoadout, ...loadGodLoadout(), ...loadDuelCounts("you") },
+                        privateLoadout: { ...defaultPrivateLoadout, ...loadoutToKit(loadGodLoadout()), ...loadDuelCounts("you") },
                         privateAllyBotsSameKit: false,
                         privateEnemyBotsSameKit: false,
-                        privateBotEnemyKit: { ...defaultPrivateLoadout, ...loadBotDuelKit("bot"), ...loadDuelCounts("bot") },
-                        privateBotAllyKit: { ...defaultPrivateLoadout, ...loadBotDuelKit("ally"), ...loadDuelCounts("ally") },
+                        privateBotEnemyKit: { ...defaultPrivateLoadout, ...loadoutToKit(loadBotDuelKit("bot")), ...loadDuelCounts("bot") },
+                        privateBotAllyKit: { ...defaultPrivateLoadout, ...loadoutToKit(loadBotDuelKit("ally")), ...loadDuelCounts("ally") },
                     }, true);
                 };
                 if ($("#bot-duel-map").val() !== BotDuelCustomMap) {

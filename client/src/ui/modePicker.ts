@@ -1,4 +1,5 @@
 import $ from "jquery";
+import en from "../en.json";
 import { RawGameObjectDefs } from "../../../shared/defs/gameObjectDefs.ts";
 import { type MapDefKey, MapDefs } from "../../../shared/defs/mapDefs.ts";
 import { GameConfig, type TeamMode } from "../../../shared/gameConfig.ts";
@@ -59,26 +60,94 @@ export function fillMapSelect(select: JQuery<HTMLElement>, maps: string[], selec
 //
 const godLoadoutKey = "survev_god_loadout";
 
-export interface GodLoadout {
-    primary: string;
-    secondary: string;
-    throwable: string;
-    melee: string;
-}
+/** every slot a loadout picker can set; perks are three optional slots */
+export const pickerSlotType = {
+    primary: "gun",
+    secondary: "gun",
+    melee: "melee",
+    throwable: "throwable",
+    helmet: "helmet",
+    chest: "chest",
+    backpack: "backpack",
+    perk1: "perk",
+    perk2: "perk",
+    perk3: "perk",
+} as const;
+export type PickerSlot = keyof typeof pickerSlotType;
+const pickerSlots = Object.keys(pickerSlotType) as PickerSlot[];
+/** slots that can be left empty */
+const optionalSlots = new Set<string>(["helmet", "chest", "perk1", "perk2", "perk3"]);
+
+export type GodLoadout = Record<PickerSlot, string>;
+
+const defaultGodLoadout: GodLoadout = {
+    primary: "m4a1",
+    secondary: "mp220",
+    throwable: "frag",
+    melee: "fists",
+    helmet: "helmet03",
+    chest: "chest03",
+    backpack: "backpack03",
+    perk1: "",
+    perk2: "",
+    perk3: "",
+};
 
 export function loadGodLoadout(key = godLoadoutKey): GodLoadout {
-    const loadout: GodLoadout = { primary: "m4a1", secondary: "mp220", throwable: "frag", melee: "fists" };
+    const loadout: GodLoadout = { ...defaultGodLoadout };
     try {
         Object.assign(loadout, JSON.parse(localStorage.getItem(key) || "{}"));
     } catch {}
     // drop anything that isn't a real item so the join message can't fail to encode
-    const valid = (id: string, type: string) =>
-        (RawGameObjectDefs as Record<string, { type: string }>)[id]?.type === type;
-    if (!valid(loadout.primary, "gun")) loadout.primary = "m4a1";
-    if (!valid(loadout.secondary, "gun")) loadout.secondary = "mp220";
-    if (!valid(loadout.throwable, "throwable")) loadout.throwable = "frag";
-    if (!valid(loadout.melee, "melee")) loadout.melee = "fists";
+    for (const slot of pickerSlots) {
+        const id = loadout[slot];
+        const ok = (id === "" && optionalSlots.has(slot))
+            || (RawGameObjectDefs as Record<string, { type: string }>)[id]?.type === pickerSlotType[slot];
+        if (!ok) loadout[slot] = defaultGodLoadout[slot];
+    }
     return loadout;
+}
+
+/** a kit's value for one picker slot (old kits only have an armor tier) */
+export function kitSlot(kit: Partial<PrivateLoadout>, slot: PickerSlot): string {
+    switch (slot) {
+        case "helmet":
+        case "chest": {
+            const armor = kit.armor ?? 3;
+            return kit[slot] ?? (armor > 0 ? `${slot}0${armor}` : "");
+        }
+        case "backpack":
+            return kit.backpack || "backpack03";
+        case "perk1":
+        case "perk2":
+        case "perk3":
+            return kit.perks?.[Number(slot[4]) - 1] ?? "";
+        default:
+            return kit[slot] ?? "";
+    }
+}
+
+export function setKitSlot(kit: Partial<PrivateLoadout>, slot: PickerSlot, value: string) {
+    if (pickerSlotType[slot] === "perk") {
+        const perks = (["perk1", "perk2", "perk3"] as const).map((p) => (p === slot ? value : kitSlot(kit, p)));
+        kit.perks = perks.filter((p, i) => p && perks.indexOf(p) === i);
+    } else {
+        (kit as Record<string, unknown>)[slot] = value;
+    }
+}
+
+/** the picker slots as kit fields: gear by name, perks as a list */
+export function loadoutToKit(l: GodLoadout) {
+    return {
+        primary: l.primary,
+        secondary: l.secondary,
+        throwable: l.throwable,
+        melee: l.melee,
+        helmet: l.helmet,
+        chest: l.chest,
+        backpack: l.backpack,
+        perks: [l.perk1, l.perk2, l.perk3].filter((p, i, a) => p && a.indexOf(p) === i),
+    };
 }
 
 export function saveGodLoadout(loadout: GodLoadout, key = godLoadoutKey) {
@@ -116,7 +185,8 @@ export function initBotDuelPicker() {
 export function defsOfType(type: string) {
     return Object.entries(RawGameObjectDefs as Record<string, { type: string; name?: string }>)
         .filter(([, def]) => def.type === type)
-        .map(([id, def]) => ({ id, name: def.name || id }))
+        // the names players see in game, e.g. "One With Nature" for tree_climbing
+        .map(([id, def]) => ({ id, name: (en as Record<string, string>)[`game-${id}`] || def.name || id }))
         .sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -127,14 +197,6 @@ export function itemImage(id: string) {
     return sprite ? `img/loot/${sprite.replace(/\.img$/, ".svg")}` : "";
 }
 
-const pickerSlots = ["primary", "secondary", "melee", "throwable"] as const;
-
-export const pickerSlotType = {
-    primary: "gun",
-    secondary: "gun",
-    melee: "melee",
-    throwable: "throwable",
-} as const;
 
 /**
  * Fills one picker with every item of a type and shows the picked item's loot
@@ -146,6 +208,7 @@ export function fillItemPicker(prefix: string, slot: string, type: string, value
     if (!sel.length) return;
 
     const items = defsOfType(type);
+    if (optionalSlots.has(slot)) items.unshift({ id: "", name: `No ${slot.startsWith("perk") ? "perk" : slot === "chest" ? "vest" : slot}` });
     if (sel.children().length !== items.length) {
         sel.empty();
         for (const item of items) {
@@ -168,34 +231,13 @@ export function fillItemPicker(prefix: string, slot: string, type: string, value
 }
 
 /**
- * Fills the gun / throwable pickers with a given id prefix ("god" on the main
- * menu, "team-god" in the party menu). Both sets share the saved loadout.
+ * Fills the main menu loadout pickers ("god" prefix) and saves each pick.
  */
 export function initGodLoadoutPicker(prefix = "god") {
-    const lists = {
-        primary: defsOfType("gun"),
-        secondary: defsOfType("gun"),
-        melee: defsOfType("melee"),
-        throwable: defsOfType("throwable"),
-    };
-
     for (const slot of pickerSlots) {
-        const sel = $(`#${prefix}-${slot}`);
-        if (!sel.length) continue;
-        sel.empty();
-        for (const item of lists[slot]) {
-            sel.append($("<option>", { value: item.id, text: item.name }));
-        }
-
-        // picture of the picked item, shown left of the dropdown
-        if (!sel.parent().hasClass("god-row")) {
-            sel.wrap($("<div>", { class: "god-row" }));
-            sel.before($("<img>", { class: "god-item-img", alt: "", id: `${prefix}-${slot}-img` }));
-        }
-
-        sel.on("change", () => {
+        $(`#${prefix}-${slot}`).on("change", (e) => {
             const loadout = loadGodLoadout();
-            loadout[slot] = sel.val() as string;
+            loadout[slot] = $(e.currentTarget).val() as string;
             saveGodLoadout(loadout);
             syncGodLoadoutPickers();
         });
@@ -203,17 +245,10 @@ export function initGodLoadoutPicker(prefix = "god") {
     syncGodLoadoutPickers();
 }
 
-/** Shows the saved loadout (and its pictures) in every picker on the page */
+/** Shows the saved loadout (and its pictures) in the main menu pickers */
 export function syncGodLoadoutPickers() {
     const loadout = loadGodLoadout();
-    for (const prefix of ["god"]) {
-        for (const slot of pickerSlots) {
-            $(`#${prefix}-${slot}`).val(loadout[slot]);
-            const img = $(`#${prefix}-${slot}-img`);
-            const src = itemImage(loadout[slot]);
-            img.attr("src", src).toggle(!!src);
-        }
-    }
+    for (const slot of pickerSlots) fillItemPicker("god", slot, pickerSlotType[slot], loadout[slot]);
 }
 
 //

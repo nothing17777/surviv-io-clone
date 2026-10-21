@@ -36,6 +36,12 @@ export const zPrivateLoadout = z.object({
     healthkit: z.number().int().min(0).max(4),
     soda: z.number().int().min(0).max(15),
     painkiller: z.number().int().min(0).max(4),
+    /** exact gear, "" = none; missing = the armor tier above and a level 3 bag */
+    helmet: z.string().max(32).optional(),
+    chest: z.string().max(32).optional(),
+    backpack: z.string().max(32).optional(),
+    /** up to three perks, like Small Arms or One With Nature */
+    perks: z.array(z.string().max(32)).max(3).optional(),
 });
 
 export type PrivateLoadout = z.infer<typeof zPrivateLoadout>;

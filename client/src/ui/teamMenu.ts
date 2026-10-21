@@ -41,7 +41,11 @@ import {
     getModeMaps,
     loadGodLoadout,
     modeLabel,
+    kitSlot,
+    loadoutToKit,
+    type PickerSlot,
     pickerSlotType,
+    setKitSlot,
     saveGodLoadout,
     syncGodLoadoutPickers,
 } from "./modePicker.ts";
@@ -115,7 +119,7 @@ export class TeamMenu {
     typePrivate = $("#btn-team-type-private");
     privateMapSelect = $("#team-private-map-select");
     privateSizes = $("#team-private-sizes");
-    godPickers = $("#team-god-primary, #team-god-secondary, #team-god-melee, #team-god-throwable, #team-god-armor");
+    godPickers = $(Object.keys(pickerSlotType).map((slot) => `#team-god-${slot}`).join(", "));
     godHeals = $(
         "#team-god-throwable-count, #team-god-bandage, #team-god-healthkit, #team-god-soda, #team-god-painkiller",
     );
@@ -629,14 +633,6 @@ export class TeamMenu {
                 }),
             );
         }
-        const armor = $("<select/>", {
-            class: "server-select menu-option btn-hollow btn-hollow-selected botset-field",
-            "data-kit": "armor",
-        });
-        for (let i = 0; i <= 3; i++) {
-            armor.append($("<option/>", { value: i, text: i ? `Level ${i} armor` : "No armor" }));
-        }
-        kit.append(armor);
         const counts = $("<div/>", { class: "botset-grid" });
         for (
             const [key, label, max] of [
@@ -703,7 +699,7 @@ export class TeamMenu {
                 const key = el.attr("data-kit") as keyof PrivateLoadout;
                 const max = Number(el.attr("max") ?? 3);
                 if (key in pickerSlotType) {
-                    (kit as Record<string, unknown>)[key] = el.val() as string;
+                    setKitSlot(kit, key as PickerSlot, el.val() as string);
                 } else {
                     (kit as Record<string, unknown>)[key] = num(el, max);
                 }
@@ -721,7 +717,7 @@ export class TeamMenu {
         const all = structuredClone(this.botSettings());
         const kit = this.sharedKitActive()
             ? this.roomData.privateLoadout || defaultPrivateLoadout
-            : { ...defaultPrivateLoadout, ...loadGodLoadout() };
+            : { ...defaultPrivateLoadout, ...loadoutToKit(loadGodLoadout()) };
         all[this.botSettingsLevel].kit = { ...kit };
         try {
             localStorage.setItem(botSettingsKey, JSON.stringify(all));
@@ -772,14 +768,14 @@ export class TeamMenu {
         if (s.kit) {
             for (const [slot, type] of Object.entries(pickerSlotType)) {
                 if (!$(`#team-botset-${slot}`).is(":focus")) {
-                    fillItemPicker("team-botset", slot, type, s.kit[slot as keyof typeof pickerSlotType]);
+                    fillItemPicker("team-botset", slot, type, kitSlot(s.kit, slot as PickerSlot));
                 }
             }
             panel.find("[data-kit]").each((_i, e) => {
                 const el = $(e);
                 const key = el.attr("data-kit")! as keyof PrivateLoadout;
                 if (key in pickerSlotType || el.is(":focus")) return;
-                el.val(s.kit![key]);
+                el.val(s.kit![key] as string | number);
             });
         }
         panel.find("input, select").prop("disabled", !this.isLeader);
@@ -904,13 +900,16 @@ export class TeamMenu {
             melee: $("#team-god-melee").val() as string,
             throwable: $("#team-god-throwable").val() as string,
             throwableCount: num("#team-god-throwable-count", throwableMax($("#team-god-throwable").val() as string)),
-            armor: num("#team-god-armor", 3),
+            armor: 3,
             bandage: num("#team-god-bandage", 30),
             healthkit: num("#team-god-healthkit", 4),
             soda: num("#team-god-soda", 15),
             painkiller: num("#team-god-painkiller", 4),
         };
 
+        for (const slot of ["helmet", "chest", "backpack", "perk1", "perk2", "perk3"] as const) {
+            setKitSlot(loadout, slot, $(`#team-god-${slot}`).val() as string);
+        }
         this.roomData.privateLoadout = loadout;
         try {
             localStorage.setItem(sameKitKey, JSON.stringify(loadout));
@@ -1143,15 +1142,14 @@ export class TeamMenu {
                 if (god) {
                     const kit = shared
                         ? this.roomData.privateLoadout || defaultPrivateLoadout
-                        : { ...defaultPrivateLoadout, ...loadGodLoadout() };
+                        : { ...defaultPrivateLoadout, ...loadoutToKit(loadGodLoadout()) };
 
                     $("#team-god-title").text(shared ? "Everyone's Kit" : "Your Kit");
                     for (const [slot, type] of Object.entries(pickerSlotType)) {
-                        fillItemPicker("team-god", slot, type, kit[slot as keyof typeof pickerSlotType]);
+                        fillItemPicker("team-god", slot, type, kitSlot(kit, slot as PickerSlot));
                     }
 
                     if (shared) {
-                        $("#team-god-armor").val(String(kit.armor));
                         // the cap depends on which throwable is picked
                         const throwMax = throwableMax(kit.throwable);
                         $("#team-god-throwable-count").attr("max", throwMax).val(

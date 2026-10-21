@@ -14,12 +14,17 @@ export class JoinMsg implements AbstractMsg {
         boost: "",
         emotes: [] as string[],
     };
-    /** guns picked in the menu, only used on god loadout (duel) maps */
+    /** kit picked in the menu, only used on god loadout (duel) maps */
     godLoadout = {
         primary: "",
         secondary: "",
         throwable: "",
         melee: "",
+        /** "" = none */
+        helmet: "",
+        chest: "",
+        backpack: "",
+        perks: [] as string[],
     };
 
     serialize(s: BitStream) {
@@ -46,6 +51,12 @@ export class JoinMsg implements AbstractMsg {
         s.writeGameType(this.godLoadout.secondary);
         s.writeGameType(this.godLoadout.throwable);
         s.writeGameType(this.godLoadout.melee);
+        s.writeGameType(this.godLoadout.helmet);
+        s.writeGameType(this.godLoadout.chest);
+        s.writeGameType(this.godLoadout.backpack);
+        s.writeArray(this.godLoadout.perks.slice(0, 3), 2, (perk) => {
+            s.writeGameType(perk);
+        });
     }
 
     deserialize(s: BitStream) {
@@ -70,5 +81,9 @@ export class JoinMsg implements AbstractMsg {
         this.godLoadout.secondary = s.readGameType();
         this.godLoadout.throwable = s.readGameType();
         this.godLoadout.melee = s.readGameType();
+        this.godLoadout.helmet = s.readGameType();
+        this.godLoadout.chest = s.readGameType();
+        this.godLoadout.backpack = s.readGameType();
+        this.godLoadout.perks = s.readArray(2, () => s.readGameType());
     }
 }

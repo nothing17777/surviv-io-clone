@@ -4383,14 +4383,17 @@ export class Player extends BaseGameObject {
      * comes from the party leader instead of the joining player.
      */
     applyGodLoadout(
-        godLoadout: net.JoinMsg["godLoadout"] & Partial<PrivateLoadout>,
+        godLoadout: Pick<net.JoinMsg["godLoadout"], "primary" | "secondary" | "throwable" | "melee"> & Partial<PrivateLoadout>,
         /** the kit was fixed by a party leader, so nothing extra is handed out */
         fixed = false,
     ) {
+        // exact gear when picked ("" = none), else the armor tier
+        const gear = (id: string | undefined, type: string) =>
+            id !== undefined && (id === "" || GameObjectDefs.typeToDefSafe(id)?.type === type) ? id : undefined;
         const armor = godLoadout.armor ?? 3;
-        this.helmet = armor > 0 ? `helmet0${armor}` : "";
-        this.chest = armor > 0 ? `chest0${armor}` : "";
-        this.backpack = "backpack03";
+        this.helmet = gear(godLoadout.helmet, "helmet") ?? (armor > 0 ? `helmet0${armor}` : "");
+        this.chest = gear(godLoadout.chest, "chest") ?? (armor > 0 ? `chest0${armor}` : "");
+        this.backpack = gear(godLoadout.backpack, "backpack") || "backpack03";
 
         for (const item of Object.keys(GameConfig.bagSizes) as InventoryItem[]) {
             this.invManager.set(item, this.invManager.getMaxCapacity(item));
@@ -4440,6 +4443,10 @@ export class Player extends BaseGameObject {
         const meleeDef = GameObjectDefs.typeToDefSafe(godLoadout.melee);
         if (meleeDef?.type === "melee") {
             this.weaponManager.setWeapon(GameConfig.WeaponSlot.Melee, godLoadout.melee, 0);
+        }
+
+        for (const perk of godLoadout.perks ?? []) {
+            if (GameObjectDefs.typeToDefSafe(perk)?.type === "perk" && !this.hasPerk(perk)) this.addPerk(perk, false);
         }
 
         this.weaponManager.showNextThrowable();
