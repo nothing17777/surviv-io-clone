@@ -160,6 +160,7 @@ export class UiManager {
     bigmapClose = $("#big-map-close");
     moveStyleButton = $("#btn-game-move-style");
     aimLineButton = $("#btn-game-aim-line");
+    autoFireButton = $("#btn-game-auto-fire");
     aimAssistButton = $("#btn-game-aim-assist");
     aimStyleButton = $("#btn-game-aim-style");
 
@@ -322,6 +323,17 @@ export class UiManager {
         });
         this.aimAssistButton.on("pointerdown", () => {
             touch.toggleAimAssist();
+        });
+        // same setting as "Make all guns automatic" in the main menu
+        const syncAutoFire = () => {
+            const on = !!this.game.m_config.get("autoFireAll");
+            this.autoFireButton.toggleClass("aim-line-on-icon", on).toggleClass("aim-line-off-icon", !on);
+            $("#autoFireAll").prop("checked", on);
+        };
+        syncAutoFire();
+        this.autoFireButton.on("click", () => {
+            this.game.m_config.set("autoFireAll", !this.game.m_config.get("autoFireAll"));
+            syncAutoFire();
         });
         this.onTouchScreen = (e: Event) => {
             if ((e.target as HTMLElement)?.id == "cvs") {
@@ -569,6 +581,7 @@ export class UiManager {
         this.aimStyleButton.off("touchstart");
         this.aimLineButton.off("touchstart");
         this.aimAssistButton.off("pointerdown");
+        this.autoFireButton.off("click");
         $(document).off("touchstart", this.onTouchScreen);
         this.bigmapClose.off("touchend");
         this.bigmapClose.off("mousedown");
