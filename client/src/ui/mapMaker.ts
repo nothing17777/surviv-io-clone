@@ -258,7 +258,37 @@ const undergroundCache = new Map<string, Shape[]>();
 const tunnelColor = 0x6b5a48;
 const stairsColor = 0xe0b84d;
 
-/** Below-ground view of a structure: its sublevel floors plus the stairs leading down. */
+const undergroundWallColor = 0x3a332c;
+const undergroundObjColor = 0x9c8b6e;
+
+/** what's inside an underground room: walls, doors, crates, loot spots */
+function undergroundContents(sub: Record<string, any>, depth = 0): Shape[] {
+    const out: Shape[] = [];
+    if (depth > 3) return out;
+    for (const child of sub.mapObjects ?? []) {
+        const type = pickType(child.type);
+        const def = MapObjectDefs.typeToDefSafe(type) as Record<string, any> | undefined;
+        if (!def) continue;
+        let shape: Shape | null = null;
+        if (def.type === "obstacle" && def.collision) {
+            const color = def.isWall ? undergroundWallColor : def.door ? 0x7a5a3a : def.map?.color ?? undergroundObjColor;
+            shape = { col: collider.copy(def.collision), color, scale: def.map?.scale ?? 1, z: def.isWall ? 3 : 4 };
+        } else if (def.type === "loot_spawner") {
+            shape = { col: collider.createCircle(v2.create(0, 0), 1.2), color: 0xffd34d, scale: 1, z: 5 };
+        } else if (def.type === "building") {
+            // a room inside the room: its floor and contents
+            const floors: Shape[] = (def.floor?.surfaces ?? []).flatMap((f: { collision: Collider[] }) =>
+                f.collision.map((c) => ({ col: collider.copy(c), color: tunnelColor, scale: 1, z: 1 }))
+            );
+            const inner = [...floors, ...undergroundContents(def, depth + 1)];
+            out.push(...transformShapes(inner, child.pos, child.ori ?? 0, child.scale ?? 1));
+        }
+        if (shape) out.push(...transformShapes([shape], child.pos, child.ori ?? 0, child.scale ?? 1));
+    }
+    return out;
+}
+
+/** Below-ground view of a structure: its sublevel floors, what's in them, and the stairs leading down. */
 function undergroundShapes(type: string): Shape[] {
     const cached = undergroundCache.get(type);
     if (cached) return cached;
@@ -273,11 +303,13 @@ function undergroundShapes(type: string): Shape[] {
                 ...(sub.ceiling?.zoomRegions ?? []).map((z: { zoomIn?: Collider }) => z.zoomIn).filter(Boolean),
             ];
             const local = cols.map((c) => ({ col: collider.copy(c), color: tunnelColor, scale: 1, z: 0 }));
+            local.push(...undergroundContents(sub));
             out.push(...transformShapes(local, layer.pos, layer.ori, 1));
         }
         for (const st of def.stairs ?? []) {
-            out.push({ col: collider.copy(st.collision), color: stairsColor, scale: 1, z: 1 });
+            out.push({ col: collider.copy(st.collision), color: stairsColor, scale: 1, z: 2 });
         }
+        out.sort((a, b) => a.z - b.z);
     }
     undergroundCache.set(type, out);
     return out;
@@ -662,9 +694,11 @@ class MapMaker {
                             <span class="mm-sub">crates, buildings and airdrops drop nothing</span></label>
                         <label class="mm-check"><input id="mm-storm" type="checkbox"> Storm
                             <span class="mm-sub">faster gas, next circle can overlap the storm</span></label>
-                        <label>Zone speed <select id="mm-zonespeed" class="mm-input">
-                            <option value="0.5">Slow</option><option value="1">Normal</option>
-                            <option value="1.5">Fast</option><option value="2">Very fast</option></select></label>
+                        <label>Zone speed <span id="mm-zonespeed-val"></span>
+                            <input id="mm-zonespeed" type="range" min="0.25" max="4" step="0.25"></label>
+                        <label>Circle volatility <span id="mm-zonevol-val"></span>
+                            <input id="mm-zonevol" type="range" min="0" max="100" step="5"></label>
+                        <div class="mm-sub">0% keeps each circle inside the last. Higher shifts timing and size, and lets new circles reach into the storm.</div>
                         <div class="mm-sub" id="mm-zoneinfo"></div>
                         <button class="mm-btn" id="mm-zoneclear" title="Let the zone end somewhere random">Random zone end</button>
                         <label class="mm-check"><input id="mm-snap" type="checkbox"> Snap to grid <span class="mm-key">G</span></label>
@@ -739,9 +773,15 @@ class MapMaker {
         this.root.find("#mm-storm").on("change", (e) => {
             this.edit(() => (this.map.storm = (e.currentTarget as HTMLInputElement).checked));
         });
-        this.root.find("#mm-zonespeed").on("change", (e) => {
+        this.root.find("#mm-zonespeed").on("input change", (e) => {
+            const v = Number($(e.currentTarget).val()) || 1;
+            this.root.find("#mm-zonespeed-val").text(`×${v}`);
+            if (e.type === "change") this.edit(() => (this.map.zoneSpeed = v === 1 ? undefined : v));
+        });
+        this.root.find("#mm-zonevol").on("input change", (e) => {
             const v = Number($(e.currentTarget).val());
-            this.edit(() => (this.map.zoneSpeed = v === 1 ? undefined : v));
+            this.root.find("#mm-zonevol-val").text(`${v}%`);
+            if (e.type === "change") this.edit(() => (this.map.zoneVolatility = v / 100));
         });
         this.root.find("#mm-zoneclear").on("click", () => {
             if (this.map.zoneEnd) this.edit(() => (this.map.zoneEnd = undefined));
@@ -1006,7 +1046,13 @@ class MapMaker {
         this.root.find("#mm-height").val(this.map.height);
         this.root.find("#mm-noloot").prop("checked", this.map.noLoot);
         this.root.find("#mm-storm").prop("checked", !!this.map.storm);
-        this.root.find("#mm-zonespeed").val(String(this.map.zoneSpeed ?? 1));
+        const speed = this.map.zoneSpeed ?? 1;
+        this.root.find("#mm-zonespeed").val(String(speed));
+        this.root.find("#mm-zonespeed-val").text(`×${speed}`);
+        // same default as the server: full volatility with Storm on
+        const vol = Math.round((this.map.zoneVolatility ?? (this.map.storm ? 1 : 0)) * 100);
+        this.root.find("#mm-zonevol").val(String(vol));
+        this.root.find("#mm-zonevol-val").text(`${vol}%`);
         const end = this.map.zoneEnd;
         this.root.find("#mm-zoneinfo").text(
             end ? `Zone ends at ${Math.round(end.x)}, ${Math.round(end.y)}` : "Zone ends somewhere random",
@@ -2051,9 +2097,14 @@ function drawMap(
     for (const s of shapes) drawShape(ctx, s);
 
     if (underground) {
-        // dim the surface, then draw the tunnels on top
-        ctx.fillStyle = "rgba(12,10,8,0.72)";
+        // solid rock with just the island's outline, then everything below ground
+        ctx.fillStyle = "#1c1915";
         ctx.fillRect(0, 0, map.width, map.height);
+        ctx.strokeStyle = "rgba(255,255,255,0.12)";
+        ctx.lineWidth = Math.max(1, 1.5 / zoom);
+        ctx.beginPath();
+        tracePoly(ctx, terrain.grass);
+        ctx.stroke();
         for (const obj of placed) {
             const under = transformShapes(undergroundShapes(obj.type), v2.create(obj.x, obj.y), obj.ori, obj.scale ?? 1);
             for (const s of under) drawShape(ctx, s);

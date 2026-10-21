@@ -65,6 +65,8 @@ export const zCustomMap = z.object({
     storm: z.boolean().optional(),
     /** zone speed multiplier: 2 closes twice as fast */
     zoneSpeed: z.number().min(0.25).max(4).optional(),
+    /** 0 = classic nested circles, 1 = storm style drift; missing = 1 with Storm on, else 0 */
+    zoneVolatility: z.number().min(0).max(1).optional(),
     /** where the final zone closes; missing = random, like normal games */
     zoneEnd: z.object({ x: zPos, y: zPos }).optional(),
     rivers: z

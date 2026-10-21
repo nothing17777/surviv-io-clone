@@ -7,8 +7,10 @@ import type { StructureDef } from "../../shared/defs/mapObjects/structureDefs.ts
 import type { LootSpawnerDef } from "../../shared/defs/mapObjectsTyping.ts";
 import { MapObjectDefs } from "../../shared/defs/register.ts";
 import { Constants } from "../../shared/net/net.ts";
+import { isCustomBuildType } from "../../shared/utils/customMap.ts";
 
-const mapObjects = MapObjectDefs.getAllTypes();
+// map maker slots stay empty until a custom map fills them in a match
+const mapObjects = MapObjectDefs.getAllTypes().filter((type) => !isCustomBuildType(type));
 
 const obstacles = mapObjects.filter((type) => {
     return MapObjectDefs.typeToDef(type).type === "obstacle";

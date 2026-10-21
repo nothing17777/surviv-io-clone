@@ -240,11 +240,13 @@ export class Gas {
 
     private _stages: StageData[];
     private _storm: boolean;
+    private _volatility: number;
 
     constructor(readonly game: Game) {
         const map = game.map;
         this._storm = !!map.mapDef.gameMode.stormMode || !!game.customMap?.storm;
         this._stages = this._storm ? StormStages : GasStages;
+        this._volatility = game.customMap?.zoneVolatility ?? (this._storm ? 1 : 0);
         this.mapSize = (map.width + map.height) / 2;
         this.posOld = v2.create(map.width / 2, map.height / 2);
         this.posNew = v2.copy(this.posOld);
@@ -296,16 +298,18 @@ export class Gas {
 
         this.mode = stage.mode;
         this.radOld = this.currentRad;
+        // how unpredictable circles are: 0 = classic nested circles, 1 = storm
+        const v = this._volatility;
         this.duration = stage.duration;
-        if (this._storm) {
-            this.duration *= util.random(0.7, 1.3);
+        if (v > 0) {
+            this.duration *= util.random(1 - 0.3 * v, 1 + 0.3 * v);
         }
         this.duration /= this.game.customMap?.zoneSpeed ?? 1;
         if (this.mode === GasMode.Waiting) {
             let rad = stage.rad;
-            if (this._storm && rad > 0) {
+            if (v > 0 && rad > 0) {
                 // only shrink, never grow past the current circle
-                rad = Math.min(rad * util.random(0.8, 1.2), this.radOld / this.mapSize);
+                rad = Math.min(rad * util.random(1 - 0.2 * v, 1 + 0.2 * v), this.radOld / this.mapSize);
             }
             this.radNew = rad * this.mapSize;
         }
@@ -326,14 +330,13 @@ export class Gas {
                 const end = v2.create(zoneEnd.x, zoneEnd.y);
                 const k = this.radOld > 0 ? this.radNew / this.radOld : 0;
                 this.posNew = v2.add(end, v2.mul(v2.sub(this.posNew, end), k));
-                if (this._storm) {
-                    // still let storm circles poke into the current storm
-                    this.posNew = v2.add(this.posNew, util.randomPointInCircle(this.radNew * 0.5));
+                if (v > 0) {
+                    // still let volatile circles poke into the current storm
+                    this.posNew = v2.add(this.posNew, util.randomPointInCircle(this.radNew * 0.5 * v));
                 }
             } else {
-                const maxOffset = this._storm
-                    ? this.radOld * util.random(0.6, 1)
-                    : this.radOld - this.radNew;
+                // up to radOld - radNew keeps it nested; volatility lets it reach past the edge
+                const maxOffset = this.radOld - this.radNew + v * this.radNew * util.random(0.6, 1);
                 this.posNew = v2.add(this.posNew, util.randomPointInCircle(maxOffset));
 
                 const rad = this.radNew * 0.75; // ensure at least 75% of the safe zone will be inside map bounds
