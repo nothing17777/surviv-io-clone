@@ -80,7 +80,7 @@ const Skills: Record<BotLevel, BotSkill> = {
     },
     hacker: {
         accuracy: 1,
-        dodge: 1,
+        dodge: 0.9,
         reaction: 0,
         lead: true,
         turnRate: 1000,
@@ -285,7 +285,7 @@ export class BotBrain {
             this._lastThreat = v2.copy(this.target.pos);
             this._sinceThreat = 0;
             this._coverSpot = undefined;
-            this.pickCombatWeapon();
+            this.pickCombatWeapon(v2.distance(this.target.pos, player.pos));
             // hurt and carrying heals: fall back behind cover (hackers just keep fighting)
             this._retreat = undefined;
             if (player.health < 35 && this.pickHeal() && this.level !== "hacker") {
@@ -454,20 +454,25 @@ export class BotBrain {
         return GunSlots.some((s) => this.gunHasAmmo(s));
     }
 
-    private pickCombatWeapon() {
+    /** how far this gun's bullets travel */
+    private gunRange(slot: number): number {
+        const def = GameObjectDefs.typeToDefSafe(this.player.weapons[slot].type);
+        if (def?.type !== "gun") return 0;
+        return BulletDefs[(def as GunDef).bulletType]?.distance ?? 100;
+    }
+
+    /**
+     * A loaded gun that reaches the target, else any loaded gun (we'll close
+     * in), else one we can reload, else melee.
+     */
+    private pickCombatWeapon(dist: number) {
         const player = this.player;
         const cur = player.curWeapIdx;
-        if (GunSlots.includes(cur) && this.gunHasAmmo(cur)) {
-            // still loaded, or reloading with nothing better to swap to
-            const other = cur === WeaponSlot.Primary ? WeaponSlot.Secondary : WeaponSlot.Primary;
-            if (player.weapons[cur].ammo > 0 || !(player.weapons[other].ammo > 0 && this.gunHasAmmo(other))) {
-                return;
-            }
-            player.weaponManager.setCurWeapIndex(other);
-            return;
-        }
-        const slot = GunSlots.find((s) => this.player.weapons[s].ammo > 0)
-            ?? GunSlots.find((s) => this.gunHasAmmo(s))
+        const loaded = GunSlots.filter((s) => player.weapons[s].ammo > 0);
+        const inRange = loaded.filter((s) => this.gunRange(s) * 0.9 >= dist);
+        const slot = (inRange.includes(cur) ? cur : inRange[0])
+            ?? (loaded.includes(cur) ? cur : loaded[0])
+            ?? (GunSlots.includes(cur) && this.gunHasAmmo(cur) ? cur : GunSlots.find((s) => this.gunHasAmmo(s)))
             ?? WeaponSlot.Melee;
         if (slot !== cur) player.weaponManager.setCurWeapIndex(slot);
     }
@@ -599,7 +604,9 @@ export class BotBrain {
             const isGun = weapDef?.type === "gun";
             const gunDef = isGun ? (weapDef as GunDef) : undefined;
             const isShotgun = !!gunDef && gunDef.bulletCount > 1;
-            const prefDist = !gunDef ? 0 : isShotgun ? 7 : 16;
+            // stay where the gun actually reaches
+            const range = gunDef ? (BulletDefs[gunDef.bulletType]?.distance ?? 100) * 0.9 : 0;
+            const prefDist = !gunDef ? 0 : Math.min(isShotgun ? 7 : 16, range * 0.7);
 
             // strafe sideways and hold the preferred range
             this._strafeTicker -= dt;
@@ -640,7 +647,9 @@ export class BotBrain {
 
             this._reactTimer -= dt;
             const canShoot = this._reactTimer <= 0 && player.actionType !== GameConfig.Action.Revive
-                && onTarget && (this._bursting || !gunDef);
+                && onTarget && (this._bursting || !gunDef)
+                // don't waste shots the bullets can't reach
+                && (!gunDef || dist <= range);
             if (canShoot) {
                 if (gunDef) {
                     const weap = player.weapons[player.curWeapIdx];
@@ -659,7 +668,9 @@ export class BotBrain {
                         const other = player.curWeapIdx === WeaponSlot.Primary
                             ? WeaponSlot.Secondary
                             : WeaponSlot.Primary;
-                        if (player.weapons[other].ammo > 0) player.weaponManager.setCurWeapIndex(other);
+                        if (player.weapons[other].ammo > 0 && this.gunRange(other) * 0.9 >= dist) {
+                            player.weaponManager.setCurWeapIndex(other);
+                        }
                     }
                     this._lastCooldown = player.weapons[player.curWeapIdx].cooldown;
                 } else if (dist < 4) {
