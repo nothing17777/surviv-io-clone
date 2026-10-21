@@ -232,7 +232,8 @@ export class TeamMenu {
         $("#btn-team-map-clear").on("click", () => {
             if (this.isLeader) this.sendMessage("setCustomMap", { map: null });
         });
-        $("#team-menu-member-list").on("click", ".team-side.can-switch", (e) => {
+        // player side tags only; bot tags have their own handler and no player id
+        $("#team-menu-member-list").on("click", ".team-side.can-switch:not(.bot-side)", (e) => {
             const el = $(e.currentTarget);
             this.sendMessage("setTeam", {
                 playerId: Number(el.attr("data-playerid")),
