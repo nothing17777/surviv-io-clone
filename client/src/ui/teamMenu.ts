@@ -615,6 +615,13 @@ export class TeamMenu {
             );
         }
         kit.append(counts);
+        const copyAll = $("<a/>", {
+            class: "btn-hollow btn-darken team-menu-option",
+            id: "btn-botset-kit-all",
+            text: "Use this kit for all levels",
+        });
+        copyAll.on("click", () => this.copyBotKitToAllLevels());
+        kit.append(copyAll);
         panel.append(kit);
 
         panel.on("change", ".botset-field", () => this.saveBotSettingsFromPanel());
@@ -656,6 +663,19 @@ export class TeamMenu {
                 }
             });
         }
+        try {
+            localStorage.setItem(botSettingsKey, JSON.stringify(all));
+        } catch {}
+        this.setRoomProperty("privateBotSettings", all);
+    }
+
+    /** gives every bot level the kit of the level being edited */
+    copyBotKitToAllLevels() {
+        if (!this.isLeader) return;
+        const all = structuredClone(this.botSettings());
+        const kit = all[this.botSettingsLevel].kit;
+        if (!kit) return;
+        for (const level of BotLevels) all[level].kit = { ...kit };
         try {
             localStorage.setItem(botSettingsKey, JSON.stringify(all));
         } catch {}
