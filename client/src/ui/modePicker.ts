@@ -2,6 +2,7 @@ import $ from "jquery";
 import { RawGameObjectDefs } from "../../../shared/defs/gameObjectDefs.ts";
 import { type MapDefKey, MapDefs } from "../../../shared/defs/mapDefs.ts";
 import { GameConfig, type TeamMode } from "../../../shared/gameConfig.ts";
+import { defaultPrivateLoadout, type PrivateLoadout } from "../../../shared/types/api.ts";
 
 /**
  * Helpers for the map + team size pickers on the main menu and the party menu,
@@ -211,6 +212,54 @@ export function syncGodLoadoutPickers() {
             const img = $(`#${prefix}-${slot}-img`);
             const src = itemImage(loadout[slot]);
             img.attr("src", src).toggle(!!src);
+        }
+    }
+}
+
+//
+// Duel (Bots) consumable counts: you, opponent bots ("bot"), teammate bots ("ally")
+//
+const countFields = [
+    ["throwableCount", "Throwables", 40],
+    ["bandage", "Bandages", 30],
+    ["healthkit", "Med Kits", 4],
+    ["soda", "Sodas", 15],
+    ["painkiller", "Pills", 4],
+] as const;
+type CountKey = (typeof countFields)[number][0];
+export type DuelCounts = Pick<PrivateLoadout, CountKey>;
+type CountSide = "you" | "bot" | "ally";
+
+export function loadDuelCounts(side: CountSide): DuelCounts {
+    const counts = {} as DuelCounts;
+    let saved: Partial<Record<CountKey, unknown>> = {};
+    try {
+        saved = JSON.parse(localStorage.getItem(`survev_duel_counts_${side}`) || "{}");
+    } catch {}
+    for (const [key, , max] of countFields) {
+        const v = Number(saved[key]);
+        counts[key] = Number.isFinite(v) ? Math.min(max, Math.max(0, Math.round(v))) : defaultPrivateLoadout[key];
+    }
+    return counts;
+}
+
+/** number inputs for each side's consumables, saved in this browser */
+export function initDuelCounts() {
+    for (const side of ["you", "bot", "ally"] as const) {
+        const box = $(`#${side}-counts`);
+        const counts = loadDuelCounts(side);
+        for (const [key, label, max] of countFields) {
+            const input = $("<input>", { type: "number", min: 0, max, class: "menu-option", value: counts[key] });
+            input.on("change", () => {
+                const all = loadDuelCounts(side);
+                const v = Math.round(Number(input.val()));
+                all[key] = Number.isFinite(v) ? Math.min(max, Math.max(0, v)) : all[key];
+                input.val(all[key]);
+                try {
+                    localStorage.setItem(`survev_duel_counts_${side}`, JSON.stringify(all));
+                } catch {}
+            });
+            box.append($("<label>", { class: "god-heal" }).append($("<span>", { text: label }), input));
         }
     }
 }

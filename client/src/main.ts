@@ -35,7 +35,14 @@ import { Localization } from "./ui/localization.ts";
 import { openMapMaker } from "./ui/mapMaker.ts";
 import Menu from "./ui/menu.ts";
 import { MenuModal } from "./ui/menuModal.ts";
-import { initBotDuelPicker, initGodLoadoutPicker, loadBotDuelKit } from "./ui/modePicker.ts";
+import {
+    initBotDuelPicker,
+    initDuelCounts,
+    initGodLoadoutPicker,
+    loadBotDuelKit,
+    loadDuelCounts,
+    loadGodLoadout,
+} from "./ui/modePicker.ts";
 import { LoadoutDisplay } from "./ui/opponentDisplay.ts";
 import { Pass } from "./ui/pass.ts";
 import { ProfileUi } from "./ui/profileUi.ts";
@@ -182,6 +189,7 @@ export class Application {
             });
             initGodLoadoutPicker("god");
             initBotDuelPicker();
+            initDuelCounts();
 
             initArmory();
             const armoryModal = new MenuModal($("#modal-armory"));
@@ -283,10 +291,14 @@ export class Application {
                         privateTeamSize: Number(btn.attr("data-size")),
                         privateBotEnemy: enemy,
                         privateBotAlly: ally,
+                        // your picks and counts go out as the match kit; bots get their own side's kit
                         privateGodLoadout: true,
-                        privateSharedKit: false,
-                        privateBotEnemyKit: { ...defaultPrivateLoadout, ...loadBotDuelKit("bot") },
-                        privateBotAllyKit: { ...defaultPrivateLoadout, ...loadBotDuelKit("ally") },
+                        privateSharedKit: true,
+                        privateLoadout: { ...defaultPrivateLoadout, ...loadGodLoadout(), ...loadDuelCounts("you") },
+                        privateAllyBotsSameKit: false,
+                        privateEnemyBotsSameKit: false,
+                        privateBotEnemyKit: { ...defaultPrivateLoadout, ...loadBotDuelKit("bot"), ...loadDuelCounts("bot") },
+                        privateBotAllyKit: { ...defaultPrivateLoadout, ...loadBotDuelKit("ally"), ...loadDuelCounts("ally") },
                     }, true);
                 };
                 if ($("#bot-duel-map").val() !== BotDuelCustomMap) {

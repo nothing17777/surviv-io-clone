@@ -8481,3 +8481,12 @@ body.mm-body-lock {
         width: 200px;
     }
 }
+
+/* Duel (Bots) consumable counts under each loadout */
+.duel-counts {
+    margin: 2px 0 8px;
+}
+
+.duel-counts .god-heal {
+    margin-bottom: 4px;
+}
