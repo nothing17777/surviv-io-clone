@@ -23,6 +23,7 @@ import { findPath } from "./botPath.ts";
 import { Client } from "./client.ts";
 import type { Game } from "./game.ts";
 import type { Bullet } from "./objects/bullet.ts";
+import { AirStrikePlane } from "./objects/plane.ts";
 import type { Loot } from "./objects/loot.ts";
 import type { Obstacle } from "./objects/obstacle.ts";
 import type { Player } from "./objects/player.ts";
@@ -276,14 +277,13 @@ export class BotBrain {
     private _dodgeRolls = new Map<Bullet, { start: Vec2; dodge: boolean }>();
     /** one react-or-not roll per grenade / airstrike zone */
     private _blastRolls = new WeakMap<object, boolean>();
+    private _blastPhase = new WeakMap<object, boolean>();
     private _dodgeClearTicker = 0;
     /** loot / crates we couldn't path to, by object id -> seconds left to ignore them */
     private _unreachable = new Map<number, number>();
     private _zoneRun = false;
     /** the zone will catch us unless we go now, so even a fight moves toward it */
     private _zoneUrgent = false;
-    /** inside the nearest building while an airstrike is on us: walls stop the blasts */
-    private _shelter?: Vec2;
     private _throw?: { prev: number; timer: number; released: boolean; cook: number; error: Vec2 };
     private _throwCooldown = util.random(3, 8);
     private _path?: Vec2[];
@@ -333,6 +333,17 @@ export class BotBrain {
         const dodge = Math.random() < this.skill.dodge;
         this._dodgeRolls.set(bullet, { start: bullet.startPos, dodge });
         return dodge;
+    }
+
+    /** hackers only: true lets this explosion pass through, rolled once per blast */
+    phaseExplosion(explosion: object): boolean {
+        if (!this.phaseDodge) return false;
+        let phase = this._blastPhase.get(explosion);
+        if (phase === undefined) {
+            phase = Math.random() < this.skill.dodge;
+            this._blastPhase.set(explosion, phase);
+        }
+        return phase;
     }
 
     /** hackers only: true lets the bullet pass through */
@@ -406,7 +417,6 @@ export class BotBrain {
         }
 
         this._zoneUrgent = this.zoneUrgent();
-        this._shelter = this._zoneUrgent ? undefined : this.findShelter();
 
         if (player.downed) {
             // crawl into the zone if it's coming, else away from whoever downed us
@@ -498,12 +508,6 @@ export class BotBrain {
             } else {
                 this._goal = v2.copy(downedMate.pos);
             }
-            return;
-        }
-
-        // airstrike overhead: get inside and stay there (healing and reloading still happen above)
-        if (this._shelter) {
-            if (v2.distance(this._shelter, player.pos) > 1.5) this._goal = v2.copy(this._shelter);
             return;
         }
 
@@ -840,8 +844,6 @@ export class BotBrain {
             }
             // low on health: back off to cover while still shooting
             if (this._retreat) move = this.followPath(this._retreat, dt);
-            // airstrike: fight from inside the nearest building
-            if (this._shelter && v2.distance(this._shelter, player.pos) > 3) move = this.followPath(this._shelter, dt);
             // the zone comes first: walk into it, shooting on the way
             if (this._zoneUrgent) move = this.followPath(this.game.gas.posNew, dt);
 
@@ -994,7 +996,8 @@ export class BotBrain {
         }
 
         // never dodge, strafe or back off into the red zone
-        if (v2.length(move) > 0.01) move = this.keepOutOfGas(move);
+        // (a blast escape already weighed the gas against the blast)
+        if (!escape && v2.length(move) > 0.01) move = this.keepOutOfGas(move);
 
         const moving = v2.length(move) > 0.01;
         player.touchMoveActive = true;
@@ -1078,50 +1081,6 @@ export class BotBrain {
             if (caught(player) || player.group?.players.some((p) => p !== player && caught(p))) return obj;
         }
         return undefined;
-    }
-
-    /** true when a wall (anything that stops explosions) is between us and `pos` */
-    private wallBetween(pos: Vec2): boolean {
-        const player = this.player;
-        for (const obj of this.game.grid.intersectLineSegment(player.pos, pos)) {
-            if (obj.__type !== ObjectType.Obstacle || obj.dead || !obj.collidable || obj.height <= 0.5) continue;
-            if (!util.sameLayer(obj.layer, player.layer)) continue;
-            if (collider.intersectSegment(obj.collider, player.pos, pos)) return true;
-        }
-        return false;
-    }
-
-    /**
-     * The middle of the nearest building when an airstrike zone is on or near us.
-     * Explosions don't go through walls, so only a bomb landing inside can hurt.
-     * Underground is safe already (airstrikes only aim above ground).
-     */
-    private findShelter(): Vec2 | undefined {
-        const player = this.player;
-        if (player.layer === 1) return undefined;
-        const threatened = this.game.planeBarn.airstrikeZones.some(
-            (z) => v2.distance(z.pos, player.pos) < z.rad + 12,
-        );
-        if (!threatened) return undefined;
-        // keep the building we picked while the strike lasts
-        if (this._shelter && !this.game.gas.isInGas(this._shelter)) return this._shelter;
-        let best: Vec2 | undefined;
-        let bestDist = 60;
-        for (const obj of this.game.grid.intersectCollider(collider.createCircle(player.pos, bestDist))) {
-            if (obj.__type !== ObjectType.Building || obj.ceilingDead) continue;
-            if (!util.sameLayer(obj.layer, player.layer)) continue;
-            for (const region of obj.zoomRegions) {
-                if (!region.zoomIn) continue;
-                const center = v2.mul(v2.add(region.zoomIn.min, region.zoomIn.max), 0.5);
-                if (this.game.gas.isInGas(center)) continue;
-                const d = v2.distance(center, player.pos);
-                if (d < bestDist) {
-                    best = center;
-                    bestDist = d;
-                }
-            }
-        }
-        return best;
     }
 
     /**
@@ -1213,27 +1172,27 @@ export class BotBrain {
     }
 
     /**
-     * Which way to run from live grenades / airstrike zones we're inside of,
-     * or undefined when safe. Each threat gets one dodge roll, so a beginner
-     * often just stands in it.
+     * Which way to move to take the least damage from live grenades, barrels
+     * about to blow and airstrikes, weighed against the gas, or undefined when
+     * nothing reaches us. Each threat gets one react roll, so a beginner often
+     * just stands in it. Picking by expected damage means stepping into thin
+     * early gas to get off a bomb line, but not into late game gas.
      */
     private blastEscape(): Vec2 | undefined {
         const player = this.player;
-        let escape: Vec2 | undefined;
-        const add = (center: Vec2, rad: number, key: object, own = false) => {
-            const dist = v2.distance(player.pos, center);
-            if (dist > rad) return;
+        const threats: Array<{ pos: Vec2; rad: number; dmg: number }> = [];
+        const add = (pos: Vec2, rad: number, dmg: number, key: object, own = false, minReact = 0) => {
+            if (v2.distance(player.pos, pos) > rad + 10) return;
             let react = this._blastRolls.get(key);
             if (react === undefined) {
                 // everyone knows where their own grenade went
-                react = own || Math.random() < this.skill.dodge;
+                react = own || Math.random() < Math.max(this.skill.dodge, minReact);
                 this._blastRolls.set(key, react);
             }
-            if (!react) return;
-            // closer = more urgent
-            const away = v2.mul(v2.normalizeSafe(v2.sub(player.pos, center), v2.randomUnit()), 1 + (rad - dist) / rad);
-            escape = escape ? v2.add(escape, away) : away;
+            if (react) threats.push({ pos, rad, dmg });
         };
+        const blast = (type: string) =>
+            ExplosionDefs[type] as { rad?: { max: number }; damage?: number } | undefined;
 
         for (const proj of this.game.projectileBarn.projectiles) {
             if (proj.destroyed || !util.sameLayer(proj.layer, player.layer)) continue;
@@ -1241,29 +1200,64 @@ export class BotBrain {
             if (def?.type !== "throwable") continue;
             const explosion = (def as ThrowableDef).explosionType;
             if (!explosion || explosion.includes("smoke")) continue;
-            const rad = (ExplosionDefs[explosion] as { rad?: { max: number } }).rad?.max ?? 8;
             // where it's rolling to, not just where it is
             const landing = v2.add(proj.pos, v2.mul(proj.vel, 0.5));
-            // sheltering indoors: a blast on the other side of a wall can't reach us,
-            // and running out the door is what gets us hit
-            if (this._shelter && player.indoors && this.wallBetween(landing)) continue;
-            add(landing, rad + 2.5, proj, proj.playerId === player.__id);
+            const b = blast(explosion);
+            add(landing, (b?.rad?.max ?? 8) + 2, b?.damage ?? 40, proj, proj.playerId === player.__id);
         }
         // barrels and the like that are close to blowing
-        const near = this.game.grid.intersectCollider(collider.createCircle(player.pos, 20));
-        for (const obj of near) {
+        for (const obj of this.game.grid.intersectCollider(collider.createCircle(player.pos, 20))) {
             if (obj.__type !== ObjectType.Obstacle || obj.dead || obj.healthT > 0.4) continue;
             if (!util.sameLayer(obj.layer, player.layer)) continue;
             const rad = this.explosiveRad(obj);
-            if (rad) add(obj.pos, rad + 2, obj);
+            if (rad) add(obj.pos, rad + 2, 60, obj);
         }
-        // with a building to hide in, sheltering beats running out of the zone
-        if (!this._shelter) {
-            for (const zone of this.game.planeBarn.airstrikeZones) {
-                add(zone.pos, zone.rad + 3, zone);
+        // a plane's bombs are already lined up: anyone watching it sees where the
+        // line will fall, so step off it before the first bomb drops
+        const bomb = blast("explosion_bomb_iron");
+        for (const plane of this.game.planeBarn.planes) {
+            if (!(plane instanceof AirStrikePlane) || plane.actionComplete) continue;
+            for (let i = plane.bombCount; i < plane.bombPositions.length; i++) {
+                // bombs drift forward about 3 units as they fall
+                const landing = v2.add(plane.bombPositions[i], v2.mul(plane.planeDir, 3));
+                // a plane overhead is hard to miss, even for a beginner
+                add(landing, (bomb?.rad?.max ?? 14) + 2, bomb?.damage ?? 40, plane, false, 0.6);
             }
         }
-        return escape;
+        // planes not called in yet could drop anywhere in the zone: worth leaving, gently
+        for (const zone of this.game.planeBarn.airstrikeZones) {
+            add(zone.pos, zone.rad + 3, 8, zone, false, 0.6);
+        }
+
+        const gas = this.game.gas;
+        const gasDps = gas.damage / GameConfig.gas.damageTickRate;
+        const cost = (pos: Vec2) => {
+            let c = 0;
+            for (const t of threats) {
+                const d = v2.distance(pos, t.pos);
+                if (d < t.rad) c += t.dmg * (1 - d / t.rad);
+            }
+            // a few seconds in the gas before getting back out, and a nudge to prefer the safe side
+            if (gas.isInGas(pos)) c += gasDps * 4 + 2;
+            return c;
+        };
+        const here = cost(player.pos);
+        if (!threats.some((t) => v2.distance(player.pos, t.pos) < t.rad)) return undefined;
+
+        let best: Vec2 | undefined;
+        let bestCost = here;
+        for (let i = 0; i < 16; i++) {
+            const ang = (i / 16) * Math.PI * 2;
+            const dir = v2.create(Math.cos(ang), Math.sin(ang));
+            if (this.blocked(dir, 3)) continue;
+            const c = (cost(v2.add(player.pos, v2.mul(dir, 4))) + cost(v2.add(player.pos, v2.mul(dir, 9)))) / 2;
+            if (c < bestCost - 0.5) {
+                best = dir;
+                bestCost = c;
+            }
+        }
+        // nowhere better: hold still rather than wander deeper in
+        return best ?? v2.create(0, 0);
     }
 
     /**

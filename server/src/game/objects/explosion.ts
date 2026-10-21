@@ -211,6 +211,9 @@ export class ExplosionBarn {
                 && explosion.damageParams.source.__type == ObjectType.Player
                 && explosion.damageParams.source.teamId == obj.teamId;
 
+            // hacker bots phase through blasts the way they phase through bullets
+            if (!isSourceTeammate && obj.botBrain?.phaseExplosion(explosion)) return;
+
             if (def.healTeam && isSourceTeammate) {
                 const healAmount = def.healAmount ?? 5; // default to 5 if healValue is not defined
                 obj.health += healAmount;
