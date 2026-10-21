@@ -128,6 +128,11 @@ export function fillItemPicker(prefix: string, slot: string, type: string, value
     if (!sel.parent().hasClass("god-row")) {
         sel.wrap($("<div>", { class: "god-row" }));
         sel.before($("<img>", { class: "god-item-img", alt: "", id: `${prefix}-${slot}-img` }));
+        // follow the pick right away; refreshes skip a picker that has focus
+        sel.on("change", () => {
+            const src = itemImage(sel.val() as string);
+            $(`#${prefix}-${slot}-img`).attr("src", src).toggle(!!src);
+        });
     }
     sel.val(value);
     const img = $(`#${prefix}-${slot}-img`);
