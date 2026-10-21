@@ -629,7 +629,7 @@ export class TeamMenu {
         const copyAll = $("<a/>", {
             class: "btn-hollow btn-darken team-menu-option",
             id: "btn-botset-kit-all",
-            text: "Apply kit to all bots",
+            text: "Apply loadout to all bots",
         });
         copyAll.on("click", () => this.copyBotKitToAllLevels());
         kit.append(copyAll);
