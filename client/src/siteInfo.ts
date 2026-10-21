@@ -78,7 +78,7 @@ export class SiteInfo {
         const maps = getModeMaps(modes);
         // "Duel (Bots)": not a server mode, it starts a private Vs Bots match
         const botDuelMap = maps.find((m) => isDuelMap(m));
-        if (botDuelMap) maps.push(BotDuelOption);
+        if (botDuelMap) maps.unshift(BotDuelOption);
         if (!maps.includes(this.selectedMap)) {
             let saved = "";
             try {
@@ -103,7 +103,7 @@ export class SiteInfo {
         container.empty();
         if (this.selectedMap === BotDuelOption) {
             this.renderBotDuel(container, botDuelMap!, maps.filter((m) => m !== BotDuelOption));
-            $("#god-loadout-picker").hide();
+            this.showLoadout("botDuel");
             return;
         }
         for (let i = 0; i < modes.length; i++) {
@@ -120,7 +120,14 @@ export class SiteInfo {
             container.append(btn);
         }
 
-        $("#god-loadout-picker").toggle(isGodLoadoutMap(this.selectedMap));
+        this.showLoadout(isGodLoadoutMap(this.selectedMap) ? "god" : "locked");
+    }
+
+    /** left panel: your picks, plus the bots' for Duel (Bots), or the locked spawn kit */
+    showLoadout(kind: "god" | "botDuel" | "locked") {
+        $("#god-loadout-picker").toggle(kind !== "locked");
+        $("#bot-loadout-picker").toggle(kind === "botDuel");
+        $("#locked-loadout").toggle(kind === "locked");
     }
 
     /** opponent / teammate level pickers and Play 1v1-4v4 for Duel (Bots) */

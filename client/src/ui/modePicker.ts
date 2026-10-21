@@ -65,10 +65,10 @@ export interface GodLoadout {
     melee: string;
 }
 
-export function loadGodLoadout(): GodLoadout {
+export function loadGodLoadout(key = godLoadoutKey): GodLoadout {
     const loadout: GodLoadout = { primary: "m4a1", secondary: "mp220", throwable: "frag", melee: "fists" };
     try {
-        Object.assign(loadout, JSON.parse(localStorage.getItem(godLoadoutKey) || "{}"));
+        Object.assign(loadout, JSON.parse(localStorage.getItem(key) || "{}"));
     } catch {}
     // drop anything that isn't a real item so the join message can't fail to encode
     const valid = (id: string, type: string) =>
@@ -80,10 +80,34 @@ export function loadGodLoadout(): GodLoadout {
     return loadout;
 }
 
-export function saveGodLoadout(loadout: GodLoadout) {
+export function saveGodLoadout(loadout: GodLoadout, key = godLoadoutKey) {
     try {
-        localStorage.setItem(godLoadoutKey, JSON.stringify(loadout));
+        localStorage.setItem(key, JSON.stringify(loadout));
     } catch {}
+}
+
+/** the weapons Duel (Bots) hands every bot */
+const botDuelKitKey = "survev_bot_duel_kit";
+
+export function loadBotDuelKit(): GodLoadout {
+    return loadGodLoadout(botDuelKitKey);
+}
+
+/** Duel (Bots) bot weapon pickers (#bot-primary etc.), saved in this browser */
+export function initBotDuelPicker() {
+    const sync = () => {
+        const kit = loadBotDuelKit();
+        for (const slot of pickerSlots) fillItemPicker("bot", slot, pickerSlotType[slot], kit[slot]);
+    };
+    sync();
+    for (const slot of pickerSlots) {
+        $(`#bot-${slot}`).on("change", (e) => {
+            const kit = loadBotDuelKit();
+            kit[slot] = $(e.currentTarget).val() as string;
+            saveGodLoadout(kit, botDuelKitKey);
+            sync();
+        });
+    }
 }
 
 export function defsOfType(type: string) {

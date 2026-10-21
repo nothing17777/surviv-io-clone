@@ -76,7 +76,7 @@ function errorTypeToString(type: TeamMenuErrorType, localization: Localization) 
 const botSettingsKey = "survev_bot_settings";
 
 /** the bot settings this browser last used, or the defaults */
-function loadSavedBotSettings(): BotSettingsByLevel {
+export function loadSavedBotSettings(): BotSettingsByLevel {
     try {
         const parsed = zBotSettingsByLevel.safeParse(JSON.parse(localStorage.getItem(botSettingsKey) || "null"));
         if (parsed.success) return parsed.data;

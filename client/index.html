@@ -1057,7 +1057,32 @@
                         </div>
                         <div id="left-column" class="menu-column">
                             <div id="ad-block-left">
-                                <div class="surviv-shirts"></div>
+                                <div id="menu-loadout">
+                                    <div id="god-loadout-picker" style="display: none">
+                                        <div class="god-loadout-title">Your Loadout</div>
+                                        <select id="god-primary" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
+                                        <select id="god-secondary" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
+                                        <select id="god-melee" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
+                                        <select id="god-throwable" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
+                                    </div>
+                                    <div id="bot-loadout-picker" style="display: none">
+                                        <div class="god-loadout-title">Bot Loadout</div>
+                                        <select id="bot-primary" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
+                                        <select id="bot-secondary" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
+                                        <select id="bot-melee" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
+                                        <select id="bot-throwable" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
+                                    </div>
+                                    <div id="locked-loadout" style="display: none">
+                                        <div class="god-loadout-title">Loadout &#128274;</div>
+                                        <div class="locked-loadout-row">Primary: <span>none</span></div>
+                                        <div class="locked-loadout-row">Secondary: <span>none</span></div>
+                                        <div class="god-row locked-loadout-row">
+                                            <img class="god-item-img" alt="" src="img/loot/loot-weapon-fists.svg" />Melee: <span>Fists</span>
+                                        </div>
+                                        <div class="locked-loadout-row">Throwable: <span>none</span></div>
+                                        <div class="locked-loadout-hint">Locked for this mode: loot weapons in game.</div>
+                                    </div>
+                                </div>
                             </div>
                             <div id="social-share-block-wrapper">
                                 <div id="social-share-block" class="menu-block">
@@ -1110,25 +1135,6 @@
                                     class="server-select menu-option btn-hollow btn-hollow-selected"
                                 ></select>
                                 <div id="btns-quick-start"></div>
-                                <div id="god-loadout-picker" style="display: none">
-                                    <div class="god-loadout-title">God Loadout</div>
-                                    <select
-                                        id="god-primary"
-                                        class="server-select menu-option btn-hollow btn-hollow-selected"
-                                    ></select>
-                                    <select
-                                        id="god-secondary"
-                                        class="server-select menu-option btn-hollow btn-hollow-selected"
-                                    ></select>
-                                    <select
-                                        id="god-melee"
-                                        class="server-select menu-option btn-hollow btn-hollow-selected"
-                                    ></select>
-                                    <select
-                                        id="god-throwable"
-                                        class="server-select menu-option btn-hollow btn-hollow-selected"
-                                    ></select>
-                                </div>
                                 <div class="btns-double-row">
                                     <a
                                         class="btn-darken menu-option btn-team-option"

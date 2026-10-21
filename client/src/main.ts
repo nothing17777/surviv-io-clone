@@ -9,7 +9,7 @@ import type {
     FindGameResponse,
     GameWsDisconnectReason,
 } from "../../shared/types/api.ts";
-import type { BotLevel } from "../../shared/types/api.ts";
+import { type BotLevel, defaultPrivateLoadout } from "../../shared/types/api.ts";
 import { type CustomMap, parseCustomMap } from "../../shared/utils/customMap.ts";
 import type { RoomData } from "../../shared/types/team.ts";
 import { math } from "../../shared/utils/math.ts";
@@ -35,11 +35,11 @@ import { Localization } from "./ui/localization.ts";
 import { openMapMaker } from "./ui/mapMaker.ts";
 import Menu from "./ui/menu.ts";
 import { MenuModal } from "./ui/menuModal.ts";
-import { initGodLoadoutPicker } from "./ui/modePicker.ts";
+import { initBotDuelPicker, initGodLoadoutPicker, loadBotDuelKit } from "./ui/modePicker.ts";
 import { LoadoutDisplay } from "./ui/opponentDisplay.ts";
 import { Pass } from "./ui/pass.ts";
 import { ProfileUi } from "./ui/profileUi.ts";
-import { TeamMenu } from "./ui/teamMenu.ts";
+import { loadSavedBotSettings, TeamMenu } from "./ui/teamMenu.ts";
 import { loadStaticDomImages } from "./ui/ui2.ts";
 
 export class Application {
@@ -181,6 +181,7 @@ export class Application {
                 });
             });
             initGodLoadoutPicker("god");
+            initBotDuelPicker();
 
             initArmory();
             const armoryModal = new MenuModal($("#modal-armory"));
@@ -272,13 +273,23 @@ export class Application {
                 }
                 const start = (customMap?: CustomMap) => {
                     this.teamMenu.pendingCustomMap = customMap;
+                    // every bot gets the left panel's bot weapons; you keep your own picks
+                    const enemy = $("#bot-duel-enemy").val() as BotLevel;
+                    const ally = $("#bot-duel-ally").val() as BotLevel;
+                    const botSettings = loadSavedBotSettings();
+                    const kit = { ...defaultPrivateLoadout, ...loadBotDuelKit() };
+                    botSettings[enemy] = { ...botSettings[enemy], kit };
+                    botSettings[ally] = { ...botSettings[ally], kit };
                     this.tryJoinTeam(true, undefined, {
                     privateMatch: true,
                     privateVsBots: true,
                         privateMapName: $("#bot-duel-map").val() as string,
                         privateTeamSize: Number(btn.attr("data-size")),
-                        privateBotEnemy: $("#bot-duel-enemy").val() as BotLevel,
-                        privateBotAlly: $("#bot-duel-ally").val() as BotLevel,
+                        privateBotEnemy: enemy,
+                        privateBotAlly: ally,
+                        privateGodLoadout: true,
+                        privateSharedKit: false,
+                        privateBotSettings: botSettings,
                     }, true);
                 };
                 if ($("#bot-duel-map").val() !== BotDuelCustomMap) {

@@ -4402,7 +4402,8 @@ export class Player extends BaseGameObject {
             if (count === undefined) continue;
             this.invManager.set(item, math.min(count, this.invManager.getMaxCapacity(item)));
         }
-        this.scope = "8xscope";
+        // the biggest scope in the bag, 8x at least
+        this.scope = (["15xscope", "8xscope"] as const).find((s) => this.invManager.has(s)) ?? "8xscope";
         this.zoom = this.scopeZoomRadius[this.scope];
 
         const guns: Array<[number, string, string]> = [

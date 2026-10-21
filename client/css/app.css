@@ -8428,3 +8428,34 @@ body.mm-body-lock {
     background-color: rgba(255, 255, 255, 0.12);
     background-size: 20px;
 }
+
+/* the left panel holds the loadout for the picked mode */
+#ad-block-left {
+    height: auto;
+    min-height: var(--height);
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+#menu-loadout select {
+    width: 100%;
+    margin: 0 0 6px;
+}
+
+.locked-loadout-row {
+    color: #ffffff;
+    opacity: 0.75;
+    margin: 6px 0;
+}
+
+.locked-loadout-row span {
+    font-weight: bold;
+}
+
+.locked-loadout-hint {
+    color: #ffffff;
+    font-size: 12px;
+    opacity: 0.6;
+    margin-top: 8px;
+}
