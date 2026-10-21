@@ -354,6 +354,16 @@ export class BotBrain {
 
         this._goal = undefined;
 
+        // wallhack: someone it can't shoot is only a place to go, after zone, heals and revives
+        if (this.target && this.skill.wallhack) {
+            const d = v2.distance(this.target.pos, player.pos);
+            if (d > 80 || !this.canShoot(this.target)) {
+                this._lastThreat = v2.copy(this.target.pos);
+                this._sinceThreat = 0;
+                this.target = undefined;
+            }
+        }
+
         if (player.downed) {
             // crawl away from whoever downed us
             if (this.target) this._goal = v2.add(player.pos, v2.sub(player.pos, this.target.pos));
@@ -504,7 +514,8 @@ export class BotBrain {
             let bestDist = Infinity;
             for (const obj of this.game.playerBarn.livingPlayers) {
                 if (obj === player || obj.teamId === player.teamId) continue;
-                let d = v2.distance(obj.pos, player.pos) * (this.canShoot(obj) ? 1 : 2);
+                const dist = v2.distance(obj.pos, player.pos);
+                let d = dist * (dist < 80 && this.canShoot(obj) ? 1 : 2);
                 if (obj === this.target) d *= 0.7;
                 if (d < bestDist) {
                     best = obj;
@@ -718,10 +729,7 @@ export class BotBrain {
         // a grenade still in hand with nobody to throw it at: let it go and swap back
         if (this._throw && (!target || player.downed)) this.abandonThrow(dt);
 
-        if (target && !player.downed && !this.canShoot(target)) {
-            // tracked through walls: walk to them, don't waste shots
-            move = this.followPath(target.pos, dt);
-        } else if (target && !player.downed) {
+        if (target && !player.downed) {
             // track the target's velocity for leading shots
             const vel = v2.div(v2.sub(target.pos, this._targetLastPos), Math.max(dt, 0.001));
             this._targetVel = v2.lerp(0.5, this._targetVel, vel);
@@ -849,7 +857,7 @@ export class BotBrain {
 
         // step out of the line of incoming bullets
         const sidestep = this.skill.realDodge && !escape ? this.bulletDodge() : undefined;
-        if (sidestep) move = v2.add(v2.mul(v2.normalize(sidestep), 3), v2.mul(v2.normalizeSafe(move), 0.5));
+        if (sidestep) move = v2.add(v2.mul(v2.normalize(sidestep), 3), v2.mul(move, 0.3));
 
         // combat strafing has no path: just sidestep whatever is in the way
         if ((escape || sidestep || (target && !this._retreat)) && v2.length(move) > 0.01) {
