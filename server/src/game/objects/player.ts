@@ -4161,7 +4161,7 @@ export class Player extends BaseGameObject {
     }
 
     dropLoot(type: string, count = 1, useCountForAmmo?: boolean) {
-        this.mobileDropTicker = 3;
+        this.mobileDropTicker = 0.3;
         this.game.lootBarn.addLoot(type, this.pos, this.layer, count, {
             useCountForAmmo,
             pushSpeed: util.random(7.5, 11),
