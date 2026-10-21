@@ -137,6 +137,7 @@ export class LoadoutDisplay {
                 seed: 218051654,
                 shoreInset: 48,
                 width: 720,
+                customBuilds: "",
                 serialize() {},
                 deserialize() {},
             } satisfies MapMsg,

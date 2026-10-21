@@ -1,4 +1,5 @@
 import { type BuildingDef, BuildingDefs } from "./mapObjects/buildings/buildingDefs.ts";
+import { createCustomBuildDefs } from "./mapObjects/customBuildDefs.ts";
 import { type DecalDef, DecalDefs } from "./mapObjects/decalDefs.ts";
 import { LootSpawnerDefs } from "./mapObjects/lootSpawnerDefs.ts";
 import { type ObstacleDef, ObstacleDefs } from "./mapObjects/obstacles/obstacleDefs.ts";
@@ -18,4 +19,6 @@ export const RawMapObjectDefs: Record<string, MapObjectDef> = {
     ...StructureDefs,
     ...DecalDefs,
     ...LootSpawnerDefs,
+    // must stay last: slots for map maker buildings and tunnels
+    ...createCustomBuildDefs(ObstacleDefs),
 };

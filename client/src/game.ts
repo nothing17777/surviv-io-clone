@@ -1,3 +1,4 @@
+import { applyCustomMapBuilds } from "../../shared/utils/customMap.ts";
 import * as PIXI from "pixi.js-legacy";
 
 import { GameConfig, Input, TeamMode, WeaponSlot } from "../../shared/gameConfig.ts";
@@ -524,6 +525,10 @@ export class Game {
                 if (touchAimMovement.touched) {
                     this.m_touch.turnDirTicker = this.m_touch.turnDirCooldown;
                 }
+                // TEMP TEST: in a forceTouch desktop tab, aim with the mouse
+                if (location.search.includes("forceTouch")) {
+                    aimDir = v2.copy(toMouseDir);
+                }
                 if (this.m_touch.touchAimAssist) {
                     aimDir = this.m_getAimAssistDir(aimDir);
                     this.m_touch.setAimDir(aimDir);
@@ -1040,6 +1045,8 @@ export class Game {
     }
 
     m_render(dt: number, debug: DebugRendererOpts) {
+        // TEMP TEST HANDLE
+        (window as any).__game = this;
         const grassColor = this.m_map.mapLoaded
             ? this.m_map.getMapDef().biome.colors.grass
             : 0x80af49;
@@ -1326,6 +1333,8 @@ export class Game {
             case net.MsgType.Map: {
                 const msg = new net.MapMsg();
                 msg.deserialize(stream);
+                // a custom map's buildings and tunnels, built the same way as on the server
+                if (msg.customBuilds) applyCustomMapBuilds(JSON.parse(msg.customBuilds));
                 this.m_map.loadMap(
                     msg,
                     this.m_camera,

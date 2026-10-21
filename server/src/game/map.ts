@@ -13,6 +13,8 @@ import { collider } from "../../../shared/utils/collider.ts";
 import {
     customMapGrassInset,
     customMapShoreInset,
+    applyCustomMapBuilds,
+    customBuildSpec,
     fitInsideMap,
     smoothRiverPoints,
 } from "../../../shared/utils/customMap.ts";
@@ -205,7 +207,7 @@ export class GameMap {
     potatoMode: boolean;
     sniperMode: boolean;
 
-    mapStream = new MsgStream(new ArrayBuffer(1 << 16));
+    mapStream = new MsgStream(new ArrayBuffer(1 << 18));
 
     grassBounds: AABB;
     beachBounds: AABB;
@@ -896,12 +898,30 @@ export class GameMap {
 
     generateObjects() {
         if (this.game.customMap) {
+            // the map's own buildings and tunnels fill the custom slots;
+            // clients rebuild the same definitions from msg.customBuilds
+            const spec = customBuildSpec(this.game.customMap);
+            const applied = applyCustomMapBuilds(spec);
+            const hasBuilds = spec.buildings.length || spec.tunnels.length || spec.edits.length;
+            this.msg.customBuilds = hasBuilds ? JSON.stringify(spec) : "";
+            const tryGen = (type: string, x: number, y: number, ori: number) => {
+                try {
+                    this.genAuto(type, v2.create(x, y), 0, ori, 1, undefined, undefined, true);
+                } catch (err) {
+                    this.game.logger.warn(`Custom map: couldn't place ${type}:`, err);
+                }
+            };
+            spec.buildings.forEach((b, i) => tryGen(applied.buildingTypes[i], b.x, b.y, 0));
+            for (const t of applied.tunnelTypes) tryGen(t.type, t.pos.x, t.pos.y, 0);
+
             // exactly what was placed in the editor, no spawn replacements or retries
+            let editIdx = 0;
             for (const obj of this.game.customMap.objects) {
                 const pos = fitInsideMap(obj, this.width, this.height);
+                const type = obj.children ? applied.editTypes[editIdx++] : obj.type;
                 try {
                     this.genAuto(
-                        obj.type,
+                        type,
                         v2.create(pos.x, pos.y),
                         0,
                         obj.ori,

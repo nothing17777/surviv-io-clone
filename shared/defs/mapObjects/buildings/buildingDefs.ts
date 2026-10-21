@@ -126,7 +126,9 @@ export interface BuildingDef {
 export type BuildingChildObjType = BuildingDef["mapObjects"][0]["type"];
 
 export interface FloorImage {
+    /** "solid" draws a flat rectangle of `size`, tinted (custom buildings) */
     sprite: string;
+    size?: Vec2;
     scale: number;
     alpha: number;
     tint: number;

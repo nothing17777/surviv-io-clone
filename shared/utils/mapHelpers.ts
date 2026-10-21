@@ -90,6 +90,13 @@ function computeBoundingCollider(type: string): Collider {
 // MapHelpers
 //
 export const mapHelpers = {
+    /** for types whose definition changes at runtime (map maker slots) */
+    forgetBoundingColliders(match: (type: string) => boolean) {
+        for (const type of Object.keys(cachedColliders)) {
+            if (match(type)) delete cachedColliders[type];
+        }
+    },
+
     getBoundingCollider(type: string): Collider {
         if (cachedColliders[type]) {
             return cachedColliders[type];

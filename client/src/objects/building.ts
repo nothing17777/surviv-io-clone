@@ -42,6 +42,8 @@ type BuildingSprite = PIXI.Sprite & {
     imgAlpha: number;
     alpha: number;
     defScale: number;
+    /** per axis stretch for "solid" rectangles, 1,1 otherwise */
+    stretch?: Vec2;
     mirrorY: boolean;
     mirrorX: boolean;
 };
@@ -205,7 +207,15 @@ export class Building implements AbstractObject {
                 const posOffset = imgDef.pos || v2.create(0, 0);
                 const rotOffset = math.oriToRad(imgDef.rot || 0);
                 const sprite = this.allocSprite() as BuildingSprite;
-                if (imgDef.sprite && imgDef.sprite != "none") {
+                sprite.stretch = v2.create(1, 1);
+                if (imgDef.sprite === "solid" && imgDef.size) {
+                    sprite.texture = PIXI.Texture.WHITE;
+                    // at scale 1 a texture pixel covers 1/16 of a world unit (camera ppu)
+                    sprite.stretch = v2.create(
+                        (imgDef.size.x * 16) / sprite.texture.width,
+                        (imgDef.size.y * 16) / sprite.texture.height,
+                    );
+                } else if (imgDef.sprite && imgDef.sprite != "none") {
                     sprite.texture = PIXI.Texture.from(imgDef.sprite);
                 } else {
                     sprite.texture = PIXI.Texture.EMPTY;
@@ -652,7 +662,7 @@ export class Building implements AbstractObject {
         const screenScale = camera.m_pixels(this.scale * sprite.defScale);
 
         sprite.position.set(screenPos.x, screenPos.y);
-        sprite.scale.set(screenScale, screenScale);
+        sprite.scale.set(screenScale * (sprite.stretch?.x ?? 1), screenScale * (sprite.stretch?.y ?? 1));
         if (sprite.mirrorY) {
             sprite.scale.y *= -1;
         }

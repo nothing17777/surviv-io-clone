@@ -7854,6 +7854,43 @@ body.mm-body-lock {
     flex-wrap: wrap;
 }
 
+.mm-row label {
+    flex: 1;
+    min-width: 0;
+}
+
+.mm-children {
+    max-height: 260px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.mm-child {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+}
+
+.mm-child span {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mm-child .mm-child-pos {
+    width: 46px;
+    padding: 2px 3px;
+}
+
+.mm-child .mm-btn {
+    padding: 2px 6px;
+}
+
 .mm-sel-name {
     font-weight: bold;
 }

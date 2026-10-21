@@ -1,4 +1,11 @@
 import { z } from "zod";
+import { RawMapObjectDefs } from "../defs/mapObjectDefs.ts";
+import {
+    applyCustomBuilds,
+    type CustomBuildSpec,
+    CustomBuildLimits,
+    customWallMaterials,
+} from "../defs/mapObjects/customBuildDefs.ts";
 import { MapObjectDefs } from "../defs/register.ts";
 import { collider } from "./collider.ts";
 import { mapHelpers } from "./mapHelpers.ts";
@@ -29,6 +36,11 @@ export const CustomMapLimits = {
     minRiverWidth: 4,
     maxRiverWidth: 40,
     maxSpawns: 32,
+    maxBuildings: 32,
+    maxTunnels: 16,
+    maxTunnelPoints: 32,
+    maxChildren: 120,
+    maxEditedObjects: 24,
     /** the whole file, as JSON text */
     maxBytes: 400 * 1024,
 };
@@ -38,6 +50,38 @@ export const customMapShoreInset = 32;
 export const customMapGrassInset = 18;
 
 const zPos = z.number().min(0).max(CustomMapLimits.maxSize);
+
+const zSidePos = z.object({ side: z.number().int().min(0).max(3), at: z.number().min(0).max(CustomBuildLimits.maxBuildingSize) });
+const zColor = z.number().int().min(0).max(0xffffff);
+
+export const zCustomBuilding = z.object({
+    x: zPos,
+    y: zPos,
+    w: z.number().int().min(CustomBuildLimits.minBuildingSize).max(CustomBuildLimits.maxBuildingSize),
+    h: z.number().int().min(CustomBuildLimits.minBuildingSize).max(CustomBuildLimits.maxBuildingSize),
+    wall: z.enum(customWallMaterials),
+    roof: zColor,
+    floor: zColor,
+    doors: z.array(zSidePos).max(16),
+    windows: z.array(zSidePos).max(32),
+    walls: z
+        .array(z.object({ x1: z.number(), y1: z.number(), x2: z.number(), y2: z.number() }))
+        .max(32),
+});
+
+export const zCustomTunnel = z.object({
+    points: z.array(z.object({ x: zPos, y: zPos })).min(2).max(CustomMapLimits.maxTunnelPoints),
+    width: z.number().int().min(CustomBuildLimits.minTunnelWidth).max(CustomBuildLimits.maxTunnelWidth),
+});
+
+const zChild = z.object({
+    type: z.string().max(64),
+    x: z.number().min(-200).max(200),
+    y: z.number().min(-200).max(200),
+    ori: z.number().int().min(0).max(3),
+    scale: z.number().min(0.5).max(2).optional(),
+    layer: z.number().int().min(0).max(3).optional(),
+});
 
 export const zCustomMap = z.object({
     format: z.literal("survev-map"),
@@ -72,6 +116,8 @@ export const zCustomMap = z.object({
                 y: zPos,
                 ori: z.number().int().min(0).max(3),
                 scale: z.number().min(0.5).max(2).optional(),
+                /** a building's or structure's contents, replacing the built in ones */
+                children: z.array(zChild).max(CustomMapLimits.maxChildren).optional(),
             }),
         )
         .max(CustomMapLimits.maxObjects),
@@ -79,6 +125,9 @@ export const zCustomMap = z.object({
     spawns: z
         .array(z.object({ x: zPos, y: zPos, side: z.number().int().min(0).max(1) }))
         .max(CustomMapLimits.maxSpawns),
+    /** drawn in the map maker; all missing in older map files */
+    buildings: z.array(zCustomBuilding).max(CustomMapLimits.maxBuildings).optional(),
+    tunnels: z.array(zCustomTunnel).max(CustomMapLimits.maxTunnels).optional(),
 });
 
 export type CustomMap = z.infer<typeof zCustomMap>;
@@ -107,7 +156,13 @@ export function summarizeCustomMap(map: CustomMap): CustomMapSummary {
 
 const placeableTypes = new Set(["obstacle", "building", "structure", "loot_spawner"]);
 
+/** map maker slots and generated walls, never placed directly */
+export function isCustomBuildType(type: string) {
+    return type.startsWith("custom_bldg_") || type.startsWith("custom_struct_") || type.startsWith("cwall_");
+}
+
 export function isPlaceableType(type: string) {
+    if (isCustomBuildType(type)) return false;
     const def = MapObjectDefs.typeToDefSafe(type);
     // the *_test loot tiers point at loot tables that don't exist
     return !!def && placeableTypes.has(def.type) && !type.endsWith("_test");
@@ -174,7 +229,53 @@ export function parseCustomMap(input: unknown): { map: CustomMap } | { error: st
             if (p.x > map.width || p.y > map.height) return { error: "A river point is off the map." };
         }
     }
+    for (const obj of map.objects) {
+        for (const c of obj.children ?? []) {
+            if (isCustomBuildType(c.type) || !MapObjectDefs.typeToDefSafe(c.type)) {
+                return { error: `Unknown object "${c.type}" inside "${obj.type}".` };
+            }
+        }
+    }
+    if (map.objects.filter((o) => o.children).length > CustomMapLimits.maxEditedObjects) {
+        return { error: `Only ${CustomMapLimits.maxEditedObjects} buildings can have their insides edited.` };
+    }
+    for (const t of map.tunnels ?? []) {
+        for (let i = 0; i + 1 < t.points.length; i++) {
+            const a = t.points[i];
+            const b = t.points[i + 1];
+            if ((a.x !== b.x && a.y !== b.y) || (a.x === b.x && a.y === b.y)) {
+                return { error: "Tunnels have to run straight across or straight up and down." };
+            }
+        }
+    }
+    try {
+        // fill a scratch copy of the table, so a map that doesn't fit is caught here
+        applyCustomBuilds({ ...RawMapObjectDefs }, customBuildSpec(map));
+    } catch (err) {
+        return { error: err instanceof Error ? err.message : "The buildings in this map don't fit." };
+    }
     return { map };
+}
+
+/** What gets generated from a map: its own buildings, tunnels and edited buildings. */
+export function customBuildSpec(map: CustomMap): CustomBuildSpec {
+    return {
+        buildings: map.buildings ?? [],
+        tunnels: map.tunnels ?? [],
+        edits: map.objects
+            .filter((o) => o.children)
+            .map((o) => ({ type: o.type, children: o.children! })),
+    };
+}
+
+/**
+ * Fill the live map object table for this map. Returns the generated types,
+ * in the order of spec.buildings, spec.tunnels and spec.edits.
+ */
+export function applyCustomMapBuilds(spec: CustomBuildSpec) {
+    const applied = applyCustomBuilds(RawMapObjectDefs, spec);
+    mapHelpers.forgetBoundingColliders(isCustomBuildType);
+    return applied;
 }
 
 /**

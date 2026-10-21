@@ -341,7 +341,7 @@ export class Client {
     private _cullingPortrait = false;
     private _cullingPortraitTicker = 0;
 
-    msgStream = new net.MsgStream(new ArrayBuffer(65536));
+    msgStream = new net.MsgStream(new ArrayBuffer(1 << 18));
     msgsToSend: Array<{ type: number; msg: net.Msg }> = [];
 
     ack = 0;

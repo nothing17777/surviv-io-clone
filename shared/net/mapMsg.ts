@@ -103,6 +103,8 @@ export class MapMsg implements AbstractMsg {
     places: Place[] = [];
     objects: MapObj[] = [];
     groundPatches: GroundPatch[] = [];
+    /** custom map buildings/tunnels as JSON (CustomBuildSpec), "" when none */
+    customBuilds = "";
 
     serialize(s: BitStream) {
         /* STRIP_FROM_PROD_CLIENT:START */
@@ -128,6 +130,10 @@ export class MapMsg implements AbstractMsg {
         s.writeArray(this.groundPatches, 8, (obj) => {
             serializeMapGroundPatch(s, obj);
         });
+
+        const bytes = new TextEncoder().encode(this.customBuilds);
+        s.writeUint32(bytes.length);
+        for (const b of bytes) s.writeUint8(b);
         /* STRIP_FROM_PROD_CLIENT:END */
     }
 
@@ -154,5 +160,10 @@ export class MapMsg implements AbstractMsg {
         this.groundPatches = s.readArray(8, () => {
             return deserializeMapGroundPatch(s);
         });
+
+        const len = s.readUint32();
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) bytes[i] = s.readUint8();
+        this.customBuilds = new TextDecoder().decode(bytes);
     }
 }
