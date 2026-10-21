@@ -204,6 +204,12 @@ export class TeamMenu {
                 this.refreshUi();
             }
         });
+        $("#team-kit-ally-bots").on("change", (e) => {
+            this.setRoomProperty("privateAllyBotsSameKit", (e.currentTarget as HTMLInputElement).checked);
+        });
+        $("#team-kit-enemy-bots").on("change", (e) => {
+            this.setRoomProperty("privateEnemyBotsSameKit", (e.currentTarget as HTMLInputElement).checked);
+        });
         // Same Kit = the god kit, but one the leader picks for everyone
         this.kitShared.on("click", () => {
             this.setRoomProperty("privateSharedKit", true);
@@ -1127,6 +1133,12 @@ export class TeamMenu {
                 // saved kit under God Kit. Loot has no kit to show.
                 $("#team-god-loadout").toggle(god);
                 $("#team-god-shared-only").toggle(shared);
+                $("#team-kit-ally-bots")
+                    .prop("checked", this.roomData.privateAllyBotsSameKit ?? true)
+                    .prop("disabled", !this.isLeader);
+                $("#team-kit-enemy-bots")
+                    .prop("checked", this.roomData.privateEnemyBotsSameKit ?? true)
+                    .prop("disabled", !this.isLeader);
                 if (god) {
                     const kit = shared
                         ? this.roomData.privateLoadout || defaultPrivateLoadout

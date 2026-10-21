@@ -124,6 +124,8 @@ class Room {
         privateTeamSize: 1,
         privateGodLoadout: true,
         privateSharedKit: true,
+        privateAllyBotsSameKit: true,
+        privateEnemyBotsSameKit: true,
         privateLoadout: { ...defaultPrivateLoadout },
         customMap: null,
         privateBots: [],
@@ -262,6 +264,8 @@ class Room {
         );
         this.data.privateGodLoadout = props.privateGodLoadout ?? this.data.privateGodLoadout;
         this.data.privateSharedKit = props.privateSharedKit ?? this.data.privateSharedKit;
+        this.data.privateAllyBotsSameKit = props.privateAllyBotsSameKit ?? this.data.privateAllyBotsSameKit;
+        this.data.privateEnemyBotsSameKit = props.privateEnemyBotsSameKit ?? this.data.privateEnemyBotsSameKit;
         // the leader owns the kit; zod already clamped the numbers
         if (props.privateLoadout) {
             this.data.privateLoadout = props.privateLoadout;
@@ -400,6 +404,10 @@ class Room {
                     godLoadout: this.data.privateGodLoadout,
                     // without this every player keeps their own picks
                     loadout: this.data.privateSharedKit ? this.data.privateLoadout : undefined,
+                    // vs bots puts the party on side 0
+                    leaderSide: this.data.privateVsBots ? 0 : (this.players[0]?.team ?? 0),
+                    allyBotsSameKit: this.data.privateAllyBotsSameKit,
+                    enemyBotsSameKit: this.data.privateEnemyBotsSameKit,
                     customMap: customMap ?? undefined,
                     bots: this.data.privateVsBots ? undefined : [...this.data.privateBots, ...this.botFill(customMap)],
                     botSettings: this.data.privateBotSettings,

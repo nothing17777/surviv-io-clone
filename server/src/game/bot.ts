@@ -10,6 +10,7 @@ import {
     type BotLevel,
     type BotSettings,
     defaultBotSettings,
+    defaultPrivateLoadout,
     type PrivateBot,
     type VsBots,
 } from "../../../shared/types/api.ts";
@@ -1374,10 +1375,15 @@ export function addBot(game: Game, level: BotLevel, side?: number): Player {
         bot: true,
     });
     client.player = player;
-    const settings = game.config.privateMatch?.botSettings?.[level];
-    // the leader's kit for this level replaces whatever the match handed out,
-    // except under Same Kit, where bots keep the kit everyone else has
-    if (settings?.kit && !(game.godLoadout && game.fixedLoadout)) player.applyGodLoadout(settings.kit, true);
+    const pm = game.config.privateMatch;
+    const settings = pm?.botSettings?.[level];
+    // Same Kit reaches teammate and enemy bots only if the leader left those on
+    const ally = side !== undefined && side === (pm?.leaderSide ?? 0);
+    const sameKit = !!(game.godLoadout && game.fixedLoadout)
+        && ((ally ? pm?.allyBotsSameKit : pm?.enemyBotsSameKit) ?? true);
+    // otherwise the leader's kit for this level replaces whatever the match handed out
+    if (!sameKit && settings?.kit) player.applyGodLoadout(settings.kit, true);
+    else if (!sameKit && game.godLoadout && game.fixedLoadout) player.applyGodLoadout(defaultPrivateLoadout, true);
     player.botBrain = new BotBrain(player, level, settings);
     return player;
 }

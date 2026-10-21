@@ -51,6 +51,10 @@ export interface RoomData {
     privateGodLoadout: boolean;
     /** god kit, but one kit chosen by the leader instead of each player's own */
     privateSharedKit: boolean;
+    /** Same Kit: bots on the leader's side get it too (else their level's kit) */
+    privateAllyBotsSameKit: boolean;
+    /** Same Kit: bots on the other side get it too */
+    privateEnemyBotsSameKit: boolean;
     /** the one kit everyone spawns with when privateGodLoadout is on */
     privateLoadout: PrivateLoadout;
     /** map uploaded from the map maker; when set it replaces privateMapName */
@@ -135,6 +139,8 @@ export const zClientRoomData = z.object({
     gameModeIdx: z.number(),
     privateMatch: z.boolean().optional(),
     privateSharedKit: z.boolean().optional(),
+    privateAllyBotsSameKit: z.boolean().optional(),
+    privateEnemyBotsSameKit: z.boolean().optional(),
     privateLoadout: zPrivateLoadout.optional(),
     privateMapName: z.string().optional(),
     privateTeamSize: z.number().optional(),

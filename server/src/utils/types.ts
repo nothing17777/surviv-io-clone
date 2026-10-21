@@ -51,6 +51,11 @@ export interface ServerGameConfig {
         godLoadout: boolean;
         /** the one kit every player spawns with */
         loadout?: PrivateLoadout;
+        /** the party leader's side, so bots know whether they're teammates */
+        leaderSide?: number;
+        /** Same Kit: whether bots on the leader's side / the other side get it */
+        allyBotsSameKit?: boolean;
+        enemyBotsSameKit?: boolean;
         /** a map made in the map maker; mapName is then its biome */
         customMap?: CustomMap;
         /** bots the party leader added */
@@ -81,6 +86,9 @@ export const zFindGamePrivateBody = z.object({
         .object({
             godLoadout: z.boolean(),
             loadout: zPrivateLoadout.optional(),
+            leaderSide: z.number().int().min(0).max(1).optional(),
+            allyBotsSameKit: z.boolean().optional(),
+            enemyBotsSameKit: z.boolean().optional(),
             customMap: zCustomMap.optional(),
             // custom bots plus the 50v50 fill
             bots: z.array(zPrivateBot).max(MaxPrivateBots + MaxBotFill).optional(),
