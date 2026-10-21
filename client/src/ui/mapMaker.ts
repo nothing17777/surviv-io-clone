@@ -356,6 +356,23 @@ function undergroundShapes(type: string): Shape[] {
     return out;
 }
 
+/** outlines of a building's own buildings, so a complex shows each one instead of one big box */
+function footprintShapes(type: string, depth = 0): Shape[] {
+    const def = MapObjectDefs.typeToDefSafe(type) as Record<string, any> | undefined;
+    const out: Shape[] = [];
+    if (def?.type === "building" && depth < 4) {
+        for (const child of def.mapObjects ?? []) {
+            const t = pickType(child.type);
+            if (MapObjectDefs.typeToDefSafe(t)?.type !== "building") continue;
+            out.push(...transformShapes(footprintShapes(t, depth + 1), child.pos, child.ori ?? 0, child.scale ?? 1));
+        }
+    }
+    if (!out.length) {
+        out.push({ col: collider.copy(mapHelpers.getBoundingCollider(type)), color: 0, scale: 1, z: 0, label: prettyName(type) });
+    }
+    return out;
+}
+
 function objectBounds(obj: CustomMap["objects"][number]) {
     const col = collider.transform(
         mapHelpers.getBoundingCollider(obj.type),
@@ -2280,9 +2297,11 @@ function drawMap(
             if (obj.layer) continue;
             const t = MapObjectDefs.typeToDefSafe(obj.type)?.type;
             if (t !== "building" && t !== "structure") continue;
-            const b = objectBounds(obj);
-            ctx.strokeRect(b.min.x, b.min.y, b.max.x - b.min.x, b.max.y - b.min.y);
-            ghosts.push({ col: collider.createAabb(b.min, b.max), color: 0, scale: 1, z: 0, label: prettyName(obj.type) });
+            for (const f of transformShapes(footprintShapes(obj.type), v2.create(obj.x, obj.y), obj.ori, obj.scale ?? 1)) {
+                const b = collider.toAabb(f.col);
+                ctx.strokeRect(b.min.x, b.min.y, b.max.x - b.min.x, b.max.y - b.min.y);
+                ghosts.push({ ...f, col: collider.createAabb(b.min, b.max) });
+            }
         }
         ctx.restore();
         if (zoom >= 2) drawLabels(ctx, ghosts, zoom);
