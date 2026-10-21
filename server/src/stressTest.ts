@@ -7,8 +7,8 @@ import { Config } from "./config.ts";
 const config = {
     address: Config.gameServer.apiServerUrl,
     region: Config.gameServer.thisRegion,
-    gameModeIdx: 0,
-    botCount: 79,
+    gameModeIdx: 8,
+    botCount: 1,
     joinDelay: 100,
 };
 const bots = new Set<Bot>();
@@ -16,7 +16,7 @@ let allBotsJoined = false;
 
 setInterval(() => {
     for (const bot of bots) {
-        if (Math.random() < 0.02) bot.updateInputs();
+        // TEMP TEST: keep the bot still so it works as an aim dummy
 
         bot.sendInputs();
 

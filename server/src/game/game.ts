@@ -455,7 +455,7 @@ export class Game {
         for (const token of tokens) {
             this.joinTokens.set(token.joinToken, {
                 type: "join",
-                expiresAt: Date.now() + 10000,
+                expiresAt: Date.now() + 60000,
                 data: {
                     userId: token.userId,
                     groupData,

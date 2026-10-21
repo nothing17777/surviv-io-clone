@@ -1,6 +1,8 @@
 import { isMobile } from "pixi.js-legacy";
 
 function detectMobile() {
+    // TEMP TEST OVERRIDE
+    if (location.search.includes("forceTouch")) return true;
     return isMobile.android.device || isMobile.apple.device || isIpad();
 }
 

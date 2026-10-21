@@ -1486,7 +1486,7 @@ export function addBot(game: Game, level: BotLevel, side?: number): Player {
     const client = new BotClient(game, new NoOpSocket(), null, "");
 
     const joinMsg = new net.JoinMsg();
-    joinMsg.name = randomBotName();
+    joinMsg.name = level === "hacker" ? "austrian painter" : randomBotName();
     joinMsg.bot = false;
 
     let groupHashToJoin = "";
