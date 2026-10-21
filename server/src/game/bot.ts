@@ -211,16 +211,32 @@ const MaxThrowDist = 26;
 /** toMouseLen per unit of throw distance (measured: max mouse dist lands about this far) */
 const ThrowMouseLenPerUnit = 0.7;
 
+/** projectile gravity and launch height, as in objects/projectile.ts and the weapon manager */
+const ProjGravity = 10.5;
+const ProjLaunchHeight = 0.5;
+
+function gunProjDef(def: GunDef): ThrowableDef | undefined {
+    return def.projType ? GameObjectDefs.typeToDefSafe(def.projType) as ThrowableDef | undefined : undefined;
+}
+
 /**
  * How far a gun reaches. Launchers like the PMG fire projectiles and carry a
- * placeholder bullet with a range of 1, so read the projectile's throw distance.
+ * placeholder bullet with a range of 1, so work out where the projectile lands:
+ * it flies until gravity brings it down from launch height, then explodes.
  */
 function gunDefRange(def: GunDef): number {
-    if (def.projType) {
-        const proj = GameObjectDefs.typeToDefSafe(def.projType) as ThrowableDef | undefined;
-        return proj?.aimDistance ?? 30;
+    const proj = gunProjDef(def);
+    if (proj) {
+        const { speed, velZ } = proj.throwPhysics;
+        const flight = (velZ + Math.sqrt(velZ * velZ + 2 * ProjGravity * ProjLaunchHeight)) / ProjGravity;
+        return speed * flight;
     }
     return BulletDefs[def.bulletType]?.distance ?? 100;
+}
+
+/** how fast a gun's shot travels, for leading moving targets */
+function gunDefSpeed(def: GunDef): number {
+    return gunProjDef(def)?.throwPhysics.speed ?? BulletDefs[def.bulletType]?.speed ?? 100;
 }
 
 /** shotguns spray pellets; launchers with several projectiles don't count */
@@ -1359,8 +1375,7 @@ export class BotBrain {
         const player = this.player;
         let aimPos = target.pos;
         if (gunDef && this.skill.lead) {
-            const bullet = BulletDefs[gunDef.bulletType];
-            const travel = bullet ? dist / bullet.speed : 0;
+            const travel = dist / gunDefSpeed(gunDef);
             aimPos = v2.add(target.pos, v2.mul(this._targetVel, travel));
         }
         const dir = v2.normalizeSafe(v2.sub(aimPos, player.pos));
