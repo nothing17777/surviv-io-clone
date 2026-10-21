@@ -740,9 +740,22 @@ export class TeamMenu {
                     "data-bot": idx,
                 }),
             );
-            member.append(
-                $("<div/>", { class: "name menu-option name-text name-bot", text: `Bot · ${levelName(level)}` }),
-            );
+            if (editable) {
+                // the leader can change a bot's level in place
+                const pick = $("<select/>", {
+                    class: "name menu-option server-select btn-hollow btn-hollow-selected bot-level",
+                    "data-bot": idx,
+                });
+                for (const l of BotLevels) {
+                    pick.append($("<option/>", { value: l, text: `Bot · ${levelName(l)}` }));
+                }
+                pick.val(level);
+                member.append(pick);
+            } else {
+                member.append(
+                    $("<div/>", { class: "name menu-option name-text name-bot", text: `Bot · ${levelName(level)}` }),
+                );
+            }
             list.append(member);
         };
 
@@ -771,6 +784,11 @@ export class TeamMenu {
         list.find(".bot-side.can-switch").on("click", (e) => {
             const idx = Number($(e.currentTarget).attr("data-bot"));
             setBots(bots.map((b, i) => (i === idx ? { ...b, team: b.team === 0 ? 1 : 0 } : b)));
+        });
+        list.find(".bot-level").on("change", (e) => {
+            const idx = Number($(e.currentTarget).attr("data-bot"));
+            const level = $(e.currentTarget).val() as BotLevel;
+            setBots(bots.map((b, i) => (i === idx ? { ...b, level } : b)));
         });
         if (vsBots) return;
 
