@@ -298,6 +298,8 @@ export class BotBrain {
     private _retreat?: Vec2;
     private _lastThreat?: Vec2;
     private _sinceThreat = Infinity;
+    /** who we last fought, followed for a few seconds after they slip out of sight */
+    private _lastFoe?: Player;
     private _burstTicker = 0;
     private _jukeTicker = 0;
     private _jukeSign = 1;
@@ -433,6 +435,7 @@ export class BotBrain {
         if (this.target) {
             this._lastThreat = v2.copy(this.target.pos);
             this._sinceThreat = 0;
+            this._lastFoe = this.target;
             this._coverSpot = undefined;
             this.pickCombatWeapon(v2.distance(this.target.pos, player.pos), this.target);
             // hurt and carrying heals: fall back behind cover (hackers just keep fighting)
@@ -513,6 +516,11 @@ export class BotBrain {
 
         // chase: go to where the enemy was last seen
         if (this.settings.chase && this._lastThreat && this._sinceThreat < 6) {
+            // they just ducked behind a wall or into a building: follow them in, not to where they were
+            const foe = this._lastFoe;
+            if (foe && !foe.dead && this._sinceThreat < 3 && util.sameLayer(foe.layer, player.layer)) {
+                this._lastThreat = v2.copy(foe.pos);
+            }
             if (v2.distance(this._lastThreat, player.pos) > 2.5) {
                 this._goal = v2.copy(this._lastThreat);
                 return;
@@ -842,6 +850,9 @@ export class BotBrain {
                     ? (dist > reach * 0.8 ? dirTo : v2.add(strafe, v2.mul(dirTo, 0.3)))
                     : strafe;
             }
+            // closing in but a wall is in the way (seen through a window or doorway): walk around it
+            const closing = gunDef ? approach > 0 : dist > reach * 0.8 && (this.settings.chase || dist < MeleeSwitchDist);
+            if (closing && this.blocked(dirTo, Math.max(dist - target.rad, 0.5))) move = this.followPath(target.pos, dt);
             // low on health: back off to cover while still shooting
             if (this._retreat) move = this.followPath(this._retreat, dt);
             // the zone comes first: walk into it, shooting on the way
