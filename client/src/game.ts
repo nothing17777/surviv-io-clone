@@ -580,6 +580,15 @@ export class Game {
             );
             inputMsg.shootStart = this.m_inputBinds.isBindPressed(Input.Fire) || this.m_touch.shotDetected;
             inputMsg.shootHold = this.m_inputBinds.isBindDown(Input.Fire) || this.m_touch.shotDetected;
+            // "Make all guns automatic": holding fire keeps re-pressing it, so
+            // single shot guns fire again as soon as they're ready
+            if (
+                inputMsg.shootHold
+                && this.m_config.get("autoFireAll")
+                && GameObjectDefs.typeToDefSafe(this.m_activePlayer.m_netData.m_activeWeapon)?.type === "gun"
+            ) {
+                inputMsg.shootStart = true;
+            }
             inputMsg.portrait = this.m_camera.m_screenWidth < this.m_camera.m_screenHeight;
             const checkInputs = [
                 Input.Reload,
