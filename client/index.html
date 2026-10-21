@@ -1322,6 +1322,15 @@
                                     <div id="team-menu-columns">
                                         <div id="team-menu-members" class="team-menu-block">
                                             <div id="team-menu-member-list"></div>
+                                            <div id="team-menu-options-start">
+                                                <a
+                                                    class="btn-green btn-darken menu-option"
+                                                    id="btn-start-team"
+                                                    data-label="Play"
+                                                    data-l10n="index-play"
+                                                >Play</a>
+                                                <div id="msg-wait-reason"></div>
+                                            </div>
                                         </div>
                                         <div id="team-menu-options" class="team-menu-block">
                                             <select
@@ -1364,7 +1373,7 @@
                                                     id="team-private-map-select"
                                                     class="btn-hollow btn-hollow-selected server-select menu-option"
                                                 ></select>
-                                                <details class="team-section"><summary>Custom Map</summary>
+                                                <details name="team-sections" class="team-section"><summary>Custom Map</summary>
 <div id="team-custom-map">
                                                     <div id="team-custom-map-info">
                                                         <div id="team-custom-map-name"></div>
@@ -1393,7 +1402,7 @@
                                                 </div>
                                                 </details>
 <div class="team-menu-options-buttons" id="team-private-sizes"></div>
-                                                <details class="team-section" open><summary>Bots</summary>
+                                                <details name="team-sections" class="team-section" open><summary>Bots</summary>
 <div id="team-bots">
                                                     <div class="team-menu-options-buttons">
                                                         <a
@@ -1438,7 +1447,7 @@
                                                     </div>
                                                 </div>
                                                 </details>
-                                                <details class="team-section"><summary>Loadout</summary>
+                                                <details name="team-sections" class="team-section"><summary>Loadout</summary>
 <div class="team-menu-options-buttons" id="team-kit-buttons">
                                                     <a
                                                         class="btn-hollow btn-darken team-menu-option"
@@ -1535,15 +1544,7 @@
                                                 </div>
                                                 </details>
                                             </div>
-                                            <div id="team-menu-options-start">
-                                                <a
-                                                    class="btn-green btn-darken menu-option"
-                                                    id="btn-start-team"
-                                                    data-label="Play"
-                                                    data-l10n="index-play"
-                                                >Play</a>
-                                                <div id="msg-wait-reason"></div>
-                                            </div>
+
                                         </div>
                                     </div>
                                 </div>

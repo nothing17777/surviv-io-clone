@@ -148,6 +148,8 @@ export class TeamMenu {
         public joinGameCb: (data: FindGameMatchData) => void,
         public leaveCb: (err?: string) => void,
     ) {
+        window.addEventListener("resize", () => this.fitOptionsColumn());
+
         // Listen for ui modifications
         this.serverSelect.on("change", () => {
             const e = this.serverSelect.find(":selected").val() as string;
@@ -837,7 +839,17 @@ export class TeamMenu {
         }
     }
 
+    // the panel's position depends on the page layout, so cap the options
+    // column from where it actually sits and let it scroll inside the screen
+    fitOptionsColumn() {
+        const el = document.getElementById("team-menu-options");
+        if (!el || !el.offsetParent) return;
+        const room = window.innerHeight - el.getBoundingClientRect().top - 24;
+        el.style.maxHeight = `${Math.max(200, room)}px`;
+    }
+
     refreshUi() {
+        requestAnimationFrame(() => this.fitOptionsColumn());
         const setButtonState = function(
             el: JQuery<HTMLElement>,
             selected: boolean,
