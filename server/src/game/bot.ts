@@ -234,6 +234,15 @@ function gunDefRange(def: GunDef): number {
     return BulletDefs[def.bulletType]?.distance ?? 100;
 }
 
+/**
+ * Closest a target can be and still get hit: bullets spawn at the end of the
+ * barrel, so someone hugging us inside a long barrel (an AWM-S is 4 long) is
+ * behind the shot.
+ */
+function gunMinDist(def: GunDef): number {
+    return def.barrelLength - 1.2;
+}
+
 /** how fast a gun's shot travels, for leading moving targets */
 function gunDefSpeed(def: GunDef): number {
     return gunProjDef(def)?.throwPhysics.speed ?? BulletDefs[def.bulletType]?.speed ?? 100;
@@ -412,7 +421,7 @@ export class BotBrain {
             this._lastThreat = v2.copy(this.target.pos);
             this._sinceThreat = 0;
             this._coverSpot = undefined;
-            this.pickCombatWeapon(v2.distance(this.target.pos, player.pos));
+            this.pickCombatWeapon(v2.distance(this.target.pos, player.pos), this.target);
             // hurt and carrying heals: fall back behind cover (hackers just keep fighting)
             this._retreat = undefined;
             if (player.health < 35 && this.settings.heal && this.pickHeal() && this.level !== "hacker" && this.level !== "scripter") {
@@ -624,22 +633,37 @@ export class BotBrain {
      * A loaded gun that reaches the target, else any loaded gun (we'll close
      * in), else one we can reload, else melee.
      */
-    private pickCombatWeapon(dist: number) {
+    private pickCombatWeapon(dist: number, target: Player) {
         // mid-throw: leave the grenade in hand
         if (this._throw) return;
         const player = this.player;
         const cur = player.curWeapIdx;
         const loaded = GunSlots.filter((s) => player.weapons[s].ammo > 0);
-        // a loaded gun beats any melee weapon up close; only swing when every clip
-        // is empty and they're too close to stand there reloading
+        const gunDef = (s: number) => GameObjectDefs.typeToDefSafe(player.weapons[s].type) as GunDef;
+        // a bolt-action can't stop someone swinging a pan in our face: if every
+        // loaded gun is slow, meet a melee rush with melee
+        const fireDelay = (s: number) => {
+            const def = GameObjectDefs.typeToDefSafe(player.weapons[s].type);
+            return def?.type === "gun" ? (def as GunDef).fireDelay : Infinity;
+        };
+        const targetMelee = GameObjectDefs.typeToDefSafe(target.activeWeapon)?.type === "melee";
+        // ...as long as ours is a real weapon: fists lose to a pan every time
+        const meleeDef = GameObjectDefs.typeToDefSafe(player.weapons[WeaponSlot.Melee].type) as MeleeDef | undefined;
+        const goodMelee = meleeDef?.type === "melee" && meleeDef.damage >= 40;
+        const outgunned = goodMelee && targetMelee && dist < 6 && loaded.every((s) => fireDelay(s) >= 0.45);
+        // hugging us inside every barrel we have: no gun can hit them, so swing,
+        // even with fists; once they're back in front of a barrel the guns come out
+        const hugged = loaded.length > 0 && loaded.every((s) => dist < gunMinDist(gunDef(s)));
+        // otherwise a loaded gun beats any melee weapon up close; only swing when
+        // every clip is empty and they're too close to stand there reloading
         if (
-            this.settings.melee && !loaded.length && dist < MeleeSwitchDist
+            this.settings.melee && (!loaded.length || outgunned || hugged) && dist < MeleeSwitchDist
             && player.weapons[WeaponSlot.Melee].type
         ) {
             if (cur !== WeaponSlot.Melee) player.weaponManager.setCurWeapIndex(WeaponSlot.Melee);
             return;
         }
-        const inRange = loaded.filter((s) => this.gunRange(s) * 0.9 >= dist);
+        const inRange = loaded.filter((s) => this.gunRange(s) * 0.9 >= dist && dist >= gunMinDist(gunDef(s)));
         const slot = (inRange.includes(cur) ? cur : inRange[0])
             ?? (loaded.includes(cur) ? cur : loaded[0])
             ?? (GunSlots.includes(cur) && this.gunHasAmmo(cur) ? cur : GunSlots.find((s) => this.gunHasAmmo(s)))
@@ -794,6 +818,9 @@ export class BotBrain {
             // they have to touch us to do anything
             const targetMelee = GameObjectDefs.typeToDefSafe(target.activeWeapon)?.type === "melee";
             if (gunDef && targetMelee && dist < 10) approach = -1.5;
+            // inside our barrel the shot spawns behind them: get some room, hard
+            const minDist = gunDef ? gunMinDist(gunDef) : 0;
+            if (gunDef && dist < minDist + 1) approach = -2.5;
             move = v2.add(strafe, v2.mul(dirTo, approach * 1.2));
             const reach = this.meleeReach(target);
             if (!gunDef) {
@@ -821,11 +848,14 @@ export class BotBrain {
                 const wanted = gunDef ? this.aimAt(target, dist, gunDef) : dirTo;
                 const curAng = Math.atan2(player.dir.y, player.dir.x);
                 const diff = math.angleDiff(curAng, Math.atan2(wanted.y, wanted.x));
-                const turn = gunDef ? this.skill.turnRate : Math.max(this.skill.turnRate, 12);
+                // up close anyone can whip around to face a target, melee or gun
+                const turn = !gunDef || dist < 8 ? Math.max(this.skill.turnRate, 12) : this.skill.turnRate;
                 const step = math.clamp(diff, -turn * dt, turn * dt);
                 lookDir = v2.create(Math.cos(curAng + step), Math.sin(curAng + step));
                 // a shot only goes when the aim has caught up
-                const onTarget = Math.abs(diff - step) < (gunDef ? 0.15 : 0.45);
+                // anywhere on their body counts, which is a wide angle up close
+                const bodyAngle = Math.atan2(target.rad * 0.8, Math.max(dist, 0.5));
+                const onTarget = Math.abs(diff - step) < (gunDef ? Math.max(0.15, bodyAngle) : 0.45);
 
                 // fire in bursts with short pauses
                 this._burstTicker -= dt;
@@ -837,9 +867,9 @@ export class BotBrain {
 
                 this._reactTimer -= dt;
                 let canShoot = this._reactTimer <= 0 && player.actionType !== GameConfig.Action.Revive
-                    && onTarget && (this._bursting || !gunDef)
+                    && onTarget && (this._bursting || !gunDef || dist < 8)
                     // don't waste shots the bullets can't reach
-                    && (!gunDef || dist <= range);
+                    && (!gunDef || (dist <= range && dist >= minDist));
                 // a barrel in the line of fire next to us or a teammate: hold fire and step off the line
                 const hazard = canShoot && gunDef ? this.explosiveInLine(target.pos) : undefined;
                 if (hazard) {
@@ -855,7 +885,8 @@ export class BotBrain {
                         }
                         // quick switch: right after a slow shot, swap to the other gun
                         if (
-                            this.skill.quickSwitch
+                            // anyone thinks to swap guns when something is in their face
+                            (this.skill.quickSwitch || dist < 8)
                             && gunDef.fireMode === "single"
                             && gunDef.fireDelay >= 0.45
                             && this._lastCooldown <= 0
