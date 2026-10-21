@@ -86,27 +86,29 @@ export function saveGodLoadout(loadout: GodLoadout, key = godLoadoutKey) {
     } catch {}
 }
 
-/** the weapons Duel (Bots) hands every bot */
-const botDuelKitKey = "survev_bot_duel_kit";
+/** the weapons Duel (Bots) hands the opponent ("bot") and teammate ("ally") bots */
+const botDuelKitKeys = { bot: "survev_bot_duel_kit", ally: "survev_bot_duel_ally_kit" } as const;
 
-export function loadBotDuelKit(): GodLoadout {
-    return loadGodLoadout(botDuelKitKey);
+export function loadBotDuelKit(side: keyof typeof botDuelKitKeys): GodLoadout {
+    return loadGodLoadout(botDuelKitKeys[side]);
 }
 
-/** Duel (Bots) bot weapon pickers (#bot-primary etc.), saved in this browser */
+/** Duel (Bots) bot weapon pickers (#bot-primary, #ally-primary etc.), saved in this browser */
 export function initBotDuelPicker() {
-    const sync = () => {
-        const kit = loadBotDuelKit();
-        for (const slot of pickerSlots) fillItemPicker("bot", slot, pickerSlotType[slot], kit[slot]);
-    };
-    sync();
-    for (const slot of pickerSlots) {
-        $(`#bot-${slot}`).on("change", (e) => {
-            const kit = loadBotDuelKit();
-            kit[slot] = $(e.currentTarget).val() as string;
-            saveGodLoadout(kit, botDuelKitKey);
-            sync();
-        });
+    for (const side of ["bot", "ally"] as const) {
+        const sync = () => {
+            const kit = loadBotDuelKit(side);
+            for (const slot of pickerSlots) fillItemPicker(side, slot, pickerSlotType[slot], kit[slot]);
+        };
+        sync();
+        for (const slot of pickerSlots) {
+            $(`#${side}-${slot}`).on("change", (e) => {
+                const kit = loadBotDuelKit(side);
+                kit[slot] = $(e.currentTarget).val() as string;
+                saveGodLoadout(kit, botDuelKitKeys[side]);
+                sync();
+            });
+        }
     }
 }
 

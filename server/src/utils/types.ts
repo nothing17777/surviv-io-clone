@@ -56,6 +56,9 @@ export interface ServerGameConfig {
         /** Same Kit: whether bots on the leader's side / the other side get it */
         allyBotsSameKit?: boolean;
         enemyBotsSameKit?: boolean;
+        /** weapons for bots on the leader's side / the other side, over their level's kit */
+        allyBotKit?: PrivateLoadout;
+        enemyBotKit?: PrivateLoadout;
         /** a map made in the map maker; mapName is then its biome */
         customMap?: CustomMap;
         /** bots the party leader added */
@@ -89,6 +92,8 @@ export const zFindGamePrivateBody = z.object({
             leaderSide: z.number().int().min(0).max(1).optional(),
             allyBotsSameKit: z.boolean().optional(),
             enemyBotsSameKit: z.boolean().optional(),
+            allyBotKit: zPrivateLoadout.optional(),
+            enemyBotKit: zPrivateLoadout.optional(),
             customMap: zCustomMap.optional(),
             // custom bots plus the 50v50 fill
             bots: z.array(zPrivateBot).max(MaxPrivateBots + MaxBotFill).optional(),

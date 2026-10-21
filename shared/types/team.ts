@@ -55,6 +55,9 @@ export interface RoomData {
     privateAllyBotsSameKit: boolean;
     /** Same Kit: bots on the other side get it too */
     privateEnemyBotsSameKit: boolean;
+    /** Duel (Bots): weapons for the bots on each side, over their level's kit */
+    privateBotAllyKit?: PrivateLoadout;
+    privateBotEnemyKit?: PrivateLoadout;
     /** the one kit everyone spawns with when privateGodLoadout is on */
     privateLoadout: PrivateLoadout;
     /** map uploaded from the map maker; when set it replaces privateMapName */
@@ -141,6 +144,8 @@ export const zClientRoomData = z.object({
     privateSharedKit: z.boolean().optional(),
     privateAllyBotsSameKit: z.boolean().optional(),
     privateEnemyBotsSameKit: z.boolean().optional(),
+    privateBotAllyKit: zPrivateLoadout.optional(),
+    privateBotEnemyKit: zPrivateLoadout.optional(),
     privateLoadout: zPrivateLoadout.optional(),
     privateMapName: z.string().optional(),
     privateTeamSize: z.number().optional(),

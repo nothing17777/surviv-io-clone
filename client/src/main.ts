@@ -39,7 +39,7 @@ import { initBotDuelPicker, initGodLoadoutPicker, loadBotDuelKit } from "./ui/mo
 import { LoadoutDisplay } from "./ui/opponentDisplay.ts";
 import { Pass } from "./ui/pass.ts";
 import { ProfileUi } from "./ui/profileUi.ts";
-import { loadSavedBotSettings, TeamMenu } from "./ui/teamMenu.ts";
+import { TeamMenu } from "./ui/teamMenu.ts";
 import { loadStaticDomImages } from "./ui/ui2.ts";
 
 export class Application {
@@ -273,13 +273,9 @@ export class Application {
                 }
                 const start = (customMap?: CustomMap) => {
                     this.teamMenu.pendingCustomMap = customMap;
-                    // every bot gets the left panel's bot weapons; you keep your own picks
+                    // each side's bots get the left panel's weapons; you keep your own picks
                     const enemy = $("#bot-duel-enemy").val() as BotLevel;
                     const ally = $("#bot-duel-ally").val() as BotLevel;
-                    const botSettings = loadSavedBotSettings();
-                    const kit = { ...defaultPrivateLoadout, ...loadBotDuelKit() };
-                    botSettings[enemy] = { ...botSettings[enemy], kit };
-                    botSettings[ally] = { ...botSettings[ally], kit };
                     this.tryJoinTeam(true, undefined, {
                     privateMatch: true,
                     privateVsBots: true,
@@ -289,7 +285,8 @@ export class Application {
                         privateBotAlly: ally,
                         privateGodLoadout: true,
                         privateSharedKit: false,
-                        privateBotSettings: botSettings,
+                        privateBotEnemyKit: { ...defaultPrivateLoadout, ...loadBotDuelKit("bot") },
+                        privateBotAllyKit: { ...defaultPrivateLoadout, ...loadBotDuelKit("ally") },
                     }, true);
                 };
                 if ($("#bot-duel-map").val() !== BotDuelCustomMap) {

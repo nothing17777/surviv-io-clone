@@ -1381,8 +1381,9 @@ export function addBot(game: Game, level: BotLevel, side?: number): Player {
     const ally = side !== undefined && side === (pm?.leaderSide ?? 0);
     const sameKit = !!(game.godLoadout && game.fixedLoadout)
         && ((ally ? pm?.allyBotsSameKit : pm?.enemyBotsSameKit) ?? true);
-    // otherwise the leader's kit for this level replaces whatever the match handed out
-    if (!sameKit && settings?.kit) player.applyGodLoadout(settings.kit, true);
+    // otherwise this side's kit, or the leader's kit for this level, replaces whatever the match handed out
+    const kit = (ally ? pm?.allyBotKit : pm?.enemyBotKit) ?? settings?.kit;
+    if (!sameKit && kit) player.applyGodLoadout(kit, true);
     else if (!sameKit && game.godLoadout && game.fixedLoadout) player.applyGodLoadout(defaultPrivateLoadout, true);
     player.botBrain = new BotBrain(player, level, settings);
     return player;
