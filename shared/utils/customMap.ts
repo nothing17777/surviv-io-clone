@@ -87,6 +87,8 @@ export const zCustomMap = z.object({
                 y: zPos,
                 ori: z.number().int().min(0).max(3),
                 scale: z.number().min(0.5).max(2).optional(),
+                /** 1 = underground (in a tunnel or bunker); objects and loot only */
+                layer: z.literal(1).optional(),
             }),
         )
         .max(CustomMapLimits.maxObjects),
@@ -186,6 +188,9 @@ export function parseCustomMap(input: unknown): { map: CustomMap } | { error: st
     const map = res.data;
     for (const obj of map.objects) {
         if (!isPlaceableType(obj.type)) return { error: `Unknown object "${obj.type}".` };
+        if (obj.layer === 1 && !["obstacle", "loot_spawner"].includes(MapObjectDefs.typeToDef(obj.type).type)) {
+            return { error: `"${obj.type}" can't go underground, only objects and loot can.` };
+        }
         if (obj.x > map.width || obj.y > map.height) return { error: `"${obj.type}" is off the map.` };
     }
     for (const spawn of map.spawns) {

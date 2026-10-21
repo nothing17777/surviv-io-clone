@@ -185,6 +185,8 @@ interface Shape {
     color: number;
     scale: number;
     z: number;
+    /** name drawn on the underground layer when zoomed in */
+    label?: string;
 }
 
 const shapeCache = new Map<string, Shape[]>();
@@ -261,6 +263,17 @@ const stairsColor = 0xe0b84d;
 const undergroundWallColor = 0x3a332c;
 const undergroundObjColor = 0x9c8b6e;
 
+/** an object you placed underground, at its real size */
+function realShapes(type: string): Shape[] {
+    return undergroundContents({ mapObjects: [{ type, pos: v2.create(0, 0), ori: 0, scale: 1 }] });
+}
+
+/** only plain objects and loot can go underground; buildings need the surface */
+export function canGoUnderground(type: string) {
+    const t = MapObjectDefs.typeToDefSafe(type)?.type;
+    return t === "obstacle" || t === "loot_spawner";
+}
+
 /** what's inside an underground room: walls, doors, crates, loot spots */
 function undergroundContents(sub: Record<string, any>, depth = 0): Shape[] {
     const out: Shape[] = [];
@@ -271,10 +284,12 @@ function undergroundContents(sub: Record<string, any>, depth = 0): Shape[] {
         if (!def) continue;
         let shape: Shape | null = null;
         if (def.type === "obstacle" && def.collision) {
-            const color = def.isWall ? undergroundWallColor : def.door ? 0x7a5a3a : def.map?.color ?? undergroundObjColor;
-            shape = { col: collider.copy(def.collision), color, scale: def.map?.scale ?? 1, z: def.isWall ? 3 : 4 };
+            // real size and one muted color: minimap colors and scales make crates huge and odd colored
+            const wall = def.isWall || /wall/.test(type);
+            const color = wall ? undergroundWallColor : def.door ? 0x7a5a3a : undergroundObjColor;
+            shape = { col: collider.copy(def.collision), color, scale: 1, z: wall ? 3 : 4, label: wall ? undefined : prettyName(type) };
         } else if (def.type === "loot_spawner") {
-            shape = { col: collider.createCircle(v2.create(0, 0), 1.2), color: 0xffd34d, scale: 1, z: 5 };
+            shape = { col: collider.createCircle(v2.create(0, 0), 1.2), color: 0xffd34d, scale: 1, z: 5, label: "Loot" };
         } else if (def.type === "building") {
             // a room inside the room: its floor and contents
             const floors: Shape[] = (def.floor?.surfaces ?? []).flatMap((f: { collision: Collider[] }) =>
@@ -1331,7 +1346,11 @@ class MapMaker {
     placeAt(world: Vec2) {
         if (!this.roomForObjects()) return;
         const p = this.snapPos(world);
-        const obj = { type: this.placeType, x: p.x, y: p.y, ori: this.placeOri };
+        if (this.underground && !canGoUnderground(this.placeType)) {
+            this.toast("Only objects and loot can go underground. Switch to Surface for buildings.");
+            return;
+        }
+        const obj = { type: this.placeType, x: p.x, y: p.y, ori: this.placeOri, ...(this.underground ? { layer: 1 as const } : {}) };
         this.map.objects.push(this.keepInside(obj));
     }
 
@@ -1473,7 +1492,9 @@ class MapMaker {
     hitObject(world: Vec2): number {
         let best = -1;
         let bestArea = Infinity;
+        const layer = this.underground ? 1 : 0;
         for (let i = 0; i < this.map.objects.length; i++) {
+            if ((this.map.objects[i].layer ?? 0) !== layer) continue;
             const b = objectBounds(this.map.objects[i]);
             if (!coldet.testPointAabb(world, b.min, b.max)) continue;
             const area = (b.max.x - b.min.x) * (b.max.y - b.min.y);
@@ -1524,6 +1545,20 @@ class MapMaker {
     }
 
     eraseAt(world: Vec2) {
+        if (this.underground) {
+            // only what's on this layer: underground objects, then tunnels
+            const obj = this.hitObject(world);
+            if (obj >= 0) {
+                this.map.objects.splice(obj, 1);
+                return true;
+            }
+            const tunnel = this.hitTunnel(world);
+            if (tunnel >= 0) {
+                this.map.tunnels!.splice(tunnel, 1);
+                return true;
+            }
+            return false;
+        }
         const spawn = this.hitSpawn(world);
         if (spawn >= 0) {
             this.map.spawns.splice(spawn, 1);
@@ -1577,8 +1612,8 @@ class MapMaker {
         switch (this.tool) {
             case "select": {
                 const before = JSON.stringify(this.map);
-                if (this.underground) {
-                    // only tunnels can be picked on the underground layer
+                if (this.underground && this.hitObject(world) < 0) {
+                    // underground objects first (handled below), then tunnels
                     const t = this.hitTunnel(world);
                     this.selection = t >= 0 ? { kind: "tunnel", idx: t } : null;
                     this.syncUi();
@@ -2087,7 +2122,9 @@ function drawMap(
     }
 
     // the map's tunnels draw from their generated types, after the placed objects
-    const placed: Array<{ type: string; x: number; y: number; ori: number; scale?: number }> = [...map.objects];
+    const placed: Array<{ type: string; x: number; y: number; ori: number; scale?: number }> = map.objects.filter(
+        (o) => !o.layer,
+    );
     for (const t of applied?.tunnelTypes ?? []) placed.push({ type: t.type, x: t.pos.x, y: t.pos.y, ori: 0 });
     const shapes: Shape[] = [];
     for (const obj of placed) {
@@ -2105,10 +2142,20 @@ function drawMap(
         ctx.beginPath();
         tracePoly(ctx, terrain.grass);
         ctx.stroke();
+        const under: Shape[] = [];
         for (const obj of placed) {
-            const under = transformShapes(undergroundShapes(obj.type), v2.create(obj.x, obj.y), obj.ori, obj.scale ?? 1);
-            for (const s of under) drawShape(ctx, s);
+            under.push(...transformShapes(undergroundShapes(obj.type), v2.create(obj.x, obj.y), obj.ori, obj.scale ?? 1));
         }
+        // the objects placed on this layer, above the rooms they sit in
+        for (const obj of map.objects) {
+            if (obj.layer !== 1) continue;
+            const s = transformShapes(realShapes(obj.type), v2.create(obj.x, obj.y), obj.ori, obj.scale ?? 1);
+            for (const x of s) x.z += 10;
+            under.push(...s);
+        }
+        under.sort((a, b) => a.z - b.z);
+        for (const s of under) drawShape(ctx, s);
+        if (zoom >= 3) drawLabels(ctx, under, zoom);
     }
     if (!underground) {
         // tunnel paths seen from above
@@ -2116,6 +2163,25 @@ function drawMap(
             drawPolyline(ctx, t.points, "rgba(60,45,30,0.55)", Math.max(1, 2 / zoom), [4 / zoom, 3 / zoom]);
         }
     }
+}
+
+/** object names, upright despite the flipped y axis */
+function drawLabels(ctx: CanvasRenderingContext2D, shapes: Shape[], zoom: number) {
+    ctx.save();
+    ctx.font = `${11 / zoom}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    for (const s of shapes) {
+        if (!s.label) continue;
+        const c = s.col.type === collider.Type.Circle ? s.col.pos : v2.mul(v2.add(s.col.min, s.col.max), 0.5);
+        ctx.save();
+        ctx.translate(c.x, c.y);
+        ctx.scale(1, -1);
+        ctx.fillText(s.label, 0, 0);
+        ctx.restore();
+    }
+    ctx.restore();
 }
 
 function drawShape(ctx: CanvasRenderingContext2D, s: Shape) {

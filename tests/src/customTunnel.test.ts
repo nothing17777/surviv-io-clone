@@ -9,7 +9,7 @@ import { type CustomMap, parseCustomMap } from "../../shared/utils/customMap.ts"
 import { v2 } from "../../shared/utils/v2.ts";
 import "./testHelpers.ts";
 
-function tunnelGame() {
+function tunnelGame(objects: CustomMap["objects"] = []) {
     Config.logging.logDate = false;
     Config.logging.debugLogs = false;
     Config.logging.infoLogs = false;
@@ -22,7 +22,7 @@ function tunnelGame() {
         height: 256,
         noLoot: true,
         rivers: [],
-        objects: [],
+        objects,
         spawns: [],
         // an L: west to east, then north
         tunnels: [{ width: 6, points: [{ x: 80, y: 120 }, { x: 160, y: 120 }, { x: 160, y: 170 }] }],
@@ -75,4 +75,24 @@ test("walking down the stairs puts the player underground, and back up again", (
     walk("moveLeft", 3);
     expect(player.pos.x).toBeLessThan(72);
     expect(player.layer).toBe(0);
+});
+
+test("objects placed underground spawn on the underground layer and block the tunnel", () => {
+    // a crate in the middle of the west to east passage
+    const game = tunnelGame([{ type: "crate_01", x: 120, y: 120, ori: 0, layer: 1 }]);
+    const crate = game.map.obstacles.find((o) => o.type === "crate_01");
+    expect(crate).toBeDefined();
+    expect(crate!.layer).toBe(1);
+
+    const player = game.playerBarn.addTestPlayer({ pos: v2.create(70, 120) });
+    const msg = new InputMsg();
+    msg.moveRight = true;
+    for (let t = 0; t < 4; t += 1 / 30) {
+        player.handleInput(msg);
+        game.step(1 / 30);
+    }
+    // underground, stopped by the crate rather than walking through it
+    expect(player.layer & 1).toBe(1);
+    expect(player.pos.x).toBeLessThan(118);
+    expect(player.pos.x).toBeGreaterThan(90);
 });

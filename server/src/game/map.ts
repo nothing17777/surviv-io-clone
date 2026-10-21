@@ -919,7 +919,7 @@ export class GameMap {
                     this.genAuto(
                         obj.type,
                         v2.create(pos.x, pos.y),
-                        0,
+                        obj.layer ?? 0,
                         obj.ori,
                         obj.scale ?? 1,
                         undefined,
