@@ -203,8 +203,10 @@ export class TeamMenu {
         // Vs Bots: pick the opponent bots, and bot teammates for 2v2 and up
         $("#btn-team-bots-custom").on("click", () => this.setRoomProperty("privateVsBots", false));
         $("#btn-team-bots-vs").on("click", () => this.setRoomProperty("privateVsBots", true));
-        $("#btn-team-bot-settings").on("click", () => {
-            this.botSettingsOpen = !this.botSettingsOpen;
+        // each bot row has a cog that opens the settings for its level
+        $("#team-menu-member-list").on("click", ".bot-cog", (e) => {
+            this.botSettingsLevel = $(e.currentTarget).attr("data-level") as BotLevel;
+            this.botSettingsOpen = true;
             this.refreshUi();
         });
         $("#team-bot-enemy").on("change", () => {
@@ -536,6 +538,15 @@ export class TeamMenu {
     buildBotSettingsPanel() {
         const panel = $("#team-bot-settings");
         if (panel.children().length) return;
+        // a popup over the party panel, so it can't sit inside a folded section
+        panel.appendTo("#team-menu");
+
+        const close = $("<a/>", { class: "botset-close", title: "Close" });
+        close.on("click", () => {
+            this.botSettingsOpen = false;
+            this.refreshUi();
+        });
+        panel.append($("<div/>", { class: "botset-title", text: "Bot Settings" }), close);
 
         const tabs = $("<div/>", { class: "botset-tabs" });
         for (const level of BotLevels) {
@@ -686,7 +697,6 @@ export class TeamMenu {
     refreshBotSettingsPanel() {
         const panel = $("#team-bot-settings");
         panel.toggle(this.botSettingsOpen);
-        setButtonClass($("#btn-team-bot-settings"), this.botSettingsOpen);
         if (!this.botSettingsOpen) return;
         this.buildBotSettingsPanel();
         const s = this.botSettings()[this.botSettingsLevel];
@@ -751,6 +761,7 @@ export class TeamMenu {
                 }
                 pick.val(level);
                 member.append(pick);
+                member.append($("<a/>", { class: "bot-cog", title: "Bot settings", "data-level": level }));
             } else {
                 member.append(
                     $("<div/>", { class: "name menu-option name-text name-bot", text: `Bot · ${levelName(level)}` }),
@@ -996,6 +1007,7 @@ export class TeamMenu {
             setButtonState(this.typePrivate, isPrivate, this.isLeader);
             $("#team-queue-options").toggle(!isPrivate);
             $("#team-private-options").toggle(isPrivate);
+            if (!isPrivate) $("#team-bot-settings").hide();
             if (isPrivate) {
                 fillMapSelect(this.privateMapSelect, getModeMaps(modes), this.roomData.privateMapName);
                 this.privateMapSelect.prop("disabled", !this.isLeader);
