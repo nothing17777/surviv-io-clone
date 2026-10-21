@@ -1,5 +1,6 @@
 import $ from "jquery";
 import en from "../en.json";
+import { BulletDefs } from "../../../shared/defs/gameObjects/bulletDefs.ts";
 import { RawGameObjectDefs } from "../../../shared/defs/gameObjectDefs.ts";
 import { type MapDefKey, MapDefs } from "../../../shared/defs/mapDefs.ts";
 import { GameConfig, type TeamMode } from "../../../shared/gameConfig.ts";
@@ -190,6 +191,46 @@ export function defsOfType(type: string) {
         .sort((a, b) => a.name.localeCompare(b.name));
 }
 
+/** hover text for a picked item: the game's own description, else its key stats */
+export function itemDesc(id: string): string {
+    // biome-ignore lint/suspicious/noExplicitAny: defs of every type
+    const def = (RawGameObjectDefs as Record<string, any>)[id];
+    if (!def) return "";
+    const text = ((en as Record<string, string>)[`game-${id}-desc`] ?? "").replace(/<\/?br\s*\/?>/gi, " ");
+    const name = (en as Record<string, string>)[`game-${id}`] || def.name || id;
+    let stats = "";
+    switch (def.type) {
+        case "helmet":
+        case "chest":
+            stats = `Level ${def.level}, ${Math.round(def.damageReduction * 100)}% less ${
+                def.type === "helmet" ? "headshot" : "body"
+            } damage`;
+            break;
+        case "backpack": {
+            const bag = GameConfig.bagSizes as Record<string, number[]>;
+            stats = `Level ${def.level}, holds ${bag.bandage[def.level]} bandages, ${bag["9mm"][def.level]} 9mm, ${
+                bag.frag[def.level]
+            } frags`;
+            break;
+        }
+        case "gun": {
+            const dmg = def.projType ? "explosive shots" : `${BulletDefs[def.bulletType]?.damage ?? "?"} damage`;
+            const count = def.bulletCount > 1 && !def.projType ? ` x${def.bulletCount}` : "";
+            stats = `${dmg}${count}, ${(1 / def.fireDelay).toFixed(1)} shots/s, ${def.maxClip} rounds, ${
+                def.reloadTime
+            }s reload`;
+            break;
+        }
+        case "melee":
+            stats = `${def.damage} damage, ${def.attack.cooldownTime}s per swing`;
+            break;
+        case "throwable":
+            if (def.fuseTime < 100) stats = `${def.fuseTime}s fuse`;
+            break;
+    }
+    return [name, text, stats].filter(Boolean).join(" - ");
+}
+
 /** loot icon for an item, e.g. img/loot/loot-weapon-m4a1.svg */
 export function itemImage(id: string) {
     const def = (RawGameObjectDefs as Record<string, { lootImg?: { sprite?: string } }>)[id];
@@ -212,7 +253,7 @@ export function fillItemPicker(prefix: string, slot: string, type: string, value
     if (sel.children().length !== items.length) {
         sel.empty();
         for (const item of items) {
-            sel.append($("<option>", { value: item.id, text: item.name }));
+            sel.append($("<option>", { value: item.id, text: item.name, title: itemDesc(item.id) }));
         }
     }
     if (!sel.parent().hasClass("god-row")) {
@@ -220,14 +261,17 @@ export function fillItemPicker(prefix: string, slot: string, type: string, value
         sel.before($("<img>", { class: "god-item-img", alt: "", id: `${prefix}-${slot}-img` }));
         // follow the pick right away; refreshes skip a picker that has focus
         sel.on("change", () => {
-            const src = itemImage(sel.val() as string);
-            $(`#${prefix}-${slot}-img`).attr("src", src).toggle(!!src);
+            const id = sel.val() as string;
+            const src = itemImage(id);
+            $(`#${prefix}-${slot}-img`).attr({ src, title: itemDesc(id) }).toggle(!!src);
+            sel.attr("title", itemDesc(id));
         });
     }
     sel.val(value);
+    sel.attr("title", itemDesc(value));
     const img = $(`#${prefix}-${slot}-img`);
     const src = itemImage(value);
-    img.attr("src", src).toggle(!!src);
+    img.attr({ src, title: itemDesc(value) }).toggle(!!src);
 }
 
 /**
