@@ -1,4 +1,6 @@
 import { BulletDefs } from "../../../shared/defs/gameObjects/bulletDefs.ts";
+import { ExplosionDefs } from "../../../shared/defs/gameObjects/explosionsDefs.ts";
+import type { ThrowableDef } from "../../../shared/defs/gameObjects/throwableDefs.ts";
 import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
 import { GameObjectDefs, MapObjectDefs } from "../../../shared/defs/register.ts";
 import { GameConfig, type InventoryItem, WeaponSlot } from "../../../shared/gameConfig.ts";
@@ -178,6 +180,8 @@ export class BotBrain {
     private _targetVel = v2.create(0, 0);
     private _targetLastPos = v2.create(0, 0);
     private _dodgeRolls = new Map<Bullet, { start: Vec2; dodge: boolean }>();
+    /** one react-or-not roll per grenade / airstrike zone */
+    private _blastRolls = new WeakMap<object, boolean>();
     private _dodgeClearTicker = 0;
     /** loot / crates we couldn't path to, by object id -> seconds left to ignore them */
     private _unreachable = new Map<number, number>();
@@ -702,8 +706,18 @@ export class BotBrain {
             }
         }
 
+        // grenades and airstrikes: get out of the blast first, keep shooting while running
+        const escape = this.blastEscape();
+        if (escape) {
+            move = escape;
+            // no finishing that bandage on top of a grenade
+            if (player.actionType !== GameConfig.Action.None) player.cancelAction();
+        }
+
         // combat strafing has no path: just sidestep whatever is in the way
-        if (target && !this._retreat && v2.length(move) > 0.01) move = this.steer(v2.normalize(move), dt);
+        if ((escape || (target && !this._retreat)) && v2.length(move) > 0.01) {
+            move = this.steer(v2.normalize(move), dt);
+        }
 
         // still stuck: back off sideways, and give up on a goal we keep failing to reach
         this._stuckTicker += dt;
@@ -792,6 +806,45 @@ export class BotBrain {
             return v2.create(0, 0);
         }
         return v2.normalizeSafe(v2.sub(path[0], player.pos));
+    }
+
+    /**
+     * Which way to run from live grenades / airstrike zones we're inside of,
+     * or undefined when safe. Each threat gets one dodge roll, so a beginner
+     * often just stands in it.
+     */
+    private blastEscape(): Vec2 | undefined {
+        const player = this.player;
+        let escape: Vec2 | undefined;
+        const add = (center: Vec2, rad: number, key: object) => {
+            const dist = v2.distance(player.pos, center);
+            if (dist > rad) return;
+            let react = this._blastRolls.get(key);
+            if (react === undefined) {
+                react = Math.random() < this.skill.dodge;
+                this._blastRolls.set(key, react);
+            }
+            if (!react) return;
+            // closer = more urgent
+            const away = v2.mul(v2.normalizeSafe(v2.sub(player.pos, center), v2.randomUnit()), 1 + (rad - dist) / rad);
+            escape = escape ? v2.add(escape, away) : away;
+        };
+
+        for (const proj of this.game.projectileBarn.projectiles) {
+            if (proj.destroyed || !util.sameLayer(proj.layer, player.layer)) continue;
+            const def = GameObjectDefs.typeToDefSafe(proj.type);
+            if (def?.type !== "throwable") continue;
+            const explosion = (def as ThrowableDef).explosionType;
+            if (!explosion || explosion.includes("smoke")) continue;
+            const rad = (ExplosionDefs[explosion] as { rad?: { max: number } }).rad?.max ?? 8;
+            // where it's rolling to, not just where it is
+            const landing = v2.add(proj.pos, v2.mul(proj.vel, 0.5));
+            add(landing, rad + 2.5, proj);
+        }
+        for (const zone of this.game.planeBarn.airstrikeZones) {
+            add(zone.pos, zone.rad + 3, zone);
+        }
+        return escape;
     }
 
     /** true when walking `len` units along `dir` would bump into an obstacle */
