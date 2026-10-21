@@ -123,10 +123,10 @@ export class SiteInfo {
         this.showLoadout(isGodLoadoutMap(this.selectedMap) ? "god" : "locked");
     }
 
-    /** left panel: your picks, plus the bots' for Duel (Bots), or the locked spawn kit */
+    /** left panel: your picks or the locked spawn kit; Duel (Bots) adds the bots' panel on the right */
     showLoadout(kind: "god" | "botDuel" | "locked") {
         $("#god-loadout-picker").toggle(kind !== "locked");
-        $("#bot-loadout-picker").toggle(kind === "botDuel");
+        $("#bot-loadout-column").toggle(kind === "botDuel");
         $("#locked-loadout").toggle(kind === "locked");
     }
 
