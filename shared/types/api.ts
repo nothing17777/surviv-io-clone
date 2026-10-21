@@ -120,6 +120,8 @@ export function defaultBotSettings(): BotSettingsByLevel {
             kit: null,
         };
     }
+    // hackers come with a pair of AWM-S
+    settings.hacker.kit = { ...defaultPrivateLoadout, primary: "awc", secondary: "awc" };
     return settings;
 }
 
