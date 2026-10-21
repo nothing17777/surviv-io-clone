@@ -711,7 +711,7 @@ export class BotBrain {
             if (!util.sameLayer(obj.layer, player.layer)) continue;
             const def = MapObjectDefs.typeToDef(obj.type, "obstacle");
             // crates, barrels and the like; stones take forever to punch
-            if (!def.loot?.length || def.health > 150) continue;
+            if (!def.loot?.length || def.health > 150 || def.explosion) continue;
             const gas = this.game.gas;
             if (v2.distance(obj.pos, gas.posNew) > gas.radNew * 0.9) continue;
             const dist = v2.distance(obj.pos, player.pos);
@@ -799,10 +799,16 @@ export class BotBrain {
                 }
 
                 this._reactTimer -= dt;
-                const canShoot = this._reactTimer <= 0 && player.actionType !== GameConfig.Action.Revive
+                let canShoot = this._reactTimer <= 0 && player.actionType !== GameConfig.Action.Revive
                     && onTarget && (this._bursting || !gunDef)
                     // don't waste shots the bullets can't reach
                     && (!gunDef || dist <= range);
+                // a barrel in the line of fire next to us or a teammate: hold fire and step off the line
+                const hazard = canShoot && gunDef ? this.explosiveInLine(target.pos) : undefined;
+                if (hazard) {
+                    canShoot = false;
+                    move = v2.add(v2.mul(v2.normalizeSafe(v2.sub(player.pos, hazard.pos)), 1.5), v2.mul(strafe, 1.5));
+                }
                 if (canShoot) {
                     if (gunDef) {
                         const weap = player.weapons[player.curWeapIdx];
@@ -974,6 +980,27 @@ export class BotBrain {
         return this.blocked(dir, 1.2) ? this.steer(dir, dt) : dir;
     }
 
+    /** blast radius of an explosive obstacle, or 0 */
+    private explosiveRad(obj: Obstacle): number {
+        const explosion = MapObjectDefs.typeToDef(obj.type, "obstacle").explosion;
+        if (!explosion) return 0;
+        return (ExplosionDefs[explosion] as { rad?: { max: number } }).rad?.max ?? 8;
+    }
+
+    /** an explosive obstacle our shot at `to` would hit with us or a teammate inside its blast */
+    private explosiveInLine(to: Vec2): Obstacle | undefined {
+        const player = this.player;
+        for (const obj of this.game.grid.intersectLineSegment(player.pos, to)) {
+            if (obj.__type !== ObjectType.Obstacle || obj.dead || !obj.collidable) continue;
+            if (!util.sameLayer(obj.layer, player.layer)) continue;
+            const rad = this.explosiveRad(obj);
+            if (!rad || !collider.intersectSegment(obj.collider, player.pos, to)) continue;
+            const caught = (p: Player) => !p.dead && v2.distance(p.pos, obj.pos) < rad + 3;
+            if (caught(player) || player.group?.players.some((p) => p !== player && caught(p))) return obj;
+        }
+        return undefined;
+    }
+
     /** drops the part of `move` that heads out of the safe zone, and pulls back in near the edge */
     private keepOutOfGas(move: Vec2): Vec2 {
         const gas = this.game.gas;
@@ -1079,6 +1106,14 @@ export class BotBrain {
             // where it's rolling to, not just where it is
             const landing = v2.add(proj.pos, v2.mul(proj.vel, 0.5));
             add(landing, rad + 2.5, proj, proj.playerId === player.__id);
+        }
+        // barrels and the like that are close to blowing
+        const near = this.game.grid.intersectCollider(collider.createCircle(player.pos, 20));
+        for (const obj of near) {
+            if (obj.__type !== ObjectType.Obstacle || obj.dead || obj.healthT > 0.4) continue;
+            if (!util.sameLayer(obj.layer, player.layer)) continue;
+            const rad = this.explosiveRad(obj);
+            if (rad) add(obj.pos, rad + 2, obj);
         }
         for (const zone of this.game.planeBarn.airstrikeZones) {
             add(zone.pos, zone.rad + 3, zone);
