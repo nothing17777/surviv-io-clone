@@ -8202,3 +8202,84 @@ body.mm-body-lock {
         margin-bottom: 8px;
     }
 }
+
+/* party options: fold the private match extras into collapsible sections */
+.team-section {
+    margin: 4px 0 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.team-section > summary {
+    cursor: pointer;
+    padding: 6px 2px;
+    color: #cccccc;
+    font-size: 13px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    list-style: none;
+    user-select: none;
+}
+
+.team-section > summary::-webkit-details-marker {
+    display: none;
+}
+
+.team-section > summary::after {
+    content: "▸";
+    float: right;
+}
+
+.team-section[open] > summary::after {
+    content: "▾";
+}
+
+.team-section > summary:hover {
+    color: #ffffff;
+}
+
+/* home: all quick-start sizes on one row, and the secondary tools as a
+   compact 2x2 grid so Play stays the obvious choice */
+#btns-quick-start > a {
+    flex: 1 1 22%;
+}
+
+#btns-extra-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+#btns-extra-row > #btn-help,
+#btns-extra-row > #btn-armory,
+#btns-extra-row > #btn-map-maker,
+#btns-extra-row > #btn-vs-bots {
+    background-color: rgba(0, 0, 0, 0.35);
+    background-image: none;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.5);
+    box-shadow: none;
+    font-size: 13px;
+    height: 32px;
+    line-height: 30px;
+    margin: 0;
+}
+
+#btns-extra-row > div:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* the row is a fixed-height flex container, so the panel was stretched to it
+   while the options spilled out below; size the panel to its content and cap
+   the options column to the screen so the sticky Play stays in view */
+#team-menu {
+    align-self: flex-start;
+}
+
+#team-menu-options {
+    max-height: max(220px, calc(100vh - 560px));
+}
+
+#team-menu-options-start {
+    background: rgba(25, 25, 25, 0.95);
+}

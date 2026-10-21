@@ -968,6 +968,8 @@ export class TeamMenu {
                     );
                 $("#btn-team-map-upload").toggle(this.isLeader).text(custom ? "Replace" : "Upload Map");
                 $("#btn-team-map-clear").toggle(this.isLeader && !!custom);
+                // only the leader can upload, so others only need it to see one
+                $("#team-custom-map").closest(".team-section").toggle(this.isLeader || !!custom);
                 this.privateSizes.empty();
                 for (let size = 1; size <= 4; size++) {
                     const btn = $("<a>", {
