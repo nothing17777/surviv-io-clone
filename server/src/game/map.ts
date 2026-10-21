@@ -2256,6 +2256,14 @@ export class GameMap {
                 ];
             }
 
+            // duel sides start on opposite ends of the arena
+            if (this.game.duelRules && !this.factionMode && side !== undefined) {
+                const divisions = 4;
+                spawnAabb = coldet.divideAabb(spawnAabb, v2.create(1, 0), divisions)[
+                    side === 0 ? 0 : divisions - 1
+                ];
+            }
+
             getPos = () => {
                 return util.randomPointInAabb(spawnAabb);
             };
@@ -2271,6 +2279,10 @@ export class GameMap {
 
     getRandomSpawnPos(getPos: () => Vec2, group?: Group, team?: Team): Vec2 {
         let pos = getPos();
+        // duel arenas are small: keep enemies well apart, not just out of arm's reach
+        const minSpawnRad = this.game.duelRules
+            ? Math.max(GameConfig.player.minSpawnRad, this.width * 0.4)
+            : GameConfig.player.minSpawnRad;
 
         this.trySpawn(
             "player",
@@ -2286,7 +2298,7 @@ export class GameMap {
                     if (group && player.groupId === group.id) continue;
                     if (team && player.teamId === team.id) continue;
 
-                    if (v2.distance(player.pos, pos) < GameConfig.player.minSpawnRad) {
+                    if (v2.distance(player.pos, pos) < minSpawnRad) {
                         return false;
                     }
                 }

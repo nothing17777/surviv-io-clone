@@ -18,12 +18,20 @@ import type { Player } from "./objects/player.ts";
 import { NoOpSocket } from "./socket.ts";
 
 interface BotSkill {
-    /** chance each shot is aimed dead on the target */
+    /** chance a shot is aimed at the target rather than wide of it */
     accuracy: number;
     /** chance each bullet that would hit is dodged */
     dodge: number;
     /** seconds before reacting to a newly seen enemy */
     reaction: number;
+    /** aims ahead of a moving target */
+    lead: boolean;
+    /** how fast the aim can swing, radians per second */
+    turnRate: number;
+    /** seconds of shooting, then seconds of pause (like a person re-aiming) */
+    burst: [number, number];
+    /** rolled hits ignore gun spread */
+    noSpread: boolean;
     /** spins while fighting, snapping to the target only on the shot */
     spin: boolean;
     /** swaps guns right after a slow shot to skip the fire delay */
@@ -33,17 +41,54 @@ interface BotSkill {
 }
 
 const Skills: Record<BotLevel, BotSkill> = {
-    beginner: { accuracy: 0.6, dodge: 0.6, reaction: 0.55, spin: false, quickSwitch: false, strafeTime: [0.9, 1.8] },
-    intermediate: {
-        accuracy: 0.7,
-        dodge: 0.7,
-        reaction: 0.35,
+    beginner: {
+        accuracy: 0.35,
+        dodge: 0.2,
+        reaction: 0.9,
+        lead: false,
+        turnRate: 3,
+        burst: [0.5, 0.9],
+        noSpread: false,
         spin: false,
         quickSwitch: false,
-        strafeTime: [0.6, 1.3],
+        strafeTime: [1.2, 2.4],
     },
-    advanced: { accuracy: 0.9, dodge: 0.9, reaction: 0.2, spin: false, quickSwitch: true, strafeTime: [0.35, 0.9] },
-    hacker: { accuracy: 1, dodge: 1, reaction: 0, spin: true, quickSwitch: true, strafeTime: [0.2, 0.6] },
+    intermediate: {
+        accuracy: 0.5,
+        dodge: 0.35,
+        reaction: 0.6,
+        lead: false,
+        turnRate: 5,
+        burst: [0.8, 0.6],
+        noSpread: false,
+        spin: false,
+        quickSwitch: false,
+        strafeTime: [0.8, 1.6],
+    },
+    advanced: {
+        accuracy: 0.75,
+        dodge: 0.7,
+        reaction: 0.3,
+        lead: true,
+        turnRate: 10,
+        burst: [1.5, 0.3],
+        noSpread: false,
+        spin: false,
+        quickSwitch: true,
+        strafeTime: [0.4, 1],
+    },
+    hacker: {
+        accuracy: 1,
+        dodge: 1,
+        reaction: 0,
+        lead: true,
+        turnRate: 1000,
+        burst: [1000, 0],
+        noSpread: true,
+        spin: true,
+        quickSwitch: true,
+        strafeTime: [0.2, 0.6],
+    },
 };
 
 const BotNames = [
@@ -133,6 +178,8 @@ export class BotBrain {
     private _targetLastPos = v2.create(0, 0);
     private _dodgeRolls = new Map<Bullet, { start: Vec2; dodge: boolean }>();
     private _dodgeClearTicker = 0;
+    private _burstTicker = 0;
+    private _bursting = true;
     /** set for the shot fired this tick when it was rolled as a hit */
     aimLocked = false;
 
@@ -525,11 +572,26 @@ export class BotBrain {
                 move = v2.add(move, v2.mul(v2.normalizeSafe(v2.sub(this.game.gas.posNew, player.pos)), 2));
             }
 
-            const aim = this.aimAt(target, dist, gunDef);
-            lookDir = aim;
+            // the aim swings toward the wanted direction at a human-ish speed
+            const wanted = this.aimAt(target, dist, gunDef);
+            const curAng = Math.atan2(player.dir.y, player.dir.x);
+            const diff = math.angleDiff(curAng, Math.atan2(wanted.y, wanted.x));
+            const step = math.clamp(diff, -this.skill.turnRate * dt, this.skill.turnRate * dt);
+            lookDir = v2.create(Math.cos(curAng + step), Math.sin(curAng + step));
+            // a shot only goes when the aim has caught up
+            const onTarget = Math.abs(diff - step) < 0.15;
+
+            // fire in bursts with short pauses
+            this._burstTicker -= dt;
+            if (this._burstTicker <= 0) {
+                this._bursting = !this._bursting;
+                const [fire, pause] = this.skill.burst;
+                this._burstTicker = this._bursting ? fire * util.random(0.7, 1.3) : pause * util.random(0.7, 1.3);
+            }
 
             this._reactTimer -= dt;
-            const canShoot = this._reactTimer <= 0 && player.actionType !== GameConfig.Action.Revive;
+            const canShoot = this._reactTimer <= 0 && player.actionType !== GameConfig.Action.Revive
+                && onTarget && (this._bursting || !gunDef);
             if (canShoot) {
                 if (gunDef) {
                     const weap = player.weapons[player.curWeapIdx];
@@ -616,14 +678,14 @@ export class BotBrain {
     private aimAt(target: Player, dist: number, gunDef?: GunDef): Vec2 {
         const player = this.player;
         let aimPos = target.pos;
-        if (gunDef) {
+        if (gunDef && this.skill.lead) {
             const bullet = BulletDefs[gunDef.bulletType];
             const travel = bullet ? dist / bullet.speed : 0;
             aimPos = v2.add(target.pos, v2.mul(this._targetVel, travel));
         }
         const dir = v2.normalizeSafe(v2.sub(aimPos, player.pos));
         if (Math.random() < this.skill.accuracy) {
-            this.aimLocked = true;
+            this.aimLocked = this.skill.noSpread;
             return dir;
         }
         // miss just wide of the body
