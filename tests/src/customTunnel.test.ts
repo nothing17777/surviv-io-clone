@@ -96,3 +96,18 @@ test("objects placed underground spawn on the underground layer and block the tu
     expect(player.pos.x).toBeLessThan(118);
     expect(player.pos.x).toBeGreaterThan(90);
 });
+
+test("the far end's stairs work too", () => {
+    const game = tunnelGame();
+    // the path ends going north at (160, 170); its stair well runs y 173 to 178, entered from the north
+    const player = game.playerBarn.addTestPlayer({ pos: v2.create(160, 181) });
+    expect(player.layer).toBe(0);
+    const msg = new InputMsg();
+    msg.moveDown = true;
+    for (let t = 0; t < 2; t += 1 / 30) {
+        player.handleInput(msg);
+        game.step(1 / 30);
+    }
+    expect(player.pos.y).toBeLessThan(165);
+    expect(player.layer & 1).toBe(1);
+});

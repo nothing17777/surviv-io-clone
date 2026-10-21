@@ -134,7 +134,21 @@ function wallRun(material: CustomWallMaterial, x0: number, y0: number, x1: numbe
 
 const tunnelFloorColor = 0x4a4038;
 const tunnelWallColor = 0x2b2622;
-const stairsColor = 0x6e5f4e;
+const stairsColor = 0xf2c230;
+
+/** faint grout lines every 3 units, so the tunnel floor reads as tiles */
+function tileLines(rects: AABB[]): FloorImage[] {
+    const out: FloorImage[] = [];
+    for (const r of rects) {
+        for (let x = Math.ceil(r.min.x / 3) * 3; x < r.max.x; x += 3) {
+            out.push(solid(rect(x - 0.06, r.min.y, x + 0.06, r.max.y), 0x3a322b));
+        }
+        for (let y = Math.ceil(r.min.y / 3) * 3; y < r.max.y; y += 3) {
+            out.push(solid(rect(r.min.x, y - 0.06, r.max.x, y + 0.06), 0x3a322b));
+        }
+    }
+    return out;
+}
 
 export function tunnelOrigin(t: CustomTunnel) {
     const xs = t.points.map((p) => p.x);
@@ -241,14 +255,48 @@ export function createCustomTunnelDefs(t: CustomTunnel) {
         }
     }
 
-    // surface: a walled stair well at each end, open on the far side
+    // surface: a walled stair well at each end, open on the far side, drawn so the
+    // way in is obvious: steps darkening toward the tunnel, metal walls on three
+    // sides, a hazard stripe across the opening and an arrow pointing down
+    const wellArt = (end: { p: Vec2; d: Vec2 }) => {
+        const { p, d } = end;
+        const across = v2.create(Math.abs(d.y), Math.abs(d.x));
+        const near = v2.add(p, v2.mul(d, hw));
+        // a box `a0..a1` along d (0 = tunnel side, L = opening) and `b0..b1` across
+        const box = (a0: number, a1: number, b0: number, b1: number) => {
+            const c0 = v2.add(v2.add(near, v2.mul(d, a0)), v2.mul(across, b0));
+            const c1 = v2.add(v2.add(near, v2.mul(d, a1)), v2.mul(across, b1));
+            return rect(c0.x, c0.y, c1.x, c1.y);
+        };
+        const imgs: FloorImage[] = [];
+        const shades = [0x2e2620, 0x3e342b, 0x504438, 0x645646, 0x786954];
+        for (let i = 0; i < L; i++) imgs.push(solid(box(i, i + 1, -hw, hw), shades[Math.min(i, shades.length - 1)]));
+        // step edges
+        for (let i = 1; i < L; i++) imgs.push(solid(box(i - 0.08, i + 0.08, -hw, hw), 0x1e1915));
+        // arrow on the steps, pointing toward the tunnel
+        for (let k = 0; k < 3; k++) {
+            const w = 1.5 - k * 0.5;
+            imgs.push(solid(box(L - 1.4 - k * 0.7, L - 0.9 - k * 0.7, -w, w), 0xffd34d, 0.9));
+        }
+        // walls: both long sides and the tunnel end
+        const wall = 0x6b737c;
+        imgs.push(solid(box(-0.5, L, -hw - 0.5, -hw + 0.5), wall));
+        imgs.push(solid(box(-0.5, L, hw - 0.5, hw + 0.5), wall));
+        imgs.push(solid(box(-0.5, 0.5, -hw - 0.5, hw + 0.5), wall));
+        // hazard stripe just outside the opening
+        for (let b = -hw; b < hw; b++) {
+            imgs.push(solid(box(L, L + 1, b, b + 1), (b & 1) === 0 ? 0xf2c230 : 0x1a1a1a));
+        }
+        return imgs;
+    };
+
     const topChildren: Child[] = [];
     const topImgs: FloorImage[] = [];
     const stairs: StructureDef["stairs"] = [];
     for (let i = 0; i < ends.length; i++) {
         const r = wells[i];
         const { d } = ends[i];
-        topImgs.push(solid(r, stairsColor));
+        topImgs.push(...wellArt(ends[i]));
         stairs.push({ collision: collider.copy(r), downDir: v2.mul(d, -1) });
         const horizontal = d.y === 0; // the well runs along x
         if (horizontal) {
@@ -283,7 +331,7 @@ export function createCustomTunnelDefs(t: CustomTunnel) {
         zIdx: 0,
         floor: {
             surfaces: [{ type: "bunker", collision: floorRects.map((r) => collider.copy(r)) }],
-            imgs: [...floorRects.map((r) => solid(r, tunnelFloorColor)), ...wallImgs],
+            imgs: [...floorRects.map((r) => solid(r, tunnelFloorColor)), ...tileLines(floorRects), ...wallImgs],
         },
         ceiling: {
             zoomRegions: floorRects.map((r) => ({ zoomIn: collider.copy(r) })),
