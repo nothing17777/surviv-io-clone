@@ -3,7 +3,7 @@ import { getCookie } from "hono/cookie";
 import type { UpgradeWebSocket, WSContext } from "hono/ws";
 import { randomUUID } from "node:crypto";
 import { type MapDefKey, MapDefs } from "../../shared/defs/mapDefs.ts";
-import { BotLevels, defaultPrivateLoadout, type FindGamePrivateError, MaxPrivateBots } from "../../shared/types/api.ts";
+import { defaultPrivateLoadout, type FindGamePrivateError } from "../../shared/types/api.ts";
 import {
     type ClientRoomData,
     type ClientToServerTeamMsg,
@@ -121,7 +121,7 @@ class Room {
         privateSharedKit: true,
         privateLoadout: { ...defaultPrivateLoadout },
         customMap: null,
-        privateBots: { beginner: 0, intermediate: 0, advanced: 0, hacker: 0 },
+        privateBots: [],
         privateVsBots: false,
         privateBotEnemy: "intermediate",
         privateBotAlly: "intermediate",
@@ -259,16 +259,8 @@ class Room {
         if (props.privateLoadout) {
             this.data.privateLoadout = props.privateLoadout;
         }
-        if (props.privateBots) {
-            // zod clamps each level; cap the total too
-            const bots = { ...props.privateBots };
-            let room = MaxPrivateBots;
-            for (const level of BotLevels) {
-                bots[level] = Math.min(bots[level], room);
-                room -= bots[level];
-            }
-            this.data.privateBots = bots;
-        }
+        // zod already capped the list at the max bot count
+        if (props.privateBots) this.data.privateBots = props.privateBots;
         this.data.privateVsBots = props.privateVsBots ?? this.data.privateVsBots;
         this.data.privateBotEnemy = props.privateBotEnemy ?? this.data.privateBotEnemy;
         this.data.privateBotAlly = props.privateBotAlly ?? this.data.privateBotAlly;

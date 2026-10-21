@@ -4,7 +4,7 @@ import { GameObjectDefs, MapObjectDefs } from "../../../shared/defs/register.ts"
 import { GameConfig, type InventoryItem, WeaponSlot } from "../../../shared/gameConfig.ts";
 import * as net from "../../../shared/net/net.ts";
 import { ObjectType } from "../../../shared/net/objectSerializeFns.ts";
-import { type BotCounts, type BotLevel, BotLevels, type VsBots } from "../../../shared/types/api.ts";
+import { type BotLevel, type PrivateBot, type VsBots } from "../../../shared/types/api.ts";
 import { collider } from "../../../shared/utils/collider.ts";
 import { math } from "../../../shared/utils/math.ts";
 import { util } from "../../../shared/utils/util.ts";
@@ -719,26 +719,9 @@ export function addBot(game: Game, level: BotLevel, side?: number): Player {
     return player;
 }
 
-/** private match: the leader's exact mix, split across the two sides */
-export function addPrivateBots(game: Game, counts: BotCounts) {
-    const levels: BotLevel[] = [];
-    for (const level of BotLevels) {
-        for (let i = 0; i < (counts[level] ?? 0); i++) levels.push(level);
-    }
-    util.shuffleArray(levels);
-    for (const level of levels) {
-        // fill whichever side is smaller
-        let side: number | undefined;
-        if (game.duelRules && game.isTeamMode) {
-            const a = game.playerBarn.players.filter((p) => p.privateSide === 0).length;
-            const b = game.playerBarn.players.filter((p) => p.privateSide === 1).length;
-            side = a <= b ? 0 : 1;
-        } else if (game.duelRules) {
-            side = Math.random() < 0.5 ? 0 : 1;
-        }
-        const bot = addBot(game, level, side);
-        bot.privateSide = side;
-    }
+/** private match: each bot the leader added, on the side it was put on */
+export function addPrivateBots(game: Game, bots: PrivateBot[]) {
+    for (const bot of bots) addBot(game, bot.level, bot.team);
 }
 
 /** vs bots: teammates join the party's side, the other side is all bots */

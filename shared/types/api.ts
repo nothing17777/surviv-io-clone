@@ -56,15 +56,16 @@ export const defaultPrivateLoadout: PrivateLoadout = {
 export const BotLevels = ["beginner", "intermediate", "advanced", "hacker"] as const;
 export type BotLevel = (typeof BotLevels)[number];
 
-/** how many bots of each level a party leader adds to a private match */
-export const zBotCounts = z.object({
-    beginner: z.number().int().min(0).max(16),
-    intermediate: z.number().int().min(0).max(16),
-    advanced: z.number().int().min(0).max(16),
-    hacker: z.number().int().min(0).max(16),
-});
-export type BotCounts = z.infer<typeof zBotCounts>;
 export const MaxPrivateBots = 16;
+
+/** one bot the party leader added to a private match, shown as a party row */
+export const zPrivateBot = z.object({
+    level: z.enum(BotLevels),
+    /** 0 = Team A, 1 = Team B */
+    team: z.number().int().min(0).max(1),
+});
+export type PrivateBot = z.infer<typeof zPrivateBot>;
+export const zPrivateBots = z.array(zPrivateBot).max(MaxPrivateBots);
 
 /** private match against bots: bot teammates fill your side, the other side is all bots */
 export const zVsBots = z.object({

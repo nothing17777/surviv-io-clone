@@ -18,7 +18,6 @@ import type {
     TeamStateMsg,
 } from "../../../shared/types/team.ts";
 import { type CustomMap, customMapBiomes, parseCustomMap } from "../../../shared/utils/customMap.ts";
-import { math } from "../../../shared/utils/math.ts";
 import { api } from "../api.ts";
 import type { AudioManager } from "../audioManager.ts";
 import type { ConfigManager } from "../config.ts";
@@ -187,15 +186,6 @@ export class TeamMenu {
         });
         $("#team-bot-ally").on("change", () => {
             this.setRoomProperty("privateBotAlly", $("#team-bot-ally").val() as BotLevel);
-        });
-        // bots of each level for the private match
-        $("#team-bots-counts").on("change", ".team-bot-count", () => {
-            const bots = { ...this.roomData.privateBots };
-            for (const level of BotLevels) {
-                const val = Math.round(Number($(`#team-bots-${level}`).val()));
-                bots[level] = math.clamp(Number.isFinite(val) ? val : 0, 0, MaxPrivateBots);
-            }
-            this.setRoomProperty("privateBots", bots);
         });
         // custom maps from the map maker
         $("#btn-team-map-upload").on("click", () => {
@@ -498,6 +488,75 @@ export class TeamMenu {
         }
     }
 
+    /** level picked in the party's "add bot" row */
+    addBotLevel: BotLevel = "intermediate";
+
+    /**
+     * Private match bots, listed under the players like party members.
+     * Vs Bots shows the bots it will add; otherwise the leader adds,
+     * removes and switches the side of each bot.
+     */
+    renderBotRows(list: JQuery<HTMLElement>) {
+        if (!this.roomData.privateMatch) return;
+        const levelName = (l: BotLevel) => `${l[0].toUpperCase()}${l.slice(1)}`;
+        const row = (level: BotLevel, team: number, idx: number, editable: boolean) => {
+            const member = $("<div/>", { class: "team-menu-member" });
+            member.append($("<div/>", { class: `icon ${editable ? "icon-bot-remove" : "icon-bot"}`, "data-bot": idx }));
+            member.append(
+                $("<div/>", {
+                    class: `team-side ${team === 1 ? "side-b" : "side-a"} bot-side${editable ? " can-switch" : ""}`,
+                    text: team === 1 ? "B" : "A",
+                    title: editable ? "Switch side" : "",
+                    "data-bot": idx,
+                }),
+            );
+            member.append($("<div/>", { class: "name menu-option name-text name-bot", text: `Bot · ${levelName(level)}` }));
+            list.append(member);
+        };
+
+        if (this.roomData.privateVsBots) {
+            const size = this.roomData.privateTeamSize;
+            for (let i = this.players.length; i < size; i++) row(this.roomData.privateBotAlly, 0, -1, false);
+            for (let i = 0; i < size; i++) row(this.roomData.privateBotEnemy, 1, -1, false);
+            return;
+        }
+
+        const bots = this.roomData.privateBots ?? [];
+        bots.forEach((bot, i) => row(bot.level, bot.team, i, this.isLeader));
+        if (!this.isLeader) return;
+
+        list.find(".icon-bot-remove").on("click", (e) => {
+            const idx = Number($(e.currentTarget).attr("data-bot"));
+            this.setRoomProperty("privateBots", bots.filter((_b, i) => i !== idx));
+        });
+        list.find(".bot-side.can-switch").on("click", (e) => {
+            const idx = Number($(e.currentTarget).attr("data-bot"));
+            this.setRoomProperty(
+                "privateBots",
+                bots.map((b, i) => (i === idx ? { ...b, team: b.team === 0 ? 1 : 0 } : b)),
+            );
+        });
+
+        if (bots.length >= MaxPrivateBots) return;
+        const add = $("<div/>", { class: "team-menu-member team-bot-add" });
+        const select = $("<select/>", { class: "server-select menu-option btn-hollow btn-hollow-selected" });
+        for (const level of BotLevels) select.append($("<option/>", { value: level, text: `Bot · ${levelName(level)}` }));
+        select.val(this.addBotLevel);
+        select.on("change", () => {
+            this.addBotLevel = select.val() as BotLevel;
+        });
+        const btn = $("<a/>", { class: "btn-hollow btn-darken team-menu-option", text: "+ Add Bot" });
+        btn.on("click", () => {
+            // new bots go to whichever side is smaller
+            const count = (team: number) =>
+                this.players.filter((p) => p.team === team).length + bots.filter((b) => b.team === team).length;
+            const team = count(0) <= count(1) ? 0 : 1;
+            this.setRoomProperty("privateBots", [...bots, { level: this.addBotLevel, team }]);
+        });
+        add.append(select, btn);
+        list.append(add);
+    }
+
     /** true when the leader's one kit is what everyone spawns with */
     /** shown under the map buttons when a picked file isn't a valid map */
     customMapError = "";
@@ -706,7 +765,6 @@ export class TeamMenu {
                 setButtonState($("#btn-team-bots-custom"), !vsBots, this.isLeader);
                 setButtonState($("#btn-team-bots-vs"), vsBots, this.isLeader);
                 $("#team-vs-bots").toggle(vsBots);
-                $("#team-bots-title, #team-bots-counts").toggle(!vsBots);
                 // teammates only matter when the party doesn't already fill the side
                 $("#team-bot-ally").closest("label").toggle(
                     this.roomData.privateTeamSize > this.players.length,
@@ -718,11 +776,6 @@ export class TeamMenu {
                     .val(this.roomData.privateBotAlly ?? "intermediate")
                     .prop("disabled", !this.isLeader);
                 $("#team-private-hint").toggle(!vsBots);
-                for (const level of BotLevels) {
-                    $(`#team-bots-${level}`)
-                        .val(this.roomData.privateBots?.[level] ?? 0)
-                        .prop("disabled", !this.isLeader);
-                }
                 // Same Kit / God Kit / Loot
                 const god = !!this.roomData.privateGodLoadout;
                 const shared = god && !!this.roomData.privateSharedKit;
@@ -868,7 +921,9 @@ export class TeamMenu {
             // Player properties
             const teamMembers = $("#team-menu-member-list");
             teamMembers.empty();
-            for (let t = 0; t < this.roomData.maxPlayers; t++) {
+            // private matches list the players, then the bots, with no empty slots between
+            const slots = this.roomData.privateMatch ? this.players.length : this.roomData.maxPlayers;
+            for (let t = 0; t < slots; t++) {
                 let playerStatus = {
                     name: "",
                     playerId: 0,
@@ -996,6 +1051,8 @@ export class TeamMenu {
                 teamMembers.append(member);
                 nameInput?.trigger("focus");
             }
+
+            this.renderBotRows(teamMembers);
 
             $(".icon-kick", teamMembers).on("click", (e) => {
                 const playerId = Number($(e.currentTarget).attr("data-playerid"));

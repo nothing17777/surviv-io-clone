@@ -2,13 +2,13 @@ import { z } from "zod";
 import type { MapDefKey } from "../../../shared/defs/mapDefs.ts";
 import { TeamMode } from "../../../shared/gameConfig.ts";
 import {
-    type BotCounts,
+    type PrivateBot,
     type FindGameMatchData,
     type FindGamePrivateError,
     loadoutSchema,
     type PrivateLoadout,
     type VsBots,
-    zBotCounts,
+    zPrivateBots,
     zVsBots,
     zPrivateLoadout,
 } from "../../../shared/types/api.ts";
@@ -50,7 +50,7 @@ export interface ServerGameConfig {
         /** a map made in the map maker; mapName is then its biome */
         customMap?: CustomMap;
         /** bots the party leader added */
-        bots?: BotCounts;
+        bots?: PrivateBot[];
         vsBots?: VsBots;
     };
 }
@@ -77,7 +77,7 @@ export const zFindGamePrivateBody = z.object({
             godLoadout: z.boolean(),
             loadout: zPrivateLoadout.optional(),
             customMap: zCustomMap.optional(),
-            bots: zBotCounts.optional(),
+            bots: zPrivateBots.optional(),
             vsBots: zVsBots.optional(),
         })
         .optional(),
