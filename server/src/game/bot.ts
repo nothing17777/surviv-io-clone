@@ -526,8 +526,12 @@ export class BotBrain {
         // mid-throw: leave the grenade in hand
         if (this._throw) return;
         const player = this.player;
-        // close enough to hit: out with the melee weapon
-        if (this.settings.melee && dist < MeleeReach && player.weapons[WeaponSlot.Melee].type) {
+        // close enough to hit: out with the melee weapon, unless a loaded shotgun does it better
+        const loadedShotgun = GunSlots.some((s) => {
+            const def = GameObjectDefs.typeToDefSafe(player.weapons[s].type);
+            return def?.type === "gun" && (def as GunDef).bulletCount > 1 && player.weapons[s].ammo > 0;
+        });
+        if (this.settings.melee && dist < MeleeReach && !loadedShotgun && player.weapons[WeaponSlot.Melee].type) {
             if (player.curWeapIdx !== WeaponSlot.Melee) player.weaponManager.setCurWeapIndex(WeaponSlot.Melee);
             return;
         }
@@ -748,8 +752,9 @@ export class BotBrain {
                     }
                 }
 
-                // the hacker spins, and only faces the target on the tick it fires
-                if (this.skill.spin) {
+                // the hacker spins while gunning someone down, facing them only on the tick
+                // it fires; reloading, swinging melee or throwing it just looks at them
+                if (this.skill.spin && gunDef && canShoot) {
                     const weap = player.weapons[player.curWeapIdx];
                     const firing = (player.shootHold || player.shootStart) && weap.cooldown <= dt;
                     if (!firing) {
