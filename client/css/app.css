@@ -8409,7 +8409,7 @@ body.mm-body-lock {
     opacity: 1;
 }
 
-#btn-botset-kit-all {
+#btn-botset-kit-all, #btn-botset-kit-player {
     display: block;
     width: 100%;
     height: 36px;

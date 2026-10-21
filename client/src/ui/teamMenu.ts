@@ -632,7 +632,13 @@ export class TeamMenu {
             text: "Apply loadout to all bots",
         });
         copyAll.on("click", () => this.copyBotKitToAllLevels());
-        kit.append(copyAll);
+        const fromPlayer = $("<a/>", {
+            class: "btn-hollow btn-darken team-menu-option",
+            id: "btn-botset-kit-player",
+            text: "Apply player loadout to bot",
+        });
+        fromPlayer.on("click", () => this.applyPlayerKitToBot());
+        kit.append(fromPlayer, copyAll);
         panel.append(kit);
 
         panel.on("change", ".botset-field", () => this.saveBotSettingsFromPanel());
@@ -674,6 +680,20 @@ export class TeamMenu {
                 }
             });
         }
+        try {
+            localStorage.setItem(botSettingsKey, JSON.stringify(all));
+        } catch {}
+        this.setRoomProperty("privateBotSettings", all);
+    }
+
+    /** gives the bot level being edited the party's kit (shared, or your own) */
+    applyPlayerKitToBot() {
+        if (!this.isLeader) return;
+        const all = structuredClone(this.botSettings());
+        const kit = this.sharedKitActive()
+            ? this.roomData.privateLoadout || defaultPrivateLoadout
+            : { ...defaultPrivateLoadout, ...loadGodLoadout() };
+        all[this.botSettingsLevel].kit = { ...kit };
         try {
             localStorage.setItem(botSettingsKey, JSON.stringify(all));
         } catch {}
