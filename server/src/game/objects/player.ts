@@ -2042,8 +2042,10 @@ export class Player extends BaseGameObject {
                 switch (itemDef.type) {
                     case "gun":
                         const freeSlot = this.getFreeGunSlot(closestLoot);
+                        // slot 0 is the primary, so check for null rather than falsy;
+                        // a full slot is left alone (F swaps)
                         if (
-                            freeSlot.slot
+                            freeSlot.slot != null
                             && freeSlot.slot !== this.curWeapIdx
                             && !this.weapons[freeSlot.slot].type
                         ) {
