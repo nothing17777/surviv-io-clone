@@ -593,7 +593,7 @@ export class TeamMenu {
             );
         const number = (key: string, label: string, max: number) =>
             $("<label/>", { class: "god-heal" }).append(
-                $("<span/>", { text: label }),
+                $("<span/>", { text: label, id: `team-botset-label-${key}` }),
                 $("<input/>", { type: "number", min: 0, max, class: "menu-option botset-field", "data-key": key }),
             );
 
@@ -609,6 +609,7 @@ export class TeamMenu {
                 number("dodge", "Dodge %", 100),
             ),
         );
+        panel.append($("<div/>", { class: "botset-hint", id: "team-botset-dodge-hint" }));
 
         // optional exact kit, same pickers as the party kit
         panel.append($("<div/>", { class: "botset-grid" }).append(check("kit", "Custom kit")));
@@ -742,6 +743,14 @@ export class TeamMenu {
         if (!this.botSettingsOpen) return;
         this.buildBotSettingsPanel();
         const s = this.botSettings()[this.botSettingsLevel];
+        // hackers phase through bullets; every other level has to step out of the way
+        const phase = this.botSettingsLevel === "hacker";
+        panel.find("#team-botset-label-dodge").text(phase ? "Phase %" : "Sidestep %");
+        panel.find("#team-botset-dodge-hint").text(
+            phase
+                ? "Phase %: chance each bullet passes straight through the hacker."
+                : "Sidestep %: chance the bot spots a shot and moves out of its path. Hits still do full damage.",
+        );
         panel.find(".botset-tab").each((_i, e) => {
             setButtonClass($(e), $(e).attr("data-level") === this.botSettingsLevel);
         });
