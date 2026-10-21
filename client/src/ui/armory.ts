@@ -1,11 +1,12 @@
 import $ from "jquery";
-import { WeaponTypeToDefs } from "../../../shared/defs/gameObjectDefs.ts";
+import { RawGameObjectDefs, WeaponTypeToDefs } from "../../../shared/defs/gameObjectDefs.ts";
+import { GameConfig } from "../../../shared/gameConfig.ts";
 import { BulletDefs } from "../../../shared/defs/gameObjects/bulletDefs.ts";
 import { ExplosionDefs } from "../../../shared/defs/gameObjects/explosionsDefs.ts";
 import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
 import type { MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
 import type { ThrowableDef } from "../../../shared/defs/gameObjects/throwableDefs.ts";
-import { itemImage } from "./modePicker.ts";
+import { itemImage, itemName, itemText } from "./modePicker.ts";
 
 /**
  * Weapon handbook. Every number shown here is read out of the real defs in
@@ -14,11 +15,13 @@ import { itemImage } from "./modePicker.ts";
  * server/src/game/weaponManager.ts.
  */
 
-type Tab = "gun" | "melee" | "throwable";
+type Tab = "gun" | "melee" | "throwable" | "perk" | "helmet" | "chest" | "backpack";
 
 interface Column {
     key: string;
     label: string;
+    /** free text, left aligned and wrapping */
+    text?: boolean;
     /** sorted descending first - true for "bigger is better" stats */
     desc?: boolean;
 }
@@ -67,7 +70,69 @@ const columns: Record<Tab, Column[]> = {
         { key: "fuseTime", label: "Fuse" },
         { key: "throwSpeed", label: "Throw", desc: true },
     ],
+    perk: [{ key: "desc", label: "What it does", text: true }],
+    helmet: [
+        { key: "level", label: "Level", desc: true },
+        { key: "reduction", label: "Headshot dmg blocked", desc: true },
+    ],
+    chest: [
+        { key: "level", label: "Level", desc: true },
+        { key: "reduction", label: "Body dmg blocked", desc: true },
+    ],
+    backpack: [
+        { key: "level", label: "Level", desc: true },
+        { key: "bandage", label: "Bandages", desc: true },
+        { key: "healthkit", label: "Med Kits", desc: true },
+        { key: "soda", label: "Sodas", desc: true },
+        { key: "painkiller", label: "Pills", desc: true },
+        { key: "frag", label: "Frags", desc: true },
+        { key: "9mm", label: "9mm", desc: true },
+        { key: "762mm", label: "7.62mm", desc: true },
+        { key: "556mm", label: "5.56mm", desc: true },
+        { key: "12gauge", label: "12 gauge", desc: true },
+    ],
 };
+
+/** every def of one loot type, e.g. all helmets */
+// biome-ignore lint/suspicious/noExplicitAny: gear and perk defs differ by type
+function defsOf(type: string): Array<[string, any]> {
+    return Object.entries(RawGameObjectDefs as Record<string, { type: string }>).filter(([, def]) =>
+        def.type === type
+    );
+}
+
+function perkRows(): Row[] {
+    return defsOf("perk").map(([id]) => ({
+        id,
+        name: itemName(id),
+        img: itemImage(id),
+        values: {},
+        text: { desc: itemText(id) || "–" },
+    }));
+}
+
+/** helmets and vests: level and how much damage they soak */
+function armorRows(type: "helmet" | "chest"): Row[] {
+    return defsOf(type).map(([id, def]) => ({
+        id,
+        name: itemName(id),
+        img: itemImage(id),
+        values: { level: def.level, reduction: def.damageReduction * 100 },
+        text: { reduction: `${round(def.damageReduction * 100)}%` },
+    }));
+}
+
+/** backpacks: what each level lets you carry (GameConfig.bagSizes) */
+function backpackRows(): Row[] {
+    const bag = GameConfig.bagSizes as Record<string, number[]>;
+    return defsOf("backpack").map(([id, def]) => {
+        const values: Record<string, number | undefined> = { level: def.level };
+        for (const col of columns.backpack) {
+            if (col.key !== "level") values[col.key] = bag[col.key]?.[def.level];
+        }
+        return { id, name: itemName(id), img: itemImage(id), values, text: {} };
+    });
+}
 
 /** drops pure reskins (same stats under another name), keeps real items */
 function catalogIds(defs: Record<string, { baseType?: string }>) {
@@ -208,6 +273,10 @@ export function initArmory() {
         gun: gunRows(),
         melee: meleeRows(),
         throwable: throwableRows(),
+        perk: perkRows(),
+        helmet: armorRows("helmet"),
+        chest: armorRows("chest"),
+        backpack: backpackRows(),
     };
 
     const search = $("#armory-search");
@@ -239,9 +308,14 @@ export function initArmory() {
             });
 
         const head = $("<tr>");
-        head.append($("<th>", { class: "armory-th armory-th-name", text: "Weapon", "data-key": "name" }));
+        const weaponTab = tab === "gun" || tab === "melee" || tab === "throwable";
+        head.append(
+            $("<th>", { class: "armory-th armory-th-name", text: weaponTab ? "Weapon" : "Item", "data-key": "name" }),
+        );
         for (const col of cols) {
-            head.append($("<th>", { class: "armory-th", text: col.label, "data-key": col.key }));
+            head.append(
+                $("<th>", { class: `armory-th${col.text ? " armory-text" : ""}`, text: col.label, "data-key": col.key }),
+            );
         }
         head.find(`.armory-th[data-key="${sortKey}"]`).addClass(sortDesc ? "sort-desc" : "sort-asc");
 
@@ -264,7 +338,7 @@ export function initArmory() {
             nameCell.append($("<span>", { text: row.name }));
             tr.append(nameCell);
             for (const col of cols) {
-                tr.append($("<td>", { text: cell(row, col) }));
+                tr.append($("<td>", { text: cell(row, col), class: col.text ? "armory-text" : undefined }));
             }
             body.append(tr);
         }

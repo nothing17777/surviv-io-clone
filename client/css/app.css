@@ -8502,3 +8502,10 @@ body.team-menu-open #bot-loadout-column,
 body.team-menu-open #menu-loadout {
     display: none !important;
 }
+
+/* Armory perk descriptions read as text, not a number column */
+#armory-table td.armory-text, #armory-table th.armory-text {
+    max-width: 520px;
+    text-align: left;
+    white-space: normal;
+}

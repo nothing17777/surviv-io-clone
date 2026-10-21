@@ -187,8 +187,19 @@ export function defsOfType(type: string) {
     return Object.entries(RawGameObjectDefs as Record<string, { type: string; name?: string }>)
         .filter(([, def]) => def.type === type)
         // the names players see in game, e.g. "One With Nature" for tree_climbing
-        .map(([id, def]) => ({ id, name: (en as Record<string, string>)[`game-${id}`] || def.name || id }))
+        .map(([id]) => ({ id, name: itemName(id) }))
         .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** the name players see in game, e.g. "One With Nature" for tree_climbing */
+export function itemName(id: string): string {
+    const def = (RawGameObjectDefs as Record<string, { name?: string }>)[id];
+    return (en as Record<string, string>)[`game-${id}`] || def?.name || id;
+}
+
+/** the game's own description of an item, if it has one */
+export function itemText(id: string): string {
+    return ((en as Record<string, string>)[`game-${id}-desc`] ?? "").replace(/<\/?br\s*\/?>/gi, " ");
 }
 
 /** hover text for a picked item: the game's own description, else its key stats */
@@ -196,8 +207,8 @@ export function itemDesc(id: string): string {
     // biome-ignore lint/suspicious/noExplicitAny: defs of every type
     const def = (RawGameObjectDefs as Record<string, any>)[id];
     if (!def) return "";
-    const text = ((en as Record<string, string>)[`game-${id}-desc`] ?? "").replace(/<\/?br\s*\/?>/gi, " ");
-    const name = (en as Record<string, string>)[`game-${id}`] || def.name || id;
+    const text = itemText(id);
+    const name = itemName(id);
     let stats = "";
     switch (def.type) {
         case "helmet":
