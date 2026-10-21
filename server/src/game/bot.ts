@@ -1,7 +1,7 @@
 import { BulletDefs } from "../../../shared/defs/gameObjects/bulletDefs.ts";
 import { ExplosionDefs } from "../../../shared/defs/gameObjects/explosionsDefs.ts";
-import type { ThrowableDef } from "../../../shared/defs/gameObjects/throwableDefs.ts";
 import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
+import type { ThrowableDef } from "../../../shared/defs/gameObjects/throwableDefs.ts";
 import { GameObjectDefs, MapObjectDefs } from "../../../shared/defs/register.ts";
 import { GameConfig, type InventoryItem, WeaponSlot } from "../../../shared/gameConfig.ts";
 import * as net from "../../../shared/net/net.ts";
@@ -11,13 +11,13 @@ import { collider } from "../../../shared/utils/collider.ts";
 import { math } from "../../../shared/utils/math.ts";
 import { util } from "../../../shared/utils/util.ts";
 import { v2, type Vec2 } from "../../../shared/utils/v2.ts";
+import { findPath } from "./botPath.ts";
 import { Client } from "./client.ts";
 import type { Game } from "./game.ts";
 import type { Bullet } from "./objects/bullet.ts";
 import type { Loot } from "./objects/loot.ts";
 import type { Obstacle } from "./objects/obstacle.ts";
 import type { Player } from "./objects/player.ts";
-import { findPath } from "./botPath.ts";
 import { NoOpSocket } from "./socket.ts";
 
 interface BotSkill {
@@ -41,6 +41,12 @@ interface BotSkill {
     quickSwitch: boolean;
     /** seconds between strafe direction changes */
     strafeTime: [number, number];
+    /** seconds between grenade throws */
+    throwEvery: [number, number];
+    /** seconds a grenade is cooked before letting go */
+    cook: number;
+    /** how far off the landing spot can be, world units */
+    throwError: number;
 }
 
 const Skills: Record<BotLevel, BotSkill> = {
@@ -55,6 +61,9 @@ const Skills: Record<BotLevel, BotSkill> = {
         spin: false,
         quickSwitch: false,
         strafeTime: [1.2, 2.4],
+        throwEvery: [14, 24],
+        cook: 0,
+        throwError: 6,
     },
     intermediate: {
         accuracy: 0.5,
@@ -67,6 +76,9 @@ const Skills: Record<BotLevel, BotSkill> = {
         spin: false,
         quickSwitch: false,
         strafeTime: [0.8, 1.6],
+        throwEvery: [9, 16],
+        cook: 0.6,
+        throwError: 4,
     },
     advanced: {
         accuracy: 0.75,
@@ -79,6 +91,9 @@ const Skills: Record<BotLevel, BotSkill> = {
         spin: false,
         quickSwitch: true,
         strafeTime: [0.4, 1],
+        throwEvery: [6, 11],
+        cook: 1.6,
+        throwError: 2,
     },
     hacker: {
         accuracy: 1,
@@ -91,6 +106,9 @@ const Skills: Record<BotLevel, BotSkill> = {
         spin: true,
         quickSwitch: true,
         strafeTime: [0.2, 0.6],
+        throwEvery: [4, 7],
+        cook: 2.4,
+        throwError: 0.5,
     },
 };
 
@@ -159,6 +177,11 @@ class BotClient extends Client {
 
 const GunSlots = [WeaponSlot.Primary, WeaponSlot.Secondary];
 
+/** farthest a bot tries to throw, world units */
+const MaxThrowDist = 26;
+/** toMouseLen per unit of throw distance (measured: max mouse dist lands about this far) */
+const ThrowMouseLenPerUnit = 0.7;
+
 export class BotBrain {
     readonly skill: BotSkill;
 
@@ -186,6 +209,8 @@ export class BotBrain {
     /** loot / crates we couldn't path to, by object id -> seconds left to ignore them */
     private _unreachable = new Map<number, number>();
     private _zoneRun = false;
+    private _throw?: { prev: number; timer: number; released: boolean; cook: number; error: Vec2 };
+    private _throwCooldown = util.random(3, 8);
     private _path?: Vec2[];
     private _pathGoal?: Vec2;
     private _pathTicker = 0;
@@ -470,6 +495,8 @@ export class BotBrain {
      * in), else one we can reload, else melee.
      */
     private pickCombatWeapon(dist: number) {
+        // mid-throw: leave the grenade in hand
+        if (this._throw) return;
         const player = this.player;
         const cur = player.curWeapIdx;
         const loaded = GunSlots.filter((s) => player.weapons[s].ammo > 0);
@@ -633,66 +660,71 @@ export class BotBrain {
             }
 
             // the aim swings toward the wanted direction at a human-ish speed
-            const wanted = this.aimAt(target, dist, gunDef);
-            const curAng = Math.atan2(player.dir.y, player.dir.x);
-            const diff = math.angleDiff(curAng, Math.atan2(wanted.y, wanted.x));
-            const step = math.clamp(diff, -this.skill.turnRate * dt, this.skill.turnRate * dt);
-            lookDir = v2.create(Math.cos(curAng + step), Math.sin(curAng + step));
-            // a shot only goes when the aim has caught up
-            const onTarget = Math.abs(diff - step) < 0.15;
+            const throwDir = this.updateThrow(dt, target);
+            if (throwDir) {
+                lookDir = throwDir;
+            } else {
+                const wanted = this.aimAt(target, dist, gunDef);
+                const curAng = Math.atan2(player.dir.y, player.dir.x);
+                const diff = math.angleDiff(curAng, Math.atan2(wanted.y, wanted.x));
+                const step = math.clamp(diff, -this.skill.turnRate * dt, this.skill.turnRate * dt);
+                lookDir = v2.create(Math.cos(curAng + step), Math.sin(curAng + step));
+                // a shot only goes when the aim has caught up
+                const onTarget = Math.abs(diff - step) < 0.15;
 
-            // fire in bursts with short pauses
-            this._burstTicker -= dt;
-            if (this._burstTicker <= 0) {
-                this._bursting = !this._bursting;
-                const [fire, pause] = this.skill.burst;
-                this._burstTicker = this._bursting ? fire * util.random(0.7, 1.3) : pause * util.random(0.7, 1.3);
-            }
+                // fire in bursts with short pauses
+                this._burstTicker -= dt;
+                if (this._burstTicker <= 0) {
+                    this._bursting = !this._bursting;
+                    const [fire, pause] = this.skill.burst;
+                    this._burstTicker = this._bursting ? fire * util.random(0.7, 1.3) : pause * util.random(0.7, 1.3);
+                }
 
-            this._reactTimer -= dt;
-            const canShoot = this._reactTimer <= 0 && player.actionType !== GameConfig.Action.Revive
-                && onTarget && (this._bursting || !gunDef)
-                // don't waste shots the bullets can't reach
-                && (!gunDef || dist <= range);
-            if (canShoot) {
-                if (gunDef) {
-                    const weap = player.weapons[player.curWeapIdx];
-                    if (weap.ammo > 0) {
-                        if (gunDef.fireMode === "single") player.shootStart = true;
-                        else player.shootHold = true;
-                    }
-                    // quick switch: right after a slow shot, swap to the other gun
-                    if (
-                        this.skill.quickSwitch
-                        && gunDef.fireMode === "single"
-                        && gunDef.fireDelay >= 0.45
-                        && this._lastCooldown <= 0
-                        && weap.cooldown > 0
-                    ) {
-                        const other = player.curWeapIdx === WeaponSlot.Primary
-                            ? WeaponSlot.Secondary
-                            : WeaponSlot.Primary;
-                        if (player.weapons[other].ammo > 0 && this.gunRange(other) * 0.9 >= dist) {
-                            player.weaponManager.setCurWeapIndex(other);
+                this._reactTimer -= dt;
+                const canShoot = this._reactTimer <= 0 && player.actionType !== GameConfig.Action.Revive
+                    && onTarget && (this._bursting || !gunDef)
+                    // don't waste shots the bullets can't reach
+                    && (!gunDef || dist <= range);
+                if (canShoot) {
+                    if (gunDef) {
+                        const weap = player.weapons[player.curWeapIdx];
+                        if (weap.ammo > 0) {
+                            if (gunDef.fireMode === "single") player.shootStart = true;
+                            else player.shootHold = true;
                         }
+                        // quick switch: right after a slow shot, swap to the other gun
+                        if (
+                            this.skill.quickSwitch
+                            && gunDef.fireMode === "single"
+                            && gunDef.fireDelay >= 0.45
+                            && this._lastCooldown <= 0
+                            && weap.cooldown > 0
+                        ) {
+                            const other = player.curWeapIdx === WeaponSlot.Primary
+                                ? WeaponSlot.Secondary
+                                : WeaponSlot.Primary;
+                            if (player.weapons[other].ammo > 0 && this.gunRange(other) * 0.9 >= dist) {
+                                player.weaponManager.setCurWeapIndex(other);
+                            }
+                        }
+                        this._lastCooldown = player.weapons[player.curWeapIdx].cooldown;
+                    } else if (dist < 4) {
+                        player.shootStart = true;
+                        player.shootHold = true;
                     }
-                    this._lastCooldown = player.weapons[player.curWeapIdx].cooldown;
-                } else if (dist < 4) {
-                    player.shootStart = true;
-                    player.shootHold = true;
                 }
-            }
 
-            // the hacker spins, and only faces the target on the tick it fires
-            if (this.skill.spin) {
-                const weap = player.weapons[player.curWeapIdx];
-                const firing = (player.shootHold || player.shootStart) && weap.cooldown <= dt;
-                if (!firing) {
-                    this._spin += dt * 25;
-                    lookDir = v2.create(Math.cos(this._spin), Math.sin(this._spin));
+                // the hacker spins, and only faces the target on the tick it fires
+                if (this.skill.spin) {
+                    const weap = player.weapons[player.curWeapIdx];
+                    const firing = (player.shootHold || player.shootStart) && weap.cooldown <= dt;
+                    if (!firing) {
+                        this._spin += dt * 25;
+                        lookDir = v2.create(Math.cos(this._spin), Math.sin(this._spin));
+                    }
                 }
+                player.toMouseLen = dist;
             }
-            player.toMouseLen = dist;
         } else if (this._goal) {
             move = this.followPath(this._goal, dt);
             // punch the crate we walked up to
@@ -816,12 +848,13 @@ export class BotBrain {
     private blastEscape(): Vec2 | undefined {
         const player = this.player;
         let escape: Vec2 | undefined;
-        const add = (center: Vec2, rad: number, key: object) => {
+        const add = (center: Vec2, rad: number, key: object, own = false) => {
             const dist = v2.distance(player.pos, center);
             if (dist > rad) return;
             let react = this._blastRolls.get(key);
             if (react === undefined) {
-                react = Math.random() < this.skill.dodge;
+                // everyone knows where their own grenade went
+                react = own || Math.random() < this.skill.dodge;
                 this._blastRolls.set(key, react);
             }
             if (!react) return;
@@ -839,12 +872,84 @@ export class BotBrain {
             const rad = (ExplosionDefs[explosion] as { rad?: { max: number } }).rad?.max ?? 8;
             // where it's rolling to, not just where it is
             const landing = v2.add(proj.pos, v2.mul(proj.vel, 0.5));
-            add(landing, rad + 2.5, proj);
+            add(landing, rad + 2.5, proj, proj.playerId === player.__id);
         }
         for (const zone of this.game.planeBarn.airstrikeZones) {
             add(zone.pos, zone.rad + 3, zone);
         }
         return escape;
+    }
+
+    /**
+     * Grenades: every so often in a fight, swap to the throwable, aim where
+     * the target is heading, cook it for a level-based time, let go, and
+     * swap back to the gun. Returns the aim while a throw is underway.
+     */
+    private updateThrow(dt: number, target: Player): Vec2 | undefined {
+        const player = this.player;
+        const wm = player.weaponManager;
+        if (!this._throw) {
+            this._throwCooldown -= dt;
+            if (this._throwCooldown > 0 || this._reactTimer > 0 || player.downed) return undefined;
+            if (player.actionType !== GameConfig.Action.None) return undefined;
+            const type = player.weapons[WeaponSlot.Throwable].type;
+            const def = GameObjectDefs.typeToDefSafe(type) as ThrowableDef | undefined;
+            if (def?.type !== "throwable" || !def.explosionType || def.explosionType.includes("smoke")) {
+                return undefined;
+            }
+            if (!player.invManager.isValid(type) || !player.invManager.has(type)) return undefined;
+            const dist = v2.distance(target.pos, player.pos);
+            if (dist < 10 || dist > MaxThrowDist) return undefined;
+            this._throwCooldown = util.random(...this.skill.throwEvery);
+            this._throw = {
+                prev: player.curWeapIdx,
+                timer: 0,
+                released: false,
+                // a grenade that explodes in hand is no good: always leave flight time
+                cook: def.cookable ? Math.min(this.skill.cook * util.random(0.8, 1.1), def.fuseTime - 1.6) : 0,
+                error: util.randomPointInCircle(this.skill.throwError),
+            };
+            wm.setCurWeapIndex(WeaponSlot.Throwable);
+        }
+
+        const t = this._throw;
+        t.timer += dt;
+        const flight = 0.9;
+        const lead = this.skill.lead ? v2.mul(this._targetVel, flight) : v2.create(0, 0);
+        const aimPos = v2.add(v2.add(target.pos, lead), t.error);
+        let toAim = v2.sub(aimPos, player.pos);
+        // a sloppy throw can land short, but never at our own feet
+        if (v2.length(toAim) < 8) toAim = v2.mul(v2.normalizeSafe(toAim, player.dir), 8);
+        player.toMouseLen = math.clamp(
+            v2.length(toAim) * ThrowMouseLenPerUnit,
+            0,
+            GameConfig.player.throwableMaxMouseDist,
+        );
+
+        const done = () => {
+            this._throw = undefined;
+            if (player.weapons[t.prev]?.type && player.curWeapIdx === WeaponSlot.Throwable) wm.setCurWeapIndex(t.prev);
+        };
+        if (!t.released) {
+            if (!wm.cookingThrowable) {
+                // keep pressing until the cook starts; give up if it never does
+                if (t.timer > 1.5 || player.curWeapIdx !== WeaponSlot.Throwable) {
+                    done();
+                    return undefined;
+                }
+                player.shootStart = true;
+                player.shootHold = true;
+            } else if (wm.cookTicker < Math.max(t.cook, GameConfig.player.cookTime + 0.05)) {
+                player.shootHold = true;
+            } else {
+                // let go: the weapon manager throws on release
+                t.released = true;
+            }
+        } else if (!wm.cookingThrowable || t.timer > t.cook + 3) {
+            done();
+            return undefined;
+        }
+        return v2.normalizeSafe(toAim, player.dir);
     }
 
     /** true when walking `len` units along `dir` would bump into an obstacle */
