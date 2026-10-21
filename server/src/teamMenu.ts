@@ -3,7 +3,12 @@ import { getCookie } from "hono/cookie";
 import type { UpgradeWebSocket, WSContext } from "hono/ws";
 import { randomUUID } from "node:crypto";
 import { type MapDefKey, MapDefs } from "../../shared/defs/mapDefs.ts";
-import { defaultBotSettings, defaultPrivateLoadout, type FindGamePrivateError } from "../../shared/types/api.ts";
+import {
+    defaultBotSettings,
+    defaultPrivateLoadout,
+    type FindGamePrivateError,
+    type PrivateBot,
+} from "../../shared/types/api.ts";
 import {
     type ClientRoomData,
     type ClientToServerTeamMsg,
@@ -125,6 +130,7 @@ class Room {
         privateVsBots: false,
         privateBotEnemy: "intermediate",
         privateBotAlly: "intermediate",
+        privateBotFill: 0,
         privateBotSettings: defaultBotSettings(),
     };
 
@@ -265,6 +271,7 @@ class Room {
         this.data.privateVsBots = props.privateVsBots ?? this.data.privateVsBots;
         this.data.privateBotEnemy = props.privateBotEnemy ?? this.data.privateBotEnemy;
         this.data.privateBotAlly = props.privateBotAlly ?? this.data.privateBotAlly;
+        this.data.privateBotFill = props.privateBotFill ?? this.data.privateBotFill;
         this.data.privateBotSettings = props.privateBotSettings ?? this.data.privateBotSettings;
 
         // a private match holds both sides, so up to 8 players
@@ -300,6 +307,13 @@ class Room {
         if (!this.players.length) {
             this.teamMenu.removeRoom(this);
         }
+    }
+
+    /** 50v50 maps: the leader's bot count, alternating sides */
+    botFill(customMap: CustomMap | null): PrivateBot[] {
+        const def = MapDefs[this.data.privateMapName as MapDefKey];
+        if (customMap || !def?.gameMode.factionMode) return [];
+        return Array.from({ length: this.data.privateBotFill }, (_, i) => ({ level: "intermediate", team: i % 2 }));
     }
 
     findGameCooldown = 0;
@@ -387,7 +401,7 @@ class Room {
                     // without this every player keeps their own picks
                     loadout: this.data.privateSharedKit ? this.data.privateLoadout : undefined,
                     customMap: customMap ?? undefined,
-                    bots: this.data.privateVsBots ? undefined : this.data.privateBots,
+                    bots: this.data.privateVsBots ? undefined : [...this.data.privateBots, ...this.botFill(customMap)],
                     botSettings: this.data.privateBotSettings,
                     vsBots: this.data.privateVsBots
                         ? {

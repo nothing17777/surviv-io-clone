@@ -1,8 +1,10 @@
 import $ from "jquery";
+import { type MapDefKey, MapDefs } from "../../../shared/defs/mapDefs.ts";
 import { GameConfig } from "../../../shared/gameConfig.ts";
 import * as net from "../../../shared/net/net.ts";
 import {
     type BotLevel,
+    BotFillCounts,
     BotLevels,
     type BotSettingsByLevel,
     defaultBotSettings,
@@ -214,6 +216,13 @@ export class TeamMenu {
         });
         $("#team-bot-ally").on("change", () => {
             this.setRoomProperty("privateBotAlly", $("#team-bot-ally").val() as BotLevel);
+        });
+        // 50v50 maps: fill the match with bots split across both sides
+        for (const count of BotFillCounts) {
+            $("#team-bot-fill").append($("<option/>", { value: count, text: count ? `${count} bots` : "None" }));
+        }
+        $("#team-bot-fill").on("change", () => {
+            this.setRoomProperty("privateBotFill", Number($("#team-bot-fill").val()));
         });
         // custom maps from the map maker
         $("#btn-team-map-upload").on("click", () => {
@@ -1078,6 +1087,11 @@ export class TeamMenu {
                     .val(this.roomData.privateBotAlly ?? "intermediate")
                     .prop("disabled", !this.isLeader);
                 $("#team-private-hint").toggle(!vsBots);
+                const fillDef = MapDefs[this.roomData.privateMapName as MapDefKey];
+                $("#team-bot-fill-row").toggle(!vsBots && !custom && !!fillDef?.gameMode.factionMode);
+                $("#team-bot-fill")
+                    .val(this.roomData.privateBotFill ?? 0)
+                    .prop("disabled", !this.isLeader);
                 // Same Kit / God Kit / Loot
                 const god = !!this.roomData.privateGodLoadout;
                 const shared = god && !!this.roomData.privateSharedKit;

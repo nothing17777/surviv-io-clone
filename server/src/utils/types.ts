@@ -6,11 +6,13 @@ import {
     type FindGameMatchData,
     type FindGamePrivateError,
     loadoutSchema,
+    MaxBotFill,
+    MaxPrivateBots,
     type PrivateBot,
     type PrivateLoadout,
     type VsBots,
     zBotSettingsByLevel,
-    zPrivateBots,
+    zPrivateBot,
     zPrivateLoadout,
     zVsBots,
 } from "../../../shared/types/api.ts";
@@ -80,7 +82,8 @@ export const zFindGamePrivateBody = z.object({
             godLoadout: z.boolean(),
             loadout: zPrivateLoadout.optional(),
             customMap: zCustomMap.optional(),
-            bots: zPrivateBots.optional(),
+            // custom bots plus the 50v50 fill
+            bots: z.array(zPrivateBot).max(MaxPrivateBots + MaxBotFill).optional(),
             vsBots: zVsBots.optional(),
             botSettings: zBotSettingsByLevel.optional(),
         })
