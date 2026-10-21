@@ -1,7 +1,13 @@
 import $ from "jquery";
 import { GameConfig } from "../../../shared/gameConfig.ts";
 import * as net from "../../../shared/net/net.ts";
-import { defaultPrivateLoadout, type FindGameMatchData, type PrivateLoadout } from "../../../shared/types/api.ts";
+import {
+    BotLevels,
+    defaultPrivateLoadout,
+    type FindGameMatchData,
+    MaxPrivateBots,
+    type PrivateLoadout,
+} from "../../../shared/types/api.ts";
 import type {
     RoomData,
     ServerToClientTeamMsg,
@@ -11,6 +17,7 @@ import type {
     TeamStateMsg,
 } from "../../../shared/types/team.ts";
 import { customMapBiomes, parseCustomMap } from "../../../shared/utils/customMap.ts";
+import { math } from "../../../shared/utils/math.ts";
 import { api } from "../api.ts";
 import type { AudioManager } from "../audioManager.ts";
 import type { ConfigManager } from "../config.ts";
@@ -171,6 +178,15 @@ export class TeamMenu {
             this.setRoomProperty("privateGodLoadout", true);
         });
         this.kitOff.on("click", () => this.setRoomProperty("privateGodLoadout", false));
+        // bots of each level for the private match
+        $("#team-bots-counts").on("change", ".team-bot-count", () => {
+            const bots = { ...this.roomData.privateBots };
+            for (const level of BotLevels) {
+                const val = Math.round(Number($(`#team-bots-${level}`).val()));
+                bots[level] = math.clamp(Number.isFinite(val) ? val : 0, 0, MaxPrivateBots);
+            }
+            this.setRoomProperty("privateBots", bots);
+        });
         // custom maps from the map maker
         $("#btn-team-map-upload").on("click", () => {
             if (this.isLeader) $("#team-map-file").trigger("click");
@@ -658,6 +674,11 @@ export class TeamMenu {
                     });
                     this.privateSizes.append(btn);
                     setButtonState(btn, this.roomData.privateTeamSize == size, this.isLeader);
+                }
+                for (const level of BotLevels) {
+                    $(`#team-bots-${level}`)
+                        .val(this.roomData.privateBots?.[level] ?? 0)
+                        .prop("disabled", !this.isLeader);
                 }
                 // Same Kit / God Kit / Loot
                 const god = !!this.roomData.privateGodLoadout;

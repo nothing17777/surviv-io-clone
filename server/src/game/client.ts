@@ -71,6 +71,7 @@ export class ClientBarn {
 
         const player = this.game.playerBarn.addPlayer(client, joinMsg, joinData);
         client.player = player;
+        this.game.onHumanJoined();
 
         return client;
     }

@@ -36,6 +36,7 @@ import { v2, type Vec2 } from "../../../../shared/utils/v2.ts";
 import { Config } from "../../config.ts";
 import { validateUserName } from "../../utils/badWords.ts";
 import { IDAllocator } from "../../utils/IDAllocator.ts";
+import type { BotBrain } from "../bot.ts";
 import { Client } from "../client.ts";
 import type { Game, JoinTokenData } from "../game.ts";
 import { Group, Team } from "../group.ts";
@@ -149,6 +150,10 @@ export class PlayerBarn {
     ) {
         const result = this.getGroupAndTeam(joinData.groupData);
         const group = result?.group;
+        // remember each private side's group so bots can join it
+        if (group && joinData.groupData.side !== undefined && !this.game.sideGroupHashes.has(joinData.groupData.side)) {
+            this.game.sideGroupHashes.set(joinData.groupData.side, group.hash);
+        }
         // solo 50v50 just chooses the smallest team everytime no matter what
         const team = this.game.map.factionMode && !this.game.isTeamMode
             ? this.getSmallestTeam()
@@ -198,6 +203,7 @@ export class PlayerBarn {
             joinData.quests,
         );
 
+        player.privateSide = joinData.groupData.side;
         this.activatePlayer(player, group, team);
         const godLoadout = this.game.godLoadout;
         player.setLoadout(
@@ -307,6 +313,7 @@ export class PlayerBarn {
 
         for (let i = 0; i < this.players.length; i++) {
             const player = this.players[i];
+            player.botBrain?.update(dt);
             player.update(dt);
 
             if (!player.dead && sendWinEmotes) {
@@ -1309,6 +1316,11 @@ export class Player extends BaseGameObject {
     isMobile: boolean;
 
     bot: boolean;
+
+    /** set on server-side AI players */
+    botBrain?: BotBrain;
+    /** private match side, 0 = Team A, 1 = Team B */
+    privateSide?: number;
 
     debug = {
         zoomEnabled: false,

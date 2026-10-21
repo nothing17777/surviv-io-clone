@@ -53,6 +53,19 @@ export const defaultPrivateLoadout: PrivateLoadout = {
     painkiller: 4,
 };
 
+export const BotLevels = ["beginner", "intermediate", "advanced", "hacker"] as const;
+export type BotLevel = (typeof BotLevels)[number];
+
+/** how many bots of each level a party leader adds to a private match */
+export const zBotCounts = z.object({
+    beginner: z.number().int().min(0).max(16),
+    intermediate: z.number().int().min(0).max(16),
+    advanced: z.number().int().min(0).max(16),
+    hacker: z.number().int().min(0).max(16),
+});
+export type BotCounts = z.infer<typeof zBotCounts>;
+export const MaxPrivateBots = 16;
+
 export const loadoutSchema = z.object({
     outfit: z.string(),
     melee: z.string(),

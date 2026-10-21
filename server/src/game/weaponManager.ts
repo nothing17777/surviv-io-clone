@@ -849,6 +849,8 @@ export class WeaponManager {
             spread = 0.0;
         }
         this.player.recoilTicker = 0.0;
+        // a bot's rolled hit goes exactly where it aimed
+        if (this.player.botBrain?.aimLocked) spread = 0.0;
 
         let bulletType = itemDef.bulletType;
 

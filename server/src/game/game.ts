@@ -7,6 +7,7 @@ import { math } from "../../../shared/utils/math.ts";
 import { Config } from "../config.ts";
 import { ServerLogger } from "../utils/logger.ts";
 import { type FindGamePrivateBody, type ServerGameConfig } from "../utils/types.ts";
+import { addPrivateBots, BotFiller } from "./bot.ts";
 import { ClientBarn } from "./client.ts";
 import { GameModeManager } from "./gameModeManager.ts";
 import { Grid } from "./grid.ts";
@@ -99,6 +100,12 @@ export class Game {
 
     joinTokens = new Map<string, JoinToken>();
 
+    /** private match side -> that side's group hash, so bots can join it */
+    sideGroupHashes = new Map<number, string>();
+    /** public games: fills empty slots with bots once a real player is in */
+    botFiller?: BotFiller;
+    private _botsAdded = false;
+
     get aliveCount(): number {
         return this.playerBarn.livingPlayers.length;
     }
@@ -177,6 +184,10 @@ export class Game {
 
         this.map.init();
 
+        if (!config.privateMatch) {
+            this.botFiller = new BotFiller(this, getModeMaxPlayers(this.map.mapDef, this.teamMode));
+        }
+
         this.logger.info(`Created in ${Date.now() - start} ms`);
 
         this.updateData();
@@ -228,6 +239,15 @@ export class Game {
         }
 
         if (this.started) this.startedTime += dt;
+
+        // bots only play alongside real people: once the last one leaves, end it
+        if (this._botsAdded && !this.over && !this.hasHumans()) {
+            this.logger.info("No real players left, ending game");
+            this.over = true;
+            this.stop();
+            return;
+        }
+        this.botFiller?.update(dt);
 
         //
         // Update modules
@@ -363,6 +383,23 @@ export class Game {
                 this.netSyncWarnings = 0;
                 this.netSyncWarnThreshold *= 2;
             }
+        }
+    }
+
+    /** a real (non bot) client still connected, playing or spectating */
+    hasHumans() {
+        return this.clientBarn.clients.length > 0;
+    }
+
+    /** called when a real player joins: bring in the bots */
+    onHumanJoined() {
+        if (this._botsAdded) return;
+        this._botsAdded = true;
+        const bots = this.config.privateMatch?.bots;
+        if (bots) {
+            addPrivateBots(this, bots);
+        } else {
+            this.botFiller?.start();
         }
     }
 

@@ -3,7 +3,7 @@ import { getCookie } from "hono/cookie";
 import type { UpgradeWebSocket, WSContext } from "hono/ws";
 import { randomUUID } from "node:crypto";
 import { type MapDefKey, MapDefs } from "../../shared/defs/mapDefs.ts";
-import { defaultPrivateLoadout, type FindGamePrivateError } from "../../shared/types/api.ts";
+import { BotLevels, defaultPrivateLoadout, type FindGamePrivateError, MaxPrivateBots } from "../../shared/types/api.ts";
 import {
     type ClientRoomData,
     type ClientToServerTeamMsg,
@@ -121,6 +121,7 @@ class Room {
         privateSharedKit: true,
         privateLoadout: { ...defaultPrivateLoadout },
         customMap: null,
+        privateBots: { beginner: 0, intermediate: 0, advanced: 0, hacker: 0 },
     };
 
     /** the full map file; data.customMap is just its summary for the menu */
@@ -255,6 +256,16 @@ class Room {
         if (props.privateLoadout) {
             this.data.privateLoadout = props.privateLoadout;
         }
+        if (props.privateBots) {
+            // zod clamps each level; cap the total too
+            const bots = { ...props.privateBots };
+            let room = MaxPrivateBots;
+            for (const level of BotLevels) {
+                bots[level] = Math.min(bots[level], room);
+                room -= bots[level];
+            }
+            this.data.privateBots = bots;
+        }
 
         // a private match holds both sides, so up to 8 players
         this.data.maxPlayers = this.data.privateMatch ? 8 : modes[gameModeIdx].teamMode;
@@ -373,6 +384,7 @@ class Room {
                     // without this every player keeps their own picks
                     loadout: this.data.privateSharedKit ? this.data.privateLoadout : undefined,
                     customMap: customMap ?? undefined,
+                    bots: this.data.privateBots,
                 }
                 : undefined,
             autoFill: this.data.privateMatch ? false : this.data.autoFill,

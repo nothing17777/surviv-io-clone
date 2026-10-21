@@ -7324,6 +7324,7 @@ input [type="image"]:focus {
     width: 40px;
 }
 
+#team-bots-counts,
 #team-god-heals {
     display: grid;
     grid-template-columns: 1fr 1fr;

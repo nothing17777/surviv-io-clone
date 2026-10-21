@@ -515,6 +515,7 @@ export class Bullet {
                 );
                 if (
                     collision
+                    && !obj.botBrain?.dodgeBullet(this)
                     && (!panCollision
                         || v2.lengthSqr(v2.sub(collision.point, this.startPos))
                             < v2.lengthSqr(v2.sub(panCollision.point, this.startPos)))

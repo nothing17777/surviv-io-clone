@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import type { CustomMapSummary } from "../utils/customMap.ts";
-import { type FindGameMatchData, type PrivateLoadout, zPrivateLoadout } from "./api.ts";
+import { type BotCounts, type FindGameMatchData, type PrivateLoadout, zBotCounts, zPrivateLoadout } from "./api.ts";
 
 export type TeamMenuErrorType =
     | "join_full"
@@ -44,6 +44,8 @@ export interface RoomData {
     privateLoadout: PrivateLoadout;
     /** map uploaded from the map maker; when set it replaces privateMapName */
     customMap: CustomMapSummary | null;
+    /** bots of each level added to the private match, all 0 = no bots */
+    privateBots: BotCounts;
 }
 
 //
@@ -118,6 +120,7 @@ export const zClientRoomData = z.object({
     privateMapName: z.string().optional(),
     privateTeamSize: z.number().optional(),
     privateGodLoadout: z.boolean().optional(),
+    privateBots: zBotCounts.optional(),
 });
 
 export type ClientRoomData = z.infer<typeof zClientRoomData>;
