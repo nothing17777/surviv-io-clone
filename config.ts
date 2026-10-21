@@ -103,11 +103,12 @@ export function getConfig(isProduction: boolean, dir: string) {
 
     // Static client builds (e.g. Vercel) can't read a config file from the server,
     // so let env vars point the client at the separately hosted API + game server.
-    const envApiUrl = process.env["SURVIV_API_URL"];
+    // a trailing slash (easy to paste into Vercel) would turn requests into //api/...
+    const envApiUrl = process.env["SURVIV_API_URL"]?.trim().replace(/\/+$/, "");
     if (envApiUrl) {
         config.proxies.default = { ...config.proxies.default, apiUrl: envApiUrl };
     }
-    const envGameAddress = process.env["SURVIV_GAME_ADDRESS"];
+    const envGameAddress = process.env["SURVIV_GAME_ADDRESS"]?.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
     if (envGameAddress) {
         // keyed by the game server's own region so the API can match them up
         config.regions = {
