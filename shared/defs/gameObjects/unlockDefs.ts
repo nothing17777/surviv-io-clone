@@ -1,3 +1,5 @@
+import { OutfitDefs } from "./outfitDefs.ts";
+
 export interface UnlockDef {
     type: "unlock";
     name: string;
@@ -5,13 +7,16 @@ export interface UnlockDef {
     free?: boolean;
 }
 
+const staffOutfits = ["outfitDev", "outfitMaintainer", "outfitGD", "outfitMod"];
+
 type UnlockDefKey = "unlock_default" | "unlock_new_account";
 export const UnlockDefs: Record<UnlockDefKey, UnlockDef> = {
     unlock_default: {
         type: "unlock",
         name: "standard-issue",
         unlocks: [
-            "outfitBase",
+            // every skin is free to pick, except the staff ones
+            ...Object.keys(OutfitDefs).filter((k) => !staffOutfits.includes(k)),
             "fists",
             "heal_basic",
             "boost_basic",
