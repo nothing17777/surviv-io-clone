@@ -7,7 +7,7 @@ import type { ObstacleDef } from "./obstacles/obstacleDefs.ts";
 import type { StructureDef } from "./structureDefs.ts";
 
 /**
- * Buildings, tunnels and edited buildings from the map maker.
+ * Tunnels from the map maker.
  *
  * Map object types are sent as ids from one fixed table, so new definitions
  * can't be added mid-game. Instead the table has a fixed set of empty slots
@@ -25,29 +25,10 @@ export const CustomBuildLimits = {
     maxWallLen: 64,
     buildingSlots: 160,
     structureSlots: 40,
-    minBuildingSize: 6,
-    maxBuildingSize: 96,
-    doorWidth: 4,
-    windowWidth: 4,
     minTunnelWidth: 4,
     maxTunnelWidth: 12,
     stairsLen: 5,
 };
-
-export interface CustomBuilding {
-    x: number;
-    y: number;
-    w: number;
-    h: number;
-    wall: CustomWallMaterial;
-    roof: number;
-    floor: number;
-    /** side 0 = left, 1 = top, 2 = right, 3 = bottom; at = distance from the side's start */
-    doors: Array<{ side: number; at: number }>;
-    windows: Array<{ side: number; at: number }>;
-    /** inside walls, axis aligned, in building space (center = 0,0) */
-    walls: Array<{ x1: number; y1: number; x2: number; y2: number }>;
-}
 
 export interface CustomTunnel {
     /** axis aligned path in world space; stairs up at both ends */
@@ -55,21 +36,8 @@ export interface CustomTunnel {
     width: number;
 }
 
-export interface CustomChild {
-    type: string;
-    x: number;
-    y: number;
-    ori: number;
-    scale?: number;
-    /** structures only: which of its layers the child belongs to */
-    layer?: number;
-}
-
 export interface CustomBuildSpec {
-    buildings: CustomBuilding[];
     tunnels: CustomTunnel[];
-    /** existing buildings or structures with their contents replaced */
-    edits: Array<{ type: string; children: CustomChild[] }>;
 }
 
 const wallTemplates: Record<CustomWallMaterial, RegExp> = {
@@ -77,13 +45,6 @@ const wallTemplates: Record<CustomWallMaterial, RegExp> = {
     brick: /^brick_wall_ext_\d+$/,
     metal: /^metal_wall_ext_\d+$/,
     concrete: /^concrete_wall_ext_\d+$/,
-};
-
-const wallColors: Record<CustomWallMaterial, number> = {
-    wood: 0x6b4a2b,
-    brick: 0x8a3c2c,
-    metal: 0x4f5459,
-    concrete: 0x6e6e6e,
 };
 
 export function customWallType(material: CustomWallMaterial, len: number) {
@@ -165,101 +126,6 @@ function wallRun(material: CustomWallMaterial, x0: number, y0: number, x1: numbe
     }
 }
 
-/** Corners of side `side` of a w×h box centered at 0,0, in walking order. */
-function sideLine(side: number, w: number, h: number) {
-    const hw = w / 2;
-    const hh = h / 2;
-    switch (side) {
-        case 0:
-            return { a: v2.create(-hw, -hh), b: v2.create(-hw, hh) };
-        case 1:
-            return { a: v2.create(-hw, hh), b: v2.create(hw, hh) };
-        case 2:
-            return { a: v2.create(hw, -hh), b: v2.create(hw, hh) };
-        default:
-            return { a: v2.create(-hw, -hh), b: v2.create(hw, -hh) };
-    }
-}
-
-export function sideLength(side: number, w: number, h: number) {
-    return side % 2 === 0 ? h : w;
-}
-
-export function createCustomBuildingDef(b: CustomBuilding): BuildingDef {
-    const { w, h } = b;
-    const children: Child[] = [];
-    const wallImgs: FloorImage[] = [];
-    const wallColor = wallColors[b.wall];
-
-    for (let side = 0; side < 4; side++) {
-        const len = sideLength(side, w, h);
-        const { a, b: end } = sideLine(side, w, h);
-        const dir = v2.normalize(v2.sub(end, a));
-        const gaps: Array<{ from: number; to: number; kind: "door" | "window" }> = [];
-        for (const d of b.doors) {
-            if (d.side === side) gaps.push({ from: d.at - 2, to: d.at + 2, kind: "door" });
-        }
-        for (const wi of b.windows) {
-            if (wi.side === side) gaps.push({ from: wi.at - 2, to: wi.at + 2, kind: "window" });
-        }
-        gaps.sort((x, y) => x.from - y.from);
-        let cursor = 0;
-        const runs: Array<[number, number]> = [];
-        for (const g of gaps) {
-            const from = math_clamp(g.from, 0, len);
-            const to = math_clamp(g.to, 0, len);
-            if (from < cursor || to - from < 3.99) continue; // overlapping or clipped at a corner
-            runs.push([cursor, from]);
-            cursor = to;
-            const p0 = v2.add(a, v2.mul(dir, from));
-            const center = v2.add(a, v2.mul(dir, (from + to) / 2));
-            if (g.kind === "door") {
-                // a door's hinge sits at its pos and it swings 4 units along +y (ori 0) or +x (ori 3)
-                children.push({ type: "house_door_01", pos: p0, scale: 1, ori: side % 2 === 0 ? 0 : 3 });
-            } else {
-                children.push({ type: "house_window_01", pos: center, scale: 1, ori: side % 2 === 0 ? 0 : 1 });
-                const half = side % 2 === 0 ? v2.create(0.4, 2) : v2.create(2, 0.4);
-                wallImgs.push(solid(rect(center.x - half.x, center.y - half.y, center.x + half.x, center.y + half.y), 0x9bc4d6));
-            }
-        }
-        runs.push([cursor, len]);
-        for (const [s, e] of runs) {
-            if (e - s < 0.01) continue;
-            const p = v2.add(a, v2.mul(dir, s));
-            const q = v2.add(a, v2.mul(dir, e));
-            wallRun(b.wall, p.x, p.y, q.x, q.y, children);
-            wallImgs.push(solid(rect(p.x - 0.5, p.y - 0.5, q.x + 0.5, q.y + 0.5), wallColor));
-        }
-    }
-    for (const iw of b.walls) {
-        const x2 = Math.abs(iw.x2 - iw.x1) >= Math.abs(iw.y2 - iw.y1) ? iw.x2 : iw.x1;
-        const y2 = x2 === iw.x1 ? iw.y2 : iw.y1;
-        wallRun(b.wall, iw.x1, iw.y1, x2, y2, children);
-        wallImgs.push(solid(rect(iw.x1 - 0.5, iw.y1 - 0.5, x2 + 0.5, y2 + 0.5), wallColor));
-    }
-
-    const inside = rect(-w / 2, -h / 2, w / 2, h / 2);
-    return {
-        type: "building",
-        map: { display: true, shapes: [{ collider: collider.copy(inside), color: b.roof }] },
-        terrain: {},
-        zIdx: 1,
-        floor: {
-            surfaces: [{ type: "house", collision: [collider.copy(inside)] }],
-            imgs: [solid(inside, b.floor), ...wallImgs],
-        },
-        ceiling: {
-            zoomRegions: [{ zoomIn: rect(-w / 2 + 0.5, -h / 2 + 0.5, w / 2 - 0.5, h / 2 - 0.5) }],
-            vision: { width: 4 },
-            imgs: [solid(rect(-w / 2 - 0.75, -h / 2 - 0.75, w / 2 + 0.75, h / 2 + 0.75), b.roof)],
-        },
-        mapObjects: children,
-    };
-}
-
-function math_clamp(v: number, lo: number, hi: number) {
-    return Math.max(lo, Math.min(hi, v));
-}
 
 //
 // Tunnels: the path is rasterized onto a 1 unit grid, so corners, crossings
@@ -434,13 +300,7 @@ export function createCustomTunnelDefs(t: CustomTunnel) {
 //
 
 export interface AppliedCustomBuilds {
-    buildingTypes: string[];
     tunnelTypes: Array<{ type: string; pos: Vec2 }>;
-    editTypes: string[];
-}
-
-function toChild(c: CustomChild): Child {
-    return { type: c.type, pos: v2.create(c.x, c.y), scale: c.scale ?? 1, ori: c.ori };
 }
 
 /**
@@ -454,20 +314,19 @@ export function applyCustomBuilds(
     let nextB = 0;
     let nextS = 0;
     const takeB = (def: BuildingDef) => {
-        if (nextB >= CustomBuildLimits.buildingSlots) throw new Error("Too many custom buildings");
+        if (nextB >= CustomBuildLimits.buildingSlots) throw new Error("Too many tunnels");
         const name = `custom_bldg_${nextB++}`;
         defs[name] = def;
         return name;
     };
     const takeS = (def: StructureDef) => {
-        if (nextS >= CustomBuildLimits.structureSlots) throw new Error("Too many tunnels or edited structures");
+        if (nextS >= CustomBuildLimits.structureSlots) throw new Error("Too many tunnels");
         const name = `custom_struct_${nextS++}`;
         defs[name] = def;
         return name;
     };
 
-    const out: AppliedCustomBuilds = { buildingTypes: [], tunnelTypes: [], editTypes: [] };
-    for (const b of spec.buildings) out.buildingTypes.push(takeB(createCustomBuildingDef(b)));
+    const out: AppliedCustomBuilds = { tunnelTypes: [] };
     for (const t of spec.tunnels) {
         const { origin, top, sub, floorRects, stairs } = createCustomTunnelDefs(t);
         const topType = takeB(top);
@@ -483,24 +342,6 @@ export function applyCustomBuilds(
             mask: floorRects.map((r) => collider.copy(r)),
         });
         out.tunnelTypes.push({ type, pos: origin });
-    }
-    for (const e of spec.edits) {
-        const base = defs[e.type] as BuildingDef | StructureDef | undefined;
-        if (base?.type === "building") {
-            const def = util.cloneDeep(base);
-            def.mapObjects = e.children.map(toChild);
-            out.editTypes.push(takeB(def));
-        } else if (base?.type === "structure") {
-            const def = util.cloneDeep(base);
-            def.layers = def.layers.map((layer, i) => {
-                const layerDef = util.cloneDeep(defs[layer.type] as BuildingDef);
-                layerDef.mapObjects = e.children.filter((c) => (c.layer ?? 0) === i).map(toChild);
-                return { ...layer, type: takeB(layerDef) };
-            });
-            out.editTypes.push(takeS(def));
-        } else {
-            out.editTypes.push(e.type);
-        }
     }
     return out;
 }

@@ -4,7 +4,6 @@ import {
     applyCustomBuilds,
     type CustomBuildSpec,
     CustomBuildLimits,
-    customWallMaterials,
 } from "../defs/mapObjects/customBuildDefs.ts";
 import { MapObjectDefs } from "../defs/register.ts";
 import { collider } from "./collider.ts";
@@ -36,11 +35,8 @@ export const CustomMapLimits = {
     minRiverWidth: 4,
     maxRiverWidth: 40,
     maxSpawns: 32,
-    maxBuildings: 32,
     maxTunnels: 16,
     maxTunnelPoints: 32,
-    maxChildren: 120,
-    maxEditedObjects: 24,
     /** the whole file, as JSON text */
     maxBytes: 400 * 1024,
 };
@@ -51,36 +47,9 @@ export const customMapGrassInset = 18;
 
 const zPos = z.number().min(0).max(CustomMapLimits.maxSize);
 
-const zSidePos = z.object({ side: z.number().int().min(0).max(3), at: z.number().min(0).max(CustomBuildLimits.maxBuildingSize) });
-const zColor = z.number().int().min(0).max(0xffffff);
-
-export const zCustomBuilding = z.object({
-    x: zPos,
-    y: zPos,
-    w: z.number().int().min(CustomBuildLimits.minBuildingSize).max(CustomBuildLimits.maxBuildingSize),
-    h: z.number().int().min(CustomBuildLimits.minBuildingSize).max(CustomBuildLimits.maxBuildingSize),
-    wall: z.enum(customWallMaterials),
-    roof: zColor,
-    floor: zColor,
-    doors: z.array(zSidePos).max(16),
-    windows: z.array(zSidePos).max(32),
-    walls: z
-        .array(z.object({ x1: z.number(), y1: z.number(), x2: z.number(), y2: z.number() }))
-        .max(32),
-});
-
 export const zCustomTunnel = z.object({
     points: z.array(z.object({ x: zPos, y: zPos })).min(2).max(CustomMapLimits.maxTunnelPoints),
     width: z.number().int().min(CustomBuildLimits.minTunnelWidth).max(CustomBuildLimits.maxTunnelWidth),
-});
-
-const zChild = z.object({
-    type: z.string().max(64),
-    x: z.number().min(-200).max(200),
-    y: z.number().min(-200).max(200),
-    ori: z.number().int().min(0).max(3),
-    scale: z.number().min(0.5).max(2).optional(),
-    layer: z.number().int().min(0).max(3).optional(),
 });
 
 export const zCustomMap = z.object({
@@ -116,8 +85,6 @@ export const zCustomMap = z.object({
                 y: zPos,
                 ori: z.number().int().min(0).max(3),
                 scale: z.number().min(0.5).max(2).optional(),
-                /** a building's or structure's contents, replacing the built in ones */
-                children: z.array(zChild).max(CustomMapLimits.maxChildren).optional(),
             }),
         )
         .max(CustomMapLimits.maxObjects),
@@ -125,8 +92,7 @@ export const zCustomMap = z.object({
     spawns: z
         .array(z.object({ x: zPos, y: zPos, side: z.number().int().min(0).max(1) }))
         .max(CustomMapLimits.maxSpawns),
-    /** drawn in the map maker; all missing in older map files */
-    buildings: z.array(zCustomBuilding).max(CustomMapLimits.maxBuildings).optional(),
+    /** drawn in the map maker; missing in older map files */
     tunnels: z.array(zCustomTunnel).max(CustomMapLimits.maxTunnels).optional(),
 });
 
@@ -229,16 +195,6 @@ export function parseCustomMap(input: unknown): { map: CustomMap } | { error: st
             if (p.x > map.width || p.y > map.height) return { error: "A river point is off the map." };
         }
     }
-    for (const obj of map.objects) {
-        for (const c of obj.children ?? []) {
-            if (isCustomBuildType(c.type) || !MapObjectDefs.typeToDefSafe(c.type)) {
-                return { error: `Unknown object "${c.type}" inside "${obj.type}".` };
-            }
-        }
-    }
-    if (map.objects.filter((o) => o.children).length > CustomMapLimits.maxEditedObjects) {
-        return { error: `Only ${CustomMapLimits.maxEditedObjects} buildings can have their insides edited.` };
-    }
     for (const t of map.tunnels ?? []) {
         for (let i = 0; i + 1 < t.points.length; i++) {
             const a = t.points[i];
@@ -252,25 +208,19 @@ export function parseCustomMap(input: unknown): { map: CustomMap } | { error: st
         // fill a scratch copy of the table, so a map that doesn't fit is caught here
         applyCustomBuilds({ ...RawMapObjectDefs }, customBuildSpec(map));
     } catch (err) {
-        return { error: err instanceof Error ? err.message : "The buildings in this map don't fit." };
+        return { error: err instanceof Error ? err.message : "The tunnels in this map don't fit." };
     }
     return { map };
 }
 
-/** What gets generated from a map: its own buildings, tunnels and edited buildings. */
+/** What gets generated from a map: its tunnels. */
 export function customBuildSpec(map: CustomMap): CustomBuildSpec {
-    return {
-        buildings: map.buildings ?? [],
-        tunnels: map.tunnels ?? [],
-        edits: map.objects
-            .filter((o) => o.children)
-            .map((o) => ({ type: o.type, children: o.children! })),
-    };
+    return { tunnels: map.tunnels ?? [] };
 }
 
 /**
  * Fill the live map object table for this map. Returns the generated types,
- * in the order of spec.buildings, spec.tunnels and spec.edits.
+ * in the order of spec.tunnels.
  */
 export function applyCustomMapBuilds(spec: CustomBuildSpec) {
     const applied = applyCustomBuilds(RawMapObjectDefs, spec);

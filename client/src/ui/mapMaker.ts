@@ -16,17 +16,10 @@ import {
     customBuildSpec,
     fitInsideMap,
     isCustomBuildType,
-    isPlaceableType,
     parseCustomMap,
     smoothRiverPoints,
 } from "../../../shared/utils/customMap.ts";
-import {
-    type AppliedCustomBuilds,
-    type CustomBuilding,
-    CustomBuildLimits,
-    customWallMaterials,
-    sideLength,
-} from "../../../shared/defs/mapObjects/customBuildDefs.ts";
+import { type AppliedCustomBuilds, CustomBuildLimits } from "../../../shared/defs/mapObjects/customBuildDefs.ts";
 import { mapHelpers } from "../../../shared/utils/mapHelpers.ts";
 import { math } from "../../../shared/utils/math.ts";
 import { generateTerrain } from "../../../shared/utils/terrainGen.ts";
@@ -41,7 +34,7 @@ import { itemImage } from "./modePicker.ts";
  * uploadable to a private party match.
  */
 
-type Tool = "select" | "place" | "erase" | "river" | "spawnA" | "spawnB" | "zone" | "building" | "tunnel";
+type Tool = "select" | "place" | "erase" | "river" | "spawnA" | "spawnB" | "zone" | "tunnel";
 
 const svg = (body: string) =>
     `<svg class="mm-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
@@ -54,7 +47,6 @@ const toolIcons: Record<Tool, string> = {
     spawnA: svg(
         `<circle cx="12" cy="12" r="9" fill="#3d8bff" stroke="none"/><text x="12" y="16.5" font-size="12" text-anchor="middle" fill="#fff" stroke="none" font-weight="bold">A</text>`,
     ),
-    building: svg(`<path d="M3 11l9-7 9 7v9H3z"/><path d="M10 20v-5h4v5"/>`),
     tunnel: svg(`<path d="M4 20V11a8 8 0 0116 0v9"/><path d="M8 20v-8a4 4 0 018 0v8"/>`),
     zone: svg(`<circle cx="12" cy="12" r="9" stroke-dasharray="3 2"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/>`),
     spawnB: svg(
@@ -80,8 +72,7 @@ const tools: Array<{ id: Tool; label: string; key: string; tip: string }> = [
     { id: "river", label: "River", key: "4", tip: "Click to add points, double-click or Enter to finish." },
     { id: "spawnA", label: "Spawn A", key: "5", tip: "Click to add a Team A start point." },
     { id: "spawnB", label: "Spawn B", key: "6", tip: "Click to add a Team B start point." },
-    { id: "building", label: "Building", key: "8", tip: "Drag to draw a building. Select it to add doors, windows and walls." },
-    { id: "tunnel", label: "Tunnel", key: "9", tip: "Click to add points, double-click or Enter to finish. Stairs go at both ends." },
+    { id: "tunnel", label: "Tunnel", key: "8", tip: "Click to add points, double-click or Enter to finish. Stairs go at both ends." },
     { id: "zone", label: "Zone", key: "7", tip: "Click where the final zone should close. Clear it in the Map panel." },
 ];
 
@@ -545,20 +536,14 @@ type Drag =
     | { kind: "spawn"; idx: number; moved: boolean; before: string }
     | { kind: "riverPoint"; river: number; point: number; moved: boolean; before: string }
     | { kind: "paint"; last: Vec2 }
-    | { kind: "newBuilding"; start: Vec2 }
-    | { kind: "building"; idx: number; offset: Vec2; moved: boolean; before: string }
     | { kind: "erase" };
 
 type Selection =
     | { kind: "object"; idx: number }
     | { kind: "spawn"; idx: number }
     | { kind: "river"; idx: number }
-    | { kind: "building"; idx: number }
     | { kind: "tunnel"; idx: number }
     | null;
-
-/** what clicks on a selected building add */
-type BuildMode = "door" | "window" | "wall" | null;
 
 class MapMaker {
     root = $("#map-maker");
@@ -588,12 +573,10 @@ class MapMaker {
     riverWidth = 8;
     riverLake = false;
 
-    buildMode: BuildMode = null;
-    wallStart: Vec2 | null = null;
     tunnelDraft: Vec2[] = [];
     tunnelWidth = 6;
-    /** this map's generated buildings, tunnels and edited buildings (see applyCustomMapBuilds) */
-    applied: AppliedCustomBuilds = { buildingTypes: [], tunnelTypes: [], editTypes: [] };
+    /** this map's generated tunnels (see applyCustomMapBuilds) */
+    applied: AppliedCustomBuilds = { tunnelTypes: [] };
 
     undoStack: string[] = [];
     redoStack: string[] = [];
@@ -651,13 +634,16 @@ class MapMaker {
                 </div>
                 <div class="mm-view">
                     <canvas class="mm-canvas"></canvas>
+                    <div class="mm-layers" title="Which layer you're looking at (U switches)">
+                        <button class="mm-btn" data-layer="surface">Surface</button>
+                        <button class="mm-btn" data-layer="under">Underground</button>
+                    </div>
                     <div class="mm-hint"></div>
                     <div class="mm-coords"></div>
                     <div class="mm-zoom">
                         <button class="mm-btn" id="mm-zoom-in" title="Zoom in (+)">+</button>
                         <button class="mm-btn" id="mm-zoom-out" title="Zoom out (-)">&minus;</button>
                         <button class="mm-btn" id="mm-fit" title="Fit map (F)">Fit</button>
-                        <button class="mm-btn" id="mm-under" title="Show tunnels and bunkers below ground (U)">Underground</button>
                     </div>
                     <div class="mm-toast"></div>
                 </div>
@@ -730,7 +716,7 @@ class MapMaker {
         this.root.find("#mm-zoom-in").on("click", () => this.zoomBy(1.25));
         this.root.find("#mm-zoom-out").on("click", () => this.zoomBy(0.8));
         this.root.find("#mm-fit").on("click", () => this.fit());
-        this.root.find("#mm-under").on("click", () => this.toggleUnderground());
+        this.root.on("click", "[data-layer]", (e) => this.setLayer($(e.currentTarget).attr("data-layer") === "under"));
         this.root.find("#mm-name").on("change", (e) => {
             const name = String($(e.currentTarget).val()).trim().slice(0, 32) || "My Map";
             this.edit(() => (this.map.name = name));
@@ -787,31 +773,6 @@ class MapMaker {
             const v = math.clamp(Number($(e.currentTarget).val()) || 1, 0.5, 2);
             this.edit(() => (this.map.objects[sel.idx].scale = Math.round(v * 100) / 100));
         });
-        const editBuilding = (fn: (b: CustomBuilding) => void) => {
-            const sel = this.selection;
-            if (sel?.kind === "building") this.edit(() => fn(this.map.buildings![sel.idx]));
-        };
-        this.root.on("change", "#mm-b-w, #mm-b-h", (e) => {
-            const v = math.clamp(
-                Math.round(Number($(e.currentTarget).val()) || 12),
-                CustomBuildLimits.minBuildingSize,
-                CustomBuildLimits.maxBuildingSize,
-            );
-            editBuilding((b) => {
-                if (e.currentTarget.id === "mm-b-w") b.w = v;
-                else b.h = v;
-            });
-        });
-        this.root.on("change", "#mm-b-wall", (e) => {
-            editBuilding((b) => (b.wall = $(e.currentTarget).val() as CustomBuilding["wall"]));
-        });
-        this.root.on("change", "#mm-b-roof, #mm-b-floor", (e) => {
-            const c = Number.parseInt(String($(e.currentTarget).val()).slice(1), 16);
-            editBuilding((b) => {
-                if (e.currentTarget.id === "mm-b-roof") b.roof = c;
-                else b.floor = c;
-            });
-        });
         this.root.on("input change", "#mm-tunnel-width", (e) => {
             const v = Number($(e.currentTarget).val()) || 6;
             this.root.find("#mm-tunnel-width-val").text(v);
@@ -821,14 +782,6 @@ class MapMaker {
             } else {
                 this.tunnelWidth = v;
             }
-        });
-        this.root.on("change", ".mm-child-pos", (e) => {
-            const sel = this.selection;
-            if (sel?.kind !== "object") return;
-            const i = Number($(e.currentTarget).attr("data-child"));
-            const axis = $(e.currentTarget).attr("data-axis") as "x" | "y";
-            const v = math.clamp(Number($(e.currentTarget).val()) || 0, -200, 200);
-            this.edit(() => (this.map.objects[sel.idx].children![i][axis] = v));
         });
         this.root.on("input change", "#mm-river-width", (e) => {
             const v = math.clamp(
@@ -1033,12 +986,12 @@ class MapMaker {
         this.fit();
     }
 
-    /** regenerate the custom slots so the canvas shows the map's own buildings */
+    /** regenerate the custom slots so the canvas shows the map's tunnels */
     applyBuilds() {
         try {
             this.applied = applyCustomMapBuilds(customBuildSpec(this.map));
         } catch {
-            this.applied = { buildingTypes: [], tunnelTypes: [], editTypes: [] };
+            this.applied = { tunnelTypes: [] };
         }
         for (const cache of [shapeCache, undergroundCache]) {
             for (const k of [...cache.keys()]) if (isCustomBuildType(k)) cache.delete(k);
@@ -1060,6 +1013,9 @@ class MapMaker {
         );
         this.root.find("#mm-zoneclear").toggle(!!end);
         this.root.find("#mm-snap").prop("checked", this.snap);
+        this.root.find("[data-layer]").each((_i, el) => {
+            $(el).toggleClass("mm-active", ($(el).attr("data-layer") === "under") === this.underground);
+        });
         this.root.find("#mm-use").toggle(!!this.partyHook);
         this.root.find(".mm-tool").each((_i, el) => {
             $(el).toggleClass("mm-active", $(el).attr("data-tool") === this.tool);
@@ -1074,9 +1030,7 @@ class MapMaker {
         this.root.find(".mm-stats").html("").append(
             $("<div>", { text: `${this.map.objects.length} / ${CustomMapLimits.maxObjects} objects` }),
             $("<div>", { text: `${this.map.rivers.length} rivers & lakes` }),
-            $("<div>", {
-                text: `${this.map.buildings?.length ?? 0} buildings, ${this.map.tunnels?.length ?? 0} tunnels`,
-            }),
+            $("<div>", { text: `${this.map.tunnels?.length ?? 0} tunnels` }),
             $("<div>", {
                 text: a || b ? `Spawns: ${a} Team A, ${b} Team B` : "No spawns set: players start at random spots",
             }),
@@ -1141,43 +1095,12 @@ class MapMaker {
                     }"></label>`
                     : ""
             }
-                <div class="mm-row">${btn("dup", "Duplicate")}${btn("del", "Delete", "mm-btn-danger")}</div>
-                <div class="mm-inside"></div>`);
+                <div class="mm-row">${btn("dup", "Duplicate")}${btn("del", "Delete", "mm-btn-danger")}</div>`);
             box.find(".mm-sel-name").text(prettyName(obj.type));
-            this.renderInside(box.find(".mm-inside"), obj);
-        } else if (sel?.kind === "building" && this.map.buildings?.[sel.idx]) {
-            const b = this.map.buildings[sel.idx];
-            const mode = this.buildMode;
-            const modeBtn = (m: string, label: string) =>
-                `<button class="mm-btn${mode === m ? " mm-active" : ""}" data-act="mode-${m}">${label}</button>`;
-            const wallOpts = customWallMaterials
-                .map((m) => `<option value="${m}"${m === b.wall ? " selected" : ""}>${prettyName(m)}</option>`)
-                .join("");
-            const hexColor = (c: number) => `#${c.toString(16).padStart(6, "0")}`;
-            box.html(`<h3>Building</h3>
-                <div class="mm-row">
-                    <label>W <input id="mm-b-w" class="mm-input" type="number" min="${CustomBuildLimits.minBuildingSize}" max="${CustomBuildLimits.maxBuildingSize}" value="${b.w}"></label>
-                    <label>H <input id="mm-b-h" class="mm-input" type="number" min="${CustomBuildLimits.minBuildingSize}" max="${CustomBuildLimits.maxBuildingSize}" value="${b.h}"></label>
-                </div>
-                <label>Walls <select id="mm-b-wall" class="mm-input">${wallOpts}</select></label>
-                <div class="mm-row">
-                    <label>Roof <input id="mm-b-roof" type="color" value="${hexColor(b.roof)}"></label>
-                    <label>Floor <input id="mm-b-floor" type="color" value="${hexColor(b.floor)}"></label>
-                </div>
-                <div class="mm-row">${modeBtn("door", "Add door")}${modeBtn("window", "Add window")}${modeBtn("wall", "Draw wall")}</div>
-                <div class="mm-sub">${
-                mode === "door" || mode === "window"
-                    ? `Click on an outside wall to add a ${mode}. Esc when done.`
-                    : mode === "wall"
-                    ? this.wallStart ? "Click where the wall ends." : "Click where an inside wall starts."
-                    : `${b.doors.length} doors, ${b.windows.length} windows, ${b.walls.length} inside walls. Put furniture and loot inside with Place.`
-            }</div>
-                <div class="mm-row">${btn("b-clear-openings", "Remove doors & windows")}${btn("b-clear-walls", "Remove inside walls")}</div>
-                <div class="mm-row">${btn("del", "Delete", "mm-btn-danger")}</div>`);
         } else if (sel?.kind === "tunnel" && this.map.tunnels?.[sel.idx]) {
             const t = this.map.tunnels[sel.idx];
             box.html(`<h3>Tunnel</h3>
-                <div class="mm-sub">${t.points.length} points. Turn on Underground (U) to see it.</div>
+                <div class="mm-sub">${t.points.length} points. Drag the width slider to resize it.</div>
                 ${this.tunnelWidthControl(t.width)}
                 <div class="mm-row">${btn("del", "Delete", "mm-btn-danger")}</div>`);
         } else if (this.tool === "tunnel") {
@@ -1189,9 +1112,6 @@ class MapMaker {
             }</div>
                 ${this.tunnelWidthControl(this.tunnelWidth)}
                 ${this.tunnelDraft.length >= 2 ? `<div class="mm-row">${btn("finish-tunnel", "Finish")}</div>` : ""}`);
-        } else if (this.tool === "building") {
-            box.html(`<h3>New building</h3>
-                <div class="mm-sub">Drag on the map to draw its floor. Then add doors, windows and inside walls.</div>`);
         } else if (sel?.kind === "spawn") {
             const s = this.map.spawns[sel.idx];
             box.html(`<h3>Spawn point</h3><div class="mm-sel-name">Team ${s.side === 0 ? "A" : "B"}</div>
@@ -1251,112 +1171,12 @@ class MapMaker {
             case "finish-tunnel":
                 this.finishTunnel();
                 break;
-            case "mode-door":
-            case "mode-window":
-            case "mode-wall": {
-                const m = act.slice(5) as BuildMode;
-                this.buildMode = this.buildMode === m ? null : m;
-                this.wallStart = null;
-                if (this.tool !== "building") this.setTool("building");
-                else this.syncUi();
-                break;
-            }
-            case "b-clear-openings":
-            case "b-clear-walls":
-                if (sel?.kind === "building") {
-                    this.edit(() => {
-                        const b = this.map.buildings![sel.idx];
-                        if (act === "b-clear-walls") b.walls = [];
-                        else b.doors = b.windows = [];
-                    });
-                }
-                break;
-            case "inside-edit":
-            case "inside-reset":
-            case "inside-add":
-                if (sel?.kind === "object") this.insideAction(act, sel.idx);
-                break;
-            default:
-                if (sel?.kind === "object" && /^child-(del|swap)-\d+$/.test(act)) {
-                    const [, what, n] = act.split("-");
-                    this.edit(() => {
-                        const kids = this.map.objects[sel.idx].children!;
-                        if (what === "del") kids.splice(Number(n), 1);
-                        else kids[Number(n)].type = this.placeType;
-                    });
-                }
         }
     }
 
     tunnelWidthControl(width: number) {
         return `<label>Width <span id="mm-tunnel-width-val">${width}</span>
             <input id="mm-tunnel-width" type="range" step="2" min="${CustomBuildLimits.minTunnelWidth}" max="${CustomBuildLimits.maxTunnelWidth}" value="${width}"></label>`;
-    }
-
-    /** "Edit inside" for houses, bunkers and other buildings with contents */
-    renderInside(box: JQuery, obj: CustomMap["objects"][number]) {
-        const def = MapObjectDefs.typeToDefSafe(obj.type);
-        if (def?.type !== "building" && def?.type !== "structure") return;
-        const btn = (act: string, label: string, cls = "") =>
-            `<button class="mm-btn ${cls}" data-act="${act}">${label}</button>`;
-        if (!obj.children) {
-            box.html(`<div class="mm-sub">Change the furniture, crates and loot inside.</div>
-                <div class="mm-row">${btn("inside-edit", "Edit inside")}</div>`);
-            return;
-        }
-        box.html(`<h3>Inside</h3>
-            <div class="mm-sub">&times; removes, &#8644; swaps for the picked object (${prettyName(this.placeType)}).</div>
-            <div class="mm-row">${btn("inside-add", "Add picked object")}${btn("inside-reset", "Reset")}</div>
-            <div class="mm-children"></div>`);
-        const list = box.find(".mm-children");
-        obj.children.forEach((c, i) => {
-            const row = $("<div>", { class: "mm-child" });
-            row.append(
-                $("<span>", { text: prettyName(c.type) + (def.type === "structure" && c.layer ? " (below)" : "") }),
-                $("<input>", { class: "mm-input mm-child-pos", type: "number", step: 0.5, value: c.x, "data-child": i, "data-axis": "x", title: "x" }),
-                $("<input>", { class: "mm-input mm-child-pos", type: "number", step: 0.5, value: c.y, "data-child": i, "data-axis": "y", title: "y" }),
-                $(btn(`child-swap-${i}`, "&#8644;")),
-                $(btn(`child-del-${i}`, "&times;", "mm-btn-danger")),
-            );
-            list.append(row);
-        });
-    }
-
-    insideAction(act: string, idx: number) {
-        const obj = this.map.objects[idx];
-        if (act === "inside-reset") {
-            this.edit(() => delete obj.children);
-            return;
-        }
-        if (act === "inside-add") {
-            if (!isPlaceableType(this.placeType)) return;
-            this.edit(() => obj.children!.push({ type: this.placeType, x: 0, y: 0, ori: 0 }));
-            return;
-        }
-        if (this.map.objects.filter((o) => o.children).length >= CustomMapLimits.maxEditedObjects) {
-            this.toast(`Up to ${CustomMapLimits.maxEditedObjects} buildings can have their insides edited.`);
-            return;
-        }
-        // start from the building's own contents
-        const def = MapObjectDefs.typeToDef(obj.type) as Record<string, any>;
-        const children: NonNullable<CustomMap["objects"][number]["children"]> = [];
-        const take = (bdef: Record<string, any> | undefined, layer?: number, at = v2.create(0, 0)) => {
-            for (const c of bdef?.mapObjects ?? []) {
-                const type = pickType(c.type);
-                if (!type || !MapObjectDefs.typeToDefSafe(type)) continue;
-                children.push({
-                    type,
-                    x: Math.round((c.pos.x + at.x) * 100) / 100,
-                    y: Math.round((c.pos.y + at.y) * 100) / 100,
-                    ori: c.ori ?? 0,
-                    ...(c.scale && c.scale !== 1 ? { scale: c.scale } : {}),
-                    ...(layer !== undefined ? { layer } : {}),
-                });
-            }
-        };
-        if (def.type === "building") take(def);
-        else def.layers.forEach((l: any, i: number) => take(MapObjectDefs.typeToDefSafe(pickType(l.type)) as any, i));
-        this.edit(() => (obj.children = children.slice(0, CustomMapLimits.maxChildren)));
     }
 
     toast(msg: string) {
@@ -1401,22 +1221,26 @@ class MapMaker {
     }
 
     toggleUnderground() {
-        this.underground = !this.underground;
-        this.root.find("#mm-under").toggleClass("mm-active", this.underground);
-        this.toast(this.underground ? "Underground view: tunnels and bunker floors" : "Surface view");
+        this.setLayer(!this.underground);
+    }
+
+    /** two layers: the ground, and below it the tunnels and bunker floors */
+    setLayer(underground: boolean) {
+        if (this.underground === underground) return;
+        this.underground = underground;
+        this.root.find("[data-layer]").each((_i, el) => {
+            $(el).toggleClass("mm-active", ($(el).attr("data-layer") === "under") === underground);
+        });
+        this.toast(underground ? "Underground layer: tunnels and bunker floors" : "Surface layer");
         this.queueRender();
     }
 
     setTool(tool: Tool) {
         if (this.tool === "river" && tool !== "river") this.riverDraft = [];
         if (tool !== "tunnel") this.tunnelDraft = [];
-        if (tool !== "building") {
-            this.buildMode = null;
-            this.wallStart = null;
-        }
+        if (tool === "tunnel") this.setLayer(true);
         this.tool = tool;
-        const keepBuilding = tool === "building" && this.selection?.kind === "building";
-        if (tool !== "select" && !keepBuilding) this.selection = null;
+        if (tool !== "select") this.selection = null;
         this.syncUi();
     }
 
@@ -1427,7 +1251,6 @@ class MapMaker {
         this.map.objects = this.map.objects.filter((o) => o.x <= w && o.y <= h);
         for (const o of this.map.objects) this.keepInside(o);
         this.map.spawns = this.map.spawns.filter((s) => s.x <= w && s.y <= h);
-        if (this.map.buildings) this.map.buildings = this.map.buildings.filter((b) => b.x <= w && b.y <= h);
         if (this.map.tunnels) this.map.tunnels = this.map.tunnels.filter((t) => t.points.every((p) => p.x <= w && p.y <= h));
         for (const r of this.map.rivers) {
             for (const p of r.points) {
@@ -1494,7 +1317,6 @@ class MapMaker {
         this.edit(() => {
             if (sel.kind === "object") this.map.objects.splice(sel.idx, 1);
             else if (sel.kind === "spawn") this.map.spawns.splice(sel.idx, 1);
-            else if (sel.kind === "building") this.map.buildings!.splice(sel.idx, 1);
             else if (sel.kind === "tunnel") this.map.tunnels!.splice(sel.idx, 1);
             else this.map.rivers.splice(sel.idx, 1);
             this.selection = null;
@@ -1549,78 +1371,6 @@ class MapMaker {
         const last = this.tunnelDraft[this.tunnelDraft.length - 1];
         if (!last) return p;
         return Math.abs(p.x - last.x) >= Math.abs(p.y - last.y) ? v2.create(p.x, last.y) : v2.create(last.x, p.y);
-    }
-
-    addBuilding(a: Vec2, b: Vec2) {
-        const min = CustomBuildLimits.minBuildingSize;
-        const w = Math.round(Math.abs(b.x - a.x));
-        const h = Math.round(Math.abs(b.y - a.y));
-        if (w < min || h < min) {
-            this.toast(`Buildings are at least ${min} by ${min}. Drag a bigger box.`);
-            return;
-        }
-        if ((this.map.buildings?.length ?? 0) >= CustomMapLimits.maxBuildings) {
-            this.toast(`Maps can hold up to ${CustomMapLimits.maxBuildings} buildings.`);
-            return;
-        }
-        const max = CustomBuildLimits.maxBuildingSize;
-        const bw = Math.min(w, max);
-        const bh = Math.min(h, max);
-        this.edit(() => {
-            (this.map.buildings ??= []).push({
-                x: Math.round(this.clampX((a.x + b.x) / 2)),
-                y: Math.round(this.clampY((a.y + b.y) / 2)),
-                w: bw,
-                h: bh,
-                wall: "brick",
-                roof: 0x7a4b32,
-                floor: 0xc9b18c,
-                // a door in the middle of the bottom wall to start with
-                doors: [{ side: 3, at: Math.round(bw / 2) }],
-                windows: [],
-                walls: [],
-            });
-            this.selection = { kind: "building", idx: this.map.buildings.length - 1 };
-            this.buildMode = null;
-        });
-    }
-
-    /** a door or window on the closest outside wall of building `idx` */
-    addOpening(idx: number, world: Vec2, kind: "door" | "window") {
-        const b = this.map.buildings![idx];
-        const lx = world.x - b.x;
-        const ly = world.y - b.y;
-        const dists = [Math.abs(lx + b.w / 2), Math.abs(ly - b.h / 2), Math.abs(lx - b.w / 2), Math.abs(ly + b.h / 2)];
-        const side = dists.indexOf(Math.min(...dists));
-        if (dists[side] > 4) {
-            this.toast(`Click right on one of the building's outside walls.`);
-            return;
-        }
-        const len = sideLength(side, b.w, b.h);
-        const along = side % 2 === 0 ? ly + b.h / 2 : lx + b.w / 2;
-        const at = math.clamp(Math.round(along), 3, len - 3);
-        const list = kind === "door" ? b.doors : b.windows;
-        const all = [...b.doors, ...b.windows];
-        if (all.some((o) => o.side === side && Math.abs(o.at - at) < 4)) {
-            this.toast("There's already a door or window there.");
-            return;
-        }
-        this.edit(() => list.push({ side, at }));
-    }
-
-    /** inside walls snap to the building's 1 unit grid and run straight */
-    addInsideWall(idx: number, a: Vec2, world: Vec2) {
-        const b = this.map.buildings![idx];
-        const clampIn = (p: Vec2) =>
-            v2.create(
-                math.clamp(Math.round(p.x - b.x), -Math.floor(b.w / 2), Math.floor(b.w / 2)),
-                math.clamp(Math.round(p.y - b.y), -Math.floor(b.h / 2), Math.floor(b.h / 2)),
-            );
-        const p0 = clampIn(a);
-        let p1 = clampIn(world);
-        p1 = Math.abs(p1.x - p0.x) >= Math.abs(p1.y - p0.y) ? v2.create(p1.x, p0.y) : v2.create(p0.x, p1.y);
-        if (v2.distance(p0, p1) < 1) return;
-        this.edit(() => b.walls.push({ x1: p0.x, y1: p0.y, x2: p1.x, y2: p1.y }));
     }
 
     save() {
@@ -1690,15 +1440,6 @@ class MapMaker {
         return best;
     }
 
-    hitBuilding(world: Vec2): number {
-        const list = this.map.buildings ?? [];
-        for (let i = list.length - 1; i >= 0; i--) {
-            const b = list[i];
-            if (Math.abs(world.x - b.x) <= b.w / 2 + 1 && Math.abs(world.y - b.y) <= b.h / 2 + 1) return i;
-        }
-        return -1;
-    }
-
     hitTunnel(world: Vec2): number {
         const list = this.map.tunnels ?? [];
         for (let i = list.length - 1; i >= 0; i--) {
@@ -1747,11 +1488,6 @@ class MapMaker {
             this.map.objects.splice(obj, 1);
             return true;
         }
-        const building = this.hitBuilding(world);
-        if (building >= 0) {
-            this.map.buildings!.splice(building, 1);
-            return true;
-        }
         const tunnel = this.hitTunnel(world);
         if (tunnel >= 0) {
             this.map.tunnels!.splice(tunnel, 1);
@@ -1795,6 +1531,14 @@ class MapMaker {
         switch (this.tool) {
             case "select": {
                 const before = JSON.stringify(this.map);
+                if (this.underground) {
+                    // only tunnels can be picked on the underground layer
+                    const t = this.hitTunnel(world);
+                    this.selection = t >= 0 ? { kind: "tunnel", idx: t } : null;
+                    this.syncUi();
+                    if (t < 0) startPan();
+                    return;
+                }
                 const rp = this.hitRiverPoint(world);
                 if (rp) {
                     this.drag = { kind: "riverPoint", ...rp, moved: false, before };
@@ -1818,14 +1562,6 @@ class MapMaker {
                         moved: false,
                         before,
                     };
-                    this.syncUi();
-                    return;
-                }
-                const building = this.hitBuilding(world);
-                if (building >= 0) {
-                    const b = this.map.buildings![building];
-                    this.selection = { kind: "building", idx: building };
-                    this.drag = { kind: "building", idx: building, offset: v2.create(b.x - world.x, b.y - world.y), moved: false, before };
                     this.syncUi();
                     return;
                 }
@@ -1892,31 +1628,6 @@ class MapMaker {
                 this.edit(() => (this.map.zoneEnd = { x: this.clampX(p.x), y: this.clampY(p.y) }));
                 break;
             }
-            case "building": {
-                const sel = this.selection;
-                if (sel?.kind === "building" && (this.buildMode === "door" || this.buildMode === "window")) {
-                    this.addOpening(sel.idx, world, this.buildMode);
-                    return;
-                }
-                if (sel?.kind === "building" && this.buildMode === "wall") {
-                    if (!this.wallStart) {
-                        this.wallStart = world;
-                        this.renderInspector();
-                    } else {
-                        this.addInsideWall(sel.idx, this.wallStart, world);
-                        this.wallStart = null;
-                    }
-                    return;
-                }
-                const hit = this.hitBuilding(world);
-                if (hit >= 0) {
-                    this.selection = { kind: "building", idx: hit };
-                    this.syncUi();
-                    return;
-                }
-                this.drag = { kind: "newBuilding", start: v2.create(Math.round(world.x), Math.round(world.y)) };
-                return;
-            }
             case "tunnel": {
                 if (this.tunnelDraft.length >= CustomMapLimits.maxTunnelPoints) {
                     this.toast(`Tunnels can have up to ${CustomMapLimits.maxTunnelPoints} points.`);
@@ -1952,14 +1663,6 @@ class MapMaker {
                     o.y = p.y;
                     this.keepInside(o);
                     drag.moved = true;
-                    break;
-                }
-                case "building": {
-                    const b = this.map.buildings![drag.idx];
-                    b.x = Math.round(this.clampX(world.x + drag.offset.x));
-                    b.y = Math.round(this.clampY(world.y + drag.offset.y));
-                    drag.moved = true;
-                    this.applyBuilds();
                     break;
                 }
                 case "spawn": {
@@ -2007,14 +1710,8 @@ class MapMaker {
         if (!drag) return;
         this.drag = null;
         this.canvas.classList.remove("mm-panning");
-        if (
-            (drag.kind === "object" || drag.kind === "spawn" || drag.kind === "riverPoint" || drag.kind === "building")
-            && drag.moved
-        ) {
+        if ((drag.kind === "object" || drag.kind === "spawn" || drag.kind === "riverPoint") && drag.moved) {
             this.edit(() => {}, drag.before);
-        }
-        if (drag.kind === "newBuilding" && this.mouse) {
-            this.addBuilding(drag.start, v2.create(Math.round(this.mouse.x), Math.round(this.mouse.y)));
         }
     }
 
@@ -2123,11 +1820,7 @@ class MapMaker {
                 if (this.tool === "tunnel") this.finishTunnel();
                 break;
             case "Escape":
-                if (this.buildMode) {
-                    this.buildMode = null;
-                    this.wallStart = null;
-                    this.syncUi();
-                } else if (this.tunnelDraft.length) {
+                if (this.tunnelDraft.length) {
                     this.tunnelDraft = [];
                     this.syncUi();
                 } else if (this.riverDraft.length) {
@@ -2215,7 +1908,6 @@ class MapMaker {
             (rect.height / 2 + this.cam.y * zoom) * dpr,
         );
         drawMap(ctx, this.map, this.getTerrain(), zoom, this.underground, this.applied);
-        drawBuildOutlines(ctx, this.map, zoom, this.underground);
 
         // grid
         const grid = GameConfig.map.gridSize;
@@ -2246,15 +1938,8 @@ class MapMaker {
             ctx.setLineDash([6 / zoom, 4 / zoom]);
             ctx.strokeRect(b.min.x - 0.5, b.min.y - 0.5, b.max.x - b.min.x + 1, b.max.y - b.min.y + 1);
             ctx.setLineDash([]);
-        } else if (sel?.kind === "building" && this.map.buildings?.[sel.idx]) {
-            const b = this.map.buildings[sel.idx];
-            ctx.strokeStyle = "#ffe14d";
-            ctx.setLineDash([6 / zoom, 4 / zoom]);
-            ctx.strokeRect(b.x - b.w / 2 - 1.5, b.y - b.h / 2 - 1.5, b.w + 3, b.h + 3);
-            ctx.setLineDash([]);
         } else if (sel?.kind === "tunnel" && this.map.tunnels?.[sel.idx]) {
-            const t = this.map.tunnels[sel.idx];
-            drawPolyline(ctx, t.points, "#ffe14d", 2 / zoom, [6 / zoom, 4 / zoom]);
+            drawPolyline(ctx, this.map.tunnels[sel.idx].points, "#ffe14d", 2 / zoom, [6 / zoom, 4 / zoom]);
         } else if (sel?.kind === "spawn" && this.map.spawns[sel.idx]) {
             const s = this.map.spawns[sel.idx];
             ctx.strokeStyle = "#ffe14d";
@@ -2286,21 +1971,11 @@ class MapMaker {
             drawObject(ctx, { type: this.placeType, x: p.x, y: p.y, ori: this.placeOri });
             ctx.globalAlpha = 1;
         }
-        if (this.drag?.kind === "newBuilding" && m) {
-            const a = this.drag.start;
-            ctx.fillStyle = "rgba(201,177,140,0.5)";
-            ctx.fillRect(Math.min(a.x, m.x), Math.min(a.y, m.y), Math.abs(m.x - a.x), Math.abs(m.y - a.y));
-            ctx.strokeStyle = "#8a3c2c";
-            ctx.strokeRect(Math.min(a.x, m.x), Math.min(a.y, m.y), Math.abs(m.x - a.x), Math.abs(m.y - a.y));
-        }
         if (this.tool === "tunnel" && (this.tunnelDraft.length || m)) {
             const pts = [...this.tunnelDraft];
             if (m && !this.drag) pts.push(this.tunnelPoint(m));
             if (pts.length >= 2) drawPolyline(ctx, pts, "rgba(107,90,72,0.9)", this.tunnelWidth, []);
             for (const p of this.tunnelDraft) drawHandle(ctx, p, zoom);
-        }
-        if (this.buildMode === "wall" && this.wallStart && m) {
-            drawPolyline(ctx, [this.wallStart, m], "rgba(138,60,44,0.9)", 1, [2 / zoom, 2 / zoom]);
         }
         if (this.tool === "erase" && m) {
             ctx.strokeStyle = "rgba(255,80,80,0.9)";
@@ -2365,19 +2040,9 @@ function drawMap(
         ctx.fill();
     }
 
-    // edited buildings draw from their generated type; the map's own buildings and tunnels come after
-    const placed: Array<{ type: string; x: number; y: number; ori: number; scale?: number }> = [];
-    let editIdx = 0;
-    for (const obj of map.objects) {
-        const type = obj.children && applied ? applied.editTypes[editIdx++] ?? obj.type : obj.type;
-        placed.push({ ...obj, type });
-    }
-    if (applied) {
-        (map.buildings ?? []).forEach((b, i) => {
-            if (applied.buildingTypes[i]) placed.push({ type: applied.buildingTypes[i], x: b.x, y: b.y, ori: 0 });
-        });
-        for (const t of applied.tunnelTypes) placed.push({ type: t.type, x: t.pos.x, y: t.pos.y, ori: 0 });
-    }
+    // the map's tunnels draw from their generated types, after the placed objects
+    const placed: Array<{ type: string; x: number; y: number; ori: number; scale?: number }> = [...map.objects];
+    for (const t of applied?.tunnelTypes ?? []) placed.push({ type: t.type, x: t.pos.x, y: t.pos.y, ori: 0 });
     const shapes: Shape[] = [];
     for (const obj of placed) {
         shapes.push(...transformShapes(localShapes(obj.type), v2.create(obj.x, obj.y), obj.ori, obj.scale ?? 1));
@@ -2394,42 +2059,11 @@ function drawMap(
             for (const s of under) drawShape(ctx, s);
         }
     }
-    void zoom;
-}
-
-/** walls, doors and windows of the map's own buildings, and tunnel paths seen from above */
-function drawBuildOutlines(ctx: CanvasRenderingContext2D, map: CustomMap, zoom: number, underground: boolean) {
-    const px = 1 / zoom;
-    for (const b of map.buildings ?? []) {
-        if (underground) continue;
-        const x0 = b.x - b.w / 2;
-        const y0 = b.y - b.h / 2;
-        ctx.lineWidth = Math.max(1, 2 * px);
-        ctx.strokeStyle = "rgba(40,25,15,0.9)";
-        ctx.strokeRect(x0, y0, b.w, b.h);
-        for (const w of b.walls) {
-            const horizontal = Math.abs(w.x2 - w.x1) >= Math.abs(w.y2 - w.y1);
-            drawPolyline(
-                ctx,
-                [v2.create(b.x + w.x1, b.y + w.y1), v2.create(b.x + (horizontal ? w.x2 : w.x1), b.y + (horizontal ? w.y1 : w.y2))],
-                "rgba(40,25,15,0.9)",
-                1,
-                [],
-            );
-        }
-        const mark = (o: { side: number; at: number }, color: string) => {
-            const along = o.side % 2 === 0;
-            const sx = o.side === 0 ? x0 : o.side === 2 ? x0 + b.w : x0 + o.at;
-            const sy = o.side === 1 ? y0 + b.h : o.side === 3 ? y0 : y0 + o.at;
-            ctx.fillStyle = color;
-            if (along) ctx.fillRect(sx - 0.75, sy - 2, 1.5, 4);
-            else ctx.fillRect(sx - 2, sy - 0.75, 4, 1.5);
-        };
-        for (const d of b.doors) mark(d, "#ffd34d");
-        for (const w of b.windows) mark(w, "#9bd7f0");
-    }
     if (!underground) {
-        for (const t of map.tunnels ?? []) drawPolyline(ctx, t.points, "rgba(60,45,30,0.55)", Math.max(1, 2 * px), [4 * px, 3 * px]);
+        // tunnel paths seen from above
+        for (const t of map.tunnels ?? []) {
+            drawPolyline(ctx, t.points, "rgba(60,45,30,0.55)", Math.max(1, 2 / zoom), [4 / zoom, 3 / zoom]);
+        }
     }
 }
 

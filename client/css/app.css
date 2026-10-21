@@ -7620,7 +7620,7 @@ body.mm-body-lock {
     margin-left: 8px;
 }
 
-.mm-tool.mm-active, .mm-cat.mm-active, .mm-item.mm-active {
+.mm-tool.mm-active, .mm-cat.mm-active, .mm-item.mm-active, .mm-layers .mm-btn.mm-active {
     background: #83af50;
     border-color: #a3d06c;
     color: #ffffff;
@@ -7780,6 +7780,26 @@ body.mm-body-lock {
     top: 10px;
 }
 
+.mm-layers {
+    display: flex;
+    gap: 0;
+    left: 10px;
+    position: absolute;
+    top: 10px;
+}
+
+.mm-layers .mm-btn {
+    border-radius: 0;
+}
+
+.mm-layers .mm-btn:first-child {
+    border-radius: 6px 0 0 6px;
+}
+
+.mm-layers .mm-btn:last-child {
+    border-radius: 0 6px 6px 0;
+}
+
 .mm-zoom {
     bottom: 10px;
     display: flex;
@@ -7852,43 +7872,6 @@ body.mm-body-lock {
     display: flex;
     gap: 5px;
     flex-wrap: wrap;
-}
-
-.mm-row label {
-    flex: 1;
-    min-width: 0;
-}
-
-.mm-children {
-    max-height: 260px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
-
-.mm-child {
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    font-size: 11px;
-}
-
-.mm-child span {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.mm-child .mm-child-pos {
-    width: 46px;
-    padding: 2px 3px;
-}
-
-.mm-child .mm-btn {
-    padding: 2px 6px;
 }
 
 .mm-sel-name {
