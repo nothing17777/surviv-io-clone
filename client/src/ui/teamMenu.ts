@@ -17,7 +17,7 @@ import type {
     TeamPlayGameMsg,
     TeamStateMsg,
 } from "../../../shared/types/team.ts";
-import { customMapBiomes, parseCustomMap } from "../../../shared/utils/customMap.ts";
+import { type CustomMap, customMapBiomes, parseCustomMap } from "../../../shared/utils/customMap.ts";
 import { math } from "../../../shared/utils/math.ts";
 import { api } from "../api.ts";
 import type { AudioManager } from "../audioManager.ts";
@@ -304,13 +304,19 @@ export class TeamMenu {
         });
     }
 
-    connect(create: boolean, roomUrl: string, roomPreset?: Partial<RoomData>) {
+    /** start the match as soon as the room exists (Duel (Bots) from the main menu) */
+    autoStart = false;
+    /** custom map to send to the new room before auto-starting */
+    pendingCustomMap?: CustomMap;
+
+    connect(create: boolean, roomUrl: string, roomPreset?: Partial<RoomData>, autoStart = false) {
         if (!this.active || roomUrl !== this.roomData.roomUrl) {
             const roomHost = api.resolveRoomHost();
             const url = `w${window.location.protocol === "https:" ? "ss" : "s"}://${roomHost}/team_v2`;
             this.active = true;
             this.joined = false;
             this.create = create;
+            this.autoStart = autoStart;
             this.joiningGame = false;
             this.editingName = false;
             this.gameError = undefined;
@@ -443,6 +449,16 @@ export class TeamMenu {
                     this.roomData.autoFill = ourRoomData.autoFill;
                 }
                 this.refreshUi();
+                if (this.autoStart && this.isLeader) {
+                    if (this.pendingCustomMap) {
+                        // start once the server echoes the map back
+                        this.sendMessage("setCustomMap", { map: this.pendingCustomMap });
+                        this.pendingCustomMap = undefined;
+                    } else {
+                        this.autoStart = false;
+                        this.tryStartGame();
+                    }
+                }
                 // Since the only way to get the roomID (ig?) is from state, each time receiving state, we can show the invite button
                 SDK.showInviteButton(stateData.room.roomUrl.replace("#", ""));
                 break;

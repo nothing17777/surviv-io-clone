@@ -9,6 +9,8 @@ import type {
     FindGameResponse,
     GameWsDisconnectReason,
 } from "../../shared/types/api.ts";
+import type { BotLevel } from "../../shared/types/api.ts";
+import { type CustomMap, parseCustomMap } from "../../shared/utils/customMap.ts";
 import type { RoomData } from "../../shared/types/team.ts";
 import { math } from "../../shared/utils/math.ts";
 import { Account } from "./account.ts";
@@ -26,7 +28,7 @@ import { PingTest } from "./pingTest.ts";
 import { proxy } from "./proxy.ts";
 import { ResourceManager } from "./resources.ts";
 import { SDK } from "./sdk/sdk.ts";
-import { SiteInfo } from "./siteInfo.ts";
+import { BotDuelCustomMap, SiteInfo } from "./siteInfo.ts";
 import { initArmory } from "./ui/armory.ts";
 import { LoadoutMenu } from "./ui/loadoutMenu.ts";
 import { Localization } from "./ui/localization.ts";
@@ -261,6 +263,40 @@ export class Application {
             });
             $("#btn-create-team").on("click", () => {
                 this.tryJoinTeam(true);
+            });
+            // Duel (Bots): a one-person private Vs Bots match that starts right away
+            $("#btns-quick-start").on("click", ".btn-start-vs-bots", (e) => {
+                const btn = $(e.currentTarget);
+                if (device.touch) {
+                    helpers.tryEnterFullScreen();
+                }
+                const start = (customMap?: CustomMap) => {
+                    this.teamMenu.pendingCustomMap = customMap;
+                    this.tryJoinTeam(true, undefined, {
+                    privateMatch: true,
+                    privateVsBots: true,
+                        privateMapName: $("#bot-duel-map").val() as string,
+                        privateTeamSize: Number(btn.attr("data-size")),
+                        privateBotEnemy: $("#bot-duel-enemy").val() as BotLevel,
+                        privateBotAlly: $("#bot-duel-ally").val() as BotLevel,
+                    }, true);
+                };
+                if ($("#bot-duel-map").val() !== BotDuelCustomMap) {
+                    start();
+                    return;
+                }
+                const input = $<HTMLInputElement>("<input>", { type: "file", accept: ".json, application/json" });
+                input.on("change", async () => {
+                    const file = input[0].files?.[0];
+                    if (!file) return;
+                    const res = parseCustomMap(await file.text());
+                    if ("error" in res) {
+                        alert(res.error);
+                        return;
+                    }
+                    start(res.map);
+                });
+                input.trigger("click");
             });
             // straight into a private party set up to fight bots
             $("#btn-vs-bots").on("click", () => {
@@ -659,7 +695,7 @@ export class Application {
         }
     }
 
-    tryJoinTeam(create: boolean, url?: string, roomPreset?: Partial<RoomData>) {
+    tryJoinTeam(create: boolean, url?: string, roomPreset?: Partial<RoomData>, autoStart = false) {
         if (this.active && this.quickPlayPendingModeIdx === -1) {
             // Join team if the url contains a team address
             let roomUrl = url || window.location.hash.slice(1);
@@ -676,7 +712,7 @@ export class Application {
                 // selected region. We will stash the menu values
                 // into the config so the team menu can read them.
                 this.setConfigFromDOM();
-                this.teamMenu.connect(create, roomUrl, roomPreset);
+                this.teamMenu.connect(create, roomUrl, roomPreset, autoStart);
                 this.refreshUi();
             }
         }

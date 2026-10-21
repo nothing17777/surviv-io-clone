@@ -3620,6 +3620,12 @@ a:active {
     flex: 1 1 22%;
 }
 
+/* Duel (Bots) map and level pickers take a full row each */
+#btns-quick-start > select {
+    flex: 1 1 100%;
+    margin: 0;
+}
+
 .god-loadout-title {
     color: #ffffff;
     font-weight: bold;

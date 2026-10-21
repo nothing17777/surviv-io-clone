@@ -6,7 +6,13 @@ import { api } from "./api.ts";
 import type { ConfigManager } from "./config.ts";
 import { device } from "./device.ts";
 import type { Localization } from "./ui/localization.ts";
-import { fillMapSelect, getModeMaps, isGodLoadoutMap, modeLabel } from "./ui/modePicker.ts";
+import { type BotLevel, BotLevels } from "../../shared/types/api.ts";
+import { fillMapSelect, getModeMaps, isDuelMap, isGodLoadoutMap, modeLabel } from "./ui/modePicker.ts";
+
+/** value of the "Duel (Bots)" entry in the main menu map dropdown */
+export const BotDuelOption = "__bot_duel";
+/** Duel (Bots) map picker value that asks for a map maker file */
+export const BotDuelCustomMap = "__custom";
 
 export class SiteInfo {
     info = {} as SiteInfoRes;
@@ -70,6 +76,9 @@ export class SiteInfo {
     renderModeButtons() {
         const modes = this.info.modes || [];
         const maps = getModeMaps(modes);
+        // "Duel (Bots)": not a server mode, it starts a private Vs Bots match
+        const botDuelMap = maps.find((m) => isDuelMap(m));
+        if (botDuelMap) maps.push(BotDuelOption);
         if (!maps.includes(this.selectedMap)) {
             let saved = "";
             try {
@@ -78,8 +87,10 @@ export class SiteInfo {
             this.selectedMap = maps.includes(saved) ? saved : maps[0] || "main";
         }
 
+
         const select = $("#mode-map-select");
         fillMapSelect(select, maps, this.selectedMap);
+        select.find(`option[value="${BotDuelOption}"]`).text("Duel (Bots)");
         select.off("change").on("change", () => {
             this.selectedMap = select.val() as string;
             try {
@@ -90,6 +101,11 @@ export class SiteInfo {
 
         const container = $("#btns-quick-start");
         container.empty();
+        if (this.selectedMap === BotDuelOption) {
+            this.renderBotDuel(container, botDuelMap!, maps.filter((m) => m !== BotDuelOption));
+            $("#god-loadout-picker").hide();
+            return;
+        }
         for (let i = 0; i < modes.length; i++) {
             const mode = modes[i];
             if (!mode.enabled || mode.mapName !== this.selectedMap) continue;
@@ -105,6 +121,64 @@ export class SiteInfo {
         }
 
         $("#god-loadout-picker").toggle(isGodLoadoutMap(this.selectedMap));
+    }
+
+    /** opponent / teammate level pickers and Play 1v1-4v4 for Duel (Bots) */
+    renderBotDuel(container: JQuery<HTMLElement>, defaultMap: string, maps: string[]) {
+        // any map works: two sides on it, bots on the other side
+        let savedMap = "";
+        try {
+            savedMap = localStorage.getItem("survev_bot-duel-map") || "";
+        } catch {}
+        const mapSel = $("<select>", {
+            id: "bot-duel-map",
+            class: "server-select menu-option btn-hollow btn-hollow-selected",
+        });
+        fillMapSelect(mapSel, maps, maps.includes(savedMap) ? savedMap : defaultMap);
+        mapSel.find("option").each((_i, o) => {
+            $(o).text(`Map: ${$(o).text()}`);
+        });
+        // a map file from the map maker, picked when Play is pressed
+        mapSel.append($("<option>", { value: BotDuelCustomMap, text: "Map: Custom map (upload)" }));
+        if (savedMap === BotDuelCustomMap) mapSel.val(BotDuelCustomMap);
+        mapSel.on("change", () => {
+            try {
+                localStorage.setItem("survev_bot-duel-map", mapSel.val() as string);
+            } catch {}
+        });
+        container.append(mapSel);
+        const levelSelect = (id: string, label: string) => {
+            let saved = "";
+            try {
+                saved = localStorage.getItem(`survev_${id}`) || "";
+            } catch {}
+            const sel = $("<select>", {
+                id,
+                class: "server-select menu-option btn-hollow btn-hollow-selected",
+            });
+            for (const level of BotLevels) {
+                const text = `${label}: ${level[0].toUpperCase()}${level.slice(1)}`;
+                sel.append($("<option>", { value: level, text }));
+            }
+            sel.val(BotLevels.includes(saved as BotLevel) ? saved : "intermediate");
+            sel.on("change", () => {
+                try {
+                    localStorage.setItem(`survev_${id}`, sel.val() as string);
+                } catch {}
+            });
+            container.append(sel);
+        };
+        levelSelect("bot-duel-enemy", "Opponents");
+        levelSelect("bot-duel-ally", "Teammates");
+        for (let size = 1; size <= 4; size++) {
+            const label = `Play ${size}v${size}`;
+            const btn = $("<a>", {
+                class: "btn-green btn-darken menu-option btn-start-vs-bots",
+                text: label,
+            });
+            btn.attr("data-size", size);
+            container.append(btn);
+        }
     }
 
     updatePageFromInfo() {

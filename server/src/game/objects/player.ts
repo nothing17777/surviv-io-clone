@@ -156,7 +156,7 @@ export class PlayerBarn {
         }
         // solo 50v50 just chooses the smallest team everytime no matter what
         const team = this.game.map.factionMode && !this.game.isTeamMode
-            ? this.getSmallestTeam()
+            ? this.getSideTeam(joinData.groupData.side)
             : result?.team;
 
         let pos: Vec2;
@@ -490,6 +490,12 @@ export class PlayerBarn {
         return this.teams.filter((team) => team.livingPlayers.length > 0);
     }
 
+    /** private match sides map onto the two factions; everyone else balances */
+    getSideTeam(side?: number) {
+        if (side !== undefined && this.teams[side]) return this.teams[side];
+        return this.getSmallestTeam();
+    }
+
     getSmallestTeam() {
         return this.teams.reduce((smallest, current) => {
             if (current.livingPlayers.length < smallest.livingPlayers.length) {
@@ -515,7 +521,7 @@ export class PlayerBarn {
         if (!this.game.isTeamMode) return undefined;
 
         let group = this.groupsByHash.get(groupData.groupHashToJoin);
-        let team = this.game.map.factionMode ? this.getSmallestTeam() : undefined;
+        let team = this.game.map.factionMode ? this.getSideTeam(groupData.side) : undefined;
 
         if (!group && groupData.autoFill) {
             const groups = team ? team.getGroups() : this.groups;
