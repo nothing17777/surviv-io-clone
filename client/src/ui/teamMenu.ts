@@ -4,11 +4,14 @@ import * as net from "../../../shared/net/net.ts";
 import {
     type BotLevel,
     BotLevels,
+    type BotSettingsByLevel,
+    defaultBotSettings,
     defaultPrivateLoadout,
     type FindGameMatchData,
-    type PrivateBot,
     MaxPrivateBots,
+    type PrivateBot,
     type PrivateLoadout,
+    zBotSettingsByLevel,
 } from "../../../shared/types/api.ts";
 import type {
     RoomData,
@@ -65,6 +68,22 @@ function errorTypeToString(type: TeamMenuErrorType, localization: Localization) 
         behind_proxy: "behind_proxy", // this will get passed to the main app to show a modal
     } as Record<TeamMenuErrorType, string>;
     return typeMap[type as keyof typeof typeMap] || typeMap.lost_conn;
+}
+
+const botSettingsKey = "survev_bot_settings";
+
+/** the bot settings this browser last used, or the defaults */
+function loadSavedBotSettings(): BotSettingsByLevel {
+    try {
+        const parsed = zBotSettingsByLevel.safeParse(JSON.parse(localStorage.getItem(botSettingsKey) || "null"));
+        if (parsed.success) return parsed.data;
+    } catch {}
+    return defaultBotSettings();
+}
+
+/** highlight a toggle-style button without touching its enabled state */
+function setButtonClass(el: JQuery<HTMLElement>, selected: boolean) {
+    el.toggleClass("btn-hollow-selected", selected);
 }
 
 export class TeamMenu {
@@ -182,6 +201,10 @@ export class TeamMenu {
         // Vs Bots: pick the opponent bots, and bot teammates for 2v2 and up
         $("#btn-team-bots-custom").on("click", () => this.setRoomProperty("privateVsBots", false));
         $("#btn-team-bots-vs").on("click", () => this.setRoomProperty("privateVsBots", true));
+        $("#btn-team-bot-settings").on("click", () => {
+            this.botSettingsOpen = !this.botSettingsOpen;
+            this.refreshUi();
+        });
         $("#team-bot-enemy").on("change", () => {
             this.setRoomProperty("privateBotEnemy", $("#team-bot-enemy").val() as BotLevel);
         });
@@ -324,6 +347,8 @@ export class TeamMenu {
                 findingGame: false,
                 lastError: undefined,
                 privateLoadout: { ...defaultPrivateLoadout },
+                // the leader's saved bot settings come along to every party they make
+                privateBotSettings: loadSavedBotSettings(),
                 ...roomPreset,
             } as RoomData;
             this.displayedInvalidProtocolModal = false;
@@ -437,6 +462,9 @@ export class TeamMenu {
                     if (ourRoomData.privateLoadout) {
                         this.roomData.privateLoadout = ourRoomData.privateLoadout;
                     }
+                    if (ourRoomData.privateBotSettings) {
+                        this.roomData.privateBotSettings = ourRoomData.privateBotSettings;
+                    }
                     this.roomData.autoFill = ourRoomData.autoFill;
                 }
                 this.refreshUi();
@@ -489,6 +517,184 @@ export class TeamMenu {
         }
     }
 
+    /** Bot Settings panel open, and which level it's editing */
+    botSettingsOpen = false;
+    botSettingsLevel: BotLevel = "beginner";
+
+    /** this room's bot settings, or the defaults */
+    botSettings(): BotSettingsByLevel {
+        return this.roomData.privateBotSettings ?? defaultBotSettings();
+    }
+
+    /**
+     * Builds the Bot Settings panel once; refreshes only fill in values, so a
+     * room update never steals focus from a field being typed in.
+     */
+    buildBotSettingsPanel() {
+        const panel = $("#team-bot-settings");
+        if (panel.children().length) return;
+
+        const tabs = $("<div/>", { class: "botset-tabs" });
+        for (const level of BotLevels) {
+            const tab = $("<a/>", {
+                class: "btn-hollow btn-darken team-menu-option botset-tab",
+                text: `${level[0].toUpperCase()}${level.slice(1)}`,
+                "data-level": level,
+            });
+            tab.on("click", () => {
+                this.botSettingsLevel = level;
+                this.refreshUi();
+            });
+            tabs.append(tab);
+        }
+        panel.append(tabs);
+        panel.append($("<div/>", { class: "botset-hint", text: "Each bot level has its own settings." }));
+
+        const check = (key: string, label: string) =>
+            $("<label/>", { class: "god-heal" }).append(
+                $("<span/>", { text: label }),
+                $("<input/>", { type: "checkbox", class: "botset-field", "data-key": key }),
+            );
+        const number = (key: string, label: string, max: number) =>
+            $("<label/>", { class: "god-heal" }).append(
+                $("<span/>", { text: label }),
+                $("<input/>", { type: "number", min: 0, max, class: "menu-option botset-field", "data-key": key }),
+            );
+
+        panel.append(
+            $("<div/>", { class: "botset-grid" }).append(
+                check("chase", "Chase players"),
+                check("loot", "Loot"),
+                check("heal", "Heal"),
+                check("boost", "Pills / soda"),
+                check("throwables", "Throwables"),
+                check("melee", "Melee up close"),
+                number("accuracy", "Hit %", 100),
+                number("dodge", "Dodge %", 100),
+            ),
+        );
+
+        // optional exact kit, same pickers as the party kit
+        panel.append($("<div/>", { class: "botset-grid" }).append(check("kit", "Custom kit")));
+        const kit = $("<div/>", { id: "team-botset-kit" });
+        for (const slot of Object.keys(pickerSlotType)) {
+            kit.append(
+                $("<select/>", {
+                    id: `team-botset-${slot}`,
+                    class: "server-select menu-option btn-hollow btn-hollow-selected botset-field",
+                    "data-kit": slot,
+                }),
+            );
+        }
+        const armor = $("<select/>", {
+            class: "server-select menu-option btn-hollow btn-hollow-selected botset-field",
+            "data-kit": "armor",
+        });
+        for (let i = 0; i <= 3; i++) {
+            armor.append($("<option/>", { value: i, text: i ? `Level ${i} armor` : "No armor" }));
+        }
+        kit.append(armor);
+        const counts = $("<div/>", { class: "botset-grid" });
+        for (
+            const [key, label, max] of [
+                ["throwableCount", "Throwables", 40],
+                ["bandage", "Bandages", 30],
+                ["healthkit", "Med Kits", 4],
+                ["soda", "Sodas", 15],
+                ["painkiller", "Pills", 4],
+            ] as const
+        ) {
+            counts.append(
+                $("<label/>", { class: "god-heal" }).append(
+                    $("<span/>", { text: label }),
+                    $("<input/>", { type: "number", min: 0, max, class: "menu-option botset-field", "data-kit": key }),
+                ),
+            );
+        }
+        kit.append(counts);
+        panel.append(kit);
+
+        panel.on("change", ".botset-field", () => this.saveBotSettingsFromPanel());
+    }
+
+    /** reads the panel into the room's settings for the level being edited */
+    saveBotSettingsFromPanel() {
+        if (!this.isLeader) return;
+        const panel = $("#team-bot-settings");
+        const all = structuredClone(this.botSettings());
+        const s = all[this.botSettingsLevel];
+        // the kit pickers only hold real values once the kit is showing
+        const kitWasOn = !!s.kit;
+        const num = (el: JQuery<HTMLElement>, max: number) =>
+            Math.max(0, Math.min(max, Math.round(Number(el.val())) || 0));
+        panel.find("[data-key]").each((_i, e) => {
+            const el = $(e);
+            const key = el.attr("data-key")!;
+            if (key === "accuracy" || key === "dodge") {
+                s[key] = num(el, 100);
+            } else if (key === "kit") {
+                const on = el.prop("checked") as boolean;
+                if (on && !s.kit) s.kit = { ...defaultPrivateLoadout };
+                if (!on) s.kit = null;
+            } else {
+                (s as unknown as Record<string, boolean>)[key] = el.prop("checked") as boolean;
+            }
+        });
+        if (s.kit && kitWasOn) {
+            const kit = s.kit;
+            panel.find("[data-kit]").each((_i, e) => {
+                const el = $(e);
+                const key = el.attr("data-kit") as keyof PrivateLoadout;
+                const max = Number(el.attr("max") ?? 3);
+                if (key in pickerSlotType) {
+                    (kit as Record<string, unknown>)[key] = el.val() as string;
+                } else {
+                    (kit as Record<string, unknown>)[key] = num(el, max);
+                }
+            });
+        }
+        try {
+            localStorage.setItem(botSettingsKey, JSON.stringify(all));
+        } catch {}
+        this.setRoomProperty("privateBotSettings", all);
+    }
+
+    /** shows the panel's values for the level being edited */
+    refreshBotSettingsPanel() {
+        const panel = $("#team-bot-settings");
+        panel.toggle(this.botSettingsOpen);
+        setButtonClass($("#btn-team-bot-settings"), this.botSettingsOpen);
+        if (!this.botSettingsOpen) return;
+        this.buildBotSettingsPanel();
+        const s = this.botSettings()[this.botSettingsLevel];
+        panel.find(".botset-tab").each((_i, e) => {
+            setButtonClass($(e), $(e).attr("data-level") === this.botSettingsLevel);
+        });
+        panel.find("[data-key]").each((_i, e) => {
+            const el = $(e);
+            if (el.is(":focus")) return;
+            const key = el.attr("data-key")!;
+            if (key === "kit") el.prop("checked", !!s.kit);
+            else if (key === "accuracy" || key === "dodge") el.val(s[key]);
+            else el.prop("checked", !!(s as unknown as Record<string, boolean>)[key]);
+        });
+        $("#team-botset-kit").toggle(!!s.kit);
+        if (s.kit) {
+            for (const [slot, type] of Object.entries(pickerSlotType)) {
+                if (!$(`#team-botset-${slot}`).is(":focus")) {
+                    fillItemPicker("team-botset", slot, type, s.kit[slot as keyof typeof pickerSlotType]);
+                }
+            }
+            panel.find("[data-kit]").each((_i, e) => {
+                const el = $(e);
+                const key = el.attr("data-kit")! as keyof PrivateLoadout;
+                if (key in pickerSlotType || el.is(":focus")) return;
+                el.val(s.kit![key]);
+            });
+        }
+        panel.find("input, select").prop("disabled", !this.isLeader);
+    }
+
     /** level picked in the party's "add bot" row */
     addBotLevel: BotLevel = "intermediate";
 
@@ -511,7 +717,9 @@ export class TeamMenu {
                     "data-bot": idx,
                 }),
             );
-            member.append($("<div/>", { class: "name menu-option name-text name-bot", text: `Bot · ${levelName(level)}` }));
+            member.append(
+                $("<div/>", { class: "name menu-option name-text name-bot", text: `Bot · ${levelName(level)}` }),
+            );
             list.append(member);
         };
 
@@ -521,7 +729,9 @@ export class TeamMenu {
         if (vsBots) {
             const size = this.roomData.privateTeamSize;
             bots = [];
-            for (let i = this.players.length; i < size; i++) bots.push({ level: this.roomData.privateBotAlly, team: 0 });
+            for (let i = this.players.length; i < size; i++) {
+                bots.push({ level: this.roomData.privateBotAlly, team: 0 });
+            }
             for (let i = 0; i < size; i++) bots.push({ level: this.roomData.privateBotEnemy, team: 1 });
         }
         bots.forEach((bot, i) => row(bot.level, bot.team, i, this.isLeader));
@@ -544,7 +754,9 @@ export class TeamMenu {
         if (bots.length >= MaxPrivateBots) return;
         const add = $("<div/>", { class: "team-menu-member team-bot-add" });
         const select = $("<select/>", { class: "server-select menu-option btn-hollow btn-hollow-selected" });
-        for (const level of BotLevels) select.append($("<option/>", { value: level, text: `Bot · ${levelName(level)}` }));
+        for (const level of BotLevels) {
+            select.append($("<option/>", { value: level, text: `Bot · ${levelName(level)}` }));
+        }
         select.val(this.addBotLevel);
         select.on("change", () => {
             this.addBotLevel = select.val() as BotLevel;
@@ -765,6 +977,7 @@ export class TeamMenu {
                     this.privateSizes.append(btn);
                     setButtonState(btn, this.roomData.privateTeamSize == size, this.isLeader);
                 }
+                this.refreshBotSettingsPanel();
                 const vsBots = !!this.roomData.privateVsBots;
                 setButtonState($("#btn-team-bots-custom"), !vsBots, this.isLeader);
                 setButtonState($("#btn-team-bots-vs"), vsBots, this.isLeader);

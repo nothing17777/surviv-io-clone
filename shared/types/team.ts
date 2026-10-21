@@ -5,8 +5,14 @@ import type { CustomMapSummary } from "../utils/customMap.ts";
 import {
     type BotLevel,
     BotLevels,
-    type FindGameMatchData, type PrivateBot,
-    type PrivateLoadout, zPrivateBots, zPrivateLoadout } from "./api.ts";
+    type BotSettingsByLevel,
+    type FindGameMatchData,
+    type PrivateBot,
+    type PrivateLoadout,
+    zBotSettingsByLevel,
+    zPrivateBots,
+    zPrivateLoadout,
+} from "./api.ts";
 
 export type TeamMenuErrorType =
     | "join_full"
@@ -54,6 +60,8 @@ export interface RoomData {
     privateVsBots: boolean;
     privateBotEnemy: BotLevel;
     privateBotAlly: BotLevel;
+    /** what each bot level does and carries */
+    privateBotSettings: BotSettingsByLevel;
 }
 
 //
@@ -132,6 +140,7 @@ export const zClientRoomData = z.object({
     privateVsBots: z.boolean().optional(),
     privateBotEnemy: z.enum(BotLevels).optional(),
     privateBotAlly: z.enum(BotLevels).optional(),
+    privateBotSettings: zBotSettingsByLevel.optional(),
 });
 
 export type ClientRoomData = z.infer<typeof zClientRoomData>;

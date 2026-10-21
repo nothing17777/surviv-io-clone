@@ -7376,6 +7376,27 @@ input [type="image"]:focus {
     margin: 2px 0;
 }
 
+#team-bot-settings {
+    margin-bottom: 8px;
+}
+
+#team-bot-settings .botset-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+}
+
+#team-bot-settings .botset-tabs > a {
+    margin: 0;
+}
+
+#team-bot-settings .botset-hint {
+    color: #c9c9c9;
+    font-size: 12px;
+    margin: 4px 0;
+}
+
+#team-bot-settings .botset-grid,
 #team-god-heals {
     display: grid;
     grid-template-columns: 1fr 1fr;

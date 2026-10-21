@@ -6,7 +6,13 @@ import { GameObjectDefs, MapObjectDefs } from "../../../shared/defs/register.ts"
 import { GameConfig, type InventoryItem, WeaponSlot } from "../../../shared/gameConfig.ts";
 import * as net from "../../../shared/net/net.ts";
 import { ObjectType } from "../../../shared/net/objectSerializeFns.ts";
-import { type BotLevel, type PrivateBot, type VsBots } from "../../../shared/types/api.ts";
+import {
+    type BotLevel,
+    type BotSettings,
+    defaultBotSettings,
+    type PrivateBot,
+    type VsBots,
+} from "../../../shared/types/api.ts";
 import { collider } from "../../../shared/utils/collider.ts";
 import { math } from "../../../shared/utils/math.ts";
 import { util } from "../../../shared/utils/util.ts";
@@ -177,6 +183,9 @@ class BotClient extends Client {
 
 const GunSlots = [WeaponSlot.Primary, WeaponSlot.Secondary];
 
+/** target distance (center to center) where a bot pulls out its melee weapon */
+const MeleeReach = 3.2;
+
 /** farthest a bot tries to throw, world units */
 const MaxThrowDist = 26;
 /** toMouseLen per unit of throw distance (measured: max mouse dist lands about this far) */
@@ -228,8 +237,16 @@ export class BotBrain {
     /** set for the shot fired this tick when it was rolled as a hit */
     aimLocked = false;
 
-    constructor(readonly player: Player, readonly level: BotLevel) {
-        this.skill = Skills[level];
+    readonly settings: BotSettings;
+
+    constructor(readonly player: Player, readonly level: BotLevel, settings?: BotSettings) {
+        this.settings = settings ?? defaultBotSettings()[level];
+        // the party leader's hit / dodge numbers replace the level's
+        this.skill = {
+            ...Skills[level],
+            accuracy: this.settings.accuracy / 100,
+            dodge: this.settings.dodge / 100,
+        };
         v2.set(this._stuckCheckPos, player.pos);
     }
 
@@ -317,7 +334,7 @@ export class BotBrain {
             this.pickCombatWeapon(v2.distance(this.target.pos, player.pos));
             // hurt and carrying heals: fall back behind cover (hackers just keep fighting)
             this._retreat = undefined;
-            if (player.health < 35 && this.pickHeal() && this.level !== "hacker") {
+            if (player.health < 35 && this.settings.heal && this.pickHeal() && this.level !== "hacker") {
                 this._retreat = this.findCover(this.target.pos);
             }
             return;
@@ -344,7 +361,7 @@ export class BotBrain {
 
         // heal up while nobody is around
         if (player.actionType === GameConfig.Action.None) {
-            if (player.health < 75) {
+            if (player.health < 75 && this.settings.heal) {
                 const heal = this.pickHeal();
                 if (heal) {
                     // get behind something first, then heal
@@ -359,7 +376,7 @@ export class BotBrain {
                     return;
                 }
             }
-            if (player.boost < 50) {
+            if (player.boost < 50 && this.settings.boost) {
                 const boost = (["painkiller", "soda"] as InventoryItem[]).find((b) => player.invManager.has(b));
                 if (boost) {
                     player.useBoostItem(boost);
@@ -391,8 +408,19 @@ export class BotBrain {
             return;
         }
 
+        // chase: go to where the enemy was last seen
+        if (this.settings.chase && this._lastThreat && this._sinceThreat < 6) {
+            if (v2.distance(this._lastThreat, player.pos) > 2.5) {
+                this._goal = v2.copy(this._lastThreat);
+                return;
+            }
+            this._lastThreat = undefined;
+        }
+
         // loot
-        if (!this._lootTarget || this._lootTarget.destroyed || !this.wantsLoot(this._lootTarget)) {
+        if (!this.settings.loot) {
+            this._lootTarget = undefined;
+        } else if (!this._lootTarget || this._lootTarget.destroyed || !this.wantsLoot(this._lootTarget)) {
             this._lootTarget = this.findLoot();
         }
         if (this._lootTarget) {
@@ -407,7 +435,7 @@ export class BotBrain {
         }
 
         // nothing to shoot with: break crates for loot
-        if (!this.hasGunWithAmmo()) {
+        if (!this.hasGunWithAmmo() && this.settings.loot) {
             if (!this._crateTarget || this._crateTarget.dead) this._crateTarget = this.findCrate();
             if (this._crateTarget) {
                 const crate = this._crateTarget;
@@ -498,6 +526,11 @@ export class BotBrain {
         // mid-throw: leave the grenade in hand
         if (this._throw) return;
         const player = this.player;
+        // close enough to hit: out with the melee weapon
+        if (this.settings.melee && dist < MeleeReach && player.weapons[WeaponSlot.Melee].type) {
+            if (player.curWeapIdx !== WeaponSlot.Melee) player.weaponManager.setCurWeapIndex(WeaponSlot.Melee);
+            return;
+        }
         const cur = player.curWeapIdx;
         const loaded = GunSlots.filter((s) => player.weapons[s].ammo > 0);
         const inRange = loaded.filter((s) => this.gunRange(s) * 0.9 >= dist);
@@ -647,10 +680,11 @@ export class BotBrain {
             }
             const strafe = v2.mul(v2.perp(dirTo), this._strafeSign);
             let approach = 0;
-            if (dist > prefDist + 4) approach = 1;
+            // chase off: hold ground, never walk toward them
+            if (dist > prefDist + 4 && this.settings.chase) approach = 1;
             else if (dist < prefDist - 4) approach = -1;
             move = v2.add(strafe, v2.mul(dirTo, approach * 1.2));
-            if (!gunDef) move = dirTo; // melee: just rush
+            if (!gunDef) move = this.settings.chase || dist < 4 ? dirTo : strafe; // melee: rush in
             // low on health: back off to cover while still shooting
             if (this._retreat) move = this.followPath(this._retreat, dt);
 
@@ -890,6 +924,7 @@ export class BotBrain {
         const wm = player.weaponManager;
         if (!this._throw) {
             this._throwCooldown -= dt;
+            if (!this.settings.throwables) return undefined;
             if (this._throwCooldown > 0 || this._reactTimer > 0 || player.downed) return undefined;
             if (player.actionType !== GameConfig.Action.None) return undefined;
             const type = player.weapons[WeaponSlot.Throwable].type;
@@ -1088,7 +1123,10 @@ export function addBot(game: Game, level: BotLevel, side?: number): Player {
         bot: true,
     });
     client.player = player;
-    player.botBrain = new BotBrain(player, level);
+    const settings = game.config.privateMatch?.botSettings?.[level];
+    // the leader's kit for this level replaces whatever the match handed out
+    if (settings?.kit) player.applyGodLoadout(settings.kit, true);
+    player.botBrain = new BotBrain(player, level, settings);
     return player;
 }
 

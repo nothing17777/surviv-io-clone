@@ -2,15 +2,17 @@ import { z } from "zod";
 import type { MapDefKey } from "../../../shared/defs/mapDefs.ts";
 import { TeamMode } from "../../../shared/gameConfig.ts";
 import {
-    type PrivateBot,
+    type BotSettingsByLevel,
     type FindGameMatchData,
     type FindGamePrivateError,
     loadoutSchema,
+    type PrivateBot,
     type PrivateLoadout,
     type VsBots,
+    zBotSettingsByLevel,
     zPrivateBots,
-    zVsBots,
     zPrivateLoadout,
+    zVsBots,
 } from "../../../shared/types/api.ts";
 import { zSpectateFilter } from "../../../shared/types/moderation.ts";
 import { type CustomMap, zCustomMap } from "../../../shared/utils/customMap.ts";
@@ -52,6 +54,7 @@ export interface ServerGameConfig {
         /** bots the party leader added */
         bots?: PrivateBot[];
         vsBots?: VsBots;
+        botSettings?: BotSettingsByLevel;
     };
 }
 
@@ -79,6 +82,7 @@ export const zFindGamePrivateBody = z.object({
             customMap: zCustomMap.optional(),
             bots: zPrivateBots.optional(),
             vsBots: zVsBots.optional(),
+            botSettings: zBotSettingsByLevel.optional(),
         })
         .optional(),
 });

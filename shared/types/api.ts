@@ -67,6 +67,62 @@ export const zPrivateBot = z.object({
 export type PrivateBot = z.infer<typeof zPrivateBot>;
 export const zPrivateBots = z.array(zPrivateBot).max(MaxPrivateBots);
 
+/** what a party leader can change about each bot level */
+export const zBotSettings = z.object({
+    /** go after enemies, including where they were last seen; off = hold ground */
+    chase: z.boolean(),
+    loot: z.boolean(),
+    /** bandages and med kits */
+    heal: z.boolean(),
+    /** soda and pills */
+    boost: z.boolean(),
+    throwables: z.boolean(),
+    /** switch to melee when the target is within reach */
+    melee: z.boolean(),
+    /** percent of shots aimed on target */
+    accuracy: z.number().int().min(0).max(100),
+    /** percent of bullets and grenades dodged */
+    dodge: z.number().int().min(0).max(100),
+    /** spawn with this exact kit; null = the match's normal kit or loot */
+    kit: zPrivateLoadout.nullable(),
+});
+export type BotSettings = z.infer<typeof zBotSettings>;
+
+export const zBotSettingsByLevel = z.object({
+    beginner: zBotSettings,
+    intermediate: zBotSettings,
+    advanced: zBotSettings,
+    hacker: zBotSettings,
+});
+export type BotSettingsByLevel = z.infer<typeof zBotSettingsByLevel>;
+
+/** the out-of-the-box numbers for each level (the server's bot skills match these) */
+const levelAimDodge: Record<BotLevel, [number, number]> = {
+    beginner: [35, 20],
+    intermediate: [50, 35],
+    advanced: [75, 70],
+    hacker: [100, 90],
+};
+
+export function defaultBotSettings(): BotSettingsByLevel {
+    const settings = {} as BotSettingsByLevel;
+    for (const level of BotLevels) {
+        const [accuracy, dodge] = levelAimDodge[level];
+        settings[level] = {
+            chase: true,
+            loot: true,
+            heal: true,
+            boost: true,
+            throwables: true,
+            melee: true,
+            accuracy,
+            dodge,
+            kit: null,
+        };
+    }
+    return settings;
+}
+
 /** private match against bots: bot teammates fill your side, the other side is all bots */
 export const zVsBots = z.object({
     ally: z.enum(BotLevels),

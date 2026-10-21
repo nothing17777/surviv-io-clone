@@ -3,7 +3,7 @@ import { getCookie } from "hono/cookie";
 import type { UpgradeWebSocket, WSContext } from "hono/ws";
 import { randomUUID } from "node:crypto";
 import { type MapDefKey, MapDefs } from "../../shared/defs/mapDefs.ts";
-import { defaultPrivateLoadout, type FindGamePrivateError } from "../../shared/types/api.ts";
+import { defaultBotSettings, defaultPrivateLoadout, type FindGamePrivateError } from "../../shared/types/api.ts";
 import {
     type ClientRoomData,
     type ClientToServerTeamMsg,
@@ -125,6 +125,7 @@ class Room {
         privateVsBots: false,
         privateBotEnemy: "intermediate",
         privateBotAlly: "intermediate",
+        privateBotSettings: defaultBotSettings(),
     };
 
     /** the full map file; data.customMap is just its summary for the menu */
@@ -264,6 +265,7 @@ class Room {
         this.data.privateVsBots = props.privateVsBots ?? this.data.privateVsBots;
         this.data.privateBotEnemy = props.privateBotEnemy ?? this.data.privateBotEnemy;
         this.data.privateBotAlly = props.privateBotAlly ?? this.data.privateBotAlly;
+        this.data.privateBotSettings = props.privateBotSettings ?? this.data.privateBotSettings;
 
         // a private match holds both sides, so up to 8 players
         this.data.maxPlayers = this.data.privateMatch ? 8 : modes[gameModeIdx].teamMode;
@@ -386,6 +388,7 @@ class Room {
                     loadout: this.data.privateSharedKit ? this.data.privateLoadout : undefined,
                     customMap: customMap ?? undefined,
                     bots: this.data.privateVsBots ? undefined : this.data.privateBots,
+                    botSettings: this.data.privateBotSettings,
                     vsBots: this.data.privateVsBots
                         ? {
                             ally: this.data.privateBotAlly,
@@ -642,7 +645,8 @@ export class TeamMenu {
             assert(data.length < CustomMapLimits.maxBytes + 1024);
             msg = JSON.parse(data);
             zTeamClientMsg.parse(msg);
-            assert(msg.type === "setCustomMap" || data.length < 1024);
+            // room data carries the bot list and per-level bot settings; zod bounds every field
+            assert(msg.type === "setCustomMap" || data.length < 8192);
         } catch (e) {
             this.logger.warn("Failed to parse message, closing socket.", e);
             ws.close();
