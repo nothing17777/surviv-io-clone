@@ -97,6 +97,7 @@ export const BuildingEditorConfig = {
 const defaultConfig = {
     anonPlayerNames: false,
     autoFireAll: false,
+    autoMelee: false,
     highResTex: true,
     interpolation: true,
     localRotation: false,

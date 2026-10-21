@@ -582,10 +582,11 @@ export class Game {
             inputMsg.shootHold = this.m_inputBinds.isBindDown(Input.Fire) || this.m_touch.shotDetected;
             // "Make all guns automatic": holding fire keeps re-pressing it, so
             // single shot guns fire again as soon as they're ready
+            const activeWeaponType = GameObjectDefs.typeToDefSafe(this.m_activePlayer.m_netData.m_activeWeapon)?.type;
             if (
                 inputMsg.shootHold
-                && this.m_config.get("autoFireAll")
-                && GameObjectDefs.typeToDefSafe(this.m_activePlayer.m_netData.m_activeWeapon)?.type === "gun"
+                && ((this.m_config.get("autoFireAll") && activeWeaponType === "gun")
+                    || (this.m_config.get("autoMelee") && activeWeaponType === "melee"))
             ) {
                 inputMsg.shootStart = true;
             }

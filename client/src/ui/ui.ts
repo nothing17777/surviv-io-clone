@@ -161,6 +161,7 @@ export class UiManager {
     moveStyleButton = $("#btn-game-move-style");
     aimLineButton = $("#btn-game-aim-line");
     autoFireButton = $("#btn-game-auto-fire");
+    autoMeleeButton = $("#btn-game-auto-melee");
     aimAssistButton = $("#btn-game-aim-assist");
     aimStyleButton = $("#btn-game-aim-style");
 
@@ -334,6 +335,16 @@ export class UiManager {
         this.autoFireButton.on("click", () => {
             this.game.m_config.set("autoFireAll", !this.game.m_config.get("autoFireAll"));
             syncAutoFire();
+        });
+        const syncAutoMelee = () => {
+            const on = !!this.game.m_config.get("autoMelee");
+            this.autoMeleeButton.toggleClass("aim-line-on-icon", on).toggleClass("aim-line-off-icon", !on);
+            $("#autoMelee").prop("checked", on);
+        };
+        syncAutoMelee();
+        this.autoMeleeButton.on("click", () => {
+            this.game.m_config.set("autoMelee", !this.game.m_config.get("autoMelee"));
+            syncAutoMelee();
         });
         this.onTouchScreen = (e: Event) => {
             if ((e.target as HTMLElement)?.id == "cvs") {
@@ -582,6 +593,7 @@ export class UiManager {
         this.aimLineButton.off("touchstart");
         this.aimAssistButton.off("pointerdown");
         this.autoFireButton.off("click");
+        this.autoMeleeButton.off("click");
         $(document).off("touchstart", this.onTouchScreen);
         this.bigmapClose.off("touchend");
         this.bigmapClose.off("mousedown");
