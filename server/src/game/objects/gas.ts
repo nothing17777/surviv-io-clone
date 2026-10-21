@@ -300,6 +300,7 @@ export class Gas {
         if (this._storm) {
             this.duration *= util.random(0.7, 1.3);
         }
+        this.duration /= this.game.customMap?.zoneSpeed ?? 1;
         if (this.mode === GasMode.Waiting) {
             let rad = stage.rad;
             if (this._storm && rad > 0) {
@@ -318,17 +319,30 @@ export class Gas {
             // Normal: next circle sits fully inside the current one.
             // Storm: next center can be anywhere up to the current edge, so part
             // of the new circle can sit in today's storm and the zone drifts.
-            const maxOffset = this._storm
-                ? this.radOld * util.random(0.6, 1)
-                : this.radOld - this.radNew;
-            this.posNew = v2.add(this.posNew, util.randomPointInCircle(maxOffset));
+            const zoneEnd = this.game.customMap?.zoneEnd;
+            if (zoneEnd) {
+                // Shrink toward the map maker's end point: scaling the circle about
+                // that point keeps it inside every circle, so the zone always ends there.
+                const end = v2.create(zoneEnd.x, zoneEnd.y);
+                const k = this.radOld > 0 ? this.radNew / this.radOld : 0;
+                this.posNew = v2.add(end, v2.mul(v2.sub(this.posNew, end), k));
+                if (this._storm) {
+                    // still let storm circles poke into the current storm
+                    this.posNew = v2.add(this.posNew, util.randomPointInCircle(this.radNew * 0.5));
+                }
+            } else {
+                const maxOffset = this._storm
+                    ? this.radOld * util.random(0.6, 1)
+                    : this.radOld - this.radNew;
+                this.posNew = v2.add(this.posNew, util.randomPointInCircle(maxOffset));
 
-            const rad = this.radNew * 0.75; // ensure at least 75% of the safe zone will be inside map bounds
-            this.posNew = math.v2Clamp(
-                this.posNew,
-                v2.create(rad, rad),
-                v2.create(this.game.map.width - rad, this.game.map.height - rad),
-            );
+                const rad = this.radNew * 0.75; // ensure at least 75% of the safe zone will be inside map bounds
+                this.posNew = math.v2Clamp(
+                    this.posNew,
+                    v2.create(rad, rad),
+                    v2.create(this.game.map.width - rad, this.game.map.height - rad),
+                );
+            }
 
             this.currentPos = this.posOld;
             this.currentRad = this.radOld;

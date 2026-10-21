@@ -50,6 +50,10 @@ export const zCustomMap = z.object({
     noLoot: z.boolean(),
     /** faster, drifting storm gas (see Gas); missing in older map files */
     storm: z.boolean().optional(),
+    /** zone speed multiplier: 2 closes twice as fast */
+    zoneSpeed: z.number().min(0.25).max(4).optional(),
+    /** where the final zone closes; missing = random, like normal games */
+    zoneEnd: z.object({ x: zPos, y: zPos }).optional(),
     rivers: z
         .array(
             z.object({

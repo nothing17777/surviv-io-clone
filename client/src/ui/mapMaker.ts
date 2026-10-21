@@ -30,7 +30,7 @@ import { itemImage } from "./modePicker.ts";
  * uploadable to a private party match.
  */
 
-type Tool = "select" | "place" | "erase" | "river" | "spawnA" | "spawnB";
+type Tool = "select" | "place" | "erase" | "river" | "spawnA" | "spawnB" | "zone";
 
 const svg = (body: string) =>
     `<svg class="mm-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
@@ -43,6 +43,7 @@ const toolIcons: Record<Tool, string> = {
     spawnA: svg(
         `<circle cx="12" cy="12" r="9" fill="#3d8bff" stroke="none"/><text x="12" y="16.5" font-size="12" text-anchor="middle" fill="#fff" stroke="none" font-weight="bold">A</text>`,
     ),
+    zone: svg(`<circle cx="12" cy="12" r="9" stroke-dasharray="3 2"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/>`),
     spawnB: svg(
         `<circle cx="12" cy="12" r="9" fill="#ff4d4d" stroke="none"/><text x="12" y="16.5" font-size="12" text-anchor="middle" fill="#fff" stroke="none" font-weight="bold">B</text>`,
     ),
@@ -66,6 +67,7 @@ const tools: Array<{ id: Tool; label: string; key: string; tip: string }> = [
     { id: "river", label: "River", key: "4", tip: "Click to add points, double-click or Enter to finish." },
     { id: "spawnA", label: "Spawn A", key: "5", tip: "Click to add a Team A start point." },
     { id: "spawnB", label: "Spawn B", key: "6", tip: "Click to add a Team B start point." },
+    { id: "zone", label: "Zone", key: "7", tip: "Click where the final zone should close. Clear it in the Map panel." },
 ];
 
 const storageKey = "survev_custom_maps";
@@ -644,6 +646,11 @@ class MapMaker {
                             <span class="mm-sub">crates, buildings and airdrops drop nothing</span></label>
                         <label class="mm-check"><input id="mm-storm" type="checkbox"> Storm
                             <span class="mm-sub">faster gas, next circle can overlap the storm</span></label>
+                        <label>Zone speed <select id="mm-zonespeed" class="mm-input">
+                            <option value="0.5">Slow</option><option value="1">Normal</option>
+                            <option value="1.5">Fast</option><option value="2">Very fast</option></select></label>
+                        <div class="mm-sub" id="mm-zoneinfo"></div>
+                        <button class="mm-btn" id="mm-zoneclear" title="Let the zone end somewhere random">Random zone end</button>
                         <label class="mm-check"><input id="mm-snap" type="checkbox"> Snap to grid <span class="mm-key">G</span></label>
                         <div class="mm-stats"></div>
                     </div>
@@ -715,6 +722,13 @@ class MapMaker {
         });
         this.root.find("#mm-storm").on("change", (e) => {
             this.edit(() => (this.map.storm = (e.currentTarget as HTMLInputElement).checked));
+        });
+        this.root.find("#mm-zonespeed").on("change", (e) => {
+            const v = Number($(e.currentTarget).val());
+            this.edit(() => (this.map.zoneSpeed = v === 1 ? undefined : v));
+        });
+        this.root.find("#mm-zoneclear").on("click", () => {
+            if (this.map.zoneEnd) this.edit(() => (this.map.zoneEnd = undefined));
         });
         this.root.find("#mm-snap").on("change", (e) => {
             this.snap = (e.currentTarget as HTMLInputElement).checked;
@@ -952,6 +966,12 @@ class MapMaker {
         this.root.find("#mm-height").val(this.map.height);
         this.root.find("#mm-noloot").prop("checked", this.map.noLoot);
         this.root.find("#mm-storm").prop("checked", !!this.map.storm);
+        this.root.find("#mm-zonespeed").val(String(this.map.zoneSpeed ?? 1));
+        const end = this.map.zoneEnd;
+        this.root.find("#mm-zoneinfo").text(
+            end ? `Zone ends at ${Math.round(end.x)}, ${Math.round(end.y)}` : "Zone ends somewhere random",
+        );
+        this.root.find("#mm-zoneclear").toggle(!!end);
         this.root.find("#mm-snap").prop("checked", this.snap);
         this.root.find("#mm-use").toggle(!!this.partyHook);
         this.root.find(".mm-tool").each((_i, el) => {
@@ -1466,6 +1486,11 @@ class MapMaker {
                         side: this.tool === "spawnA" ? 0 : 1,
                     })
                 );
+                break;
+            }
+            case "zone": {
+                const p = this.snapPos(world);
+                this.edit(() => (this.map.zoneEnd = { x: this.clampX(p.x), y: this.clampY(p.y) }));
             }
         }
     }
@@ -1894,6 +1919,24 @@ function drawObject(ctx: CanvasRenderingContext2D, obj: CustomMap["objects"][num
 
 function drawSpawns(ctx: CanvasRenderingContext2D, map: CustomMap, zoom: number) {
     const rad = Math.max(3, 8 / zoom);
+    if (map.zoneEnd) {
+        // final zone point, with a ring showing roughly the last few circles
+        const { x, y } = map.zoneEnd;
+        const size = (map.width + map.height) / 2;
+        ctx.strokeStyle = "rgba(255,255,255,0.85)";
+        ctx.lineWidth = Math.max(0.6, 2 / zoom);
+        ctx.setLineDash([6 / zoom, 4 / zoom]);
+        for (const r of [0.14, 0.045]) {
+            ctx.beginPath();
+            ctx.arc(x, y, r * size, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        ctx.setLineDash([]);
+        ctx.fillStyle = "#fff";
+        ctx.beginPath();
+        ctx.arc(x, y, rad * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+    }
     for (const s of map.spawns) {
         ctx.fillStyle = s.side === 0 ? "#3d8bff" : "#ff4d4d";
         ctx.strokeStyle = "#fff";
