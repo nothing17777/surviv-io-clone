@@ -53,6 +53,10 @@ interface BotSkill {
     cook: number;
     /** how far off the landing spot can be, world units */
     throwError: number;
+    /** sees through walls and tracks enemies anywhere on the map */
+    wallhack?: boolean;
+    /** bullets always land; dodging means actually stepping out of their path */
+    realDodge?: boolean;
 }
 
 const Skills: Record<BotLevel, BotSkill> = {
@@ -115,6 +119,23 @@ const Skills: Record<BotLevel, BotSkill> = {
         throwEvery: [4, 7],
         cook: 2.4,
         throwError: 0.5,
+    },
+    scripter: {
+        accuracy: 1,
+        dodge: 0.95,
+        reaction: 0.05,
+        lead: true,
+        turnRate: 60,
+        burst: [1000, 0],
+        noSpread: true,
+        spin: false,
+        quickSwitch: true,
+        strafeTime: [0.2, 0.5],
+        throwEvery: [5, 9],
+        cook: 2.2,
+        throwError: 0.5,
+        wallhack: true,
+        realDodge: true,
     },
 };
 
@@ -191,6 +212,23 @@ const MaxThrowDist = 26;
 /** toMouseLen per unit of throw distance (measured: max mouse dist lands about this far) */
 const ThrowMouseLenPerUnit = 0.7;
 
+/**
+ * How far a gun reaches. Launchers like the PMG fire projectiles and carry a
+ * placeholder bullet with a range of 1, so read the projectile's throw distance.
+ */
+function gunDefRange(def: GunDef): number {
+    if (def.projType) {
+        const proj = GameObjectDefs.typeToDefSafe(def.projType) as ThrowableDef | undefined;
+        return proj?.aimDistance ?? 30;
+    }
+    return BulletDefs[def.bulletType]?.distance ?? 100;
+}
+
+/** shotguns spray pellets; launchers with several projectiles don't count */
+function isShotgun(def: GunDef): boolean {
+    return def.bulletCount > 1 && !def.projType;
+}
+
 export class BotBrain {
     readonly skill: BotSkill;
 
@@ -255,7 +293,7 @@ export class BotBrain {
      * Bullets get re-used, so the roll is keyed on the bullet and its start pos.
      */
     dodgeBullet(bullet: Bullet): boolean {
-        if (bullet.player === this.player) return false;
+        if (bullet.player === this.player || this.skill.realDodge) return false;
         if (bullet.player && bullet.player.teamId === this.player.teamId) return false;
         const roll = this._dodgeRolls.get(bullet);
         if (roll && roll.start === bullet.startPos) return roll.dodge;
@@ -334,7 +372,7 @@ export class BotBrain {
             this.pickCombatWeapon(v2.distance(this.target.pos, player.pos));
             // hurt and carrying heals: fall back behind cover (hackers just keep fighting)
             this._retreat = undefined;
-            if (player.health < 35 && this.settings.heal && this.pickHeal() && this.level !== "hacker") {
+            if (player.health < 35 && this.settings.heal && this.pickHeal() && this.level !== "hacker" && this.level !== "scripter") {
                 this._retreat = this.findCover(this.target.pos);
             }
             return;
@@ -460,6 +498,21 @@ export class BotBrain {
 
     private findTarget(): Player | undefined {
         const player = this.player;
+        if (this.skill.wallhack) {
+            // anyone, anywhere; ones it can shoot right now come first
+            let best: Player | undefined;
+            let bestDist = Infinity;
+            for (const obj of this.game.playerBarn.livingPlayers) {
+                if (obj === player || obj.teamId === player.teamId) continue;
+                let d = v2.distance(obj.pos, player.pos) * (this.canShoot(obj) ? 1 : 2);
+                if (obj === this.target) d *= 0.7;
+                if (d < bestDist) {
+                    best = obj;
+                    bestDist = d;
+                }
+            }
+            return best;
+        }
         const range = Math.max(player.zoom * 1.2, 35);
         let best: Player | undefined;
         let bestDist = range;
@@ -479,6 +532,11 @@ export class BotBrain {
             bestDist = d;
         }
         return best;
+    }
+
+    /** same floor and nothing solid between us */
+    private canShoot(target: Player): boolean {
+        return !!util.sameLayer(target.layer, this.player.layer) && this.canSee(target.pos);
     }
 
     private canSee(pos: Vec2): boolean {
@@ -515,7 +573,7 @@ export class BotBrain {
     private gunRange(slot: number): number {
         const def = GameObjectDefs.typeToDefSafe(this.player.weapons[slot].type);
         if (def?.type !== "gun") return 0;
-        return BulletDefs[(def as GunDef).bulletType]?.distance ?? 100;
+        return gunDefRange(def as GunDef);
     }
 
     /**
@@ -529,7 +587,7 @@ export class BotBrain {
         // close enough to hit: out with the melee weapon, unless a loaded shotgun does it better
         const loadedShotgun = GunSlots.some((s) => {
             const def = GameObjectDefs.typeToDefSafe(player.weapons[s].type);
-            return def?.type === "gun" && (def as GunDef).bulletCount > 1 && player.weapons[s].ammo > 0;
+            return def?.type === "gun" && isShotgun(def as GunDef) && player.weapons[s].ammo > 0;
         });
         if (this.settings.melee && dist < MeleeReach && !loadedShotgun && player.weapons[WeaponSlot.Melee].type) {
             if (player.curWeapIdx !== WeaponSlot.Melee) player.weaponManager.setCurWeapIndex(WeaponSlot.Melee);
@@ -657,8 +715,13 @@ export class BotBrain {
         let lookDir: Vec2 | undefined;
 
         const target = this.target && !this.target.dead ? this.target : undefined;
+        // a grenade still in hand with nobody to throw it at: let it go and swap back
+        if (this._throw && (!target || player.downed)) this.abandonThrow(dt);
 
-        if (target && !player.downed) {
+        if (target && !player.downed && !this.canShoot(target)) {
+            // tracked through walls: walk to them, don't waste shots
+            move = this.followPath(target.pos, dt);
+        } else if (target && !player.downed) {
             // track the target's velocity for leading shots
             const vel = v2.div(v2.sub(target.pos, this._targetLastPos), Math.max(dt, 0.001));
             this._targetVel = v2.lerp(0.5, this._targetVel, vel);
@@ -671,10 +734,9 @@ export class BotBrain {
             const weapDef = GameObjectDefs.typeToDefSafe(player.activeWeapon);
             const isGun = weapDef?.type === "gun";
             const gunDef = isGun ? (weapDef as GunDef) : undefined;
-            const isShotgun = !!gunDef && gunDef.bulletCount > 1;
             // stay where the gun actually reaches
-            const range = gunDef ? (BulletDefs[gunDef.bulletType]?.distance ?? 100) * 0.9 : 0;
-            const prefDist = !gunDef ? 0 : Math.min(isShotgun ? 7 : 16, range * 0.7);
+            const range = gunDef ? gunDefRange(gunDef) * 0.9 : 0;
+            const prefDist = !gunDef ? 0 : Math.min(isShotgun(gunDef) ? 7 : 16, range * 0.7);
 
             // strafe sideways and hold the preferred range
             this._strafeTicker -= dt;
@@ -785,8 +847,12 @@ export class BotBrain {
             if (player.actionType !== GameConfig.Action.None) player.cancelAction();
         }
 
+        // step out of the line of incoming bullets
+        const sidestep = this.skill.realDodge && !escape ? this.bulletDodge() : undefined;
+        if (sidestep) move = v2.add(v2.mul(v2.normalize(sidestep), 3), v2.mul(v2.normalizeSafe(move), 0.5));
+
         // combat strafing has no path: just sidestep whatever is in the way
-        if ((escape || (target && !this._retreat)) && v2.length(move) > 0.01) {
+        if ((escape || sidestep || (target && !this._retreat)) && v2.length(move) > 0.01) {
             move = this.steer(v2.normalize(move), dt);
         }
 
@@ -800,6 +866,9 @@ export class BotBrain {
                 this._moveDir = v2.normalize(v2.add(v2.mul(v2.perp(move), side), v2.mul(move, -0.5)));
                 this._stuckCount++;
                 this._path = undefined;
+                // try the other way around next time
+                this._strafeSign = -this._strafeSign;
+                this._steerSide = -this._steerSide;
                 if (this._stuckCount >= 3) {
                     this._stuckCount = 0;
                     this._lootTarget = undefined;
@@ -817,6 +886,9 @@ export class BotBrain {
             this._unstickTicker -= dt;
             move = this._moveDir;
         }
+
+        // never dodge, strafe or back off into the red zone
+        if (v2.length(move) > 0.01) move = this.keepOutOfGas(move);
 
         const moving = v2.length(move) > 0.01;
         player.touchMoveActive = true;
@@ -876,7 +948,41 @@ export class BotBrain {
             this._path = undefined;
             return v2.create(0, 0);
         }
-        return v2.normalizeSafe(v2.sub(path[0], player.pos));
+        const dir = v2.normalizeSafe(v2.sub(path[0], player.pos));
+        // clipping a corner on the way to the waypoint: slide around it
+        return this.blocked(dir, 1.2) ? this.steer(dir, dt) : dir;
+    }
+
+    /** drops the part of `move` that heads out of the safe zone, and pulls back in near the edge */
+    private keepOutOfGas(move: Vec2): Vec2 {
+        const gas = this.game.gas;
+        const margin = 4;
+        const toCenter = v2.sub(gas.currentPos, this.player.pos);
+        const d = v2.length(toCenter);
+        if (d < gas.currentRad - margin) return move;
+        const inward = v2.normalizeSafe(toCenter);
+        const along = v2.dot(move, inward);
+        const kept = along < 0 ? v2.sub(move, v2.mul(inward, along)) : move;
+        const depth = (d - (gas.currentRad - margin)) / margin;
+        return v2.add(kept, v2.mul(inward, Math.max(depth, 0.3)));
+    }
+
+    /** sideways away from enemy bullets that are about to hit us */
+    private bulletDodge(): Vec2 | undefined {
+        const player = this.player;
+        let out: Vec2 | undefined;
+        for (const b of this.game.bulletBarn.bullets) {
+            if (!b.active || b.player === player || b.player?.teamId === player.teamId) continue;
+            if (!util.sameLayer(b.layer, player.layer)) continue;
+            const rel = v2.sub(player.pos, b.pos);
+            const ahead = v2.dot(rel, b.dir);
+            if (ahead < 0 || ahead > 40) continue;
+            const side = v2.dot(rel, v2.perp(b.dir));
+            if (Math.abs(side) > player.rad + 1.5) continue;
+            const away = v2.mul(v2.perp(b.dir), side >= 0 ? 1 : -1);
+            out = out ? v2.add(out, away) : away;
+        }
+        return out;
     }
 
     /**
@@ -966,10 +1072,12 @@ export class BotBrain {
             GameConfig.player.throwableMaxMouseDist,
         );
 
-        const done = () => {
-            this._throw = undefined;
-            if (player.weapons[t.prev]?.type && player.curWeapIdx === WeaponSlot.Throwable) wm.setCurWeapIndex(t.prev);
-        };
+        const done = () => this.endThrow();
+        // whatever happened, never stand there holding a grenade
+        if (t.timer > t.cook + 4) {
+            done();
+            return undefined;
+        }
         if (!t.released) {
             if (!wm.cookingThrowable) {
                 // keep pressing until the cook starts; give up if it never does
@@ -990,6 +1098,25 @@ export class BotBrain {
             return undefined;
         }
         return v2.normalizeSafe(toAim, player.dir);
+    }
+
+    private endThrow() {
+        const t = this._throw;
+        if (!t) return;
+        this._throw = undefined;
+        const player = this.player;
+        if (player.curWeapIdx !== WeaponSlot.Throwable) return;
+        // back to the gun we had, or anything we're carrying
+        const slot = player.weapons[t.prev]?.type ? t.prev : GunSlots.find((s) => player.weapons[s].type) ?? WeaponSlot.Melee;
+        player.weaponManager.setCurWeapIndex(slot);
+    }
+
+    /** target gone mid-throw: release (shootHold is already off) and swap back once it's out */
+    private abandonThrow(dt: number) {
+        const t = this._throw!;
+        t.timer += dt;
+        if (this.player.weaponManager.cookingThrowable && t.timer < t.cook + 4) return;
+        this.endThrow();
     }
 
     /** true when walking `len` units along `dir` would bump into an obstacle */

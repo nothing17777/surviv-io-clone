@@ -104,6 +104,8 @@ export class Game {
 
     /** private match side -> that side's group hash, so bots can join it */
     sideGroupHashes = new Map<number, string>();
+    /** private sides outgrow one group: everyone on a side shares this team id */
+    sideTeamIds = new Map<number, number>();
     /** public games: fills empty slots with bots once a real player is in */
     botFiller?: BotFiller;
     private _botsAdded = false;

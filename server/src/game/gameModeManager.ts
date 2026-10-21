@@ -34,6 +34,11 @@ export class GameModeManager {
     }
 
     aliveCount(): number {
+        // private sides: the match is between sides, not groups
+        const living = this.game.playerBarn.livingPlayers;
+        if (this.mode !== GameMode.Faction && living.some((p) => p.privateSide !== undefined)) {
+            return new Set(living.map((p) => p.privateSide ?? `solo${p.__id}`)).size;
+        }
         switch (this.mode) {
             case GameMode.Solo:
                 return this.game.playerBarn.livingPlayers.length;

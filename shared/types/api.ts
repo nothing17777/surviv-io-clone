@@ -53,7 +53,7 @@ export const defaultPrivateLoadout: PrivateLoadout = {
     painkiller: 4,
 };
 
-export const BotLevels = ["beginner", "intermediate", "advanced", "hacker"] as const;
+export const BotLevels = ["beginner", "intermediate", "advanced", "hacker", "scripter"] as const;
 export type BotLevel = (typeof BotLevels)[number];
 
 export const MaxPrivateBots = 16;
@@ -96,6 +96,7 @@ export const zBotSettingsByLevel = z.object({
     intermediate: zBotSettings,
     advanced: zBotSettings,
     hacker: zBotSettings,
+    scripter: zBotSettings,
 });
 export type BotSettingsByLevel = z.infer<typeof zBotSettingsByLevel>;
 
@@ -105,6 +106,7 @@ const levelAimDodge: Record<BotLevel, [number, number]> = {
     intermediate: [50, 35],
     advanced: [75, 70],
     hacker: [100, 90],
+    scripter: [100, 95],
 };
 
 export function defaultBotSettings(): BotSettingsByLevel {

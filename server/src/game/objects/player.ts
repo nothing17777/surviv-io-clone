@@ -207,6 +207,14 @@ export class PlayerBarn {
 
         player.privateSide = joinData.groupData.side;
         this.activatePlayer(player, group, team);
+        // a side can hold more players than one group, so groups on the same side
+        // still share a team id and can't hurt each other
+        const side = joinData.groupData.side;
+        if (side !== undefined && !this.game.map.factionMode) {
+            const sideTeam = this.game.sideTeamIds.get(side);
+            if (sideTeam === undefined) this.game.sideTeamIds.set(side, player.teamId);
+            else player.teamId = sideTeam;
+        }
         const godLoadout = this.game.godLoadout;
         player.setLoadout(
             joinData.loadout ? joinData.loadout : joinMsg.loadout,
