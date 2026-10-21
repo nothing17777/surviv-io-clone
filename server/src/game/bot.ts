@@ -268,6 +268,8 @@ export class BotBrain {
     private _lastThreat?: Vec2;
     private _sinceThreat = Infinity;
     private _burstTicker = 0;
+    private _jukeTicker = 0;
+    private _jukeSign = 1;
     private _bursting = true;
     /** set for the shot fired this tick when it was rolled as a hit */
     aimLocked = false;
@@ -865,10 +867,13 @@ export class BotBrain {
 
         // step out of the line of incoming bullets
         const sidestep = !this.phaseDodge && !escape && !player.downed ? this.bulletDodge() : undefined;
+        // a scripter also zig-zags whenever a gun is pointed at it
+        const juke = !sidestep && !escape && this.skill.wallhack && !player.downed ? this.aimJuke(dt) : undefined;
         if (sidestep) move = v2.add(v2.mul(v2.normalize(sidestep), 3), v2.mul(move, 0.3));
+        else if (juke) move = v2.add(v2.mul(juke, 2), v2.mul(v2.normalizeSafe(move, v2.create(0, 0)), 0.6));
 
         // combat strafing has no path: just sidestep whatever is in the way
-        if ((escape || sidestep || (target && !this._retreat)) && v2.length(move) > 0.01) {
+        if ((escape || sidestep || juke || (target && !this._retreat)) && v2.length(move) > 0.01) {
             move = this.steer(v2.normalize(move), dt);
         }
 
@@ -983,7 +988,7 @@ export class BotBrain {
         return v2.add(kept, v2.mul(inward, Math.max(depth, 0.3)));
     }
 
-    /** sideways away from enemy bullets that are about to hit us */
+    /** sideways out of the line of enemy bullets that will reach us soon, nearest first */
     private bulletDodge(): Vec2 | undefined {
         const player = this.player;
         let out: Vec2 | undefined;
@@ -992,15 +997,53 @@ export class BotBrain {
             if (!util.sameLayer(b.layer, player.layer)) continue;
             const rel = v2.sub(player.pos, b.pos);
             const ahead = v2.dot(rel, b.dir);
-            if (ahead < 0 || ahead > 40) continue;
+            if (ahead < -1) continue;
+            // time until it gets here, and whether it gets here at all
+            const time = ahead / Math.max(b.speed, 1);
+            if (time > 0.7 || b.maxDistance - b.distanceTraveled < ahead - 2) continue;
             const side = v2.dot(rel, v2.perp(b.dir));
             if (Math.abs(side) > player.rad + 1.5) continue;
             // the dodge % is the chance it notices this shot in time
             if (!this.rollDodge(b)) continue;
-            const away = v2.mul(v2.perp(b.dir), side >= 0 ? 1 : -1);
-            out = out ? v2.add(out, away) : away;
+            // the short way out, unless a wall is there
+            let away = v2.mul(v2.perp(b.dir), side >= 0 ? 1 : -1);
+            if (this.blocked(away, 2) && !this.blocked(v2.neg(away), 2)) away = v2.neg(away);
+            const urgency = 1 / (time + 0.05);
+            out = out ? v2.add(out, v2.mul(away, urgency)) : v2.mul(away, urgency);
         }
         return out;
+    }
+
+    /**
+     * Juke while someone has a gun pointed at us: zig-zag across their aim line
+     * so the shot misses before it's even fired.
+     */
+    private aimJuke(dt: number): Vec2 | undefined {
+        const player = this.player;
+        this._jukeTicker -= dt;
+        if (this._jukeTicker <= 0) {
+            this._jukeTicker = util.random(0.18, 0.4);
+            this._jukeSign = Math.random() < 0.5 ? -1 : 1;
+        }
+        const near = this.game.grid.intersectCollider(collider.createCircle(player.pos, 60));
+        for (const obj of near) {
+            if (obj.__type !== ObjectType.Player) continue;
+            if (obj.dead || obj.downed || obj.teamId === player.teamId) continue;
+            if (!util.sameLayer(obj.layer, player.layer)) continue;
+            if (GameObjectDefs.typeToDefSafe(obj.activeWeapon)?.type !== "gun") continue;
+            const to = v2.sub(player.pos, obj.pos);
+            const dist = v2.length(to);
+            const miss = Math.abs(math.angleDiff(Math.atan2(obj.dir.y, obj.dir.x), Math.atan2(to.y, to.x)));
+            if (miss > Math.atan2(player.rad + 2, Math.max(dist, 1)) + 0.05) continue;
+            if (!this.canSee(obj.pos)) continue;
+            let dir = v2.mul(v2.perp(obj.dir), this._jukeSign);
+            if (this.blocked(dir, 2)) {
+                this._jukeSign = -this._jukeSign;
+                dir = v2.neg(dir);
+            }
+            return dir;
+        }
+        return undefined;
     }
 
     /**
