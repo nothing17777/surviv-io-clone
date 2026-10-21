@@ -1,6 +1,7 @@
 import { BulletDefs } from "../../../shared/defs/gameObjects/bulletDefs.ts";
 import { ExplosionDefs } from "../../../shared/defs/gameObjects/explosionsDefs.ts";
 import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
+import type { MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
 import type { ThrowableDef } from "../../../shared/defs/gameObjects/throwableDefs.ts";
 import { GameObjectDefs, MapObjectDefs } from "../../../shared/defs/register.ts";
 import { GameConfig, GasMode, type InventoryItem, WeaponSlot } from "../../../shared/gameConfig.ts";
@@ -202,8 +203,8 @@ class BotClient extends Client {
 
 const GunSlots = [WeaponSlot.Primary, WeaponSlot.Secondary];
 
-/** target distance (center to center) where a bot pulls out its melee weapon */
-const MeleeReach = 3.2;
+/** target distance (center to center) where a bot with no loaded gun pulls out its melee weapon */
+const MeleeSwitchDist = 7;
 
 /** farthest a bot tries to throw, world units */
 const MaxThrowDist = 26;
@@ -611,17 +612,17 @@ export class BotBrain {
         // mid-throw: leave the grenade in hand
         if (this._throw) return;
         const player = this.player;
-        // close enough to hit: out with the melee weapon, unless a loaded shotgun does it better
-        const loadedShotgun = GunSlots.some((s) => {
-            const def = GameObjectDefs.typeToDefSafe(player.weapons[s].type);
-            return def?.type === "gun" && isShotgun(def as GunDef) && player.weapons[s].ammo > 0;
-        });
-        if (this.settings.melee && dist < MeleeReach && !loadedShotgun && player.weapons[WeaponSlot.Melee].type) {
-            if (player.curWeapIdx !== WeaponSlot.Melee) player.weaponManager.setCurWeapIndex(WeaponSlot.Melee);
-            return;
-        }
         const cur = player.curWeapIdx;
         const loaded = GunSlots.filter((s) => player.weapons[s].ammo > 0);
+        // a loaded gun beats any melee weapon up close; only swing when every clip
+        // is empty and they're too close to stand there reloading
+        if (
+            this.settings.melee && !loaded.length && dist < MeleeSwitchDist
+            && player.weapons[WeaponSlot.Melee].type
+        ) {
+            if (cur !== WeaponSlot.Melee) player.weaponManager.setCurWeapIndex(WeaponSlot.Melee);
+            return;
+        }
         const inRange = loaded.filter((s) => this.gunRange(s) * 0.9 >= dist);
         const slot = (inRange.includes(cur) ? cur : inRange[0])
             ?? (loaded.includes(cur) ? cur : loaded[0])
@@ -773,8 +774,18 @@ export class BotBrain {
             // chase off: hold ground, never walk toward them
             if (dist > prefDist + 4 && this.settings.chase) approach = 1;
             else if (dist < prefDist - 4) approach = -1;
+            // someone running at us with a melee weapon: back off while shooting,
+            // they have to touch us to do anything
+            const targetMelee = GameObjectDefs.typeToDefSafe(target.activeWeapon)?.type === "melee";
+            if (gunDef && targetMelee && dist < 10) approach = -1.5;
             move = v2.add(strafe, v2.mul(dirTo, approach * 1.2));
-            if (!gunDef) move = this.settings.chase || dist < 4 ? dirTo : strafe; // melee: rush in
+            const reach = this.meleeReach(target);
+            if (!gunDef) {
+                // melee: rush in, then circle just inside reach
+                move = this.settings.chase || dist < MeleeSwitchDist
+                    ? (dist > reach * 0.8 ? dirTo : v2.add(strafe, v2.mul(dirTo, 0.3)))
+                    : strafe;
+            }
             // low on health: back off to cover while still shooting
             if (this._retreat) move = this.followPath(this._retreat, dt);
             // the zone comes first: walk into it, shooting on the way
@@ -790,13 +801,15 @@ export class BotBrain {
             if (throwDir) {
                 lookDir = throwDir;
             } else {
-                const wanted = this.aimAt(target, dist, gunDef);
+                // melee: face them square, the swing arc forgives the rest
+                const wanted = gunDef ? this.aimAt(target, dist, gunDef) : dirTo;
                 const curAng = Math.atan2(player.dir.y, player.dir.x);
                 const diff = math.angleDiff(curAng, Math.atan2(wanted.y, wanted.x));
-                const step = math.clamp(diff, -this.skill.turnRate * dt, this.skill.turnRate * dt);
+                const turn = gunDef ? this.skill.turnRate : Math.max(this.skill.turnRate, 12);
+                const step = math.clamp(diff, -turn * dt, turn * dt);
                 lookDir = v2.create(Math.cos(curAng + step), Math.sin(curAng + step));
                 // a shot only goes when the aim has caught up
-                const onTarget = Math.abs(diff - step) < 0.15;
+                const onTarget = Math.abs(diff - step) < (gunDef ? 0.15 : 0.45);
 
                 // fire in bursts with short pauses
                 this._burstTicker -= dt;
@@ -840,7 +853,7 @@ export class BotBrain {
                             }
                         }
                         this._lastCooldown = player.weapons[player.curWeapIdx].cooldown;
-                    } else if (dist < 4) {
+                    } else if (dist < reach) {
                         player.shootStart = true;
                         player.shootHold = true;
                     }
@@ -1334,6 +1347,13 @@ export class BotBrain {
         return best;
     }
 
+    /** center-to-center distance our melee swing connects at */
+    private meleeReach(target: Player): number {
+        const def = GameObjectDefs.typeToDefSafe(this.player.weapons[WeaponSlot.Melee].type) as MeleeDef | undefined;
+        if (def?.type !== "melee") return 3.5;
+        return def.attack.offset.x + def.attack.rad + target.rad;
+    }
+
     /** a dead-on aim for rolled hits, a near miss otherwise */
     private aimAt(target: Player, dist: number, gunDef?: GunDef): Vec2 {
         const player = this.player;
@@ -1344,7 +1364,10 @@ export class BotBrain {
             aimPos = v2.add(target.pos, v2.mul(this._targetVel, travel));
         }
         const dir = v2.normalizeSafe(v2.sub(aimPos, player.pos));
-        if (Math.random() < this.skill.accuracy) {
+        // anyone hits at point blank: accuracy climbs toward 95% inside 10 units
+        const close = math.clamp((10 - dist) / 8, 0, 1);
+        const accuracy = Math.max(this.skill.accuracy, this.skill.accuracy + (0.95 - this.skill.accuracy) * close);
+        if (Math.random() < accuracy) {
             this.aimLocked = this.skill.noSpread;
             return dir;
         }
