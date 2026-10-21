@@ -1,3 +1,7 @@
+import { CrosshairDefs } from "./crosshairDefs.ts";
+import { EmotesDefs } from "./emoteDefs.ts";
+import { HealEffectDefs } from "./healEffectDefs.ts";
+import { MeleeDefs } from "./meleeDefs.ts";
 import { OutfitDefs } from "./outfitDefs.ts";
 
 export interface UnlockDef {
@@ -17,6 +21,11 @@ export const UnlockDefs: Record<UnlockDefKey, UnlockDef> = {
         unlocks: [
             // every skin is free to pick, except the staff ones
             ...Object.keys(OutfitDefs).filter((k) => !staffOutfits.includes(k)),
+            // and every melee skin, emote, heal and boost effect, and crosshair
+            ...Object.keys(MeleeDefs),
+            ...Object.keys(EmotesDefs),
+            ...Object.keys(HealEffectDefs),
+            ...Object.keys(CrosshairDefs),
             "fists",
             "heal_basic",
             "boost_basic",
