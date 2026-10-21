@@ -282,6 +282,8 @@ export class BotBrain {
     private _zoneRun = false;
     /** the zone will catch us unless we go now, so even a fight moves toward it */
     private _zoneUrgent = false;
+    /** inside the nearest building while an airstrike is on us: walls stop the blasts */
+    private _shelter?: Vec2;
     private _throw?: { prev: number; timer: number; released: boolean; cook: number; error: Vec2 };
     private _throwCooldown = util.random(3, 8);
     private _path?: Vec2[];
@@ -404,6 +406,7 @@ export class BotBrain {
         }
 
         this._zoneUrgent = this.zoneUrgent();
+        this._shelter = this._zoneUrgent ? undefined : this.findShelter();
 
         if (player.downed) {
             // crawl into the zone if it's coming, else away from whoever downed us
@@ -495,6 +498,12 @@ export class BotBrain {
             } else {
                 this._goal = v2.copy(downedMate.pos);
             }
+            return;
+        }
+
+        // airstrike overhead: get inside and stay there (healing and reloading still happen above)
+        if (this._shelter) {
+            if (v2.distance(this._shelter, player.pos) > 1.5) this._goal = v2.copy(this._shelter);
             return;
         }
 
@@ -831,6 +840,8 @@ export class BotBrain {
             }
             // low on health: back off to cover while still shooting
             if (this._retreat) move = this.followPath(this._retreat, dt);
+            // airstrike: fight from inside the nearest building
+            if (this._shelter && v2.distance(this._shelter, player.pos) > 3) move = this.followPath(this._shelter, dt);
             // the zone comes first: walk into it, shooting on the way
             if (this._zoneUrgent) move = this.followPath(this.game.gas.posNew, dt);
 
@@ -1069,6 +1080,50 @@ export class BotBrain {
         return undefined;
     }
 
+    /** true when a wall (anything that stops explosions) is between us and `pos` */
+    private wallBetween(pos: Vec2): boolean {
+        const player = this.player;
+        for (const obj of this.game.grid.intersectLineSegment(player.pos, pos)) {
+            if (obj.__type !== ObjectType.Obstacle || obj.dead || !obj.collidable || obj.height <= 0.5) continue;
+            if (!util.sameLayer(obj.layer, player.layer)) continue;
+            if (collider.intersectSegment(obj.collider, player.pos, pos)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * The middle of the nearest building when an airstrike zone is on or near us.
+     * Explosions don't go through walls, so only a bomb landing inside can hurt.
+     * Underground is safe already (airstrikes only aim above ground).
+     */
+    private findShelter(): Vec2 | undefined {
+        const player = this.player;
+        if (player.layer === 1) return undefined;
+        const threatened = this.game.planeBarn.airstrikeZones.some(
+            (z) => v2.distance(z.pos, player.pos) < z.rad + 12,
+        );
+        if (!threatened) return undefined;
+        // keep the building we picked while the strike lasts
+        if (this._shelter && !this.game.gas.isInGas(this._shelter)) return this._shelter;
+        let best: Vec2 | undefined;
+        let bestDist = 60;
+        for (const obj of this.game.grid.intersectCollider(collider.createCircle(player.pos, bestDist))) {
+            if (obj.__type !== ObjectType.Building || obj.ceilingDead) continue;
+            if (!util.sameLayer(obj.layer, player.layer)) continue;
+            for (const region of obj.zoomRegions) {
+                if (!region.zoomIn) continue;
+                const center = v2.mul(v2.add(region.zoomIn.min, region.zoomIn.max), 0.5);
+                if (this.game.gas.isInGas(center)) continue;
+                const d = v2.distance(center, player.pos);
+                if (d < bestDist) {
+                    best = center;
+                    bestDist = d;
+                }
+            }
+        }
+        return best;
+    }
+
     /**
      * True when we're in the gas, or outside the next circle and it would
      * close on us before we could walk in (with slack for fighting on the way).
@@ -1189,6 +1244,9 @@ export class BotBrain {
             const rad = (ExplosionDefs[explosion] as { rad?: { max: number } }).rad?.max ?? 8;
             // where it's rolling to, not just where it is
             const landing = v2.add(proj.pos, v2.mul(proj.vel, 0.5));
+            // sheltering indoors: a blast on the other side of a wall can't reach us,
+            // and running out the door is what gets us hit
+            if (this._shelter && player.indoors && this.wallBetween(landing)) continue;
             add(landing, rad + 2.5, proj, proj.playerId === player.__id);
         }
         // barrels and the like that are close to blowing
@@ -1199,8 +1257,11 @@ export class BotBrain {
             const rad = this.explosiveRad(obj);
             if (rad) add(obj.pos, rad + 2, obj);
         }
-        for (const zone of this.game.planeBarn.airstrikeZones) {
-            add(zone.pos, zone.rad + 3, zone);
+        // with a building to hide in, sheltering beats running out of the zone
+        if (!this._shelter) {
+            for (const zone of this.game.planeBarn.airstrikeZones) {
+                add(zone.pos, zone.rad + 3, zone);
+            }
         }
         return escape;
     }
