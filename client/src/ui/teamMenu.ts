@@ -6,6 +6,7 @@ import {
     BotLevels,
     defaultPrivateLoadout,
     type FindGameMatchData,
+    type PrivateBot,
     MaxPrivateBots,
     type PrivateLoadout,
 } from "../../../shared/types/api.ts";
@@ -514,28 +515,31 @@ export class TeamMenu {
             list.append(member);
         };
 
-        if (this.roomData.privateVsBots) {
+        // Vs Bots lists the bots it will add; editing one turns it into a custom list
+        const vsBots = !!this.roomData.privateVsBots;
+        let bots: PrivateBot[] = this.roomData.privateBots ?? [];
+        if (vsBots) {
             const size = this.roomData.privateTeamSize;
-            for (let i = this.players.length; i < size; i++) row(this.roomData.privateBotAlly, 0, -1, false);
-            for (let i = 0; i < size; i++) row(this.roomData.privateBotEnemy, 1, -1, false);
-            return;
+            bots = [];
+            for (let i = this.players.length; i < size; i++) bots.push({ level: this.roomData.privateBotAlly, team: 0 });
+            for (let i = 0; i < size; i++) bots.push({ level: this.roomData.privateBotEnemy, team: 1 });
         }
-
-        const bots = this.roomData.privateBots ?? [];
         bots.forEach((bot, i) => row(bot.level, bot.team, i, this.isLeader));
         if (!this.isLeader) return;
 
+        const setBots = (next: PrivateBot[]) => {
+            this.setRoomProperty("privateBots", next);
+            if (vsBots) this.setRoomProperty("privateVsBots", false);
+        };
         list.find(".icon-bot-remove").on("click", (e) => {
             const idx = Number($(e.currentTarget).attr("data-bot"));
-            this.setRoomProperty("privateBots", bots.filter((_b, i) => i !== idx));
+            setBots(bots.filter((_b, i) => i !== idx));
         });
         list.find(".bot-side.can-switch").on("click", (e) => {
             const idx = Number($(e.currentTarget).attr("data-bot"));
-            this.setRoomProperty(
-                "privateBots",
-                bots.map((b, i) => (i === idx ? { ...b, team: b.team === 0 ? 1 : 0 } : b)),
-            );
+            setBots(bots.map((b, i) => (i === idx ? { ...b, team: b.team === 0 ? 1 : 0 } : b)));
         });
+        if (vsBots) return;
 
         if (bots.length >= MaxPrivateBots) return;
         const add = $("<div/>", { class: "team-menu-member team-bot-add" });

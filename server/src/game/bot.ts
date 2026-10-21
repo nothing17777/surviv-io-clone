@@ -15,6 +15,7 @@ import type { Bullet } from "./objects/bullet.ts";
 import type { Loot } from "./objects/loot.ts";
 import type { Obstacle } from "./objects/obstacle.ts";
 import type { Player } from "./objects/player.ts";
+import { findPath } from "./botPath.ts";
 import { NoOpSocket } from "./socket.ts";
 
 interface BotSkill {
@@ -178,6 +179,21 @@ export class BotBrain {
     private _targetLastPos = v2.create(0, 0);
     private _dodgeRolls = new Map<Bullet, { start: Vec2; dodge: boolean }>();
     private _dodgeClearTicker = 0;
+    /** loot / crates we couldn't path to, by object id -> seconds left to ignore them */
+    private _unreachable = new Map<number, number>();
+    private _zoneRun = false;
+    private _path?: Vec2[];
+    private _pathGoal?: Vec2;
+    private _pathTicker = 0;
+    private _steerTicker = 0;
+    private _steerDesired?: Vec2;
+    private _steerDir = v2.create(1, 0);
+    private _steerSide = 1;
+    private _stuckCount = 0;
+    private _coverSpot?: Vec2;
+    private _retreat?: Vec2;
+    private _lastThreat?: Vec2;
+    private _sinceThreat = Infinity;
     private _burstTicker = 0;
     private _bursting = true;
     /** set for the shot fired this tick when it was rolled as a hit */
@@ -224,6 +240,11 @@ export class BotBrain {
             this._dodgeClearTicker = 3;
         }
 
+        this._sinceThreat += dt;
+        for (const [id, t] of this._unreachable) {
+            if (t - dt <= 0) this._unreachable.delete(id);
+            else this._unreachable.set(id, t - dt);
+        }
         this._thinkTicker -= dt;
         if (this._thinkTicker <= 0) {
             this._thinkTicker = 0.15;
@@ -261,9 +282,18 @@ export class BotBrain {
         }
 
         if (this.target) {
+            this._lastThreat = v2.copy(this.target.pos);
+            this._sinceThreat = 0;
+            this._coverSpot = undefined;
             this.pickCombatWeapon();
+            // hurt and carrying heals: fall back behind cover (hackers just keep fighting)
+            this._retreat = undefined;
+            if (player.health < 35 && this.pickHeal() && this.level !== "hacker") {
+                this._retreat = this.findCover(this.target.pos);
+            }
             return;
         }
+        this._retreat = undefined;
 
         this.outOfCombat();
     }
@@ -272,10 +302,14 @@ export class BotBrain {
         const player = this.player;
         const gas = this.game.gas;
 
-        // the zone always wins
-        if (gas.isInGas(player.pos) || v2.distance(player.pos, gas.posNew) > gas.radNew * 0.95) {
+        // the zone always wins; once heading in, keep going until well inside
+        const zoneDist = v2.distance(player.pos, gas.posNew);
+        if (gas.isInGas(player.pos) || zoneDist > gas.radNew * 0.95) this._zoneRun = true;
+        else if (zoneDist < gas.radNew * 0.75) this._zoneRun = false;
+        if (this._zoneRun) {
             this._goal = v2.copy(gas.posNew);
             this._lootTarget = undefined;
+            this._crateTarget = undefined;
             return;
         }
 
@@ -284,6 +318,14 @@ export class BotBrain {
             if (player.health < 75) {
                 const heal = this.pickHeal();
                 if (heal) {
+                    // get behind something first, then heal
+                    const threat = this.threatPos();
+                    if (threat && !this._coverSpot) this._coverSpot = this.findCover(threat);
+                    if (this._coverSpot && v2.distance(this._coverSpot, player.pos) > 1.5) {
+                        this._goal = v2.copy(this._coverSpot);
+                        return;
+                    }
+                    this._coverSpot = undefined;
                     player.useHealingItem(heal);
                     return;
                 }
@@ -492,10 +534,12 @@ export class BotBrain {
         let bestDist = range;
         const nearby = this.game.grid.intersectCollider(collider.createCircle(player.pos, range));
         for (const obj of nearby) {
-            if (obj.__type !== ObjectType.Loot || obj.destroyed) continue;
+            if (obj.__type !== ObjectType.Loot || obj.destroyed || this._unreachable.has(obj.__id)) continue;
             const dist = v2.distance(obj.pos, player.pos);
             if (dist >= bestDist) continue;
-            if (this.game.gas.isInGas(obj.pos)) continue;
+            // stay inside the next zone, or the zone rule and the loot pull fight forever
+            const gas = this.game.gas;
+            if (gas.isInGas(obj.pos) || v2.distance(obj.pos, gas.posNew) > gas.radNew * 0.9) continue;
             if (!this.wantsLoot(obj)) continue;
             best = obj;
             bestDist = dist;
@@ -511,10 +555,13 @@ export class BotBrain {
         const nearby = this.game.grid.intersectCollider(collider.createCircle(player.pos, range));
         for (const obj of nearby) {
             if (obj.__type !== ObjectType.Obstacle || obj.dead || !obj.destructible) continue;
+            if (this._unreachable.has(obj.__id)) continue;
             if (!util.sameLayer(obj.layer, player.layer)) continue;
             const def = MapObjectDefs.typeToDef(obj.type, "obstacle");
             // crates, barrels and the like; stones take forever to punch
             if (!def.loot?.length || def.health > 150) continue;
+            const gas = this.game.gas;
+            if (v2.distance(obj.pos, gas.posNew) > gas.radNew * 0.9) continue;
             const dist = v2.distance(obj.pos, player.pos);
             if (dist >= bestDist) continue;
             best = obj;
@@ -566,6 +613,8 @@ export class BotBrain {
             else if (dist < prefDist - 4) approach = -1;
             move = v2.add(strafe, v2.mul(dirTo, approach * 1.2));
             if (!gunDef) move = dirTo; // melee: just rush
+            // low on health: back off to cover while still shooting
+            if (this._retreat) move = this.followPath(this._retreat, dt);
 
             // don't fight in the gas
             if (this.game.gas.isInGas(player.pos)) {
@@ -630,7 +679,7 @@ export class BotBrain {
             }
             player.toMouseLen = dist;
         } else if (this._goal) {
-            move = v2.normalizeSafe(v2.sub(this._goal, player.pos));
+            move = this.followPath(this._goal, dt);
             // punch the crate we walked up to
             const crate = this._crateTarget;
             if (crate && !crate.dead && collider.intersectCircle(crate.collider, player.pos, player.rad + 1.5)) {
@@ -642,13 +691,28 @@ export class BotBrain {
             }
         }
 
-        // stuck on a wall: walk off in a random direction for a moment
+        // combat strafing has no path: just sidestep whatever is in the way
+        if (target && !this._retreat && v2.length(move) > 0.01) move = this.steer(v2.normalize(move), dt);
+
+        // still stuck: back off sideways, and give up on a goal we keep failing to reach
         this._stuckTicker += dt;
         if (this._stuckTicker > 0.8) {
             const moved = v2.distance(player.pos, this._stuckCheckPos);
             if (v2.length(move) > 0.1 && moved < 1 && this._unstickTicker <= 0) {
-                this._unstickTicker = util.random(0.5, 1.2);
-                this._moveDir = v2.randomUnit();
+                this._unstickTicker = util.random(0.6, 1.2);
+                const side = Math.random() < 0.5 ? 1 : -1;
+                this._moveDir = v2.normalize(v2.add(v2.mul(v2.perp(move), side), v2.mul(move, -0.5)));
+                this._stuckCount++;
+                this._path = undefined;
+                if (this._stuckCount >= 3) {
+                    this._stuckCount = 0;
+                    this._lootTarget = undefined;
+                    this._crateTarget = undefined;
+                    this._wanderGoal = undefined;
+                    this._coverSpot = undefined;
+                }
+            } else if (moved >= 1) {
+                this._stuckCount = 0;
             }
             v2.set(this._stuckCheckPos, player.pos);
             this._stuckTicker = 0;
@@ -672,6 +736,146 @@ export class BotBrain {
 
         if (!lookDir && moving) lookDir = v2.normalize(move);
         if (lookDir) player.dirNew = v2.normalizeSafe(lookDir, player.dir);
+    }
+
+    /**
+     * Direction toward the next waypoint of an A* path to `goal`, replanned
+     * when the goal moves, the path runs out or every couple of seconds.
+     */
+    private followPath(goal: Vec2, dt: number): Vec2 {
+        const player = this.player;
+        this._pathTicker -= dt;
+        if (
+            !this._path?.length
+            || !this._pathGoal
+            || v2.distance(goal, this._pathGoal) > 2
+            || this._pathTicker <= 0
+        ) {
+            this._pathGoal = v2.copy(goal);
+            this._pathTicker = util.random(1.5, 2.5);
+            this._path = findPath(this.game, player.pos, goal, player.layer, player.rad);
+        }
+        const path = this._path;
+        if (!path?.length) {
+            // no route: drop whatever we were walking to and pick something else next think
+            const obj = this._lootTarget ?? this._crateTarget;
+            if (obj) this._unreachable.set(obj.__id, 30);
+            this._lootTarget = undefined;
+            this._crateTarget = undefined;
+            this._coverSpot = undefined;
+            this._wanderGoal = undefined;
+            return this.steer(v2.normalizeSafe(v2.sub(goal, player.pos)), dt);
+        }
+        while (path.length > 1 && v2.distance(path[0], player.pos) < 1.2) path.shift();
+        // the path ends short of the goal (it's walled in): give up on that target for a while
+        if (
+            path.length === 1 && v2.distance(path[0], player.pos) < 1.2
+            && v2.distance(goal, player.pos) > 4 && v2.distance(goal, player.pos) < 30
+        ) {
+            const obj = this._lootTarget ?? this._crateTarget;
+            if (obj) this._unreachable.set(obj.__id, 30);
+            this._lootTarget = undefined;
+            this._crateTarget = undefined;
+            this._coverSpot = undefined;
+            this._path = undefined;
+            return v2.create(0, 0);
+        }
+        return v2.normalizeSafe(v2.sub(path[0], player.pos));
+    }
+
+    /** true when walking `len` units along `dir` would bump into an obstacle */
+    private blocked(dir: Vec2, len: number): boolean {
+        const player = this.player;
+        const side = v2.mul(v2.perp(dir), player.rad * 0.9);
+        const starts = [player.pos, v2.add(player.pos, side), v2.sub(player.pos, side)];
+        const end = v2.add(player.pos, v2.mul(dir, len));
+        const objs = this.game.grid.intersectCollider(collider.createCircle(player.pos, len + player.rad));
+        for (const obj of objs) {
+            if (obj.__type !== ObjectType.Obstacle) continue;
+            // doors swing open when walked into
+            if (obj.dead || !obj.collidable || obj.isDoor) continue;
+            if (!util.sameLayer(obj.layer, player.layer)) continue;
+            for (const a of starts) {
+                if (collider.intersectSegment(obj.collider, a, v2.add(a, v2.sub(end, player.pos)))) return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Picks the direction closest to `desired` that isn't blocked a few
+     * units ahead, fanning out to the side it last turned to so it doesn't
+     * flip-flop at a wall.
+     */
+    private steer(desired: Vec2, dt: number): Vec2 {
+        this._steerTicker -= dt;
+        if (this._steerTicker > 0 && this._steerDesired && v2.dot(this._steerDesired, desired) > 0.98) {
+            return this._steerDir;
+        }
+        this._steerTicker = 0.1;
+        this._steerDesired = desired;
+        const base = Math.atan2(desired.y, desired.x);
+        const s = this._steerSide;
+        for (const off of [0, 0.35, 0.7, 1.05, 1.4, 1.75, 2.2, 2.7]) {
+            for (const sign of off === 0 ? [1] : [s, -s]) {
+                const ang = base + off * sign;
+                const dir = v2.create(Math.cos(ang), Math.sin(ang));
+                if (!this.blocked(dir, 3.5)) {
+                    if (off !== 0) this._steerSide = sign;
+                    this._steerDir = dir;
+                    return dir;
+                }
+            }
+        }
+        this._steerDir = desired;
+        return desired;
+    }
+
+    /**
+     * A spot on the far side of a solid obstacle from `threat`, the way a
+     * person ducks behind a tree or rock to heal.
+     */
+    private findCover(threat: Vec2): Vec2 | undefined {
+        const player = this.player;
+        let best: Vec2 | undefined;
+        let bestDist = 22;
+        const objs = this.game.grid.intersectCollider(collider.createCircle(player.pos, bestDist));
+        for (const obj of objs) {
+            if (obj.__type !== ObjectType.Obstacle) continue;
+            if (obj.dead || !obj.collidable || obj.isDoor || obj.height < GameConfig.bullet.height) continue;
+            if (!util.sameLayer(obj.layer, player.layer)) continue;
+            const c = obj.collider;
+            const size = c.type === collider.Type.Circle
+                ? c.rad
+                : Math.max(c.max.x - c.min.x, c.max.y - c.min.y) / 2;
+            if (size < 1.4) continue;
+            const center = c.type === collider.Type.Circle ? c.pos : v2.mul(v2.add(c.min, c.max), 0.5);
+            const away = v2.normalizeSafe(v2.sub(center, threat));
+            const spot = v2.add(center, v2.mul(away, size + player.rad + 0.6));
+            if (this.game.gas.isInGas(spot)) continue;
+            const dist = v2.distance(spot, player.pos);
+            if (dist < bestDist) {
+                best = spot;
+                bestDist = dist;
+            }
+        }
+        return best;
+    }
+
+    /** where danger comes from: the last enemy we saw, else the nearest one alive */
+    private threatPos(): Vec2 | undefined {
+        if (this._lastThreat && this._sinceThreat < 15) return this._lastThreat;
+        let best: Vec2 | undefined;
+        let bestDist = Infinity;
+        for (const p of this.game.playerBarn.livingPlayers) {
+            if (p.teamId === this.player.teamId) continue;
+            const d = v2.distance(p.pos, this.player.pos);
+            if (d < bestDist) {
+                best = p.pos;
+                bestDist = d;
+            }
+        }
+        return best;
     }
 
     /** a dead-on aim for rolled hits, a near miss otherwise */
