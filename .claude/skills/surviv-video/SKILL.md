@@ -58,4 +58,7 @@ optional in `film/sfx/{boom,airhorn,bruh}.mp3`. Ask before downloading any new m
 - `edit.ts` `px()` scales pixel numbers but must skip `text='...'`.
 - Kill feed rows are reused; record diffs row text. Knock + finish = one kill per victim.
 - `getConfig(false, "")` (path is relative to config.ts); spectate filter type is `player_name`.
+- Picture quality: record.ts captures the game canvas with MediaRecorder (~20*h² bps, VP9) and sets the
+  context `screen` size — without it headless reports 1280x720 and the client loads low-res sprites.
+  Don't go back to Playwright's `recordVideo` (~6 Mbps, smeared). Event times count from the first frame.
 - yt-dlp needs `--extractor-args "youtube:player_client=tv_simply"` to download reference videos.

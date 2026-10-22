@@ -34,7 +34,7 @@ const info = JSON.parse(fs.readFileSync(path.join(dir, "events.json"), "utf8")) 
 };
 const title = arg("title", info.title ?? `1 HACKER vs ${info.noobs} NOOBS`);
 const gameAudio = path.join(dir, "game.webm");
-const hasGameAudio = fs.existsSync(gameAudio) && info.audioStart !== undefined && info.audioStart >= 0;
+const hasGameAudio = fs.existsSync(gameAudio) && typeof info.audioStart === "number";
 const FONT = "/System/Library/Fonts/Supplemental/Impact.ttf";
 const ARROWS = "/System/Library/Fonts/Supplemental/Arial Unicode.ttf";
 const SFX = path.join(import.meta.dirname, "..", "client", "public", "audio");

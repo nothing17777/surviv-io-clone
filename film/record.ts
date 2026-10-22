@@ -2,7 +2,7 @@
 //   pnpm record --recipe hacker-vs-50-noobs   starts a bots-only match (see recipes.ts)
 //   pnpm record                               waits for one you started from the menu
 // It spectates the focus bot in a headless browser (1440p by default) with the HUD hidden and writes
-// raw.webm (video), game.webm (game sound) and events.json into out/<recipe>-<stamp>/.
+// raw.webm (the game canvas, captured directly), game.webm (game sound) and events.json into out/<recipe>-<stamp>/.
 //
 // options: --res 1440 (720 / 1080 / 1440 / 2160)  --name "austrian painter" --noobs 50 --max 900
 //          --retries 5   re-roll the match when the star dies before taking out 30% of the other side
@@ -91,7 +91,8 @@ fs.mkdirSync(outDir, { recursive: true });
 const browser = await chromium.launch({ channel: "chromium", args: ["--autoplay-policy=no-user-gesture-required"] });
 const context = await browser.newContext({
     viewport: { width, height },
-    recordVideo: { dir: outDir, size: { width, height } },
+    // the client picks low-res sprites when the screen looks small, and headless reports 1280x720
+    screen: { width, height },
 });
 const page = await context.newPage();
 const t0 = Date.now();
@@ -122,6 +123,16 @@ await page.exposeFunction("filmFeed", (text: string) => {
     if (kind === "kill") console.log(`${t.toFixed(1)}s  kill #${++kills}: ${text}`);
     if (kind === "hacker_dead") console.log(`${t.toFixed(1)}s  HACKER DOWN: ${text}`);
     if (kind === "hacker_dead" || kills >= noobs) done = true;
+});
+
+// the game canvas, recorded in the page at full quality (Playwright's own recorder is ~6 Mbps)
+const videoChunks: Buffer[] = [];
+let videoStart = -1;
+await page.exposeFunction("filmVideoStart", () => {
+    videoStart = (Date.now() - t0) / 1000;
+});
+await page.exposeFunction("filmVideo", (b64: string) => {
+    videoChunks.push(Buffer.from(b64, "base64"));
 });
 
 // tsx tags functions with a __name helper the page doesn't have
@@ -197,6 +208,22 @@ await page.addInitScript(() => {
 const u = Buffer.from(target.urls.join(",")).toString("base64");
 await page.goto(`${client}/?u=${encodeURIComponent(u)}&jt=${encodeURIComponent(target.joinToken)}`);
 
+await page.evaluate((bps) => {
+    const canvas = document.getElementById("cvs") as HTMLCanvasElement;
+    const rec = new MediaRecorder(canvas.captureStream(60), { mimeType: "video/webm;codecs=vp9", videoBitsPerSecond: bps });
+    rec.ondataavailable = async (e) => {
+        const buf = new Uint8Array(await e.data.arrayBuffer());
+        let bin = "";
+        for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+        (window as any).filmVideo(btoa(bin));
+    };
+    rec.start(1000);
+    (window as any).filmVideoStart();
+    (window as any).filmStopVideo = () => new Promise((r) => {
+        rec.onstop = () => setTimeout(r, 500);
+        rec.stop();
+    });
+}, Math.round(height * height * 20));
 const deadline = t0 + maxSecs * 1000;
 const gameOver = () => page.evaluate(() => {
     const stats = document.getElementById("ui-stats");
@@ -206,14 +233,19 @@ while (!done && Date.now() < deadline && !(await gameOver())) await page.waitFor
 // a few seconds of aftermath for the outro
 await page.waitForTimeout(4000);
 
-await page.evaluate(() => (window as any).filmStopAudio?.());
+await page.evaluate(() => Promise.all([(window as any).filmStopAudio?.(), (window as any).filmStopVideo?.()]));
 const duration = (Date.now() - t0) / 1000;
-const video = page.video()!;
 await context.close();
 await browser.close();
-fs.renameSync(await video.path(), path.join(outDir, "raw.webm"));
+// MediaRecorder writes no seek index; a remux adds one so the editor can jump around
+const capture = path.join(outDir, "capture.webm");
+fs.writeFileSync(capture, Buffer.concat(videoChunks));
+spawnSync("ffmpeg", ["-loglevel", "error", "-y", "-i", capture, "-c", "copy", path.join(outDir, "raw.webm")]);
+fs.rmSync(capture);
+// every time from here on counts from the first recorded frame
+for (const e of events) e.t -= videoStart;
 if (audioChunks.length) fs.writeFileSync(path.join(outDir, "game.webm"), Buffer.concat(audioChunks));
-fs.writeFileSync(path.join(outDir, "events.json"), JSON.stringify({ name, noobs, title: recipe?.title, focusLabel: recipe?.label, sides: recipe && describeSides(recipe), duration, audioStart, kills, events }, null, 2));
+fs.writeFileSync(path.join(outDir, "events.json"), JSON.stringify({ name, noobs, title: recipe?.title, focusLabel: recipe?.label, sides: recipe && describeSides(recipe), duration: duration - videoStart, audioStart: audioStart < 0 ? null : audioStart - videoStart, kills, events }, null, 2));
 const retries = Number(arg("retries", "5"));
 const dud = events.some((e) => e.kind === "hacker_dead") && kills < noobs * 0.3;
 if (dud && recipe && retries > 0) {
