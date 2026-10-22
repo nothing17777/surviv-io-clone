@@ -267,8 +267,16 @@ ff(
 );
 
 // ---- 5. description, with the credits NCS asks for
-const credits = music.length
-    ? music.map((m) => `${path.parse(m).name}\nMusic provided by NoCopyrightSounds.`).join("\n\n")
+// only credit the tracks that actually play before the video ends
+const played: string[] = [];
+for (let t = 0, i = 0; music.length && t < total; i++) {
+    const m = music[i % music.length];
+    if (!played.includes(m)) played.push(m);
+    const probe = spawnSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", path.join(musicDir, m)]);
+    t += Number(probe.stdout.toString()) || total;
+}
+const credits = played.length
+    ? played.map((m) => `${path.parse(m).name.replace(/^\d+ /, "")}\nMusic provided by NoCopyrightSounds.`).join("\n\n")
     : "(no music used)";
 fs.writeFileSync(
     path.join(dir, "description.txt"),
