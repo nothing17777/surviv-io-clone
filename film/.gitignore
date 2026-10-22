@@ -3,3 +3,4 @@ music/*
 !music/.gitkeep
 sfx/*
 !sfx/.gitkeep
+__pycache__/
