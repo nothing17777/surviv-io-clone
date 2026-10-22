@@ -93,8 +93,14 @@ def upload(yt, video, thumb, title, desc, tags, privacy, publish_at, progress):
             yt.thumbnails().set(videoId=vid, media_body=googleapiclient.http.MediaFileUpload(
                 str(thumb), mimetype="image/jpeg")).execute()
         except HttpError as e:
-            # custom thumbnails need a phone-verified channel
-            thumb_note = f"thumbnail not set ({e.resp.status}): verify the channel at youtube.com/verify"
+            # usually a channel without custom thumbnails turned on (phone verification)
+            try:
+                reason = json.loads(e.content)["error"]["message"]
+            except Exception:
+                reason = str(e)[:200]
+            thumb_note = (f"Thumbnail not set — YouTube says: \"{reason}\" ({e.resp.status}). "
+                          "If it's about permissions, turn on custom thumbnails at youtube.com/verify, "
+                          "then upload thumbnail.jpg in YouTube Studio.")
     return vid, thumb_note
 
 
