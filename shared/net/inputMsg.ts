@@ -18,6 +18,7 @@ export class InputMsg implements AbstractMsg {
     toMouseLen = 0;
     inputs: Input[] = [];
     useItem = "";
+    autoOpenDoors = true;
 
     addInput(input: Input) {
         if (this.inputs.length < 7 && !this.inputs.includes(input)) {
@@ -49,6 +50,7 @@ export class InputMsg implements AbstractMsg {
         });
 
         s.writeGameType(this.useItem);
+        s.writeBoolean(this.autoOpenDoors);
     }
 
     deserialize(s: BitStream) {
@@ -75,5 +77,6 @@ export class InputMsg implements AbstractMsg {
         });
 
         this.useItem = s.readGameType();
+        this.autoOpenDoors = s.readBoolean();
     }
 }

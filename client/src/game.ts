@@ -590,6 +590,7 @@ export class Game {
             ) {
                 inputMsg.shootStart = true;
             }
+            inputMsg.autoOpenDoors = !!this.m_config.get("autoOpenDoors");
             inputMsg.portrait = this.m_camera.m_screenWidth < this.m_camera.m_screenHeight;
             const checkInputs = [
                 Input.Reload,

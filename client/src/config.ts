@@ -98,6 +98,7 @@ const defaultConfig = {
     anonPlayerNames: false,
     autoFireAll: false,
     autoMelee: false,
+    autoOpenDoors: true,
     highResTex: true,
     interpolation: true,
     localRotation: false,

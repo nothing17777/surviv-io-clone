@@ -2131,7 +2131,7 @@ export class Player extends BaseGameObject {
                 }
             }
 
-            const obstacles = this.getInteractableObstacles();
+            const obstacles = this.autoOpenDoors ? this.getInteractableObstacles() : [];
             for (let i = 0; i < obstacles.length; i++) {
                 const obstacle = obstacles[i];
                 if (obstacle.isDoor && obstacle.door && !obstacle.door.open) {
@@ -3375,6 +3375,7 @@ export class Player extends BaseGameObject {
     shootStart = false;
     shootHold = false;
     portrait = false;
+    autoOpenDoors = true;
 
     touchMoveActive = false;
     touchMoveDir = v2.create(1, 0);
@@ -3409,6 +3410,7 @@ export class Player extends BaseGameObject {
         this.touchMoveActive = msg.touchMoveActive;
         this.touchMoveDir = v2.normalizeSafe(msg.touchMoveDir);
         this.touchMoveLen = msg.touchMoveLen;
+        this.autoOpenDoors = msg.autoOpenDoors;
         this.toMouseLen = msg.toMouseLen;
 
         this.shootHold = msg.shootHold;
