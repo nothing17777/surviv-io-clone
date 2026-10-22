@@ -1530,6 +1530,17 @@ export class BotBrain {
     }
 }
 
+/** the best fight perks, best first, for the hacker (it never reloads, so no ammo perks) */
+const HackerPerks = [
+    "ap_rounds",
+    "splinter",
+    "high_velocity",
+    "steelskin",
+    "flak_jacket",
+    "windwalk",
+    "self_revive",
+];
+
 /**
  * Spawns a bot straight into the game, through the same path a joining client takes.
  * `side` is the private match side; bots on a side join that side's group.
@@ -1562,7 +1573,14 @@ export function addBot(game: Game, level: BotLevel, side?: number): Player {
     if (!sameKit && kit) player.applyGodLoadout(kit);
     else if (!sameKit && game.godLoadout && game.fixedLoadout) player.applyGodLoadout(defaultPrivateLoadout);
     player.botBrain = new BotBrain(player, level, settings);
-    if (level === "hacker") player.setOutfit("outfitGhillie");
+    if (level === "hacker") {
+        player.setOutfit("outfitGhillie");
+        for (const perk of HackerPerks) {
+            // a player can only send 7 perks over the network
+            if (player.perks.length >= 7) break;
+            if (!player.hasPerk(perk)) player.addPerk(perk, false);
+        }
+    }
     return player;
 }
 
