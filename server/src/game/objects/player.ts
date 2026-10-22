@@ -4878,6 +4878,9 @@ export class Player extends BaseGameObject {
             this.speed += PerkProperties.field_medic.speedBoost;
         }
 
+        // the hacker bot moves at double speed
+        if (this.botBrain?.level === "hacker") this.speed *= 2;
+
         this.speed = math.clamp(this.speed, 1, 10000);
     }
 }

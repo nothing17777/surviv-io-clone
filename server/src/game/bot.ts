@@ -310,7 +310,8 @@ export class BotBrain {
     readonly settings: BotSettings;
 
     constructor(readonly player: Player, readonly level: BotLevel, settings?: BotSettings) {
-        this.settings = settings ?? defaultBotSettings()[level];
+        // bots don't throw grenades any more, whatever the lobby setting says
+        this.settings = { ...(settings ?? defaultBotSettings()[level]), throwables: false };
         // the party leader's hit / dodge numbers replace the level's
         this.skill = {
             ...Skills[level],
