@@ -11,6 +11,8 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { chromium } from "playwright";
+import type { SideView } from "./recipes.ts";
 
 const args = process.argv.slice(2);
 const arg = (k: string, d: string) => {
@@ -28,6 +30,7 @@ const info = JSON.parse(fs.readFileSync(path.join(dir, "events.json"), "utf8")) 
     duration: number;
     audioStart?: number;
     events: { t: number; kind: string; text: string }[];
+    sides?: [SideView, SideView];
 };
 const title = arg("title", info.title ?? `1 HACKER vs ${info.noobs} NOOBS`);
 const gameAudio = path.join(dir, "game.webm");
@@ -35,10 +38,27 @@ const hasGameAudio = fs.existsSync(gameAudio) && info.audioStart !== undefined &
 const FONT = "/System/Library/Fonts/Supplemental/Impact.ttf";
 const ARROWS = "/System/Library/Fonts/Supplemental/Arial Unicode.ttf";
 const SFX = path.join(import.meta.dirname, "..", "client", "public", "audio");
-const INTRO = 3;
+// the edit is laid out for 1080p and scaled to whatever the recording is
+const [W, H] = spawnSync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", raw])
+    .stdout.toString().trim().split(",").map(Number);
+const K = H / 1080;
+// scales the pixel numbers in a filter, leaving the words drawn on screen alone
+const px = (filter: string) =>
+    filter.split(/(text='[^']*')/).map((part, i) =>
+        i % 2 ? part : part.replace(/(?<![\w.])(\d+)(?![\w.])/g, (n) => (Number(n) >= 6 ? String(Math.round(Number(n) * K)) : n))
+    ).join("");
+/** biggest font (in 1080p units) that keeps a line of Impact inside the frame */
+const fit = (line: string, max: number) => Math.min(max, Math.floor(1750 / (line.length * 0.5)));
+const TITLE = 3;
+/** the loadout screen after the title card, when the recording knows the kits */
+const LOAD = info.sides ? 4.5 : 0;
+/** where the gameplay starts */
+const INTRO = TITLE + LOAD;
 const OUTRO = 4;
 const work = path.join(dir, "work");
 fs.rmSync(work, { recursive: true, force: true });
+// written last, so the studio app only lists finished edits
+fs.rmSync(path.join(dir, "description.txt"), { force: true });
 fs.mkdirSync(work, { recursive: true });
 
 function ff(...a: string[]) {
@@ -95,7 +115,7 @@ segs.forEach((g, i) => {
     const f = path.join(work, `seg${String(i).padStart(4, "0")}.mp4`);
     // the camera follows the hacker, so a centre crop is a punch-in on them
     // (always a little closer than the game's view, harder on kills)
-    const zoom = `crop=iw*${g.zoom ? 0.62 : 0.8}:ih*${g.zoom ? 0.62 : 0.8},scale=1920:1080,`;
+    const zoom = `crop=iw*${g.zoom ? 0.62 : 0.8}:ih*${g.zoom ? 0.62 : 0.8},scale=${W}:${H},`;
     const dur = f3(g.e - g.s);
     const audioIn = hasGameAudio
         ? ["-ss", f3(Math.max(0, g.s - info.audioStart!)), "-t", dur, "-i", gameAudio]
@@ -110,16 +130,87 @@ segs.forEach((g, i) => {
 });
 const intro = path.join(work, "intro.mp4");
 ff(
-    "-f", "lavfi", "-i", `color=c=0x111111:s=1920x1080:r=60:d=${INTRO}`,
-    "-f", "lavfi", "-t", String(INTRO), "-i", "anullsrc=r=48000:cl=stereo",
-    "-vf", [
-        text(title, `fontsize=150:fontcolor=white:x=(w-tw)/2:y=(h-th)/2-60:alpha='min(1,t*3)'`),
+    "-f", "lavfi", "-i", `color=c=0x111111:s=${W}x${H}:r=60:d=${TITLE}`,
+    "-f", "lavfi", "-t", String(TITLE), "-i", "anullsrc=r=48000:cl=stereo",
+    "-vf", px([
+        text(title, `fontsize=${fit(title, 150)}:fontcolor=white:x=(w-tw)/2:y=(h-th)/2-60:alpha='min(1,t*3)'`),
         text("WHO WINS?", `fontsize=90:fontcolor=0xffd400:x=(w-tw)/2:y=(h/2)+90:enable='gt(t,1)'`),
-    ].join(","),
+    ].join(",")),
     "-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-pix_fmt", "yuv420p", "-c:a", "aac", "-ar", "48000", "-ac", "2", intro,
 );
 const listFile = path.join(work, "list.txt");
-fs.writeFileSync(listFile, [`file '${intro}'`, ...list].join("\n"));
+// ---- loadout screen: a card per side, drawn as a web page so the game's own item icons can be used
+const LOOT = path.join(import.meta.dirname, "..", "client", "public", "img", "loot");
+const cardHtml = (side: SideView, color: string, compact = false) => {
+    const item = (v: { name: string; icon?: string }) =>
+        `<div class="item">${v.icon ? `<img src="file://${path.join(LOOT, v.icon)}">` : `<div class="none">✕</div>`}${compact ? "" : `<span>${v.name}</span>`}</div>`;
+    return `<html><head><style>
+@font-face { font-family: Impact; src: url("file://${FONT}"); }
+html, body { margin: 0; background: transparent; }
+.card { display: inline-block; font-family: Impact; color: white; background: rgba(12,14,20,.86);
+  border: ${6 * K}px solid ${color}; border-radius: ${22 * K}px; padding: ${compact ? 14 * K : 34 * K}px ${compact ? 18 * K : 40 * K}px;
+  box-shadow: 0 0 ${40 * K}px ${color}88; ${compact ? "" : `width: ${700 * K}px;`} }
+h1 { margin: 0; font-size: ${74 * K}px; color: ${color}; letter-spacing: 1px; -webkit-text-stroke: ${2 * K}px black; }
+h2 { margin: ${4 * K}px 0 ${22 * K}px; font-size: ${44 * K}px; font-weight: normal; }
+.items { display: flex; flex-wrap: ${compact ? "nowrap" : "wrap"}; gap: ${compact ? 10 * K : 18 * K}px; }
+.item { display: flex; align-items: center; gap: ${12 * K}px; background: rgba(255,255,255,.08); border-radius: ${14 * K}px;
+  padding: ${8 * K}px ${16 * K}px ${8 * K}px ${8 * K}px; font-size: ${34 * K}px; }
+.item img, .none { width: ${compact ? 64 * K : 84 * K}px; height: ${compact ? 64 * K : 84 * K}px; object-fit: contain;
+  filter: drop-shadow(0 0 ${4 * K}px black); }
+.none { display: flex; align-items: center; justify-content: center; font-size: ${50 * K}px; color: #ff5050; }
+h3 { margin: ${26 * K}px 0 ${12 * K}px; font-size: ${36 * K}px; font-weight: normal; color: #ffd400; }
+.loots { font-size: ${40 * K}px; opacity: .85; }
+</style></head><body><div class="card">${compact ? "" : `<h1>${side.name}</h1><h2>${side.who}</h2>`}
+${
+        compact
+            ? `<div class="items">${[...side.items, ...side.perks].map(item).join("")}</div>`
+            : `${side.loots ? `<div class="loots">🎒 LOOTS THE MAP</div>` : `<div class="items">${side.items.map(item).join("")}</div>`}
+${side.perks.length ? `<h3>PERKS</h3><div class="items">${side.perks.map(item).join("")}</div>` : ""}`
+    }
+</div></body></html>`;
+};
+let strip: string | undefined;
+const sequence = [intro];
+if (info.sides) {
+    const browser = await chromium.launch({ channel: "chromium" });
+    const page = await browser.newPage({ viewport: { width: W, height: H } });
+    const shot = async (html: string, out: string) => {
+        const f = out.replace(/\.png$/, ".html");
+        fs.writeFileSync(f, html);
+        await page.goto(`file://${f}`);
+        await page.waitForLoadState("networkidle");
+        await page.locator(".card").screenshot({ path: out, omitBackground: true });
+    };
+    const cards = [path.join(work, "card0.png"), path.join(work, "card1.png")];
+    await shot(cardHtml(info.sides[0], "#ff3a3a"), cards[0]);
+    await shot(cardHtml(info.sides[1], "#3aa0ff"), cards[1]);
+    if (!info.sides[0].loots) {
+        strip = path.join(work, "strip.png");
+        await shot(cardHtml(info.sides[0], "#ff3a3a", true), strip);
+    }
+    await browser.close();
+
+    // the cards slide in over a blurred, darkened first frame of the match
+    const loadout = path.join(work, "loadout.mp4");
+    const slide = (from: string, to: string, at: number) => `if(lt(t,${at}),${from},if(lt(t,${at + 0.35}),${from}+(${to}-(${from}))*(t-${at})/0.35,${to}))`;
+    ff(
+        "-ss", f3(start), "-i", raw, "-loop", "1", "-i", cards[0], "-loop", "1", "-i", cards[1],
+        "-f", "lavfi", "-t", String(LOAD), "-i", "anullsrc=r=48000:cl=stereo",
+        "-filter_complex", [
+            `[0:v]trim=end_frame=1,loop=loop=-1:size=1,setpts=N/60/TB,fps=60,scale=${W}:${H},gblur=sigma=${20 * K},eq=brightness=-0.25[bg]`,
+            `[bg][1:v]overlay=x='${slide("-w", `W*0.25-w/2`, 0.15)}':y='max((H-h)/2+${40 * K},${170 * K})'[a]`,
+            `[a][2:v]overlay=x='${slide("W", `W*0.75-w/2`, 0.35)}':y='max((H-h)/2+${40 * K},${170 * K})'[b]`,
+            `[b]${px([
+                text("LOADOUTS", "fontsize=110:fontcolor=white:x=(w-tw)/2:y=30"),
+                text("VS", "fontsize=150:fontcolor=0xffd400:x=(w-tw)/2:y=(h-th)/2+40:enable='gt(t,0.7)'"),
+            ].join(","))},format=yuv420p[v]`,
+        ].join(";"),
+        "-map", "[v]", "-map", "3:a", "-t", String(LOAD), "-r", "60",
+        "-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-c:a", "aac", "-ar", "48000", "-ac", "2", loadout,
+    );
+    sequence.push(loadout);
+}
+fs.writeFileSync(listFile, [...sequence.map((f) => `file '${f}'`), ...list].join("\n"));
 const joined = path.join(work, "joined.mp4");
 ff("-f", "concat", "-safe", "0", "-i", listFile, "-c", "copy", joined);
 const body = INTRO + segs.reduce((a, g) => a + (g.e - g.s) / g.speed, 0);
@@ -140,7 +231,7 @@ killOut.forEach((t, i) => {
     const next = killOut[i + 1] ?? total;
     draw.push(
         text(`KILLS ${i + 1}`, `fontsize=72:fontcolor=white:x=50:y=40:enable='between(t,${f3(t)},${f3(next)})'`),
-        text(`ALIVE ${Math.max(0, info.noobs - i - 1)}`, `fontsize=56:fontcolor=0x9be7ff:borderw=5:x=w-tw-50:y=46:enable='between(t,${f3(t)},${f3(Math.min(next, body))})'`),
+        text(`ALIVE ${Math.max(0, info.noobs - i - 1)}`, `fontsize=56:fontcolor=0x9be7ff:borderw=5:x=50:y=125:enable='between(t,${f3(t)},${f3(Math.min(next, body))})'`),
         text("+1", `fontsize='110+160*max(0,0.12-(t-${f3(t)}))':fontcolor=0xff3030:x=(w-tw)/2+260:y=(h/2)-200-(t-${f3(t)})*80:enable='between(t,${f3(t)},${f3(t + 0.7)})'`),
         `drawbox=x=0:y=0:w=iw:h=ih:color=white@0.35:t=fill:enable='between(t,${f3(t)},${f3(t + 0.06)})'`,
     );
@@ -151,8 +242,8 @@ killOut.forEach((t, i) => {
 // Gamerio-style callout pointing at the star, then narrator captions on the big moments
 // (the camera keeps the star in the middle of the frame)
 draw.push(
-    text(info.focusLabel ?? "HACKER", `fontsize=110:fontcolor=white:x=(w/2)-tw-170:y=(h/2)-250:enable='between(t,${INTRO},${INTRO + 3})'`),
-    `drawtext=fontfile='${ARROWS}':text='➘':fontsize=200:fontcolor=white:borderw=8:bordercolor=black:x=(w/2)-200:y=(h/2)-200:enable='between(t,${INTRO},${INTRO + 3})'`,
+    text(info.focusLabel ?? "HACKER", `fontsize=110:fontcolor=white:x=(w/2)-tw-170:y=(h/2)-250:enable='between(t,${f3(INTRO)},${f3(INTRO + 3)})'`),
+    `drawtext=fontfile='${ARROWS}':text='➘':fontsize=200:fontcolor=white:borderw=8:bordercolor=black:x=(w/2)-200:y=(h/2)-200:enable='between(t,${f3(INTRO)},${f3(INTRO + 3)})'`,
 );
 const lines = (n: number) => [`${n} down. He's just warming up.`, "This is not fair anymore", "The noobs are panicking", "Nobody can stop him", "Is this even legal?"][Math.floor(n / 10) - 1] ?? "He's still going...";
 const captions: [number, string][] = [];
@@ -165,9 +256,9 @@ for (const [t, line] of captions) {
     draw.push(text(line, `fontsize=64:fontcolor=white:borderw=6:box=1:boxcolor=black@0.45:boxborderw=18:x=(w-tw)/2:y=h-200:enable='between(t,${f3(t)},${f3(t + 2.2)})'`));
 }
 draw.push(
-    text(`ALIVE ${info.noobs}`, `fontsize=56:fontcolor=0x9be7ff:borderw=5:x=w-tw-50:y=46:enable='between(t,${INTRO},${f3(killOut[0] ?? body)})'`),
+    text(`ALIVE ${info.noobs}`, `fontsize=56:fontcolor=0x9be7ff:borderw=5:x=50:y=125:enable='between(t,${INTRO},${f3(killOut[0] ?? body)})'`),
     `drawbox=x=0:y=0:w=iw:h=ih:color=black@0.55:t=fill:enable='gt(t,${f3(body)})'`,
-    text(outroText, `fontsize=150:fontcolor=${won ? "0xff3030" : "0xffd400"}:x=(w-tw)/2:y=(h-th)/2-50:enable='gt(t,${f3(body)})'`),
+    text(outroText, `fontsize=${fit(outroText, 150)}:fontcolor=${won ? "0xff3030" : "0xffd400"}:x=(w-tw)/2:y=(h-th)/2-50:enable='gt(t,${f3(body)})'`),
     text("SUBSCRIBE FOR PART 2", `fontsize=70:fontcolor=white:borderw=5:x=(w-tw)/2:y=(h/2)+110:enable='gt(t,${f3(body + 1)})'`),
     `fade=t=out:st=${f3(total - 0.8)}:d=0.8`,
 );
@@ -176,6 +267,13 @@ draw.push(
 const sfx: { file: string; t: number; vol: number }[] = [
     { file: "ui/notification_start_01.mp3", t: 0.2, vol: 1 },
     { file: "sfx/bullet_whiz_01.mp3", t: INTRO - 0.3, vol: 1 },
+    ...(LOAD
+        ? [
+            { file: "sfx/bullet_whiz_02.mp3", t: TITLE - 0.2, vol: 0.9 },
+            { file: "ui/gun_pickup_01.mp3", t: TITLE + 0.2, vol: 1 },
+            { file: "ui/perk_pickup_01.mp3", t: TITLE + 0.45, vol: 1 },
+        ]
+        : []),
     { file: won ? "ui/leader_assigned_01.mp3" : "ui/kill_leader_dead_01.mp3", t: body, vol: 1.2 },
 ];
 killOut.forEach((t, i) => {
@@ -205,24 +303,30 @@ killOut.forEach((t) => sfx.push({ file: thump, t, vol: 1 }));
 const musicDir = path.join(import.meta.dirname, "music");
 const music = fs.existsSync(musicDir) ? fs.readdirSync(musicDir).filter((f) => /\.(mp3|m4a|wav|ogg)$/i.test(f)).sort() : [];
 const inputs = ["-i", joined];
+const inputCount = () => inputs.filter((x) => x === "-i").length;
+// the star's gear stays in the corner while they play
+if (strip) inputs.push("-loop", "1", "-t", f3(total), "-i", strip);
 const mixes = ["[0:a]volume=1.0[game]"];
 const labels = ["[game]"];
 if (music.length) {
     const ml = path.join(work, "music.txt");
     // repeat the playlist until it covers the video
     fs.writeFileSync(ml, Array.from({ length: 20 }, () => music.map((m) => `file '${path.join(musicDir, m)}'`)).flat().join("\n"));
+    const idx = inputCount();
     inputs.push("-f", "concat", "-safe", "0", "-i", ml);
-    mixes.push(`[1:a]atrim=0:${f3(total)},volume=0.45,afade=t=in:st=0:d=0.5,afade=t=out:st=${f3(total - 2)}:d=2[music]`);
+    mixes.push(`[${idx}:a]atrim=0:${f3(total)},volume=0.45,afade=t=in:st=0:d=0.5,afade=t=out:st=${f3(total - 2)}:d=2[music]`);
     labels.push("[music]");
 }
 sfx.forEach((s, i) => {
-    const idx = inputs.filter((x) => x === "-i").length;
+    const idx = inputCount();
     inputs.push("-i", path.isAbsolute(s.file) ? s.file : path.join(SFX, s.file));
     mixes.push(`[${idx}:a]aresample=48000,volume=${s.vol},adelay=${Math.round(s.t * 1000)}:all=1[s${i}]`);
     labels.push(`[s${i}]`);
 });
 const graph = [
-    `[0:v]${draw.join(",\n")}[vout]`,
+    strip
+        ? `[0:v]${px(draw.join(",\n"))}[drawn];[drawn][1:v]overlay=x=${Math.round(40 * K)}:y=H-h-${Math.round(40 * K)}:enable='between(t,${f3(INTRO)},${f3(body)})'[vout]`
+        : `[0:v]${px(draw.join(",\n"))}[vout]`,
     ...mixes,
     `${labels.join("")}amix=inputs=${labels.length}:normalize=0:duration=first,apad=whole_dur=${f3(total)},atrim=0:${f3(total)},`
     + "alimiter=limit=0.95,loudnorm=I=-14:TP=-1.5:LRA=11[aout]",

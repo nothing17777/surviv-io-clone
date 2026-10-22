@@ -432,7 +432,8 @@ export class BotBrain {
         }
 
         // empty handed: only brawl up close, otherwise keep looting
-        if (this.target && !this.hasGunWithAmmo() && v2.distance(this.target.pos, player.pos) > 12) {
+        // (a locked melee kit has nothing to loot, so it charges instead)
+        if (this.target && !this.hasGunWithAmmo() && !player.lockedKit && v2.distance(this.target.pos, player.pos) > 12) {
             this.target = undefined;
         }
 
@@ -563,7 +564,7 @@ export class BotBrain {
         }
 
         // nothing to shoot with: break crates for loot
-        if (!this.hasGunWithAmmo() && this.settings.loot) {
+        if (!this.hasGunWithAmmo() && this.settings.loot && !player.lockedKit) {
             if (!this._crateTarget || this._crateTarget.dead) this._crateTarget = this.findCrate();
             if (this._crateTarget) {
                 const crate = this._crateTarget;
@@ -755,6 +756,7 @@ export class BotBrain {
         if (loot.ownerId !== 0 && loot.ownerId !== player.__id) return false;
         const def = GameObjectDefs.typeToDefSafe(loot.type);
         if (!def) return false;
+        if (player.lockedKit && (def.type === "gun" || def.type === "melee" || def.type === "throwable")) return false;
         switch (def.type) {
             case "gun":
                 return GunSlots.some((s) => !player.weapons[s].type);
@@ -1573,6 +1575,10 @@ export function addBot(game: Game, level: BotLevel, side?: number): Player {
     // every hacker after the first gets a number, so hacker vs hacker kill feeds stay readable
     const hackers = game.playerBarn.players.filter((p) => p.botBrain?.level === "hacker").length;
     joinMsg.name = level === "hacker" ? `austrian painter${hackers ? ` ${hackers + 1}` : ""}` : randomBotName();
+    const star = game.config.privateMatch?.filmStar;
+    if (star && side === 0 && level !== "hacker" && !game.playerBarn.players.some((p) => p.name === star)) {
+        joinMsg.name = star;
+    }
     joinMsg.bot = false;
 
     let groupHashToJoin = "";
@@ -1595,6 +1601,7 @@ export function addBot(game: Game, level: BotLevel, side?: number): Player {
     const kit = (ally ? pm?.allyBotKit : pm?.enemyBotKit) ?? settings?.kit;
     if (!sameKit && kit) player.applyGodLoadout(kit);
     else if (!sameKit && game.godLoadout && game.fixedLoadout) player.applyGodLoadout(defaultPrivateLoadout);
+    player.lockedKit = !!pm?.lockedKits && !!(ally ? pm?.allyBotKit : pm?.enemyBotKit);
     player.botBrain = new BotBrain(player, level, settings);
     if (level === "hacker") {
         player.setOutfit("outfitGhillie");

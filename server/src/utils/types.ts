@@ -67,6 +67,10 @@ export interface ServerGameConfig {
         botSettings?: BotSettingsByLevel;
         /** recorded for a video: bots come in without waiting for a human, who only spectates */
         film?: boolean;
+        /** film matches: name for the first non-hacker bot on side 0, so the camera can follow it */
+        filmStar?: string;
+        /** bots with a side kit keep it: no picking up weapons (melee-only and one-gun episodes) */
+        lockedKits?: boolean;
     };
 }
 
@@ -102,6 +106,8 @@ export const zFindGamePrivateBody = z.object({
             vsBots: zVsBots.optional(),
             botSettings: zBotSettingsByLevel.optional(),
             film: z.boolean().optional(),
+            filmStar: z.string().max(32).optional(),
+            lockedKits: z.boolean().optional(),
         })
         .optional(),
 });

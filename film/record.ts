@@ -1,10 +1,10 @@
 // Films a match from the hacker's point of view, hands-free.
 //   pnpm record --recipe hacker-vs-50-noobs   starts a bots-only match (see recipes.ts)
 //   pnpm record                               waits for one you started from the menu
-// It spectates the focus bot in a headless 1080p browser with the HUD hidden and writes
+// It spectates the focus bot in a headless browser (1440p by default) with the HUD hidden and writes
 // raw.webm (video), game.webm (game sound) and events.json into out/<recipe>-<stamp>/.
 //
-// options: --name "austrian painter" --noobs 50 --max 900
+// options: --res 1440 (720 / 1080 / 1440 / 2160)  --name "austrian painter" --noobs 50 --max 900
 //          --retries 5   re-roll the match when the star dies before taking out 30% of the other side
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -12,14 +12,18 @@ import path from "node:path";
 import { chromium } from "playwright";
 import { getConfig } from "../config.ts";
 import { GameConfig } from "../shared/gameConfig.ts";
-import { BotLevels, defaultBotSettings } from "../shared/types/api.ts";
-import { recipes } from "./recipes.ts";
+import { BotLevels } from "../shared/types/api.ts";
+import { botSettings, describeSides, recipes, sideKit, STAR } from "./recipes.ts";
 
 const args = process.argv.slice(2);
 const arg = (k: string, d: string) => {
     const i = args.indexOf(`--${k}`);
     return i >= 0 ? args[i + 1] : d;
 };
+if (args.includes("--list")) {
+    for (const [id, r] of Object.entries(recipes)) console.log(`${id.padEnd(34)} ${r.title}`);
+    process.exit(0);
+}
 const recipeId = arg("recipe", "");
 const recipe = recipeId ? recipes[recipeId] : undefined;
 if (recipeId && !recipe) throw new Error(`no recipe "${recipeId}", try: ${Object.keys(recipes).join(", ")}`);
@@ -27,6 +31,8 @@ const name = arg("name", recipe?.focus ?? "austrian painter");
 const enemies = recipe ? Object.values(recipe.sides[1]).reduce((a, b) => a + b, 0) : 50;
 const noobs = Number(arg("noobs", String(enemies)));
 const maxSecs = Number(arg("max", "900"));
+const height = Number(arg("res", "1440"));
+const width = Math.round(height * 16 / 9);
 
 const config = getConfig(false, "");
 const gameServer = `http://127.0.0.1:${config.gameServer.port}`;
@@ -57,7 +63,16 @@ if (recipe) {
             mapName: recipe.map ?? "faction",
             teamMode: 1,
             playerData: [],
-            privateMatch: { godLoadout: false, leaderSide: 0, bots, botSettings: defaultBotSettings() },
+            privateMatch: {
+                godLoadout: false,
+                leaderSide: 0,
+                bots,
+                botSettings: botSettings(recipe),
+                allyBotKit: sideKit(recipe, 0),
+                enemyBotKit: sideKit(recipe, 1),
+                filmStar: STAR,
+                lockedKits: true,
+            },
         }),
     });
     const body = await res.json();
@@ -75,8 +90,8 @@ fs.mkdirSync(outDir, { recursive: true });
 
 const browser = await chromium.launch({ channel: "chromium", args: ["--autoplay-policy=no-user-gesture-required"] });
 const context = await browser.newContext({
-    viewport: { width: 1920, height: 1080 },
-    recordVideo: { dir: outDir, size: { width: 1920, height: 1080 } },
+    viewport: { width, height },
+    recordVideo: { dir: outDir, size: { width, height } },
 });
 const page = await context.newPage();
 const t0 = Date.now();
@@ -198,7 +213,7 @@ await context.close();
 await browser.close();
 fs.renameSync(await video.path(), path.join(outDir, "raw.webm"));
 if (audioChunks.length) fs.writeFileSync(path.join(outDir, "game.webm"), Buffer.concat(audioChunks));
-fs.writeFileSync(path.join(outDir, "events.json"), JSON.stringify({ name, noobs, title: recipe?.title, focusLabel: recipe?.label, duration, audioStart, kills, events }, null, 2));
+fs.writeFileSync(path.join(outDir, "events.json"), JSON.stringify({ name, noobs, title: recipe?.title, focusLabel: recipe?.label, sides: recipe && describeSides(recipe), duration, audioStart, kills, events }, null, 2));
 const retries = Number(arg("retries", "5"));
 const dud = events.some((e) => e.kind === "hacker_dead") && kills < noobs * 0.3;
 if (dud && recipe && retries > 0) {

@@ -1335,6 +1335,8 @@ export class Player extends BaseGameObject {
 
     /** set on server-side AI players */
     botBrain?: BotBrain;
+    /** keeps the weapons it spawned with (film episodes with a fixed kit) */
+    lockedKit = false;
     /** private match side, 0 = Team A, 1 = Team B */
     privateSide?: number;
 
@@ -3754,6 +3756,7 @@ export class Player extends BaseGameObject {
         if (obj.destroyed) return;
 
         const def = GameObjectDefs.typeToDef(obj.type);
+        if (this.lockedKit && (def.type === "gun" || def.type === "melee" || def.type === "throwable")) return;
         if (
             (this.actionType == GameConfig.Action.UseItem && def.type != "gun")
             || this.actionType == GameConfig.Action.Revive
@@ -4412,6 +4415,11 @@ export class Player extends BaseGameObject {
             [GameConfig.WeaponSlot.Secondary, godLoadout.secondary, "mp220"],
         ];
         for (const [slot, picked, fallback] of guns) {
+            // "" = an empty slot (melee-only kits)
+            if (picked === "") {
+                this.weaponManager.setWeapon(slot, "", 0);
+                continue;
+            }
             const def = GameObjectDefs.typeToDefSafe(picked);
             const type = def?.type === "gun" ? picked : fallback;
             const gunDef = GameObjectDefs.typeToDef(type, "gun");
