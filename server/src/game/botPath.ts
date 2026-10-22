@@ -4,8 +4,8 @@ import { util } from "../../../shared/utils/util.ts";
 import { v2, type Vec2 } from "../../../shared/utils/v2.ts";
 import type { Game } from "./game.ts";
 
-/** grid cell size in world units */
-const Cell = 1.25;
+/** grid cell size in world units; half a player wide so narrow house doorways stay open */
+const Cell = 0.625;
 /** how far around the bot the grid reaches; farther goals are walked toward in legs */
 const Reach = 32;
 const Size = Math.ceil((Reach * 2) / Cell);
@@ -111,7 +111,7 @@ export function findPath(game: Game, from: Vec2, to: Vec2, layer: number, rad: n
     cost[start] = 0;
     let reached = false;
     let expanded = 0;
-    while (heap.size && expanded < 3000) {
+    while (heap.size && expanded < 12000) {
         const cur = heap.pop();
         if (closed[cur]) continue;
         closed[cur] = 1;
