@@ -926,7 +926,7 @@ export class TeamMenu {
             }
             pick.val(this.armyPresetLevel);
             preset.append(pick);
-            for (const per of [10, 25, MaxBotFill / 2]) {
+            for (const per of [10, 25, 50, MaxBotFill / 2]) {
                 preset.append($("<a/>", { class: "btn-hollow bot-army-step", "data-preset": per, text: `${per} v ${per}` }));
             }
             panel.append(preset);
