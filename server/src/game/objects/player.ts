@@ -27,7 +27,7 @@ import {
 } from "../../../../shared/gameConfig.ts";
 import * as net from "../../../../shared/net/net.ts";
 import { ObjectType } from "../../../../shared/net/objectSerializeFns.ts";
-import type { PrivateLoadout } from "../../../../shared/types/api.ts";
+import { goodPerks, type PrivateLoadout } from "../../../../shared/types/api.ts";
 import { type Circle, coldet } from "../../../../shared/utils/coldet.ts";
 import { collider } from "../../../../shared/utils/collider.ts";
 import { math } from "../../../../shared/utils/math.ts";
@@ -717,6 +717,8 @@ export class Player extends BaseGameObject {
     freeSwitchTimer: number = 0;
 
     indoors = false;
+    /** private kit option: throwing never uses one up */
+    unlimitedThrowables = false;
     insideZoomRegion = false;
 
     _zoom: number = 0;
@@ -4440,6 +4442,7 @@ export class Player extends BaseGameObject {
                 this.invManager.set(item, 0);
             }
         }
+        this.unlimitedThrowables = !!godLoadout.throwablesUnlimited;
         if (godLoadout.throwableCount !== undefined) {
             for (const item of carried as InventoryItem[]) {
                 this.invManager.set(item, math.min(godLoadout.throwableCount, this.invManager.getMaxCapacity(item)));
@@ -4453,7 +4456,7 @@ export class Player extends BaseGameObject {
             this.weaponManager.setWeapon(GameConfig.WeaponSlot.Melee, godLoadout.melee, 0);
         }
 
-        for (const perk of godLoadout.perks ?? []) {
+        for (const perk of [...(godLoadout.perks ?? []), ...(godLoadout.allGoodPerks ? goodPerks : [])]) {
             if (GameObjectDefs.typeToDefSafe(perk)?.type === "perk" && !this.hasPerk(perk)) this.addPerk(perk, false);
         }
 

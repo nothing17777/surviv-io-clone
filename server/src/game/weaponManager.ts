@@ -1376,7 +1376,9 @@ export class WeaponManager {
          * Remove the throwable from the inventory
          * This will handle showing next throwables or switching weapons if theres none left
          */
-        this.player.invManager.take(oldThrowableType as InventoryItem, 1);
+        if (!this.player.unlimitedThrowables) {
+            this.player.invManager.take(oldThrowableType as InventoryItem, 1);
+        }
     }
 
     /**

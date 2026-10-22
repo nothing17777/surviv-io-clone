@@ -44,9 +44,28 @@ export const zPrivateLoadout = z.object({
     perks: z.array(z.string().max(32)).max(3).optional(),
     /** up to two more throwables carried next to `throwable`; nothing else is handed out */
     extraThrowables: z.array(z.string().max(32)).max(2).optional(),
+    /** throwing never uses one up */
+    throwablesUnlimited: z.boolean().optional(),
+    /** every perk in goodPerks on top of the picked ones */
+    allGoodPerks: z.boolean().optional(),
 });
 
 export type PrivateLoadout = z.infer<typeof zPrivateLoadout>;
+
+export const goodPerks = [
+    "steelskin",
+    "flak_jacket",
+    "small_arms",
+    "splinter",
+    "ap_rounds",
+    "field_medic",
+    "windwalk",
+    "takedown",
+    "endless_ammo",
+    "self_revive",
+    "amped_explosives",
+    "tree_climbing",
+];
 
 export const defaultPrivateLoadout: PrivateLoadout = {
     primary: "m4a1",

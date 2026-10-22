@@ -123,7 +123,7 @@ export class TeamMenu {
     privateSizes = $("#team-private-sizes");
     godPickers = $(Object.keys(pickerSlotType).map((slot) => `#team-god-${slot}`).join(", "));
     godHeals = $(
-        "#team-god-throwable-count, #team-god-bandage, #team-god-healthkit, #team-god-soda, #team-god-painkiller",
+        "#team-god-throwable-count, #team-god-throwable-unlimited, #team-god-all-perks, #team-god-bandage, #team-god-healthkit, #team-god-soda, #team-god-painkiller",
     );
     kitShared = $("#btn-team-kit-shared");
     kitOn = $("#btn-team-kit-on");
@@ -1007,6 +1007,8 @@ export class TeamMenu {
             healthkit: num("#team-god-healthkit", 4),
             soda: num("#team-god-soda", 15),
             painkiller: num("#team-god-painkiller", 4),
+            throwablesUnlimited: $("#team-god-throwable-unlimited").is(":checked"),
+            allGoodPerks: $("#team-god-all-perks").is(":checked"),
         };
 
         for (const slot of ["throwable2", "throwable3", "helmet", "chest", "backpack", "perk1", "perk2", "perk3"] as const) {
@@ -1258,6 +1260,8 @@ export class TeamMenu {
                         $("#team-god-throwable-count").attr("max", throwMax).val(
                             Math.min(kit.throwableCount, throwMax),
                         );
+                        $("#team-god-throwable-unlimited").prop("checked", !!kit.throwablesUnlimited);
+                        $("#team-god-all-perks").prop("checked", !!kit.allGoodPerks);
                         $("#team-god-bandage").val(kit.bandage);
                         $("#team-god-healthkit").val(kit.healthkit);
                         $("#team-god-soda").val(kit.soda);
