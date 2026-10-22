@@ -42,6 +42,8 @@ export const zPrivateLoadout = z.object({
     backpack: z.string().max(32).optional(),
     /** up to three perks, like Small Arms or One With Nature */
     perks: z.array(z.string().max(32)).max(3).optional(),
+    /** up to two more throwables carried next to `throwable`; nothing else is handed out */
+    extraThrowables: z.array(z.string().max(32)).max(2).optional(),
 });
 
 export type PrivateLoadout = z.infer<typeof zPrivateLoadout>;

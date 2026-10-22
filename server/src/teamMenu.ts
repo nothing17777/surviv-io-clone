@@ -317,10 +317,10 @@ class Room {
         }
     }
 
-    /** 50v50 maps: the bots the leader picked for each side */
+    /** 50v50 maps and custom maps: the bots the leader picked for each side */
     botFill(customMap: CustomMap | null): PrivateBot[] {
         const def = MapDefs[this.data.privateMapName as MapDefKey];
-        if (customMap || !def?.gameMode.factionMode) return [];
+        if (!customMap && !def?.gameMode.factionMode) return [];
         return this.data.privateBotArmy.flatMap((counts, team) =>
             counts.flatMap((count, i) => Array.from({ length: count }, () => ({ level: BotLevels[i], team }))),
         );

@@ -67,6 +67,8 @@ export const pickerSlotType = {
     secondary: "gun",
     melee: "melee",
     throwable: "throwable",
+    throwable2: "throwable",
+    throwable3: "throwable",
     helmet: "helmet",
     chest: "chest",
     backpack: "backpack",
@@ -77,7 +79,7 @@ export const pickerSlotType = {
 export type PickerSlot = keyof typeof pickerSlotType;
 const pickerSlots = Object.keys(pickerSlotType) as PickerSlot[];
 /** slots that can be left empty */
-const optionalSlots = new Set<string>(["helmet", "chest", "perk1", "perk2", "perk3"]);
+const optionalSlots = new Set<string>(["helmet", "chest", "perk1", "perk2", "perk3", "throwable2", "throwable3"]);
 
 export type GodLoadout = Record<PickerSlot, string>;
 
@@ -85,6 +87,8 @@ const defaultGodLoadout: GodLoadout = {
     primary: "m4a1",
     secondary: "mp220",
     throwable: "frag",
+    throwable2: "",
+    throwable3: "",
     melee: "fists",
     helmet: "helmet03",
     chest: "chest03",
@@ -123,6 +127,9 @@ export function kitSlot(kit: Partial<PrivateLoadout>, slot: PickerSlot): string 
         case "perk2":
         case "perk3":
             return kit.perks?.[Number(slot[4]) - 1] ?? "";
+        case "throwable2":
+        case "throwable3":
+            return kit.extraThrowables?.[Number(slot[9]) - 2] ?? "";
         default:
             return kit[slot] ?? "";
     }
@@ -132,6 +139,9 @@ export function setKitSlot(kit: Partial<PrivateLoadout>, slot: PickerSlot, value
     if (pickerSlotType[slot] === "perk") {
         const perks = (["perk1", "perk2", "perk3"] as const).map((p) => (p === slot ? value : kitSlot(kit, p)));
         kit.perks = perks.filter((p, i) => p && perks.indexOf(p) === i);
+    } else if (slot === "throwable2" || slot === "throwable3") {
+        const extra = (["throwable2", "throwable3"] as const).map((t) => (t === slot ? value : kitSlot(kit, t)));
+        kit.extraThrowables = extra.filter((t, i) => t && extra.indexOf(t) === i);
     } else {
         (kit as Record<string, unknown>)[slot] = value;
     }
@@ -148,6 +158,7 @@ export function loadoutToKit(l: GodLoadout) {
         chest: l.chest,
         backpack: l.backpack,
         perks: [l.perk1, l.perk2, l.perk3].filter((p, i, a) => p && a.indexOf(p) === i),
+        extraThrowables: [l.throwable2, l.throwable3].filter((t, i, a) => t && t !== l.throwable && a.indexOf(t) === i),
     };
 }
 
@@ -260,7 +271,7 @@ export function fillItemPicker(prefix: string, slot: string, type: string, value
     if (!sel.length) return;
 
     const items = defsOfType(type);
-    if (optionalSlots.has(slot)) items.unshift({ id: "", name: `No ${slot.startsWith("perk") ? "perk" : slot === "chest" ? "vest" : slot}` });
+    if (optionalSlots.has(slot)) items.unshift({ id: "", name: `No ${slot.startsWith("perk") ? "perk" : slot === "chest" ? "vest" : slot.startsWith("throwable") ? "throwable" : slot}` });
     if (sel.children().length !== items.length) {
         sel.empty();
         for (const item of items) {

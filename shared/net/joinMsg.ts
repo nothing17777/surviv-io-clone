@@ -25,6 +25,7 @@ export class JoinMsg implements AbstractMsg {
         chest: "",
         backpack: "",
         perks: [] as string[],
+        extraThrowables: [] as string[],
     };
 
     serialize(s: BitStream) {
@@ -57,6 +58,9 @@ export class JoinMsg implements AbstractMsg {
         s.writeArray(this.godLoadout.perks.slice(0, 3), 2, (perk) => {
             s.writeGameType(perk);
         });
+        s.writeArray(this.godLoadout.extraThrowables.slice(0, 2), 2, (t) => {
+            s.writeGameType(t);
+        });
     }
 
     deserialize(s: BitStream) {
@@ -85,5 +89,6 @@ export class JoinMsg implements AbstractMsg {
         this.godLoadout.chest = s.readGameType();
         this.godLoadout.backpack = s.readGameType();
         this.godLoadout.perks = s.readArray(2, () => s.readGameType());
+        this.godLoadout.extraThrowables = s.readArray(2, () => s.readGameType());
     }
 }

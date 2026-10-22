@@ -225,7 +225,7 @@ export class PlayerBarn {
             // in a private match the leader's kit wins over whatever the
             // client asks for, so everyone spawns identical
             const fixed = this.game.fixedLoadout;
-            player.applyGodLoadout(fixed ?? joinMsg.godLoadout, !!fixed);
+            player.applyGodLoadout(fixed ?? joinMsg.godLoadout);
         }
 
         return player;
@@ -4384,8 +4384,6 @@ export class Player extends BaseGameObject {
      */
     applyGodLoadout(
         godLoadout: Pick<net.JoinMsg["godLoadout"], "primary" | "secondary" | "throwable" | "melee"> & Partial<PrivateLoadout>,
-        /** the kit was fixed by a party leader, so nothing extra is handed out */
-        fixed = false,
     ) {
         // exact gear when picked ("" = none), else the armor tier
         const gear = (id: string | undefined, type: string) =>
@@ -4422,22 +4420,22 @@ export class Player extends BaseGameObject {
 
         const throwDef = GameObjectDefs.typeToDefSafe(godLoadout.throwable);
         const throwable = throwDef?.type === "throwable" ? godLoadout.throwable : "frag";
-        // a fixed kit means only the picked throwable, otherwise the full bag
-        // would equip whatever sorts first instead of what was chosen
-        if (fixed) {
-            for (const item of Object.keys(GameConfig.bagSizes) as InventoryItem[]) {
-                if (item !== throwable && GameObjectDefs.typeToDefSafe(item)?.type === "throwable") {
-                    this.invManager.set(item, 0);
-                }
+        // only the picked throwables; the full bag would hand out every kind
+        const carried = [
+            throwable,
+            ...(godLoadout.extraThrowables ?? []).filter((t) => GameObjectDefs.typeToDefSafe(t)?.type === "throwable"),
+        ];
+        for (const item of Object.keys(GameConfig.bagSizes) as InventoryItem[]) {
+            if (!carried.includes(item) && GameObjectDefs.typeToDefSafe(item)?.type === "throwable") {
+                this.invManager.set(item, 0);
+            }
+        }
+        if (godLoadout.throwableCount !== undefined) {
+            for (const item of carried as InventoryItem[]) {
+                this.invManager.set(item, math.min(godLoadout.throwableCount, this.invManager.getMaxCapacity(item)));
             }
         }
         this.weaponManager.setWeapon(GameConfig.WeaponSlot.Throwable, throwable, 0);
-        if (godLoadout.throwableCount !== undefined) {
-            this.invManager.set(
-                throwable as InventoryItem,
-                math.min(godLoadout.throwableCount, this.invManager.getMaxCapacity(throwable as InventoryItem)),
-            );
-        }
 
         // any melee weapon, no unlock needed (empty keeps the normal loadout melee)
         const meleeDef = GameObjectDefs.typeToDefSafe(godLoadout.melee);
@@ -4449,7 +4447,8 @@ export class Player extends BaseGameObject {
             if (GameObjectDefs.typeToDefSafe(perk)?.type === "perk" && !this.hasPerk(perk)) this.addPerk(perk, false);
         }
 
-        this.weaponManager.showNextThrowable();
+        // the main pick stays in hand unless there are none of it
+        if (!this.invManager.has(throwable as InventoryItem)) this.weaponManager.showNextThrowable();
         this.recalculateScale();
         this.setDirty();
     }

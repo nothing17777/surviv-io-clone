@@ -260,6 +260,15 @@ export class TeamMenu {
         $("#team-bot-army").on("click", ".bot-army-clear", () => {
             this.setRoomProperty("privateBotArmy", emptyBotArmy());
         });
+        // presets: both sides get this many of the picked bot, replacing the rest
+        $("#team-bot-army").on("change", ".bot-army-preset-level", (e) => {
+            this.armyPresetLevel = $(e.currentTarget).val() as BotLevel;
+        });
+        $("#team-bot-army").on("click", "[data-preset]", (e) => {
+            const per = Number($(e.currentTarget).attr("data-preset"));
+            const idx = BotLevels.indexOf(this.armyPresetLevel);
+            this.setRoomProperty("privateBotArmy", emptyBotArmy().map((c) => c.map((_n, i) => (i === idx ? per : 0))));
+        });
         // custom maps from the map maker
         $("#btn-team-map-upload").on("click", () => {
             if (this.isLeader) $("#team-map-file").trigger("click");
@@ -892,6 +901,9 @@ export class TeamMenu {
         list.append(add);
     }
 
+    /** bot the preset buttons fill both sides with */
+    armyPresetLevel: BotLevel = "intermediate";
+
     botArmy(): BotArmy {
         return this.roomData.privateBotArmy ?? emptyBotArmy();
     }
@@ -906,6 +918,19 @@ export class TeamMenu {
         );
         if (this.isLeader && total) head.append($("<a/>", { class: "btn-hollow bot-army-clear", text: "Clear" }));
         panel.append(head);
+        if (this.isLeader) {
+            const preset = $("<div/>", { class: "bot-army-preset" });
+            const pick = $("<select/>", { class: "server-select menu-option btn-hollow btn-hollow-selected bot-army-preset-level" });
+            for (const level of BotLevels) {
+                pick.append($("<option/>", { value: level, text: `${level[0].toUpperCase()}${level.slice(1)}` }));
+            }
+            pick.val(this.armyPresetLevel);
+            preset.append(pick);
+            for (const per of [10, 25, MaxBotFill / 2]) {
+                preset.append($("<a/>", { class: "btn-hollow bot-army-step", "data-preset": per, text: `${per} v ${per}` }));
+            }
+            panel.append(preset);
+        }
         const sides = $("<div/>", { class: "bot-army-sides" });
         ["Your side", "Other side"].forEach((name, side) => {
             const col = $("<div/>", { class: "bot-army-side" }).append(
@@ -966,7 +991,7 @@ export class TeamMenu {
             painkiller: num("#team-god-painkiller", 4),
         };
 
-        for (const slot of ["helmet", "chest", "backpack", "perk1", "perk2", "perk3"] as const) {
+        for (const slot of ["throwable2", "throwable3", "helmet", "chest", "backpack", "perk1", "perk2", "perk3"] as const) {
             setKitSlot(loadout, slot, $(`#team-god-${slot}`).val() as string);
         }
         this.roomData.privateLoadout = loadout;
@@ -1178,7 +1203,7 @@ export class TeamMenu {
                     .prop("disabled", !this.isLeader);
                 $("#team-private-hint").toggle(!vsBots);
                 const fillDef = MapDefs[this.roomData.privateMapName as MapDefKey];
-                const army = !vsBots && !custom && !!fillDef?.gameMode.factionMode;
+                const army = !vsBots && (!!custom || !!fillDef?.gameMode.factionMode);
                 $("#team-bot-army").toggle(army);
                 if (army) this.refreshBotArmy();
                 // Same Kit / God Kit / Loot
