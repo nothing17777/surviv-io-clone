@@ -326,6 +326,23 @@ export class BotBrain {
 
     private _deflecting = false;
 
+    /** the nearest downed teammate within `range`, nobody else already reviving them */
+    private downedMate(range: number): Player | undefined {
+        const player = this.player;
+        let best: Player | undefined;
+        let bestDist = range;
+        for (const p of this.game.playerBarn.players) {
+            if (p === player || !p.downed || p.dead || p.teamId !== player.teamId) continue;
+            if (p.revivedBy && p.revivedBy !== player && p.revivedBy.actionType === GameConfig.Action.Revive) continue;
+            const d = v2.distance(p.pos, player.pos);
+            if (d < bestDist) {
+                best = p;
+                bestDist = d;
+            }
+        }
+        return best;
+    }
+
     /** hackers and scripters carrying a pan block shots with it between their own */
     get panDeflect(): boolean {
         return (this.level === "hacker" || this.level === "scripter")
@@ -462,6 +479,11 @@ export class BotBrain {
         this._zoneUrgent = this.zoneUrgent();
 
         if (player.downed) {
+            // Revivify: get back up, holding still so the revive isn't cancelled
+            if (player.hasPerk("self_revive")) {
+                if (player.actionType === GameConfig.Action.None) player.revive(player);
+                if (player.actionType === GameConfig.Action.Revive) return;
+            }
             // crawl into the zone if it's coming, else away from whoever downed us
             if (this._zoneUrgent) this._goal = v2.copy(this.game.gas.posNew);
             else if (this.target) this._goal = v2.add(player.pos, v2.sub(player.pos, this.target.pos));
@@ -485,6 +507,14 @@ export class BotBrain {
                 v2.normalizeSafe(toTarget),
                 Math.max(v2.length(toTarget) - this.target.rad, 0.5),
             );
+            // a teammate down right next to us: pick them up even mid-fight
+            const mate = player.actionType === GameConfig.Action.None ? this.downedMate(GameConfig.player.reviveRange) : undefined;
+            if (mate) player.revive(mate);
+            // and don't swap weapons or shoot until they're up
+            if (player.actionType === GameConfig.Action.Revive) {
+                this.target = undefined;
+                return;
+            }
             if (!this._deflecting) this.pickCombatWeapon(v2.distance(this.target.pos, player.pos), this.target);
             // hurt and carrying heals: fall back behind cover (hackers just keep fighting)
             this._retreat = undefined;
@@ -550,9 +580,7 @@ export class BotBrain {
         }
 
         // pick a downed teammate back up
-        const downedMate = player.group?.players.find(
-            (p) => p !== player && p.downed && !p.dead && v2.distance(p.pos, player.pos) < 25,
-        );
+        const downedMate = this.downedMate(25);
         if (downedMate) {
             if (v2.distance(downedMate.pos, player.pos) < GameConfig.player.reviveRange) {
                 player.revive(downedMate);
@@ -1615,7 +1643,36 @@ export class BotBrain {
 const PanFaceOffset = 0.25;
 
 /** the best fight perks, best first, for the hacker (it never reloads, so no ammo perks) */
-const HackerPerks = [...new Set(["high_velocity", ...goodPerks])];
+const HackerPerks = [...new Set([
+    // top tier
+    "steelskin",
+    "splinter",
+    "explosive",
+    "bonus_assault",
+    "ap_rounds",
+    "high_velocity",
+    "self_revive",
+    "lifeline",
+    "endless_ammo",
+    // very good
+    "takedown",
+    "windwalk",
+    "small_arms",
+    "field_medic",
+    "flak_jacket",
+    "gotw",
+    "firepower",
+    "amped_explosives",
+    "tree_climbing",
+    // situational
+    "leadership",
+    "chambered",
+    "targeting",
+    "bonus_45",
+    "bonus_9mm",
+    "treat_super",
+    ...goodPerks,
+])];
 
 /**
  * Spawns a bot straight into the game, through the same path a joining client takes.
