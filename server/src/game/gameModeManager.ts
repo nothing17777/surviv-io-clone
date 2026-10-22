@@ -144,9 +144,16 @@ export class GameModeManager {
     updateAliveCounts(aliveCounts: number[]): void {
         switch (this.mode) {
             case GameMode.Solo:
-            case GameMode.Team:
-                aliveCounts.push(this.game.aliveCount);
+            case GameMode.Team: {
+                // private sides (custom map 50v50 and the like): one count per side, shown red : blue
+                const living = this.game.playerBarn.livingPlayers;
+                if (living.some((p) => p.privateSide !== undefined)) {
+                    for (const side of [0, 1]) aliveCounts.push(living.filter((p) => p.privateSide === side).length);
+                } else {
+                    aliveCounts.push(this.game.aliveCount);
+                }
                 break;
+            }
             case GameMode.Faction:
                 const numFactions = this.game.map.mapDef.gameMode.factions!;
                 for (let i = 0; i < numFactions; i++) {
