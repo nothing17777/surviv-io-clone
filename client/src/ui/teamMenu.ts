@@ -3,13 +3,15 @@ import { type MapDefKey, MapDefs } from "../../../shared/defs/mapDefs.ts";
 import { GameConfig } from "../../../shared/gameConfig.ts";
 import * as net from "../../../shared/net/net.ts";
 import {
+    type BotArmy,
     type BotLevel,
-    BotFillCounts,
     BotLevels,
     type BotSettingsByLevel,
     defaultBotSettings,
     defaultPrivateLoadout,
+    emptyBotArmy,
     type FindGameMatchData,
+    MaxBotFill,
     MaxPrivateBots,
     type PrivateBot,
     type PrivateLoadout,
@@ -239,12 +241,24 @@ export class TeamMenu {
         $("#team-bot-ally").on("change", () => {
             this.setRoomProperty("privateBotAlly", $("#team-bot-ally").val() as BotLevel);
         });
-        // 50v50 maps: fill the match with bots split across both sides
-        for (const count of BotFillCounts) {
-            $("#team-bot-fill").append($("<option/>", { value: count, text: count ? `${count} bots` : "None" }));
-        }
-        $("#team-bot-fill").on("change", () => {
-            this.setRoomProperty("privateBotFill", Number($("#team-bot-fill").val()));
+        // 50v50 maps: +/- how many of each bot go on each side
+        const setArmyCount = (el: JQuery, count: (cur: number) => number) => {
+            const side = Number(el.attr("data-side"));
+            const idx = BotLevels.indexOf(el.attr("data-level") as BotLevel);
+            const army = this.botArmy().map((c) => [...c]);
+            // never past the match's bot limit
+            const room = MaxBotFill - army.flat().reduce((a, b) => a + b, 0) + army[side][idx];
+            army[side][idx] = Math.min(Math.max(Math.floor(count(army[side][idx]) || 0), 0), room);
+            this.setRoomProperty("privateBotArmy", army);
+        };
+        $("#team-bot-army").on("click", "[data-delta]", (e) => {
+            setArmyCount($(e.currentTarget), (cur) => cur + Number($(e.currentTarget).attr("data-delta")));
+        });
+        $("#team-bot-army").on("change", "input", (e) => {
+            setArmyCount($(e.currentTarget), () => Number($(e.currentTarget).val()));
+        });
+        $("#team-bot-army").on("click", ".bot-army-clear", () => {
+            this.setRoomProperty("privateBotArmy", emptyBotArmy());
         });
         // custom maps from the map maker
         $("#btn-team-map-upload").on("click", () => {
@@ -878,6 +892,51 @@ export class TeamMenu {
         list.append(add);
     }
 
+    botArmy(): BotArmy {
+        return this.roomData.privateBotArmy ?? emptyBotArmy();
+    }
+
+    /** 50v50 maps: a column per side with a +/- counter for every bot level */
+    refreshBotArmy() {
+        const army = this.botArmy();
+        const total = army.flat().reduce((a, b) => a + b, 0);
+        const panel = $("#team-bot-army").empty();
+        const head = $("<div/>", { class: "bot-army-head" }).append(
+            $("<span/>", { text: `Bots ${total} / ${MaxBotFill}` }),
+        );
+        if (this.isLeader && total) head.append($("<a/>", { class: "btn-hollow bot-army-clear", text: "Clear" }));
+        panel.append(head);
+        const sides = $("<div/>", { class: "bot-army-sides" });
+        ["Your side", "Other side"].forEach((name, side) => {
+            const col = $("<div/>", { class: "bot-army-side" }).append(
+                $("<div/>", {
+                    class: "bot-army-title",
+                    text: `${name} · ${army[side].reduce((a, b) => a + b, 0)}`,
+                }),
+            );
+            BotLevels.forEach((level, i) => {
+                const count = army[side][i];
+                const row = $("<div/>", { class: "bot-army-row" + (count ? " has-bots" : "") });
+                row.append($("<span/>", { class: "bot-army-name", text: `${level[0].toUpperCase()}${level.slice(1)}` }));
+                const data = { "data-side": side, "data-level": level };
+                const step = (delta: number, text: string) =>
+                    $("<a/>", { class: "btn-hollow bot-army-step", text, ...data, "data-delta": delta });
+                if (this.isLeader) {
+                    row.append(
+                        step(-1, "−"),
+                        $("<input/>", { class: "bot-army-count", type: "number", min: 0, max: MaxBotFill, value: count, ...data }),
+                        step(1, "+"),
+                    );
+                } else {
+                    row.append($("<span/>", { class: "bot-army-count", text: count }));
+                }
+                col.append(row);
+            });
+            sides.append(col);
+        });
+        panel.append(sides);
+    }
+
     /** true when the leader's one kit is what everyone spawns with */
     /** shown under the map buttons when a picked file isn't a valid map */
     customMapError = "";
@@ -1119,10 +1178,9 @@ export class TeamMenu {
                     .prop("disabled", !this.isLeader);
                 $("#team-private-hint").toggle(!vsBots);
                 const fillDef = MapDefs[this.roomData.privateMapName as MapDefKey];
-                $("#team-bot-fill-row").toggle(!vsBots && !custom && !!fillDef?.gameMode.factionMode);
-                $("#team-bot-fill")
-                    .val(this.roomData.privateBotFill ?? 0)
-                    .prop("disabled", !this.isLeader);
+                const army = !vsBots && !custom && !!fillDef?.gameMode.factionMode;
+                $("#team-bot-army").toggle(army);
+                if (army) this.refreshBotArmy();
                 // Same Kit / God Kit / Loot
                 const god = !!this.roomData.privateGodLoadout;
                 const shared = god && !!this.roomData.privateSharedKit;

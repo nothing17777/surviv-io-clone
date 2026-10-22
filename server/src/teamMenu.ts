@@ -4,8 +4,10 @@ import type { UpgradeWebSocket, WSContext } from "hono/ws";
 import { randomUUID } from "node:crypto";
 import { type MapDefKey, MapDefs } from "../../shared/defs/mapDefs.ts";
 import {
+    BotLevels,
     defaultBotSettings,
     defaultPrivateLoadout,
+    emptyBotArmy,
     type FindGamePrivateError,
     type PrivateBot,
 } from "../../shared/types/api.ts";
@@ -132,7 +134,7 @@ class Room {
         privateVsBots: false,
         privateBotEnemy: "intermediate",
         privateBotAlly: "intermediate",
-        privateBotFill: 0,
+        privateBotArmy: emptyBotArmy(),
         privateBotSettings: defaultBotSettings(),
     };
 
@@ -277,7 +279,7 @@ class Room {
         this.data.privateVsBots = props.privateVsBots ?? this.data.privateVsBots;
         this.data.privateBotEnemy = props.privateBotEnemy ?? this.data.privateBotEnemy;
         this.data.privateBotAlly = props.privateBotAlly ?? this.data.privateBotAlly;
-        this.data.privateBotFill = props.privateBotFill ?? this.data.privateBotFill;
+        this.data.privateBotArmy = props.privateBotArmy ?? this.data.privateBotArmy;
         this.data.privateBotSettings = props.privateBotSettings ?? this.data.privateBotSettings;
 
         // a private match holds both sides, so up to 8 players
@@ -315,11 +317,13 @@ class Room {
         }
     }
 
-    /** 50v50 maps: the leader's bot count, alternating sides */
+    /** 50v50 maps: the bots the leader picked for each side */
     botFill(customMap: CustomMap | null): PrivateBot[] {
         const def = MapDefs[this.data.privateMapName as MapDefKey];
         if (customMap || !def?.gameMode.factionMode) return [];
-        return Array.from({ length: this.data.privateBotFill }, (_, i) => ({ level: "intermediate", team: i % 2 }));
+        return this.data.privateBotArmy.flatMap((counts, team) =>
+            counts.flatMap((count, i) => Array.from({ length: count }, () => ({ level: BotLevels[i], team }))),
+        );
     }
 
     findGameCooldown = 0;

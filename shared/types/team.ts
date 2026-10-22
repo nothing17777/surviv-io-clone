@@ -7,9 +7,10 @@ import {
     BotLevels,
     type BotSettingsByLevel,
     type FindGameMatchData,
-    MaxBotFill,
+    type BotArmy,
     type PrivateBot,
     type PrivateLoadout,
+    zBotArmy,
     zBotSettingsByLevel,
     zPrivateBots,
     zPrivateLoadout,
@@ -68,8 +69,8 @@ export interface RoomData {
     privateVsBots: boolean;
     privateBotEnemy: BotLevel;
     privateBotAlly: BotLevel;
-    /** 50v50 maps: bots split across both sides on top of privateBots */
-    privateBotFill: number;
+    /** 50v50 maps: how many of each bot level go on each side, on top of privateBots */
+    privateBotArmy: BotArmy;
     /** what each bot level does and carries */
     privateBotSettings: BotSettingsByLevel;
 }
@@ -154,7 +155,7 @@ export const zClientRoomData = z.object({
     privateVsBots: z.boolean().optional(),
     privateBotEnemy: z.enum(BotLevels).optional(),
     privateBotAlly: z.enum(BotLevels).optional(),
-    privateBotFill: z.number().int().min(0).max(MaxBotFill).optional(),
+    privateBotArmy: zBotArmy.optional(),
     privateBotSettings: zBotSettingsByLevel.optional(),
 });
 

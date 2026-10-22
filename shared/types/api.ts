@@ -74,7 +74,13 @@ export type PrivateBot = z.infer<typeof zPrivateBot>;
 export const zPrivateBots = z.array(zPrivateBot).max(MaxPrivateBots);
 /** 50v50 maps: how many extra bots the leader can fill the match with */
 export const MaxBotFill = 98;
-export const BotFillCounts = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, MaxBotFill];
+/** 50v50 maps: [side][index in BotLevels] = how many of that bot go on that side */
+export const zBotArmy = z
+    .array(z.array(z.number().int().min(0).max(MaxBotFill)).length(BotLevels.length))
+    .length(2)
+    .refine((army) => army.flat().reduce((a, b) => a + b, 0) <= MaxBotFill);
+export type BotArmy = z.infer<typeof zBotArmy>;
+export const emptyBotArmy = (): BotArmy => [0, 1].map(() => BotLevels.map(() => 0));
 
 /** what a party leader can change about each bot level */
 export const zBotSettings = z.object({

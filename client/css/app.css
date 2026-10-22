@@ -7376,6 +7376,95 @@ input [type="image"]:focus {
     margin: 2px 0;
 }
 
+/* 50v50: bots per side */
+.bot-army {
+    margin: 6px 0;
+}
+
+.bot-army-head {
+    align-items: center;
+    display: flex;
+    font-weight: bold;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+#team-bot-army .bot-army-clear {
+    margin: 0;
+    padding: 2px 10px;
+    width: auto;
+}
+
+.bot-army-sides {
+    display: grid;
+    gap: 6px;
+}
+
+.bot-army-side {
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 6px;
+    padding: 4px;
+}
+
+.bot-army-title {
+    font-weight: bold;
+    margin-bottom: 4px;
+    text-align: center;
+}
+
+.bot-army-row {
+    align-items: center;
+    display: flex;
+    gap: 2px;
+    margin: 2px 0;
+    opacity: 0.6;
+}
+
+.bot-army-row.has-bots {
+    opacity: 1;
+}
+
+.bot-army-name {
+    flex: 1;
+    font-size: 13px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bot-army-count {
+    font-weight: bold;
+    min-width: 22px;
+    text-align: center;
+}
+
+input.bot-army-count {
+    -moz-appearance: textfield;
+    appearance: textfield;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    color: inherit;
+    font: inherit;
+    font-weight: bold;
+    padding: 1px 0;
+    width: 36px;
+}
+
+input.bot-army-count::-webkit-inner-spin-button,
+input.bot-army-count::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+#team-bot-army .bot-army-step {
+    font-size: 12px;
+    margin: 0;
+    padding: 1px 0;
+    text-align: center;
+    width: 30px;
+}
+
 #team-bot-settings {
     margin-bottom: 8px;
 }
