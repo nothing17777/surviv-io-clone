@@ -12,6 +12,7 @@ import {
     type BotSettings,
     defaultBotSettings,
     defaultPrivateLoadout,
+    goodPerks,
     type PrivateBot,
     type VsBots,
 } from "../../../shared/types/api.ts";
@@ -1614,15 +1615,7 @@ export class BotBrain {
 const PanFaceOffset = 0.25;
 
 /** the best fight perks, best first, for the hacker (it never reloads, so no ammo perks) */
-const HackerPerks = [
-    "ap_rounds",
-    "splinter",
-    "high_velocity",
-    "steelskin",
-    "flak_jacket",
-    "windwalk",
-    "self_revive",
-];
+const HackerPerks = [...new Set(["high_velocity", ...goodPerks])];
 
 /**
  * Spawns a bot straight into the game, through the same path a joining client takes.
@@ -1666,8 +1659,7 @@ export function addBot(game: Game, level: BotLevel, side?: number): Player {
     if (level === "hacker") {
         player.setOutfit("outfitGhillie");
         for (const perk of HackerPerks) {
-            // a player can only send 7 perks over the network
-            if (player.perks.length >= 7) break;
+            if (player.perks.length >= net.Constants.MaxPerks - 1) break;
             if (!player.hasPerk(perk)) player.addPerk(perk, false);
         }
     }

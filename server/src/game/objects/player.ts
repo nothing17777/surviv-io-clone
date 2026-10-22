@@ -71,6 +71,9 @@ interface Emote {
 
 type FabricateThrowable = keyof typeof PerkProperties["fabricate"]["weights"];
 
+/** seconds a minimum adrenaline (Leadership) can't refill what Indomitable Spirit spent */
+const LifelineDrainTime = 15;
+
 const boostHeals: Array<{ maxBoost: number; heal: number }> = [];
 {
     const boostBreakPoints = GameConfig.player.boostBreakpoints;
@@ -694,6 +697,8 @@ export class Player extends BaseGameObject {
     }
 
     minBoost = 0;
+    /** seconds left that minBoost doesn't refill what Indomitable Spirit used */
+    lifelineDrainTicker = 0;
     lastBoost = 0;
 
     private _boost = 0;
@@ -1562,7 +1567,10 @@ export class Player extends BaseGameObject {
         // Boost logic
         //
         if (!this.downed) {
-            this.boost = math.clamp(this.boost, this.minBoost, 100);
+            // adrenaline spent by Indomitable Spirit stays spent for a while, even under a minimum like Leadership's
+            this.lifelineDrainTicker -= dt;
+            const boostFloor = this.lifelineDrainTicker > 0 ? 0 : this.minBoost;
+            this.boost = math.clamp(this.boost, boostFloor, 100);
 
             if (this.boost > 0) {
                 let healAmount = boostHeals.findLast((b, i) => {
@@ -1572,7 +1580,7 @@ export class Player extends BaseGameObject {
 
                 this.health += healAmount!.heal * dt;
 
-                if (this.boost > this.minBoost) {
+                if (this.boost > boostFloor) {
                     if (this.hasPerk("lifeline")) {
                         this.boost -= GameConfig.player.boostDecay
                             * PerkProperties.lifeline.decayMult
@@ -2539,6 +2547,7 @@ export class Player extends BaseGameObject {
                 const excessDamage = finalDamage - this._health + 1; // Amount to mitigate to survive on 1 health.
                 if (this.boost / PerkProperties.lifeline.conversionRate >= excessDamage) {
                     this.boost -= excessDamage * PerkProperties.lifeline.conversionRate;
+                    this.lifelineDrainTicker = LifelineDrainTime;
                     finalDamage = this._health - 1;
                     this.lastStandEffect = true;
                     this.lastStandEffectTicker = 1;
