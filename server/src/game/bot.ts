@@ -415,6 +415,7 @@ export class BotBrain {
             if (d > 80 || !this.canShoot(this.target)) {
                 this._lastThreat = v2.copy(this.target.pos);
                 this._sinceThreat = 0;
+                this._lastFoe = this.target;
                 this.target = undefined;
             }
         }
@@ -519,7 +520,14 @@ export class BotBrain {
         if (this.settings.chase && this._lastThreat && this._sinceThreat < 6) {
             // they just ducked behind a wall or into a building: follow them in, not to where they were
             const foe = this._lastFoe;
-            if (foe && !foe.dead && this._sinceThreat < 3 && util.sameLayer(foe.layer, player.layer)) {
+            if (foe && !foe.dead && util.toGroundLayer(foe.layer) !== util.toGroundLayer(player.layer)) {
+                // they went down into a bunker (or back up): take the stairs after them
+                const via = this.stairsToward(foe.pos);
+                if (via) {
+                    this._goal = via;
+                    return;
+                }
+            } else if (foe && !foe.dead && this._sinceThreat < 3) {
                 this._lastThreat = v2.copy(foe.pos);
             }
             if (v2.distance(this._lastThreat, player.pos) > 2.5) {
@@ -569,6 +577,38 @@ export class BotBrain {
     }
 
     private _wanderGoal?: Vec2;
+
+    /**
+     * Where to walk to change floors toward `pos`: the near end of the
+     * stairs that best connect us to it, then on through to the far end.
+     */
+    private stairsToward(pos: Vec2): Vec2 | undefined {
+        const player = this.player;
+        const mid = v2.mul(v2.add(player.pos, pos), 0.5);
+        const near = this.game.grid.intersectCollider(
+            collider.createCircle(mid, v2.distance(player.pos, pos) / 2 + 40),
+        );
+        let best: { center: Vec2; downDir: Vec2 } | undefined;
+        let bestCost = Infinity;
+        for (const obj of near) {
+            if (obj.__type !== ObjectType.Structure) continue;
+            for (const stair of obj.stairs) {
+                if (stair.lootOnly) continue;
+                const cost = v2.distance(player.pos, stair.center) + v2.distance(stair.center, pos);
+                if (cost < bestCost) {
+                    best = stair;
+                    bestCost = cost;
+                }
+            }
+        }
+        if (!best) return undefined;
+        // underground and heading up: walk the stairs the other way
+        const dir = util.toGroundLayer(player.layer) === 0 ? best.downDir : v2.neg(best.downDir);
+        const entry = v2.sub(best.center, v2.mul(dir, 3));
+        // already on the stairs or at the foot of them: push through to the other floor
+        if (player.layer & 2 || v2.distance(entry, player.pos) < 1.5) return v2.add(best.center, v2.mul(dir, 4));
+        return entry;
+    }
 
     private findTarget(): Player | undefined {
         const player = this.player;
@@ -1522,6 +1562,7 @@ export function addBot(game: Game, level: BotLevel, side?: number): Player {
     if (!sameKit && kit) player.applyGodLoadout(kit, true);
     else if (!sameKit && game.godLoadout && game.fixedLoadout) player.applyGodLoadout(defaultPrivateLoadout, true);
     player.botBrain = new BotBrain(player, level, settings);
+    if (level === "hacker") player.setOutfit("outfitGhillie");
     return player;
 }
 
