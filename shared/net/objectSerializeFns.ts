@@ -194,7 +194,8 @@ export const ObjectSerializeFns: {
 } = {
     [ObjectType.Player]: {
         serializedPartialSize: 6,
-        serializedFullSize: 32, // calculating this one is... yeah...
+        // room for every perk a player can carry (the hacker has ~25)
+        serializedFullSize: 128,
         /* STRIP_FROM_PROD_CLIENT:START */
         serializePart: (s, data) => {
             s.writeMapPos(data.pos);
