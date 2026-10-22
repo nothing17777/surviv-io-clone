@@ -323,6 +323,34 @@ export class BotBrain {
         v2.set(this._stuckCheckPos, player.pos);
     }
 
+    private _deflecting = false;
+
+    /** hackers and scripters carrying a pan block shots with it between their own */
+    get panDeflect(): boolean {
+        return (this.level === "hacker" || this.level === "scripter")
+            && this.player.weapons[WeaponSlot.Melee].type === "pan";
+    }
+
+    /** the enemy bullet that reaches us soonest within `within` seconds */
+    private incomingShot(within: number): Bullet | undefined {
+        const player = this.player;
+        let best: Bullet | undefined;
+        let bestTime = within;
+        for (const b of this.game.bulletBarn.bullets) {
+            if (!b.active || b.player === player || b.player?.teamId === player.teamId) continue;
+            if (!util.sameLayer(b.layer, player.layer)) continue;
+            const rel = v2.sub(player.pos, b.pos);
+            const ahead = v2.dot(rel, b.dir);
+            if (ahead < 0) continue;
+            const time = ahead / Math.max(b.speed, 1);
+            if (time > bestTime || b.maxDistance - b.distanceTraveled < ahead - 2) continue;
+            if (Math.abs(v2.dot(rel, v2.perp(b.dir))) > player.rad + 1) continue;
+            best = b;
+            bestTime = time;
+        }
+        return best;
+    }
+
     /** only hackers phase through bullets; everyone else has to step out of the way */
     get phaseDodge(): boolean {
         return this.level === "hacker";
@@ -456,7 +484,7 @@ export class BotBrain {
                 v2.normalizeSafe(toTarget),
                 Math.max(v2.length(toTarget) - this.target.rad, 0.5),
             );
-            this.pickCombatWeapon(v2.distance(this.target.pos, player.pos), this.target);
+            if (!this._deflecting) this.pickCombatWeapon(v2.distance(this.target.pos, player.pos), this.target);
             // hurt and carrying heals: fall back behind cover (hackers just keep fighting)
             this._retreat = undefined;
             if (player.health < 35 && this.settings.heal && this.pickHeal() && this.level !== "hacker" && this.level !== "scripter") {
@@ -677,6 +705,8 @@ export class BotBrain {
         for (const obj of objs) {
             if (obj.__type !== ObjectType.Obstacle) continue;
             if (obj.dead || !obj.collidable || obj.height < GameConfig.bullet.height) continue;
+            // glass breaks on the first bullet: shoot straight through windows
+            if (obj.isWindow) continue;
             if (!util.sameLayer(obj.layer, player.layer)) continue;
             if (collider.intersectSegment(obj.collider, player.pos, pos)) return false;
         }
@@ -997,6 +1027,25 @@ export class BotBrain {
                     if (!firing) {
                         this._spin += dt * 25;
                         lookDir = v2.create(Math.cos(this._spin), Math.sin(this._spin));
+                    }
+                }
+                // pan deflect: between shots, swap to the pan and catch what's coming, then swap back and fire
+                if (this.panDeflect) {
+                    const shot = this.incomingShot(0.3);
+                    const weap = player.weapons[player.curWeapIdx];
+                    this._deflecting = !!shot && (!gunDef || weap.cooldown > 0 || weap.ammo === 0);
+                    if (shot && this._deflecting) {
+                        if (player.curWeapIdx !== WeaponSlot.Melee) player.weaponManager.setCurWeapIndex(WeaponSlot.Melee);
+                        player.shootStart = false;
+                        player.shootHold = false;
+                        // the pan sits right of where we face: turn so it covers the shot's line
+                        const ang = Math.atan2(-shot.dir.y, -shot.dir.x) + PanFaceOffset;
+                        lookDir = v2.create(Math.cos(ang), Math.sin(ang));
+                        // and step into that line so it hits the pan, not the shoulder
+                        const side = v2.dot(v2.sub(player.pos, shot.pos), v2.perp(shot.dir));
+                        move = v2.add(v2.mul(v2.perp(shot.dir), -Math.sign(side)), v2.mul(move, 0.3));
+                    } else if (player.curWeapIdx === WeaponSlot.Melee && this.hasGunWithAmmo()) {
+                        this.pickCombatWeapon(dist, target);
                     }
                 }
                 player.toMouseLen = dist;
@@ -1560,6 +1609,9 @@ export class BotBrain {
         return v2.rotate(dir, Math.atan2(off, Math.max(dist, 1)));
     }
 }
+
+/** how far right of the shot to face so the equipped pan covers it, radians */
+const PanFaceOffset = 0.25;
 
 /** the best fight perks, best first, for the hacker (it never reloads, so no ammo perks) */
 const HackerPerks = [

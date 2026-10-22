@@ -158,8 +158,9 @@ export function defaultBotSettings(): BotSettingsByLevel {
             kit: null,
         };
     }
-    // hackers come with a pair of AWM-S
-    settings.hacker.kit = { ...defaultPrivateLoadout, primary: "awc", secondary: "awc" };
+    // hackers and scripters come with an M249, an AWM-S and a pan
+    settings.hacker.kit = { ...defaultPrivateLoadout, primary: "m249", secondary: "awc", melee: "pan" };
+    settings.scripter.kit = { ...defaultPrivateLoadout, primary: "m249", secondary: "awc", melee: "pan" };
     return settings;
 }
 
