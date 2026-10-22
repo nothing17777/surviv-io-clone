@@ -297,6 +297,7 @@ export class Player implements AbstractObject {
         m_actionType: Action;
         m_actionSeq: number;
         m_wearingPan: boolean;
+        m_bigPan: boolean;
         m_healEffect: boolean;
         m_adrenalineEffect: boolean;
         m_frozen: boolean;
@@ -451,6 +452,7 @@ export class Player implements AbstractObject {
             m_actionType: Action.None,
             m_actionSeq: 0,
             m_wearingPan: false,
+            m_bigPan: false,
             m_healEffect: false,
             m_adrenalineEffect: false,
             m_frozen: false,
@@ -531,6 +533,7 @@ export class Player implements AbstractObject {
             this.m_netData.m_actionType = data.actionType;
             this.m_netData.m_actionSeq = data.actionSeq;
             this.m_netData.m_wearingPan = data.wearingPan;
+            this.m_netData.m_bigPan = data.bigPan;
             this.m_netData.m_healEffect = data.healEffect;
             this.m_netData.m_adrenalineEffect = data.lastStandEffect;
             this.m_netData.m_frozen = data.frozen;
@@ -697,6 +700,15 @@ export class Player implements AbstractObject {
                     p1: v2.add(surface.p1, off),
                 };
             }
+        }
+
+        // the hacker's pan is twice as long, like on the server
+        if (this.m_netData.m_bigPan) {
+            const mid = v2.mul(v2.add(surface.p0, surface.p1), 0.5);
+            surface = {
+                p0: v2.add(mid, v2.mul(v2.sub(surface.p0, mid), 2)),
+                p1: v2.add(mid, v2.mul(v2.sub(surface.p1, mid), 2)),
+            };
         }
 
         return surface;
@@ -1636,7 +1648,8 @@ export class Player implements AbstractObject {
             const imgDef = GameObjectDefs.typeToDef("pan", "melee").hipImg!;
             this.hipSprite.texture = PIXI.Texture.from(imgDef.sprite);
             this.hipSprite.position.set(imgDef.pos.x, imgDef.pos.y);
-            this.hipSprite.scale.set(imgDef.scale.x, imgDef.scale.y);
+            const panScale = this.m_netData.m_bigPan ? 2 : 1;
+            this.hipSprite.scale.set(imgDef.scale.x * panScale, imgDef.scale.y * panScale);
             this.hipSprite.rotation = imgDef.rot;
             this.hipSprite.tint = imgDef.tint;
             this.hipSprite.visible = true;
@@ -1872,7 +1885,12 @@ export class Player implements AbstractObject {
             this.meleeSprite.rotation = imgDef.rot + meleeBone.rot;
             this.meleeSprite.position.set(-meleeBone.pivot.x, -meleeBone.pivot.y);
 
-            this.meleeSprite.scale.set(imgDef.scale.x / bodyScale, imgDef.scale.y / bodyScale);
+            // the hacker's pan is twice as big
+            const meleeScale = this.m_netData.m_bigPan && this.m_netData.m_activeWeapon == "pan" ? 2 : 1;
+            this.meleeSprite.scale.set(
+                (imgDef.scale.x / bodyScale) * meleeScale,
+                (imgDef.scale.y / bodyScale) * meleeScale,
+            );
         }
 
         if (!this.downed && this.currentAnim() != Anim.Revive && activeWeapDef.type == "gun") {

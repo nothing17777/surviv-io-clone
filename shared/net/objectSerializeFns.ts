@@ -86,6 +86,8 @@ export interface ObjectsFullData {
         actionSeq: number;
 
         wearingPan: boolean;
+        /** the hacker's pan, drawn twice as big */
+        bigPan: boolean;
         healEffect: boolean;
         lastStandEffect: boolean;
 
@@ -216,6 +218,7 @@ export const ObjectSerializeFns: {
             s.writeBits(data.actionSeq, 3);
 
             s.writeBoolean(data.wearingPan);
+            s.writeBoolean(data.bigPan);
             s.writeBoolean(data.healEffect);
             s.writeBoolean(data.lastStandEffect);
 
@@ -285,6 +288,7 @@ export const ObjectSerializeFns: {
             data.actionSeq = s.readBits(3);
 
             data.wearingPan = s.readBoolean();
+            data.bigPan = s.readBoolean();
             data.healEffect = s.readBoolean();
             data.lastStandEffect = s.readBoolean();
 

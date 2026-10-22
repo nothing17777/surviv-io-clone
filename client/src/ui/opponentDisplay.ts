@@ -292,6 +292,7 @@ export class LoadoutDisplay {
             actionType: options.actionType || 0,
             actionItem: options.actionItem || "",
             wearingPan: false,
+            bigPan: false,
             healEffect: false,
             lastStandEffect: false,
             frozen: false,

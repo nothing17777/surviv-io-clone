@@ -868,6 +868,11 @@ export class Player extends BaseGameObject {
     visionObscured = false;
     visionRecoveryTicker = 0;
     wearingPan = false;
+
+    /** the hacker's pan blocks and draws twice as big */
+    get bigPan() {
+        return this.botBrain?.level === "hacker";
+    }
     healEffect = false;
     healEffectTicker = 0;
 
@@ -1324,7 +1329,7 @@ export class Player extends BaseGameObject {
         }
 
         // the hacker's pan is twice as long, grown from its middle so it still sits in the same spot
-        if (this.botBrain?.level === "hacker") {
+        if (this.bigPan) {
             const mid = v2.mul(v2.add(surface.p0, surface.p1), 0.5);
             surface = {
                 p0: v2.add(mid, v2.mul(v2.sub(surface.p0, mid), 2)),

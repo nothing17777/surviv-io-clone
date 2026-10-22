@@ -217,6 +217,7 @@ export class EditorDisplay {
             actionType: 0,
             actionItem: "",
             wearingPan: false,
+            bigPan: false,
             healEffect: false,
             lastStandEffect: false,
             frozen: false,
