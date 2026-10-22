@@ -6,14 +6,14 @@ export class AliveCountsMsg implements AbstractMsg {
     serialize(s: BitStream) {
         /* STRIP_FROM_PROD_CLIENT:START */
         s.writeArray(this.teamAliveCounts, 8, (count) => {
-            s.writeUint8(count);
+            s.writeUint16(count);
         });
         /* STRIP_FROM_PROD_CLIENT:END */
     }
 
     deserialize(s: BitStream) {
         this.teamAliveCounts = s.readArray(8, () => {
-            return s.readUint8();
+            return s.readUint16();
         });
     }
 }

@@ -298,6 +298,8 @@ export class BotBrain {
     private _retreat?: Vec2;
     private _lastThreat?: Vec2;
     private _sinceThreat = Infinity;
+    /** a wall stands between us and the target, so closing in needs a path */
+    private _wallToTarget = false;
     /** who we last fought, followed for a few seconds after they slip out of sight */
     private _lastFoe?: Player;
     private _burstTicker = 0;
@@ -439,6 +441,12 @@ export class BotBrain {
             this._sinceThreat = 0;
             this._lastFoe = this.target;
             this._coverSpot = undefined;
+            // checked here, not every tick: it's a long query and walls don't move
+            const toTarget = v2.sub(this.target.pos, player.pos);
+            this._wallToTarget = this.blocked(
+                v2.normalizeSafe(toTarget),
+                Math.max(v2.length(toTarget) - this.target.rad, 0.5),
+            );
             this.pickCombatWeapon(v2.distance(this.target.pos, player.pos), this.target);
             // hurt and carrying heals: fall back behind cover (hackers just keep fighting)
             this._retreat = undefined;
@@ -614,11 +622,15 @@ export class BotBrain {
         const player = this.player;
         if (this.skill.wallhack) {
             // anyone, anywhere; ones it can shoot right now come first
+            // nearest first, so line of sight is only checked until nobody further can win
+            const foes = this.game.playerBarn.livingPlayers
+                .filter((obj) => obj !== player && obj.teamId !== player.teamId)
+                .map((obj) => ({ obj, dist: v2.distance(obj.pos, player.pos) }))
+                .sort((a, b) => a.dist - b.dist);
             let best: Player | undefined;
             let bestDist = Infinity;
-            for (const obj of this.game.playerBarn.livingPlayers) {
-                if (obj === player || obj.teamId === player.teamId) continue;
-                const dist = v2.distance(obj.pos, player.pos);
+            for (const { obj, dist } of foes) {
+                if (dist * 0.7 >= bestDist) break;
                 let d = dist * (dist < 80 && this.canShoot(obj) ? 1 : 2);
                 if (obj === this.target) d *= 0.7;
                 if (d < bestDist) {
@@ -628,25 +640,21 @@ export class BotBrain {
             }
             return best;
         }
-        const range = Math.max(player.zoom * 1.2, 35);
-        let best: Player | undefined;
-        let bestDist = range;
-        const nearby = this.game.grid.intersectCollider(
-            collider.createCircle(player.pos, range),
-        );
-        for (const obj of nearby) {
+        // about a screen: a 15x scope would otherwise sweep half the map every think
+        const range = math.clamp(player.zoom * 1.2, 35, 60);
+        const foes: Array<{ obj: Player; d: number }> = [];
+        for (const obj of this.game.grid.intersectCollider(collider.createCircle(player.pos, range))) {
             if (obj.__type !== ObjectType.Player) continue;
             if (obj === player || obj.dead || obj.teamId === player.teamId) continue;
             if (!util.sameLayer(obj.layer, player.layer)) continue;
             const dist = v2.distance(obj.pos, player.pos);
+            if (dist >= range) continue;
             // keep the current target a little longer so we don't flip-flop
-            const d = obj === this.target ? dist * 0.7 : dist;
-            if (d >= bestDist) continue;
-            if (!this.canSee(obj.pos)) continue;
-            best = obj;
-            bestDist = d;
+            foes.push({ obj, d: obj === this.target ? dist * 0.7 : dist });
         }
-        return best;
+        // nearest first: the first one in sight wins, so big fights don't check every line of sight
+        foes.sort((a, b) => a.d - b.d);
+        return foes.find((f) => this.canSee(f.obj.pos))?.obj;
     }
 
     /** same floor and nothing solid between us */
@@ -893,7 +901,7 @@ export class BotBrain {
             }
             // closing in but a wall is in the way (seen through a window or doorway): walk around it
             const closing = gunDef ? approach > 0 : dist > reach * 0.8 && (this.settings.chase || dist < MeleeSwitchDist);
-            if (closing && this.blocked(dirTo, Math.max(dist - target.rad, 0.5))) move = this.followPath(target.pos, dt);
+            if (closing && this._wallToTarget) move = this.followPath(target.pos, dt);
             // low on health: back off to cover while still shooting
             if (this._retreat) move = this.followPath(this._retreat, dt);
             // the zone comes first: walk into it, shooting on the way
@@ -997,7 +1005,7 @@ export class BotBrain {
         }
 
         // grenades and airstrikes: get out of the blast first, keep shooting while running
-        const escape = this.blastEscape();
+        const escape = this.cachedBlastEscape(dt);
         if (escape) {
             move = escape;
             // no finishing that bandage on top of a grenade
@@ -1230,6 +1238,19 @@ export class BotBrain {
      * just stands in it. Picking by expected damage means stepping into thin
      * early gas to get off a bomb line, but not into late game gas.
      */
+    private _blastTicker = 0;
+    private _blastEscape?: Vec2;
+
+    /** blastEscape is a few area queries, so refresh it ten times a second, not every tick */
+    private cachedBlastEscape(dt: number): Vec2 | undefined {
+        this._blastTicker -= dt;
+        if (this._blastTicker <= 0) {
+            this._blastTicker = 0.1;
+            this._blastEscape = this.blastEscape();
+        }
+        return this._blastEscape;
+    }
+
     private blastEscape(): Vec2 | undefined {
         const player = this.player;
         const threats: Array<{ pos: Vec2; rad: number; dmg: number }> = [];

@@ -257,6 +257,10 @@ export class TeamMenu {
         $("#team-bot-army").on("change", "input", (e) => {
             setArmyCount($(e.currentTarget), () => Number($(e.currentTarget).val()));
         });
+        // the cog on a bot row opens that bot's loadout, ready to edit
+        $("#team-bot-army").on("click", ".bot-army-cog", (e) => {
+            this.openBotLoadout($(e.currentTarget).attr("data-level") as BotLevel);
+        });
         $("#team-bot-army").on("click", ".bot-army-clear", () => {
             this.setRoomProperty("privateBotArmy", emptyBotArmy());
         });
@@ -645,7 +649,7 @@ export class TeamMenu {
         panel.append($("<div/>", { class: "botset-hint", id: "team-botset-dodge-hint" }));
 
         // optional exact kit, same pickers as the party kit
-        panel.append($("<div/>", { class: "botset-grid" }).append(check("kit", "Custom kit")));
+        panel.append($("<div/>", { class: "botset-grid" }).append(check("kit", "Custom loadout")));
         const kit = $("<div/>", { id: "team-botset-kit" });
         for (const slot of Object.keys(pickerSlotType)) {
             kit.append(
@@ -690,6 +694,19 @@ export class TeamMenu {
         panel.append(kit);
 
         panel.on("change", ".botset-field", () => this.saveBotSettingsFromPanel());
+    }
+
+    /** opens Bot Settings on `level` with its custom loadout switched on */
+    openBotLoadout(level: BotLevel) {
+        this.botSettingsLevel = level;
+        this.botSettingsOpen = true;
+        const all = this.botSettings();
+        if (this.isLeader && !all[level].kit) {
+            const next = structuredClone(all);
+            next[level].kit = { ...defaultPrivateLoadout };
+            this.setRoomProperty("privateBotSettings", next);
+        }
+        this.refreshUi();
     }
 
     /** reads the panel into the room's settings for the level being edited */
@@ -926,7 +943,7 @@ export class TeamMenu {
             }
             pick.val(this.armyPresetLevel);
             preset.append(pick);
-            for (const per of [10, 25, 50, MaxBotFill / 2]) {
+            for (const per of [10, 50, 100, MaxBotFill / 2]) {
                 preset.append($("<a/>", { class: "btn-hollow bot-army-step", "data-preset": per, text: `${per} v ${per}` }));
             }
             panel.append(preset);
@@ -948,6 +965,7 @@ export class TeamMenu {
                     $("<a/>", { class: "btn-hollow bot-army-step", text, ...data, "data-delta": delta });
                 if (this.isLeader) {
                     row.append(
+                        $("<a/>", { class: "bot-army-cog", title: "Loadout and settings", "data-level": level }),
                         step(-1, "−"),
                         $("<input/>", { class: "bot-army-count", type: "number", min: 0, max: MaxBotFill, value: count, ...data }),
                         step(1, "+"),

@@ -75,7 +75,7 @@ export const zPrivateBot = z.object({
 export type PrivateBot = z.infer<typeof zPrivateBot>;
 export const zPrivateBots = z.array(zPrivateBot).max(MaxPrivateBots);
 /** 50v50 maps: how many extra bots the leader can fill the match with */
-export const MaxBotFill = 200;
+export const MaxBotFill = 500;
 /** 50v50 maps: [side][index in BotLevels] = how many of that bot go on that side */
 export const zBotArmy = z
     .array(z.array(z.number().int().min(0).max(MaxBotFill)).length(BotLevels.length))

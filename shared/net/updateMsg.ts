@@ -105,7 +105,7 @@ function deserializeActivePlayer(s: BitStream, data: LocalDataWithDirty) {
 }
 
 function serializePlayerStatus(s: BitStream, players: PlayerStatus[]) {
-    s.writeArray(players, 8, (info) => {
+    s.writeArray(players, 10, (info) => {
         s.writeBoolean(info.hasData);
 
         if (info.hasData) {
@@ -125,7 +125,7 @@ function serializePlayerStatus(s: BitStream, players: PlayerStatus[]) {
 }
 
 function deserializePlayerStatus(s: BitStream): PlayerStatus[] {
-    const players = s.readArray(8, () => {
+    const players = s.readArray(10, () => {
         const p = {
             hasData: s.readBoolean(),
         } as PlayerStatus;
@@ -178,8 +178,9 @@ export interface PlayerInfo {
 
 function serializePlayerInfo(s: BitStream, data: PlayerInfo) {
     s.writeUint16(data.playerId);
-    s.writeUint8(data.teamId);
-    s.writeUint8(data.groupId);
+    // 16 bits: big bot matches give every player on a 50v50 map their own group
+    s.writeUint16(data.teamId);
+    s.writeUint16(data.groupId);
     s.writeString(data.name);
 
     s.writeGameType(data.loadout.heal);
@@ -190,8 +191,8 @@ function serializePlayerInfo(s: BitStream, data: PlayerInfo) {
 
 function deserializePlayerInfo(s: BitStream, data: PlayerInfo) {
     data.playerId = s.readUint16();
-    data.teamId = s.readUint8();
-    data.groupId = s.readUint8();
+    data.teamId = s.readUint16();
+    data.groupId = s.readUint16();
     data.name = s.readString();
     data.loadout = {} as PlayerInfo["loadout"];
     data.loadout.heal = s.readGameType();
@@ -341,7 +342,7 @@ export class UpdateMsg implements AbstractMsg {
         }
 
         if (this.playerInfos.length) {
-            s.writeArray(this.playerInfos, 8, (info) => {
+            s.writeArray(this.playerInfos, 10, (info) => {
                 serializePlayerInfo(s, info);
             });
 
@@ -349,7 +350,7 @@ export class UpdateMsg implements AbstractMsg {
         }
 
         if (this.deletedPlayerIds.length) {
-            s.writeArray(this.deletedPlayerIds, 8, (id) => {
+            s.writeArray(this.deletedPlayerIds, 10, (id) => {
                 s.writeUint16(id);
             });
 
@@ -367,7 +368,7 @@ export class UpdateMsg implements AbstractMsg {
         }
 
         if (this.bullets.length) {
-            s.writeArray(this.bullets, 8, (bullet) => {
+            s.writeArray(this.bullets, 10, (bullet) => {
                 s.writeUint16(bullet.playerId);
                 s.writeMapPos(bullet.startPos);
                 s.writeUnitVec(bullet.dir, 8);
@@ -561,7 +562,7 @@ export class UpdateMsg implements AbstractMsg {
         }
 
         if ((flags & UpdateExtFlags.PlayerInfos) != 0) {
-            this.playerInfos = s.readArray(8, () => {
+            this.playerInfos = s.readArray(10, () => {
                 const x = {} as PlayerInfo;
                 deserializePlayerInfo(s, x);
                 return x;
@@ -569,7 +570,7 @@ export class UpdateMsg implements AbstractMsg {
         }
 
         if ((flags & UpdateExtFlags.DeletePlayerIds) != 0) {
-            this.deletedPlayerIds = s.readArray(8, () => {
+            this.deletedPlayerIds = s.readArray(10, () => {
                 return s.readUint16();
             });
         }
@@ -585,7 +586,7 @@ export class UpdateMsg implements AbstractMsg {
         }
 
         if ((flags & UpdateExtFlags.Bullets) != 0) {
-            this.bullets = s.readArray(8, () => {
+            this.bullets = s.readArray(10, () => {
                 const bullet = {} as Bullet;
 
                 bullet.playerId = s.readUint16();

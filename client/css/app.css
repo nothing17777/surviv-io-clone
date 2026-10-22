@@ -7398,18 +7398,20 @@ input [type="image"]:focus {
 .bot-army-preset {
     align-items: center;
     display: flex;
+    flex-wrap: wrap;
     gap: 3px;
     margin-bottom: 6px;
 }
 
 #team-bot-army .bot-army-preset select {
-    flex: 1;
+    flex: 1 0 100%;
     margin: 0;
     min-width: 0;
     width: auto;
 }
 
 #team-bot-army .bot-army-preset .bot-army-step {
+    flex: 1;
     width: auto;
     padding: 2px 4px;
     white-space: nowrap;
@@ -8504,6 +8506,7 @@ body.mm-body-lock {
     background: url(/img/gui/close.svg) center / 16px no-repeat;
 }
 
+.bot-army-row > .bot-army-cog,
 .team-menu-member > .bot-cog {
     flex: 0 0 26px;
     width: 26px;
@@ -8514,6 +8517,7 @@ body.mm-body-lock {
     background: url(/img/gui/cog.svg) center / 20px no-repeat;
 }
 
+.bot-army-row > .bot-army-cog:hover,
 .team-menu-member > .bot-cog:hover {
     opacity: 1;
 }
