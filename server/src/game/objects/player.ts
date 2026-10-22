@@ -1070,8 +1070,8 @@ export class Player extends BaseGameObject {
                 this.chest = roleDef.defaultItems.chest;
             }
 
-            // weapons
-            for (let i = 0; i < roleDef.defaultItems.weapons.length; i++) {
+            // weapons (a locked film kit keeps its own: a pan-only hacker stays pan-only as leader)
+            for (let i = 0; i < (this.lockedKit ? 0 : roleDef.defaultItems.weapons.length); i++) {
                 const weaponOrWeaponFunc = roleDef.defaultItems.weapons[i];
                 const trueWeapon = weaponOrWeaponFunc instanceof Function
                     ? weaponOrWeaponFunc(clampedTeamId)

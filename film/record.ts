@@ -219,6 +219,14 @@ await page.evaluate((bps) => {
     };
     rec.start(1000);
     (window as any).filmVideoStart();
+    // the spectated player's health, read off the game's own health bar whenever it changes
+    const health: [number, number][] = [];
+    (window as any).filmHealth = health;
+    const bar = document.getElementById("ui-health-actual");
+    setInterval(() => {
+        const hp = Math.round(parseFloat(bar?.style.width ?? "") || 0);
+        if (!health.length || health[health.length - 1][1] !== hp) health.push([Date.now(), hp]);
+    }, 100);
     (window as any).filmStopVideo = () => new Promise((r) => {
         rec.onstop = () => setTimeout(r, 500);
         rec.stop();
@@ -234,6 +242,7 @@ while (!done && Date.now() < deadline && !(await gameOver())) await page.waitFor
 await page.waitForTimeout(4000);
 
 await page.evaluate(() => Promise.all([(window as any).filmStopAudio?.(), (window as any).filmStopVideo?.()]));
+const healthRaw = await page.evaluate(() => (window as any).filmHealth as [number, number][]);
 const duration = (Date.now() - t0) / 1000;
 await context.close();
 await browser.close();
@@ -244,8 +253,9 @@ spawnSync("ffmpeg", ["-loglevel", "error", "-y", "-i", capture, "-c", "copy", pa
 fs.rmSync(capture);
 // every time from here on counts from the first recorded frame
 for (const e of events) e.t -= videoStart;
+const health = healthRaw.map(([ms, hp]) => [+((ms - t0) / 1000 - videoStart).toFixed(2), hp]);
 if (audioChunks.length) fs.writeFileSync(path.join(outDir, "game.webm"), Buffer.concat(audioChunks));
-fs.writeFileSync(path.join(outDir, "events.json"), JSON.stringify({ name, noobs, title: recipe?.title, focusLabel: recipe?.label, sides: recipe && describeSides(recipe), duration: duration - videoStart, audioStart: audioStart < 0 ? null : audioStart - videoStart, kills, events }, null, 2));
+fs.writeFileSync(path.join(outDir, "events.json"), JSON.stringify({ name, noobs, title: recipe?.title, focusLabel: recipe?.label, sides: recipe && describeSides(recipe), duration: duration - videoStart, audioStart: audioStart < 0 ? null : audioStart - videoStart, kills, health, events }, null, 2));
 const retries = Number(arg("retries", "5"));
 const dud = events.some((e) => e.kind === "hacker_dead") && kills < noobs * 0.3;
 if (dud && recipe && retries > 0) {

@@ -31,6 +31,8 @@ const info = JSON.parse(fs.readFileSync(path.join(dir, "events.json"), "utf8")) 
     audioStart?: number;
     events: { t: number; kind: string; text: string }[];
     sides?: [SideView, SideView];
+    /** [seconds, hp] each time the spectated player's health changed */
+    health?: [number, number][];
 };
 const title = arg("title", info.title ?? `1 HACKER vs ${info.noobs} NOOBS`);
 const gameAudio = path.join(dir, "game.webm");
@@ -239,6 +241,25 @@ killOut.forEach((t, i) => {
         draw.push(text(`${i + 1} KILLS!`, `fontsize=140:fontcolor=0xffd400:x=(w-tw)/2:y=h*0.18:enable='between(t,${f3(t)},${f3(t + 1.6)})'`));
     }
 });
+// health bar of whoever the camera follows, bottom centre like the game's own
+const hpSteps = (info.health ?? []).filter(([, hp], i, all) =>
+    // small ticks (bleeding, healing) are merged so the filter stays short
+    i === 0 || hp === 0 || hp === 100 || Math.abs(hp - all[i - 1][1]) >= 2
+);
+if (hpSteps.length) {
+    // bottom right: the gear strip owns the bottom left
+    draw.push(`drawbox=x=iw-586:y=ih-96:w=532:h=40:color=black@0.6:t=fill:enable='between(t,${f3(INTRO)},${f3(body)})'`);
+    hpSteps.forEach(([t, hp], i) => {
+        const a = Math.max(outTime(t), INTRO);
+        const b = Math.min(i + 1 < hpSteps.length ? outTime(hpSteps[i + 1][0]) : body, body);
+        if (b <= a) return;
+        const color = hp > 50 ? "0x55dd55" : hp > 25 ? "0xffcc33" : "0xff3a3a";
+        const on = `enable='between(t,${f3(a)},${f3(b)})'`;
+        if (hp > 0) draw.push(`drawbox=x=iw-580:y=ih-90:w=${Math.round(520 * hp / 100)}:h=28:color=${color}:t=fill:${on}`);
+        draw.push(text(`HP ${hp}`, `fontsize=44:fontcolor=white:borderw=5:x=w-600-tw:y=h-100:${on}`));
+    });
+}
+
 // Gamerio-style callout pointing at the star, then narrator captions on the big moments
 // (the camera keeps the star in the middle of the frame)
 draw.push(
@@ -253,7 +274,7 @@ const knocked = info.events.find((e) => e.kind === "feed" && /knocked out/i.test
 if (knocked) captions.push([outTime(knocked.t), "WAIT WHAT"]);
 if (hackerDead) captions.push([outTime(hackerDead), "NO WAY."]);
 for (const [t, line] of captions) {
-    draw.push(text(line, `fontsize=64:fontcolor=white:borderw=6:box=1:boxcolor=black@0.45:boxborderw=18:x=(w-tw)/2:y=h-200:enable='between(t,${f3(t)},${f3(t + 2.2)})'`));
+    draw.push(text(line, `fontsize=64:fontcolor=white:borderw=6:box=1:boxcolor=black@0.45:boxborderw=18:x=(w-tw)/2:y=h-th-260:enable='between(t,${f3(t)},${f3(t + 2.2)})'`));
 }
 draw.push(
     text(`ALIVE ${info.noobs}`, `fontsize=56:fontcolor=0x9be7ff:borderw=5:x=50:y=125:enable='between(t,${INTRO},${f3(killOut[0] ?? body)})'`),

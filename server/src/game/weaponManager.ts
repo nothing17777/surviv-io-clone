@@ -1122,6 +1122,7 @@ export class WeaponManager {
                 playerCol.rad,
             );
             if (!res) continue;
+            if (playerCol.teamId !== this.player.teamId && playerCol.botBrain?.phaseMelee()) continue;
 
             const meleeDir = v2.normalizeSafe(
                 v2.sub(playerCol.pos, this.player.pos),

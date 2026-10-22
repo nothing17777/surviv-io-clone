@@ -340,6 +340,14 @@ export class BotBrain {
         return dodge;
     }
 
+    /**
+     * film episodes with a locked kit only: a hacker phases through melee hits like bullets,
+     * so a melee-only hacker isn't just punched out by the first swarm of fists
+     */
+    phaseMelee(): boolean {
+        return this.phaseDodge && this.player.lockedKit && Math.random() < this.skill.dodge;
+    }
+
     /** hackers only: true lets this explosion pass through, rolled once per blast */
     phaseExplosion(explosion: object): boolean {
         if (!this.phaseDodge) return false;
