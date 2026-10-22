@@ -217,6 +217,29 @@ app.post("/api/find_game", async (res, req) => {
     }
 });
 
+// a bots-only private match for film/record.ts, spectated rather than played
+app.post("/api/film_match", async (res, req) => {
+    res.onAborted(() => {
+        res.aborted = true;
+    });
+
+    if (req.getHeader("survev-api-key") !== Config.secrets.SURVEV_API_KEY) {
+        uwsHelpers.forbidden(res);
+        return;
+    }
+
+    try {
+        const body = await uwsHelpers.getJsonBody(res, zFindGamePrivateBody);
+        const res2 = await server.findGame({ ...body, privateMatch: { ...body.privateMatch!, film: true } });
+        uwsHelpers.returnJson(res, res2);
+    } catch (error) {
+        server.logger.warn("/api/film_match error: ", error);
+        if (!res.aborted) {
+            res.writeStatus("500 Internal Server Error").end("500 Internal Server Error");
+        }
+    }
+});
+
 app.post("/api/spectate_game", async (res, req) => {
     res.onAborted(() => {
         res.aborted = true;

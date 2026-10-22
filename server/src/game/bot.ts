@@ -1570,7 +1570,9 @@ export function addBot(game: Game, level: BotLevel, side?: number): Player {
     const client = new BotClient(game, new NoOpSocket(), null, "");
 
     const joinMsg = new net.JoinMsg();
-    joinMsg.name = level === "hacker" ? "austrian painter" : randomBotName();
+    // every hacker after the first gets a number, so hacker vs hacker kill feeds stay readable
+    const hackers = game.playerBarn.players.filter((p) => p.botBrain?.level === "hacker").length;
+    joinMsg.name = level === "hacker" ? `austrian painter${hackers ? ` ${hackers + 1}` : ""}` : randomBotName();
     joinMsg.bot = false;
 
     let groupHashToJoin = "";

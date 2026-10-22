@@ -15,5 +15,6 @@ packages:
   - client/
   - bot/
   - tests/
+  - film/
   - '!**dist/**'
 shellEmulator: true

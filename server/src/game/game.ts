@@ -109,6 +109,7 @@ export class Game {
     /** public games: fills empty slots with bots once a real player is in */
     botFiller?: BotFiller;
     private _botsAdded = false;
+    private _watched = false;
 
     get aliveCount(): number {
         return this.playerBarn.livingPlayers.length;
@@ -219,6 +220,9 @@ export class Game {
             }
         }
 
+        // film matches have no human to wait for
+        if (this.config.privateMatch?.film) this.onHumanJoined();
+
         if (!this.started && !this.preventStart) {
             this.started = this.modeManager.isGameStarted();
             if (this.started) {
@@ -245,7 +249,10 @@ export class Game {
         if (this.started) this.startedTime += dt;
 
         // bots only play alongside real people: once the last one leaves, end it
-        if (this._botsAdded && !this.over && !this.hasHumans()) {
+        // (a film match starts with nobody watching, so only once its camera has left)
+        if (this.hasHumans()) this._watched = true;
+        const filmWaiting = this.config.privateMatch?.film && !this._watched;
+        if (this._botsAdded && !this.over && !filmWaiting && !this.hasHumans()) {
             this.logger.info("No real players left, ending game");
             this.over = true;
             this.stop();

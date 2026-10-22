@@ -65,6 +65,8 @@ export interface ServerGameConfig {
         bots?: PrivateBot[];
         vsBots?: VsBots;
         botSettings?: BotSettingsByLevel;
+        /** recorded for a video: bots come in without waiting for a human, who only spectates */
+        film?: boolean;
     };
 }
 
@@ -99,6 +101,7 @@ export const zFindGamePrivateBody = z.object({
             bots: z.array(zPrivateBot).max(MaxPrivateBots + MaxBotFill).optional(),
             vsBots: zVsBots.optional(),
             botSettings: zBotSettingsByLevel.optional(),
+            film: z.boolean().optional(),
         })
         .optional(),
 });
