@@ -1323,6 +1323,15 @@ export class Player extends BaseGameObject {
             }
         }
 
+        // the hacker's pan is twice as long, grown from its middle so it still sits in the same spot
+        if (this.botBrain?.level === "hacker") {
+            const mid = v2.mul(v2.add(surface.p0, surface.p1), 0.5);
+            surface = {
+                p0: v2.add(mid, v2.mul(v2.sub(surface.p0, mid), 2)),
+                p1: v2.add(mid, v2.mul(v2.sub(surface.p1, mid), 2)),
+            };
+        }
+
         return surface;
     }
 

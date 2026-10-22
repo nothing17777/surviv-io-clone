@@ -1048,35 +1048,6 @@ export class BotBrain {
                     }
                 }
 
-                // the hacker spins while gunning someone down, facing them only on the tick
-                // it fires; reloading, swinging melee or throwing it just looks at them
-                if (this.skill.spin && gunDef && canShoot) {
-                    const weap = player.weapons[player.curWeapIdx];
-                    const firing = (player.shootHold || player.shootStart) && weap.cooldown <= dt;
-                    if (!firing) {
-                        this._spin += dt * 25;
-                        lookDir = v2.create(Math.cos(this._spin), Math.sin(this._spin));
-                    }
-                }
-                // pan deflect: between shots, swap to the pan and catch what's coming, then swap back and fire
-                if (this.panDeflect) {
-                    const shot = this.incomingShot(0.3);
-                    const weap = player.weapons[player.curWeapIdx];
-                    this._deflecting = !!shot && (!gunDef || weap.cooldown > 0 || weap.ammo === 0);
-                    if (shot && this._deflecting) {
-                        if (player.curWeapIdx !== WeaponSlot.Melee) player.weaponManager.setCurWeapIndex(WeaponSlot.Melee);
-                        player.shootStart = false;
-                        player.shootHold = false;
-                        // the pan sits right of where we face: turn so it covers the shot's line
-                        const ang = Math.atan2(-shot.dir.y, -shot.dir.x) + PanFaceOffset;
-                        lookDir = v2.create(Math.cos(ang), Math.sin(ang));
-                        // and step into that line so it hits the pan, not the shoulder
-                        const side = v2.dot(v2.sub(player.pos, shot.pos), v2.perp(shot.dir));
-                        move = v2.add(v2.mul(v2.perp(shot.dir), -Math.sign(side)), v2.mul(move, 0.3));
-                    } else if (player.curWeapIdx === WeaponSlot.Melee && this.hasGunWithAmmo()) {
-                        this.pickCombatWeapon(dist, target);
-                    }
-                }
                 player.toMouseLen = dist;
             }
         } else if (this._goal) {
@@ -1092,6 +1063,38 @@ export class BotBrain {
             }
         }
 
+        // pan deflect: any shot on its way in, from anyone, gets caught on the pan;
+        // in between, the guns come back out and fire
+        this._deflecting = false;
+        if (this.panDeflect && !player.downed && !this._throw) {
+            const shot = this.incomingShot(0.5);
+            if (shot) {
+                this._deflecting = true;
+                if (player.curWeapIdx !== WeaponSlot.Melee) player.weaponManager.setCurWeapIndex(WeaponSlot.Melee);
+                player.shootStart = false;
+                player.shootHold = false;
+                // the pan sits right of where we face: turn so it covers the shot's line
+                const ang = Math.atan2(-shot.dir.y, -shot.dir.x) + PanFaceOffset;
+                lookDir = v2.create(Math.cos(ang), Math.sin(ang));
+                // and step into that line so it hits the pan, not the shoulder
+                const side = v2.dot(v2.sub(player.pos, shot.pos), v2.perp(shot.dir));
+                move = v2.add(v2.mul(v2.perp(shot.dir), -Math.sign(side)), v2.mul(move, 0.3));
+            } else if (target && player.curWeapIdx === WeaponSlot.Melee && this.hasGunWithAmmo()) {
+                this.pickCombatWeapon(v2.distance(target.pos, player.pos), target);
+            }
+        }
+
+        // the hacker spins nonstop, in or out of a fight, facing its target only on the tick
+        // it fires (and while catching a shot on the pan or throwing)
+        if (this.skill.spin && !player.downed && !this._deflecting && !this._throw) {
+            const weap = player.weapons[player.curWeapIdx];
+            const firing = !!target && (player.shootHold || player.shootStart) && weap.cooldown <= dt;
+            if (!firing) {
+                this._spin += dt * HackerSpinRate;
+                lookDir = v2.create(Math.cos(this._spin), Math.sin(this._spin));
+            }
+        }
+
         // grenades and airstrikes: get out of the blast first, keep shooting while running
         const escape = this.cachedBlastEscape(dt);
         if (escape) {
@@ -1101,9 +1104,12 @@ export class BotBrain {
         }
 
         // step out of the line of incoming bullets
-        const sidestep = !this.phaseDodge && !escape && !player.downed ? this.bulletDodge() : undefined;
+        // (not while catching shots on the pan: that steps into their line instead)
+        const sidestep = !this.phaseDodge && !escape && !player.downed && !this._deflecting ? this.bulletDodge() : undefined;
         // a scripter also zig-zags whenever a gun is pointed at it
-        const juke = !sidestep && !escape && this.skill.wallhack && !player.downed ? this.aimJuke(dt) : undefined;
+        const juke = !sidestep && !escape && this.skill.wallhack && !player.downed && !this._deflecting
+            ? this.aimJuke(dt)
+            : undefined;
         if (sidestep) move = v2.add(v2.mul(v2.normalize(sidestep), 3), v2.mul(move, 0.3));
         else if (juke) move = v2.add(v2.mul(juke, 2), v2.mul(v2.normalizeSafe(move, v2.create(0, 0)), 0.6));
 
@@ -1641,6 +1647,9 @@ export class BotBrain {
 
 /** how far right of the shot to face so the equipped pan covers it, radians */
 const PanFaceOffset = 0.25;
+
+/** how fast the hacker spins, radians per second */
+const HackerSpinRate = 45;
 
 /** the best fight perks, best first, for the hacker (it never reloads, so no ammo perks) */
 const HackerPerks = [...new Set([
