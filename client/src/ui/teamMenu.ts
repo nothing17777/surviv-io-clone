@@ -1205,6 +1205,8 @@ export class TeamMenu {
                 const fillDef = MapDefs[this.roomData.privateMapName as MapDefKey];
                 const army = !vsBots && (!!custom || !!fillDef?.gameMode.factionMode);
                 $("#team-bot-army").toggle(army);
+                // 50v50: the bot picker sets the sides, so 1v1-4v4 means nothing
+                this.privateSizes.toggle(!army);
                 if (army) this.refreshBotArmy();
                 // Same Kit / God Kit / Loot
                 const god = !!this.roomData.privateGodLoadout;
