@@ -1827,10 +1827,13 @@ export class BotFiller {
 
     start() {
         if (this.target) return;
-        // free for all: pack the lobby, leaving a few slots for people to join, with every level
-        if (this.game.map.mapDef.gameMode.ffaMode) {
-            this.target = this.maxPlayers - 4;
+        const gameMode = this.game.map.mapDef.gameMode;
+        if (gameMode.ffaMode) {
             this._ffa = true;
+            // zombie apocalypse: pack the lobby with every level, leaving a few slots for people
+            // free for all: fill it right up (100 with whoever's playing), no hackers or scripters
+            this._allLevels = !!gameMode.ffaAllLevels;
+            this.target = this._allLevels ? this.maxPlayers - 4 : this.maxPlayers - 1;
             return;
         }
         // small (duel) games fill every other slot; big ones leave room for real players
@@ -1852,10 +1855,15 @@ export class BotFiller {
 
     private _ffa = false;
     private _ffaHacker = false;
+    private _allLevels = false;
 
     private nextLevel(): BotLevel {
         if (this._ffa) {
             const r = Math.random();
+            if (!this._allLevels) {
+                if (r < 0.25) return "advanced";
+                return r < 0.6 ? "intermediate" : "beginner";
+            }
             // at most one hacker per game
             if (r < 0.03 && !this._ffaHacker) {
                 this._ffaHacker = true;
@@ -1873,7 +1881,8 @@ export class BotFiller {
         if (!this.target || this.game.over) return;
         this._ticker -= dt;
         if (this._ticker > 0) return;
-        this._ticker = util.random(0.1, 0.6);
+        // free for all fills up fast, so everyone's in before the fighting thins it out
+        this._ticker = this._ffa && !this._allLevels ? util.random(0.05, 0.15) : util.random(0.1, 0.6);
         // only while people can still join
         if (!this.game.canJoin) return;
         if (this._added >= this.target) return;

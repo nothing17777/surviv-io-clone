@@ -9,7 +9,7 @@ import { Birthday } from "./maps/birthdayDefs.ts";
 import { Cobalt } from "./maps/cobaltDefs.ts";
 import { Desert } from "./maps/desertDefs.ts";
 import { Duel, DuelClassic } from "./maps/duelDefs.ts";
-import { Ffa, FfaGod } from "./maps/ffaDefs.ts";
+import { Ffa, FfaGod, Zombie } from "./maps/ffaDefs.ts";
 import { Faction } from "./maps/factionDefs.ts";
 import { FactionPotato } from "./maps/factionPotatoDefs.ts";
 import { Halloween } from "./maps/halloweenDefs.ts";
@@ -67,6 +67,7 @@ const _MapDefs = {
     storm: Storm,
     ffa: Ffa,
     ffa_god: FfaGod,
+    zombie: Zombie,
 
     /* STRIP_FROM_PROD_CLIENT:START */
     test_normal: testNormal,
@@ -154,6 +155,8 @@ export interface MapDef {
         stormMode?: boolean;
         /** public lobbies get packed with bots of every level */
         ffaMode?: boolean;
+        /** with ffaMode: pack the lobby with every bot level, hackers and scripters too */
+        ffaAllLevels?: boolean;
         spookyKillSounds?: boolean;
     };
     gameConfig: {

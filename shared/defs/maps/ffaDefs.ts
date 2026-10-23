@@ -3,13 +3,14 @@ import type { MapDef } from "../mapDefs.ts";
 import { Main, type PartialMapDef } from "./baseDefs.ts";
 
 /**
- * Free For All: the normal map, solo, with the lobby packed full of bots of every level.
+ * Free For All: the normal map filled to 100 players with bots (no hackers or scripters).
  */
 const mapDef: PartialMapDef = {
     desc: {
         name: "Free For All",
     },
     gameMode: {
+        maxPlayers: 100,
         ffaMode: true,
     },
 };
@@ -20,4 +21,10 @@ export const Ffa = util.mergeDeep({}, Main, mapDef) as MapDef;
 export const FfaGod = util.mergeDeep({}, Ffa, {
     desc: { name: "Free For All (God Kit)" },
     gameMode: { godLoadout: true },
+} satisfies PartialMapDef) as MapDef;
+
+/** Zombie Apocalypse: the lobby packed with bots of every level, hackers and scripters included */
+export const Zombie = util.mergeDeep({}, Main, {
+    desc: { name: "Zombie Apocalypse" },
+    gameMode: { ffaMode: true, ffaAllLevels: true },
 } satisfies PartialMapDef) as MapDef;
