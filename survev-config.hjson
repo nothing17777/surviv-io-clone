@@ -15,6 +15,7 @@
     { mapName: "storm", teamMode: 3, enabled: true },
     { mapName: "storm", teamMode: 4, enabled: true },
     { mapName: "ffa", teamMode: 1, enabled: true },
+    { mapName: "ffa_god", teamMode: 1, enabled: true },
     { mapName: "main", teamMode: 1, enabled: true },
     { mapName: "main", teamMode: 2, enabled: true },
     { mapName: "main", teamMode: 3, enabled: true },

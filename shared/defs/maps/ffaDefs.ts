@@ -15,3 +15,9 @@ const mapDef: PartialMapDef = {
 };
 
 export const Ffa = util.mergeDeep({}, Main, mapDef) as MapDef;
+
+/** Free For All where everyone spawns with max gear and the guns they picked */
+export const FfaGod = util.mergeDeep({}, Ffa, {
+    desc: { name: "Free For All (God Kit)" },
+    gameMode: { godLoadout: true },
+} satisfies PartialMapDef) as MapDef;

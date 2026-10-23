@@ -9,7 +9,7 @@ import { Birthday } from "./maps/birthdayDefs.ts";
 import { Cobalt } from "./maps/cobaltDefs.ts";
 import { Desert } from "./maps/desertDefs.ts";
 import { Duel, DuelClassic } from "./maps/duelDefs.ts";
-import { Ffa } from "./maps/ffaDefs.ts";
+import { Ffa, FfaGod } from "./maps/ffaDefs.ts";
 import { Faction } from "./maps/factionDefs.ts";
 import { FactionPotato } from "./maps/factionPotatoDefs.ts";
 import { Halloween } from "./maps/halloweenDefs.ts";
@@ -66,6 +66,7 @@ const _MapDefs = {
     duel_classic: DuelClassic,
     storm: Storm,
     ffa: Ffa,
+    ffa_god: FfaGod,
 
     /* STRIP_FROM_PROD_CLIENT:START */
     test_normal: testNormal,
