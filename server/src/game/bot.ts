@@ -650,9 +650,11 @@ export class BotBrain {
             return;
         }
 
-        // nothing to shoot with: break crates for loot
-        if (!this.hasGunWithAmmo() && this.settings.loot && !player.lockedKit) {
-            if (!this._crateTarget || this._crateTarget.dead) this._crateTarget = this.findCrate();
+        // break crates for loot: far afield with nothing to shoot, only close by once armed
+        if (this.settings.loot && !player.lockedKit) {
+            if (!this._crateTarget || this._crateTarget.dead) {
+                this._crateTarget = this.findCrate(this.hasGunWithAmmo() ? 12 : 30);
+            }
             if (this._crateTarget) {
                 const crate = this._crateTarget;
                 this._goal = v2.copy(crate.pos);
@@ -907,9 +909,8 @@ export class BotBrain {
         return best;
     }
 
-    private findCrate(): Obstacle | undefined {
+    private findCrate(range: number): Obstacle | undefined {
         const player = this.player;
-        const range = 30;
         let best: Obstacle | undefined;
         let bestDist = range;
         const nearby = this.game.grid.intersectCollider(collider.createCircle(player.pos, range));
@@ -1085,6 +1086,18 @@ export class BotBrain {
             }
         }
 
+        // a breakable wall or crate in the way of where we're headed (and no one to shoot):
+        // knock it down rather than walk around it
+        if (!this._throw && !player.downed && v2.length(move) > 0.1 && !(target && this.canShoot(target))) {
+            const wall = this.breakableAhead(v2.normalize(move), 2.5);
+            if (wall) {
+                if (player.curWeapIdx !== WeaponSlot.Melee) player.weaponManager.setCurWeapIndex(WeaponSlot.Melee);
+                lookDir = v2.normalizeSafe(v2.sub(wall.pos, player.pos));
+                player.shootStart = true;
+                player.shootHold = true;
+            }
+        }
+
         // pan deflect: any shot on its way in, from anyone, gets caught on the pan;
         // in between, the guns come back out and fire
         this._deflecting = false;
@@ -1237,6 +1250,9 @@ export class BotBrain {
             path.length === 1 && v2.distance(path[0], player.pos) < 1.2
             && v2.distance(goal, player.pos) > 4 && v2.distance(goal, player.pos) < 30
         ) {
+            // a wall we can break stands between us and it: walk straight at it and punch through
+            const straight = v2.normalizeSafe(v2.sub(goal, player.pos));
+            if (this.breakableAhead(straight, v2.distance(goal, player.pos))) return straight;
             const obj = this._lootTarget ?? this._crateTarget;
             if (obj) this._unreachable.set(obj.__id, 30);
             this._lootTarget = undefined;
@@ -1556,6 +1572,29 @@ export class BotBrain {
     }
 
     /** true when walking `len` units along `dir` would bump into an obstacle */
+    /** the nearest breakable wall, crate or the like within `len` along `dir`; never explosives or doors */
+    private breakableAhead(dir: Vec2, len: number): Obstacle | undefined {
+        const player = this.player;
+        const end = v2.add(player.pos, v2.mul(dir, len));
+        let best: Obstacle | undefined;
+        let bestDist = Infinity;
+        for (const obj of this.game.grid.intersectLineSegment(player.pos, end)) {
+            if (obj.__type !== ObjectType.Obstacle) continue;
+            if (obj.dead || !obj.collidable || !obj.destructible || obj.isDoor) continue;
+            if (!util.sameLayer(obj.layer, player.layer)) continue;
+            const def = MapObjectDefs.typeToDef(obj.type, "obstacle");
+            // stones and the like take forever; barrels blow up in our face
+            if (def.health > 600 || def.explosion) continue;
+            if (!collider.intersectSegment(obj.collider, player.pos, end)) continue;
+            const dist = v2.distance(obj.pos, player.pos);
+            if (dist < bestDist) {
+                best = obj;
+                bestDist = dist;
+            }
+        }
+        return best;
+    }
+
     private blocked(dir: Vec2, len: number): boolean {
         const player = this.player;
         const side = v2.mul(v2.perp(dir), player.rad * 0.9);
