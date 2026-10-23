@@ -1886,6 +1886,11 @@ export class BotFiller {
         // only while people can still join
         if (!this.game.canJoin) return;
         if (this._added >= this.target) return;
+        // free for all: once 100 people (bots and humans) have spawned, that's it for good
+        if (this._ffa && !this._allLevels && this.game.playerBarn.players.length >= this.maxPlayers) {
+            this.target = 0;
+            return;
+        }
         addBot(this.game, this.nextLevel());
     }
 }
