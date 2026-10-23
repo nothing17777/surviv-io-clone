@@ -1228,6 +1228,13 @@ export class TeamMenu {
                 // 50v50: the bot picker sets the sides, so 1v1-4v4 means nothing
                 this.privateSizes.toggle(!army);
                 if (army) this.refreshBotArmy();
+                // free for all: no sides, the lobby fills itself with bots
+                const ffa = !custom && !!fillDef?.gameMode.ffaMode;
+                if (ffa) {
+                    this.privateSizes.hide();
+                    $("#team-private-hint").hide();
+                }
+                $("#team-bot-settings").closest(".team-section").toggle(!ffa);
                 // Same Kit / God Kit / Loot
                 const god = !!this.roomData.privateGodLoadout;
                 const shared = god && !!this.roomData.privateSharedKit;

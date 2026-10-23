@@ -355,7 +355,8 @@ class Room {
             return;
         }
 
-        if (this.data.privateMatch) {
+        const ffa = !!MapDefs[this.data.privateMapName as MapDefKey]?.gameMode.ffaMode && !this.customMap;
+        if (this.data.privateMatch && !ffa) {
             playerData.forEach((data, i) => {
                 // vs bots: the whole party is Team A
                 data.team = this.data.privateVsBots ? 0 : this.players[i].team;
@@ -386,7 +387,7 @@ class Room {
         const customMap = this.data.privateMatch ? this.customMap : null;
         const res = await this.teamMenu.server.findGame({
             mapName: customMap ? customMap.biome : this.data.privateMatch ? this.data.privateMapName : mode.mapName,
-            teamMode: this.data.privateMatch ? this.data.privateTeamSize : mode.teamMode,
+            teamMode: ffa ? 1 : this.data.privateMatch ? this.data.privateTeamSize : mode.teamMode,
             privateMatch: this.data.privateMatch
                 ? {
                     godLoadout: this.data.privateGodLoadout,
@@ -399,9 +400,9 @@ class Room {
                     allyBotKit: this.data.privateBotAllyKit,
                     enemyBotKit: this.data.privateBotEnemyKit,
                     customMap: customMap ?? undefined,
-                    bots: this.data.privateVsBots ? undefined : [...this.data.privateBots, ...this.botFill(customMap)],
+                    bots: this.data.privateVsBots || ffa ? undefined : [...this.data.privateBots, ...this.botFill(customMap)],
                     botSettings: this.data.privateBotSettings,
-                    vsBots: this.data.privateVsBots
+                    vsBots: this.data.privateVsBots && !ffa
                         ? {
                             ally: this.data.privateBotAlly,
                             allies: Math.max(0, this.data.privateTeamSize - this.players.length),

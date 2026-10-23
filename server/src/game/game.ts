@@ -189,7 +189,8 @@ export class Game {
 
         this.map.init();
 
-        if (!config.privateMatch) {
+        // free for all fills itself with bots even as a party's private match
+        if (!config.privateMatch || this.map.mapDef.gameMode.ffaMode) {
             this.botFiller = new BotFiller(this, getModeMaxPlayers(this.map.mapDef, this.teamMode));
         }
 
@@ -452,7 +453,9 @@ export class Game {
     }
 
     addJoinTokens(tokens: FindGamePrivateBody["playerData"], autoFill: boolean) {
-        const groupData = {
+        // free for all: a party splits up, everyone on their own
+        const ffa = !!this.map.mapDef.gameMode.ffaMode;
+        const sharedGroup = {
             side: tokens[0]?.team,
             playerCount: tokens.length,
             groupHashToJoin: "",
@@ -460,6 +463,9 @@ export class Game {
         };
 
         for (const token of tokens) {
+            const groupData = ffa
+                ? { side: undefined, playerCount: 1, groupHashToJoin: "", autoFill: false }
+                : sharedGroup;
             this.joinTokens.set(token.joinToken, {
                 type: "join",
                 expiresAt: Date.now() + 60000,
