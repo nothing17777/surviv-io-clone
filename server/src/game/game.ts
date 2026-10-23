@@ -453,8 +453,8 @@ export class Game {
     }
 
     addJoinTokens(tokens: FindGamePrivateBody["playerData"], autoFill: boolean) {
-        // free for all: a party splits up, everyone on their own
-        const ffa = !!this.map.mapDef.gameMode.ffaMode;
+        // solo free for all: a party splits up, everyone on their own
+        const ffa = !!this.map.mapDef.gameMode.ffaMode && this.teamMode === 1;
         const sharedGroup = {
             side: tokens[0]?.team,
             playerCount: tokens.length,

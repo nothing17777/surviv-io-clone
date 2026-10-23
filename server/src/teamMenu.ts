@@ -387,7 +387,7 @@ class Room {
         const customMap = this.data.privateMatch ? this.customMap : null;
         const res = await this.teamMenu.server.findGame({
             mapName: customMap ? customMap.biome : this.data.privateMatch ? this.data.privateMapName : mode.mapName,
-            teamMode: ffa ? 1 : this.data.privateMatch ? this.data.privateTeamSize : mode.teamMode,
+            teamMode: this.data.privateMatch ? this.data.privateTeamSize : mode.teamMode,
             privateMatch: this.data.privateMatch
                 ? {
                     godLoadout: this.data.privateGodLoadout,
