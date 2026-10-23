@@ -1760,7 +1760,6 @@ export function addBot(game: Game, level: BotLevel, side?: number): Player {
     player.lockedKit = !!pm?.lockedKits && !!(ally ? pm?.allyBotKit : pm?.enemyBotKit);
     player.botBrain = new BotBrain(player, level, settings);
     if (level === "hacker") {
-        player.setOutfit("outfitGhillie");
         for (const perk of HackerPerks) {
             if (player.perks.length >= net.Constants.MaxPerks - 1) break;
             if (!player.hasPerk(perk)) player.addPerk(perk, false);
