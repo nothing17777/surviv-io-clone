@@ -57,6 +57,8 @@ interface BotSkill {
     cook: number;
     /** how far off the landing spot can be, world units */
     throwError: number;
+    /** chance to whip the back-worn pan round to catch each incoming shot */
+    panBlock: number;
     /** sees through walls and tracks enemies anywhere on the map */
     wallhack?: boolean;
 }
@@ -76,6 +78,7 @@ const Skills: Record<BotLevel, BotSkill> = {
         throwEvery: [14, 24],
         cook: 0,
         throwError: 6,
+        panBlock: 0.15,
     },
     intermediate: {
         accuracy: 0.5,
@@ -91,6 +94,7 @@ const Skills: Record<BotLevel, BotSkill> = {
         throwEvery: [9, 16],
         cook: 0.6,
         throwError: 4,
+        panBlock: 0.35,
     },
     advanced: {
         accuracy: 0.75,
@@ -106,6 +110,7 @@ const Skills: Record<BotLevel, BotSkill> = {
         throwEvery: [6, 11],
         cook: 1.6,
         throwError: 2,
+        panBlock: 0.6,
     },
     hacker: {
         accuracy: 1,
@@ -121,6 +126,7 @@ const Skills: Record<BotLevel, BotSkill> = {
         throwEvery: [4, 7],
         cook: 2.4,
         throwError: 0.5,
+        panBlock: 1,
     },
     scripter: {
         accuracy: 1,
@@ -136,6 +142,7 @@ const Skills: Record<BotLevel, BotSkill> = {
         throwEvery: [5, 9],
         cook: 2.2,
         throwError: 0.5,
+        panBlock: 0.8,
         wallhack: true,
     },
 };
@@ -325,6 +332,8 @@ export class BotBrain {
     }
 
     private _deflecting = false;
+    private _panShot: Bullet | undefined;
+    private _panCatch = false;
 
     /** the nearest downed teammate within `range`, nobody else already reviving them */
     private downedMate(range: number): Player | undefined {
@@ -343,10 +352,23 @@ export class BotBrain {
         return best;
     }
 
-    /** hackers and scripters carrying a pan block shots with it between their own */
+    /** any bot carrying a pan blocks shots with it between its own */
     get panDeflect(): boolean {
-        return (this.level === "hacker" || this.level === "scripter")
-            && this.player.weapons[WeaponSlot.Melee].type === "pan";
+        return this.player.weapons[WeaponSlot.Melee].type === "pan";
+    }
+
+    /** only hackers and scripters swap to the pan in hand to catch shots */
+    get panSwap(): boolean {
+        return this.level === "hacker" || this.level === "scripter";
+    }
+
+    /** whether we catch this bullet on the back-worn pan: rolled once per bullet */
+    private rollPanBlock(shot: Bullet): boolean {
+        if (shot !== this._panShot) {
+            this._panShot = shot;
+            this._panCatch = Math.random() < this.skill.panBlock;
+        }
+        return this._panCatch;
     }
 
     /** the enemy bullet that reaches us soonest within `within` seconds */
@@ -1069,9 +1091,9 @@ export class BotBrain {
         if (this.panDeflect && !player.downed && !this._throw) {
             const shot = this.incomingShot(0.5);
             const weap = player.weapons[player.curWeapIdx];
-            if (shot && this.skill.spin && player.wearingPan && weap.ammo > 0) {
-                // the hacker keeps its gun out with the pan on its back: it whips its back to the
-                // shot to catch it, then snaps round to shoot back the tick its gun is ready
+            if (shot && player.wearingPan && weap.ammo > 0 && this.rollPanBlock(shot)) {
+                // keep the gun out with the pan on the back: whip the back to the shot to catch it,
+                // then snap round to shoot back the tick the gun is ready (only the hacker never misses one)
                 this._deflecting = true;
                 const firing = !!target && (player.shootHold || player.shootStart) && weap.cooldown <= dt;
                 if (!firing) {
@@ -1080,7 +1102,7 @@ export class BotBrain {
                 }
                 const side = v2.dot(v2.sub(player.pos, shot.pos), v2.perp(shot.dir));
                 move = v2.add(v2.mul(v2.perp(shot.dir), -Math.sign(side)), v2.mul(move, 0.3));
-            } else if (shot) {
+            } else if (shot && this.panSwap) {
                 this._deflecting = true;
                 if (player.curWeapIdx !== WeaponSlot.Melee) player.weaponManager.setCurWeapIndex(WeaponSlot.Melee);
                 player.shootStart = false;
@@ -1091,7 +1113,7 @@ export class BotBrain {
                 // and step into that line so it hits the pan, not the shoulder
                 const side = v2.dot(v2.sub(player.pos, shot.pos), v2.perp(shot.dir));
                 move = v2.add(v2.mul(v2.perp(shot.dir), -Math.sign(side)), v2.mul(move, 0.3));
-            } else if (target && player.curWeapIdx === WeaponSlot.Melee && this.hasGunWithAmmo()) {
+            } else if (this.panSwap && target && player.curWeapIdx === WeaponSlot.Melee && this.hasGunWithAmmo()) {
                 this.pickCombatWeapon(v2.distance(target.pos, player.pos), target);
             }
         }
