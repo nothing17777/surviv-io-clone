@@ -1788,6 +1788,12 @@ export class BotFiller {
 
     start() {
         if (this.target) return;
+        // free for all: pack the lobby, leaving a few slots for people to join, with every level
+        if (this.game.map.mapDef.gameMode.ffaMode) {
+            this.target = this.maxPlayers - 4;
+            this._ffa = true;
+            return;
+        }
         // small (duel) games fill every other slot; big ones leave room for real players
         this.target = this.maxPlayers <= 8
             ? this.maxPlayers - 1
@@ -1805,7 +1811,21 @@ export class BotFiller {
     private _advancedSlots = new Set<number>();
     private _added = 0;
 
+    private _ffa = false;
+    private _ffaHacker = false;
+
     private nextLevel(): BotLevel {
+        if (this._ffa) {
+            const r = Math.random();
+            // at most one hacker per game
+            if (r < 0.03 && !this._ffaHacker) {
+                this._ffaHacker = true;
+                return "hacker";
+            }
+            if (r < 0.1) return "scripter";
+            if (r < 0.3) return "advanced";
+            return r < 0.65 ? "intermediate" : "beginner";
+        }
         if (this._advancedSlots.has(this._added++)) return "advanced";
         return Math.random() < 0.5 ? "beginner" : "intermediate";
     }
