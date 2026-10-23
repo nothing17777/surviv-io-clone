@@ -1068,7 +1068,19 @@ export class BotBrain {
         this._deflecting = false;
         if (this.panDeflect && !player.downed && !this._throw) {
             const shot = this.incomingShot(0.5);
-            if (shot) {
+            const weap = player.weapons[player.curWeapIdx];
+            if (shot && this.skill.spin && player.wearingPan && weap.ammo > 0) {
+                // the hacker keeps its gun out with the pan on its back: it whips its back to the
+                // shot to catch it, then snaps round to shoot back the tick its gun is ready
+                this._deflecting = true;
+                const firing = !!target && (player.shootHold || player.shootStart) && weap.cooldown <= dt;
+                if (!firing) {
+                    const ang = Math.atan2(-shot.dir.y, -shot.dir.x) - PanBackAngle;
+                    lookDir = v2.create(Math.cos(ang), Math.sin(ang));
+                }
+                const side = v2.dot(v2.sub(player.pos, shot.pos), v2.perp(shot.dir));
+                move = v2.add(v2.mul(v2.perp(shot.dir), -Math.sign(side)), v2.mul(move, 0.3));
+            } else if (shot) {
                 this._deflecting = true;
                 if (player.curWeapIdx !== WeaponSlot.Melee) player.weaponManager.setCurWeapIndex(WeaponSlot.Melee);
                 player.shootStart = false;
@@ -1647,6 +1659,9 @@ export class BotBrain {
 
 /** how far right of the shot to face so the equipped pan covers it, radians */
 const PanFaceOffset = 0.25;
+
+/** where the pan worn on the back sits, as an angle from where we face (middle of its surface) */
+const PanBackAngle = Math.atan2((-1.2 - 0.25) / 2, (-0.625 - 1.4) / 2);
 
 /** how fast the hacker spins, radians per second */
 const HackerSpinRate = 45;
