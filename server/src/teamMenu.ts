@@ -119,9 +119,9 @@ class Room {
         autoFill: true,
         enabledGameModeIdxs: [],
         gameModeIdx: 1,
-        maxPlayers: 4,
+        maxPlayers: MaxPartySize,
         captchaEnabled: false,
-        privateMatch: false,
+        privateMatch: true,
         privateMapName: "duel",
         privateTeamSize: 1,
         privateGodLoadout: true,
@@ -253,7 +253,8 @@ class Room {
 
         this.data.autoFill = props.autoFill;
 
-        this.data.privateMatch = !!props.privateMatch;
+        // parties only play private matches: no queue
+        this.data.privateMatch = true;
         const mapNames = this.teamMenu.privateMapNames();
         if (props.privateMapName && mapNames.includes(props.privateMapName)) {
             this.data.privateMapName = props.privateMapName;
@@ -281,14 +282,6 @@ class Room {
         this.data.privateBotAlly = props.privateBotAlly ?? this.data.privateBotAlly;
         this.data.privateBotArmy = props.privateBotArmy ?? this.data.privateBotArmy;
         this.data.privateBotSettings = props.privateBotSettings ?? this.data.privateBotSettings;
-
-        // a private match holds both sides, so up to 8 players
-        this.data.maxPlayers = this.data.privateMatch ? 8 : modes[gameModeIdx].teamMode;
-
-        // kick players that don't fit on the new max players
-        while (this.players.length > this.data.maxPlayers) {
-            this.kick(this.players.length - 1);
-        }
 
         this.sendState();
     }
@@ -363,17 +356,6 @@ class Room {
         }
 
         if (this.data.privateMatch) {
-            const size = this.data.privateTeamSize;
-            const sideA = this.data.privateVsBots
-                ? this.players.length
-                : this.players.filter((p) => p.team === 0).length;
-            const sideB = this.players.length - sideA;
-            if (sideA > size || sideB > size) {
-                this.data.lastError = "private_teams_invalid";
-                this.data.findingGame = false;
-                this.sendState();
-                return;
-            }
             playerData.forEach((data, i) => {
                 // vs bots: the whole party is Team A
                 data.team = this.data.privateVsBots ? 0 : this.players[i].team;
@@ -486,6 +468,9 @@ class Room {
         }
     }
 }
+
+/** parties have no size limit beyond what one private match can hold */
+const MaxPartySize = 100;
 
 const teamCodeCharacters = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz123456789";
 function generateTeamCode(): string {
