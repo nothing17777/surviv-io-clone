@@ -2,7 +2,7 @@ import { FactionTeam } from "../../gameConfig.ts";
 import { type DeepPartial, util } from "../../utils/util.ts";
 import type { Vec2 } from "../../utils/v2.ts";
 import { BulletDefs } from "./bulletDefs.ts";
-import { CustomGuns } from "./customWeaponDefs.ts";
+import { CustomGuns, CustomWeaponsVersion } from "./customWeaponDefs.ts";
 import { BaseGunLengths, GunEffects, GunOverrides, SwingShotBullets } from "./customWeaponEffects.ts";
 import type { BaseWeaponDef } from "./itemTypes.ts";
 
@@ -3692,12 +3692,12 @@ const CustomGunDefs: Record<string, GunDef> = Object.fromEntries(
             noPotatoSwap: true,
             bulletType,
             lootImg: {
-                sprite: `img/custom-weapons/loot/${id}.png`,
+                sprite: `img/custom-weapons/loot/${id}.png?v=${CustomWeaponsVersion}`,
                 tint: 0xffffff,
                 scale: 0.3,
             },
             worldImg: {
-                sprite: `img/custom-weapons/world/${id}.png`,
+                sprite: `img/custom-weapons/world/${id}.png?v=${CustomWeaponsVersion}`,
                 scale: { x: scale, y: scale },
                 tint: 0xffffff,
                 magImg: undefined,

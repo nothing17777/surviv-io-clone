@@ -2237,7 +2237,7 @@ export class Player implements AbstractObject {
             this.swingArc.scale.set(reach / 118, reach / 118);
             this.swingArcTicker = 0;
             if (this.m_netData.m_activeWeapon.startsWith("tr_")) {
-                const tex = PIXI.Texture.from(`img/custom-weapons/world/${this.m_netData.m_activeWeapon}.png`);
+                const tex = PIXI.Texture.from(def.worldImg!.sprite);
                 this.swingSword.texture = tex;
                 const s = reach / 128;
                 this.swingSword.scale.set(s, s);

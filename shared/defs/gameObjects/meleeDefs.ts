@@ -1,7 +1,7 @@
 import { Rarity } from "../../gameConfig.ts";
 import { type DeepPartial, util } from "../../utils/util.ts";
 import type { Vec2 } from "../../utils/v2.ts";
-import { CustomMelees } from "./customWeaponDefs.ts";
+import { CustomMelees, CustomWeaponsVersion } from "./customWeaponDefs.ts";
 import { MeleeEffects, MeleeOverrides } from "./customWeaponEffects.ts";
 import type { BaseLoadoutItem, BaseWeaponDef } from "./itemTypes.ts";
 
@@ -1440,14 +1440,14 @@ const CustomMeleeDefs: Record<string, MeleeDef> = Object.fromEntries(
             name,
             noPotatoSwap: true,
             lootImg: {
-                sprite: `img/custom-weapons/loot/${id}.png`,
+                sprite: `img/custom-weapons/loot/${id}.png?v=${CustomWeaponsVersion}`,
                 scale: 0.3,
                 mirror: false,
                 rot: 0,
             },
             // held sprite points along the swing like the katana's, 128px vs its 230px
             worldImg: {
-                sprite: `img/custom-weapons/world/${id}.png`,
+                sprite: `img/custom-weapons/world/${id}.png?v=${CustomWeaponsVersion}`,
                 scale: { x: 0.63, y: 0.63 },
             },
         }),

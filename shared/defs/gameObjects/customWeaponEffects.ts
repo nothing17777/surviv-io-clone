@@ -97,6 +97,23 @@ export const GunEffects: Record<string, GunEffect> = {
         },
         damageMult: 0.8,
     },
+    // Nanobots Rifle: single shots of nanobot swarms that home in on enemies and burst in a small area
+    nanobots: {
+        bullet: {
+            homing: true,
+            speed: 45,
+            distance: 80,
+            falloff: 1,
+            onHit: "explosion_cw_star",
+            tracerColor: "cw_flame",
+            tracerWidth: 0.3,
+            tracerLength: 0.4,
+            sprite: "img/custom-weapons/fx/tesla_orb.png",
+            spriteSize: 1.2,
+            spin: 12,
+        },
+        gun: { fireMode: "single", fireDelay: 0.35, maxClip: 6, maxReload: 6, extendedClip: 8, extendedReload: 8 },
+    },
     // bows and crossbows: slow heavy arrows
     arrow: {
         bullet: { speed: 70, falloff: 1, tracerColor: "cw_arrow", tracerWidth: 0.12, tracerLength: 0.5 },
