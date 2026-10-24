@@ -30,7 +30,7 @@ PICKS = {
            "Pixel_Gun", "Armageddon", "Apocalypse", "Desert_Eagle", "Dual_Revolvers", "Grenade_Launcher",
            "Laser_Bow", "Plasma_Rifle", "Mega_Destroyer", "Hellraiser",
            "Shotgun", "Sniper_Rifle", "Machine_Gun", "Crossbow", "Double-barreled_Shotgun", "Acid_Shotgun",
-           "Water_Rifle", "Napalm_Cannon", "Photon_Sniper_Rifle", "Hand_Gatling", "Nanobots_Rifle"},
+           "Water_Rifle", "Napalm_Cannon", "Photon_Sniper_Rifle", "Hand_Gatling", "Nanobots_Rifle", "Ultimatum"},
 }
 
 SOURCES = [("terraria-weapons", "tr", "Terraria"), ("pg3d-guns", "pg", "Pixel Gun 3D")]
@@ -60,6 +60,7 @@ FLIP = {"S.D.M.G."}
 # first matching pattern picks the base surviv gun to clone
 GUN_BASES = [
     (r"^prototype$", "sv98"),
+    (r"^ultimatum$", "m870"),
     (r"tactical_shotgun|dual_shotguns", "saiga"),
     (r"shotgun|boomstick|shotbow|dragon_breath|triple_bite|cerberus", "m870"),
     (r"semi_auto_sniper", "svd"),
@@ -87,6 +88,7 @@ GUN_BASES = [
 GUN_EFFECTS = [
     (r"last_prism", "prism"),
     (r"nanobots", "nanobots"),
+    (r"^ultimatum$", "plain"),
     (r"heavy_sniper", "sniper_pierce"),
     (r"^excalibur$|hand_gatling", "minigun"),
     (r"launcher|rocket|bazooka|napalm|snowman_cannon|ko_cannon|star_cannon|celebration|apocalypse|"

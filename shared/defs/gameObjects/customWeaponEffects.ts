@@ -159,6 +159,22 @@ export const GunOverrides: Record<string, GunEffect> = {
     pg_railgun: { bullet: { tracerColor: "cw_laser" } },
     // "insanely fast" (use time 5, about 12 shots/s) with shots that light up their path
     tr_sdmg: { gun: { fireDelay: 0.08 }, bullet: { tracerColor: "cw_plasma", tracerWidth: 0.14 } },
+    // Ultimatum: a sniper-like shotgun whose 12 pellets go through walls and enemies, one shell per reload
+    pg_ultimatum: {
+        bullet: { pierce: true, speed: 200, distance: 40, falloff: 0.8, tracerColor: "cw_plasma", tracerWidth: 0.14 },
+        damageMult: 1.6,
+        gun: {
+            bulletCount: 12,
+            shotSpread: 5,
+            moveSpread: 8,
+            maxClip: 1,
+            maxReload: 1,
+            extendedClip: 1,
+            extendedReload: 1,
+            reloadTime: 2.4,
+            fireDelay: 0.3,
+        },
+    },
     // two barrels: two big blasts, then reload
     pg_double_barreled_shotgun: { gun: { maxClip: 2, maxReload: 2, extendedClip: 2, extendedReload: 2, fireDelay: 0.25 }, damageMult: 1.3 },
     // napalm: the blast leaves fire burning on the ground for a few seconds
