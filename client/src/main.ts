@@ -30,6 +30,7 @@ import { ResourceManager } from "./resources.ts";
 import { SDK } from "./sdk/sdk.ts";
 import { BotDuelCustomMap, SiteInfo } from "./siteInfo.ts";
 import { initArmory } from "./ui/armory.ts";
+import { initCrossoverCatalog } from "./ui/crossoverCatalog.ts";
 import { LoadoutMenu } from "./ui/loadoutMenu.ts";
 import { Localization } from "./ui/localization.ts";
 import { openMapMaker } from "./ui/mapMaker.ts";
@@ -204,6 +205,18 @@ export class Application {
             // menu button, plus the icon next to the settings cog (also up in the party menu)
             $("#btn-armory, .btn-armory").on("click", () => {
                 armoryModal.show();
+                return false;
+            });
+            initCrossoverCatalog();
+            const crossoverModal = new MenuModal($("#modal-crossover"));
+            crossoverModal.onShow(() => {
+                $("#start-bottom-right, #start-top-right").fadeOut(200);
+            });
+            crossoverModal.onHide(() => {
+                $("#start-bottom-right, #start-top-right").fadeIn(200);
+            });
+            $(".btn-crossover").on("click", () => {
+                crossoverModal.show();
                 return false;
             });
             $("#btn-map-maker, #btn-team-map-maker").on("click", () => {

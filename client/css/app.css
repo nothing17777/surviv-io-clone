@@ -8624,3 +8624,84 @@ body.team-menu-open #menu-loadout {
     text-align: left;
     white-space: normal;
 }
+
+/* Crossover weapons catalog: the Terraria / Pixel Gun 3D weapons */
+.btn-crossover {
+    background-image: url(/img/gui/crossover.svg);
+    background-size: 34px;
+    background-position: center;
+}
+
+#modal-crossover {
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 110;
+}
+
+#modal-crossover .modal-body {
+    background-color: #000000;
+}
+
+#modal-crossover .modal-content {
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 1100px;
+}
+
+#crossover-controls {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+#crossover-search {
+    margin-left: auto;
+}
+
+#crossover-grid {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    max-height: 65vh;
+    overflow-y: auto;
+}
+
+.crossover-card {
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    color: #ffffff;
+    display: flex;
+    gap: 10px;
+    padding: 8px;
+}
+
+.crossover-card img {
+    flex: none;
+    height: 72px;
+    object-fit: contain;
+    width: 72px;
+}
+
+.crossover-name {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.crossover-game {
+    color: #9ad3ff;
+    font-size: 12px;
+}
+
+.crossover-desc {
+    font-size: 12px;
+    margin: 4px 0;
+    opacity: 0.85;
+}
+
+.crossover-stats {
+    color: #ffd76a;
+    font-size: 12px;
+}
