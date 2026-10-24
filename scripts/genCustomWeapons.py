@@ -26,7 +26,9 @@ PICKS = {
     "pg": {"Prototype", "Dark_Matter_Generator", "Laser_Minigun", "Railgun", "Rocket_Launcher",
            "Excalibur", "Gauss_Cannon", "Heavy_Sniper_Rifle", "Tesla_Cannon", "Combat_Rifle",
            "Pixel_Gun", "Armageddon", "Apocalypse", "Desert_Eagle", "Dual_Revolvers", "Grenade_Launcher",
-           "Laser_Bow", "Plasma_Rifle", "Mega_Destroyer", "Hellraiser"},
+           "Laser_Bow", "Plasma_Rifle", "Mega_Destroyer", "Hellraiser",
+           "Shotgun", "Sniper_Rifle", "Machine_Gun", "Crossbow", "Double-barreled_Shotgun", "Acid_Shotgun",
+           "Water_Rifle", "Napalm_Cannon", "Photon_Sniper_Rifle", "Hand_Gatling"},
 }
 
 SOURCES = [("terraria-weapons", "tr", "Terraria"), ("pg3d-guns", "pg", "Pixel Gun 3D")]
@@ -83,7 +85,7 @@ GUN_BASES = [
 GUN_EFFECTS = [
     (r"last_prism", "prism"),
     (r"heavy_sniper", "sniper_pierce"),
-    (r"^excalibur$", "minigun"),
+    (r"^excalibur$|hand_gatling", "minigun"),
     (r"launcher|rocket|bazooka|napalm|snowman_cannon|ko_cannon|star_cannon|celebration|apocalypse|"
      r"armageddon|mega_destroyer|big_buddy|huge_boy|sandgun|destruction_system|grenade", "rocket"),
     (r"railgun|gauss|impulse|photon|anti-|one_shot|neutron", "rail"),
