@@ -126,7 +126,7 @@ class ServerGame extends Game {
             teamMode: this.teamMode,
             mapName: this.mapName,
             canJoin: this.canJoin,
-            aliveCount: this.playerBarn.livingPlayers.filter((p) => !p.bot).length,
+            aliveCount: this.aliveCount,
             startedTime: this.startedTime,
             stopped: this.stopped,
             timeRunning: this.timeRunning,
