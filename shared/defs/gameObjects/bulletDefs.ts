@@ -37,6 +37,8 @@ export interface BulletDef {
     beam?: boolean;
     /** flies out half its range, then back to the shooter */
     boomerang?: boolean;
+    /** with boomerang: at the far point it loops round in circles of this radius before coming back, like Zenith */
+    orbit?: { radius: number; turns: number };
     /** keeps exploding where it hit, like a vortex */
     linger?: { explosion: string; duration: number; interval: number };
     /** image drawn on the shot, pointing along it (one picked at random from sprites) */

@@ -340,10 +340,12 @@ export const SwingShotBullets: Record<string, BulletDef> = {
         speed: 100,
         pierce: true,
         boomerang: true,
+        // swirls in a loop round the cursor before coming back
+        orbit: { radius: 3.5, turns: 1 },
         spin: 18,
         tracerColor: "cw_rainbow",
         tracerWidth: 0.25,
-        tracerLength: 0.6,
+        tracerLength: 1.4,
         sprites: [
             "img/custom-weapons/world/tr_zenith.png",
             "img/custom-weapons/world/tr_terra_blade.png",

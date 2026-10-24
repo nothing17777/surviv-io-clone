@@ -87,6 +87,11 @@ export class BulletBarn {
         /** Zenith: flies out, then back to the shooter */
         boomerang: boolean;
         returning: boolean;
+        /** Zenith's loop at the far point, as on the server */
+        orbit?: { radius: number; turns: number };
+        orbitT: number;
+        orbitCenter: Vec2;
+        orbitAng: number;
         traveled: number;
         /** lasers: the trail runs all the way back to the muzzle */
         beam: boolean;
@@ -161,6 +166,8 @@ export class BulletBarn {
         b.playerPierce = !!bulletDef.playerPierce;
         b.boomerang = !!bulletDef.boomerang;
         b.returning = false;
+        b.orbit = bulletDef.orbit;
+        b.orbitT = -1;
         b.traveled = 0;
         b.beam = !!bulletDef.beam;
         const fxImg = bulletDef.sprites ? util.randomItem(bulletDef.sprites) : bulletDef.sprite;
@@ -245,9 +252,28 @@ export class BulletBarn {
                 }
             }
             if (b.alive) {
+                // Zenith's swords swirl in loops at the far point, like on the server
+                if (b.orbit && !b.returning && (b.orbitT >= 0 || b.traveled >= b.distance / 2)) {
+                    const r = b.orbit.radius;
+                    const w = b.speed / r;
+                    if (b.orbitT < 0) {
+                        b.orbitT = 0;
+                        b.homingId = 0;
+                        b.orbitCenter = v2.add(b.pos, v2.mul(v2.perp(b.dir), r));
+                        b.orbitAng = Math.atan2(b.pos.y - b.orbitCenter.y, b.pos.x - b.orbitCenter.x);
+                    }
+                    b.orbitT += dt;
+                    b.orbitAng += w * dt;
+                    const next = v2.add(b.orbitCenter, v2.mul(v2.create(Math.cos(b.orbitAng), Math.sin(b.orbitAng)), r));
+                    b.dir = v2.normalizeSafe(v2.sub(next, b.pos), b.dir);
+                    b.container.rotation = Math.atan2(b.dir.x, b.dir.y) - Math.PI / 2;
+                    b.pos = next;
+                    if (b.orbitT * w >= b.orbit.turns * Math.PI * 2) b.returning = true;
+                    continue;
+                }
                 // Zenith's swords turn back halfway, like on the server
                 if (b.boomerang) {
-                    if (!b.returning && b.traveled >= b.distance / 2) {
+                    if (!b.orbit && !b.returning && b.traveled >= b.distance / 2) {
                         b.returning = true;
                         b.homingId = 0;
                     }
