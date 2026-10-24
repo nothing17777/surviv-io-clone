@@ -1,14 +1,24 @@
+import { MapObjectDefs } from "../../../shared/defs/register.ts";
 import { ObjectType } from "../../../shared/net/objectSerializeFns.ts";
 import { collider } from "../../../shared/utils/collider.ts";
 import { util } from "../../../shared/utils/util.ts";
 import { v2, type Vec2 } from "../../../shared/utils/v2.ts";
 import type { Game } from "./game.ts";
 
+/** a crate or breakable wall a bot can punch through quickly (stones take forever, barrels blow up) */
+export function isBreakable(obj: { type: string; destructible: boolean; isDoor: boolean }): boolean {
+    if (!obj.destructible || obj.isDoor) return false;
+    const def = MapObjectDefs.typeToDef(obj.type, "obstacle");
+    return def.health <= 600 && !def.explosion;
+}
+
 /** grid cell size in world units; half a player wide so narrow house doorways stay open */
 const Cell = 0.625;
 /** how far around the bot the grid reaches; farther goals are walked toward in legs */
 const Reach = 32;
 const Size = Math.ceil((Reach * 2) / Cell);
+/** extra cost of a cell inside something breakable: worth punching through, but only to skip a real detour */
+const BreakCost = 6;
 
 const blocked = new Uint8Array(Size * Size);
 const cost = new Float32Array(Size * Size);
@@ -17,7 +27,8 @@ const closed = new Uint8Array(Size * Size);
 
 /**
  * A* over a small grid centered on `from`, around every solid obstacle
- * (doors count as open, they swing when walked into). Returns world-space
+ * (doors count as open, they swing when walked into; crates and breakable
+ * walls are open at a cost, the bot punches through). Returns world-space
  * waypoints ending near `to`, or undefined when there's no way through.
  */
 export function findPath(game: Game, from: Vec2, to: Vec2, layer: number, rad: number): Vec2[] | undefined {
@@ -47,6 +58,8 @@ export function findPath(game: Game, from: Vec2, to: Vec2, layer: number, rad: n
         if (obj.__type !== ObjectType.Obstacle) continue;
         if (obj.dead || !obj.collidable || obj.isDoor) continue;
         if (!util.sameLayer(obj.layer, layer)) continue;
+        // 1 solid, 2 breakable
+        const mark = isBreakable(obj) ? 2 : 1;
         const box = collider.toAabb(obj.collider);
         const x0 = Math.max(0, Math.floor((box.min.x - pad - origin.x) / Cell));
         const y0 = Math.max(0, Math.floor((box.min.y - pad - origin.y) / Cell));
@@ -55,8 +68,8 @@ export function findPath(game: Game, from: Vec2, to: Vec2, layer: number, rad: n
         for (let y = y0; y <= y1; y++) {
             for (let x = x0; x <= x1; x++) {
                 const i = y * Size + x;
-                if (blocked[i]) continue;
-                if (collider.intersectCircle(obj.collider, center(i), pad)) blocked[i] = 1;
+                if (blocked[i] === 1) continue;
+                if (collider.intersectCircle(obj.collider, center(i), pad)) blocked[i] = mark;
             }
         }
     }
@@ -64,10 +77,10 @@ export function findPath(game: Game, from: Vec2, to: Vec2, layer: number, rad: n
     const start = cellOf(from);
     let goal = cellOf(target);
     if (start < 0 || goal < 0) return undefined;
-    // we're standing here, so it's open, even when squeezed between furniture
-    {
-        const sx = start % Size;
-        const sy = Math.floor(start / Size);
+    // someone is standing here, so it's open, even when squeezed between furniture
+    const open = (c: number) => {
+        const sx = c % Size;
+        const sy = Math.floor(c / Size);
         for (let dy = -1; dy <= 1; dy++) {
             for (let dx = -1; dx <= 1; dx++) {
                 const x = sx + dx;
@@ -75,7 +88,10 @@ export function findPath(game: Game, from: Vec2, to: Vec2, layer: number, rad: n
                 if (x >= 0 && y >= 0 && x < Size && y < Size) blocked[y * Size + x] = 0;
             }
         }
-    }
+    };
+    open(start);
+    // chasing a player tucked against a toilet or into a corner: they fit there, so do we
+    if (target === to && game.playerBarn.livingPlayers.some((p) => v2.distance(p.pos, to) < 0.5)) open(goal);
     // goal inside something (loot on a table, a crate): settle for the nearest open cell
     if (blocked[goal]) {
         const gx = goal % Size;
@@ -129,9 +145,9 @@ export function findPath(game: Game, from: Vec2, to: Vec2, layer: number, rad: n
                 const y = cy + dy;
                 if (x < 0 || y < 0 || x >= Size || y >= Size) continue;
                 const n = y * Size + x;
-                if (blocked[n] || closed[n]) continue;
-                if (dx && dy && (blocked[cy * Size + x] || blocked[y * Size + cx])) continue;
-                const c = cost[cur] + (dx && dy ? 1.414 : 1);
+                if (blocked[n] === 1 || closed[n]) continue;
+                if (dx && dy && (blocked[cy * Size + x] === 1 || blocked[y * Size + cx] === 1)) continue;
+                const c = cost[cur] + (dx && dy ? 1.414 : 1) + (blocked[n] ? BreakCost : 0);
                 if (c >= cost[n]) continue;
                 cost[n] = c;
                 parent[n] = cur;

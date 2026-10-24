@@ -4480,6 +4480,8 @@ export class Player extends BaseGameObject {
         }
 
         for (const perk of [...(godLoadout.perks ?? []), ...(godLoadout.allGoodPerks ? goodPerks : [])]) {
+            // past this the full update overflows its buffer
+            if (this.perks.length >= net.Constants.MaxPerks - 1) break;
             if (GameObjectDefs.typeToDefSafe(perk)?.type === "perk" && !this.hasPerk(perk)) this.addPerk(perk, false);
         }
 

@@ -52,19 +52,35 @@ export const zPrivateLoadout = z.object({
 
 export type PrivateLoadout = z.infer<typeof zPrivateLoadout>;
 
+/** the best fight perks, best first: what the hacker gets, and "All good perks" in a kit */
 export const goodPerks = [
+    // top tier
     "steelskin",
-    "flak_jacket",
-    "small_arms",
     "splinter",
+    "explosive",
+    "bonus_assault",
     "ap_rounds",
-    "field_medic",
-    "windwalk",
-    "takedown",
-    "endless_ammo",
+    "high_velocity",
     "self_revive",
+    "lifeline",
+    "endless_ammo",
+    // very good
+    "takedown",
+    "windwalk",
+    "small_arms",
+    "field_medic",
+    "flak_jacket",
+    "gotw",
+    "firepower",
     "amped_explosives",
     "tree_climbing",
+    // situational
+    "leadership",
+    "chambered",
+    "targeting",
+    "bonus_45",
+    "bonus_9mm",
+    "treat_super",
 ];
 
 export const defaultPrivateLoadout: PrivateLoadout = {

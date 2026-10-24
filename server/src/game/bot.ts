@@ -20,7 +20,7 @@ import { collider } from "../../../shared/utils/collider.ts";
 import { math } from "../../../shared/utils/math.ts";
 import { util } from "../../../shared/utils/util.ts";
 import { v2, type Vec2 } from "../../../shared/utils/v2.ts";
-import { findPath } from "./botPath.ts";
+import { findPath, isBreakable } from "./botPath.ts";
 import { Client } from "./client.ts";
 import type { Game } from "./game.ts";
 import type { Bullet } from "./objects/bullet.ts";
@@ -1241,7 +1241,10 @@ export class BotBrain {
             this._crateTarget = undefined;
             this._coverSpot = undefined;
             this._wanderGoal = undefined;
-            return this.steer(v2.normalizeSafe(v2.sub(goal, player.pos)), dt);
+            // walled in, but by something breakable: walk straight at it and punch through
+            const straight = v2.normalizeSafe(v2.sub(goal, player.pos));
+            if (this.breakableAhead(straight, Math.min(v2.distance(goal, player.pos), 30))) return straight;
+            return this.steer(straight, dt);
         }
         while (path.length > 1 && v2.distance(path[0], player.pos) < 1.2) path.shift();
         // the path ends short of the goal (it's walled in): give up on that target for a while
@@ -1261,6 +1264,8 @@ export class BotBrain {
             return v2.create(0, 0);
         }
         const dir = v2.normalizeSafe(v2.sub(path[0], player.pos));
+        // the path runs through a crate or breakable wall: lean into it, act() punches it down
+        if (this.breakableAhead(dir, 2.5)) return dir;
         // clipping a corner on the way to the waypoint: slide around it
         return this.blocked(dir, 1.2) ? this.steer(dir, dt) : dir;
     }
@@ -1579,11 +1584,8 @@ export class BotBrain {
         let bestDist = Infinity;
         for (const obj of this.game.grid.intersectLineSegment(player.pos, end)) {
             if (obj.__type !== ObjectType.Obstacle) continue;
-            if (obj.dead || !obj.collidable || !obj.destructible || obj.isDoor) continue;
+            if (obj.dead || !obj.collidable || !isBreakable(obj)) continue;
             if (!util.sameLayer(obj.layer, player.layer)) continue;
-            const def = MapObjectDefs.typeToDef(obj.type, "obstacle");
-            // stones and the like take forever; barrels blow up in our face
-            if (def.health > 600 || def.explosion) continue;
             if (!collider.intersectSegment(obj.collider, player.pos, end)) continue;
             const dist = v2.distance(obj.pos, player.pos);
             if (dist < bestDist) {
@@ -1743,37 +1745,8 @@ const PanBackAngle = Math.atan2((-1.2 - 0.25) / 2, (-0.625 - 1.4) / 2);
 /** how fast the hacker spins, radians per second */
 const HackerSpinRate = 45;
 
-/** the best fight perks, best first, for the hacker (it never reloads, so no ammo perks) */
-const HackerPerks = [...new Set([
-    // top tier
-    "steelskin",
-    "splinter",
-    "explosive",
-    "bonus_assault",
-    "ap_rounds",
-    "high_velocity",
-    "self_revive",
-    "lifeline",
-    "endless_ammo",
-    // very good
-    "takedown",
-    "windwalk",
-    "small_arms",
-    "field_medic",
-    "flak_jacket",
-    "gotw",
-    "firepower",
-    "amped_explosives",
-    "tree_climbing",
-    // situational
-    "leadership",
-    "chambered",
-    "targeting",
-    "bonus_45",
-    "bonus_9mm",
-    "treat_super",
-    ...goodPerks,
-])];
+/** the hacker gets the same perks as "All good perks" in a kit */
+const HackerPerks = goodPerks;
 
 /**
  * Spawns a bot straight into the game, through the same path a joining client takes.
