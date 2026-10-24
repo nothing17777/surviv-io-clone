@@ -280,6 +280,8 @@ export class BotBrain {
     private _unstickTicker = 0;
     private _spin = Math.random() * Math.PI * 2;
     private _lastCooldown = 0;
+    /** extra wait before beginner/intermediate swing again */
+    private _swingDelay = 0;
     private _targetVel = v2.create(0, 0);
     private _targetLastPos = v2.create(0, 0);
     private _dodgeRolls = new Map<Bullet, { start: Vec2; dodge: boolean }>();
@@ -1066,8 +1068,7 @@ export class BotBrain {
                         }
                         this._lastCooldown = player.weapons[player.curWeapIdx].cooldown;
                     } else if (dist < reach) {
-                        player.shootStart = true;
-                        player.shootHold = true;
+                        this.swing();
                     }
                 }
 
@@ -1081,8 +1082,7 @@ export class BotBrain {
                 if (player.curWeapIdx !== WeaponSlot.Melee) player.weaponManager.setCurWeapIndex(WeaponSlot.Melee);
                 // keep leaning into it so it stays in melee range
                 lookDir = v2.normalizeSafe(v2.sub(crate.pos, player.pos));
-                player.shootStart = true;
-                player.shootHold = true;
+                this.swing();
             }
         }
 
@@ -1093,8 +1093,7 @@ export class BotBrain {
             if (wall) {
                 if (player.curWeapIdx !== WeaponSlot.Melee) player.weaponManager.setCurWeapIndex(WeaponSlot.Melee);
                 lookDir = v2.normalizeSafe(v2.sub(wall.pos, player.pos));
-                player.shootStart = true;
-                player.shootHold = true;
+                this.swing();
             }
         }
 
@@ -1687,6 +1686,23 @@ export class BotBrain {
             }
         }
         return best;
+    }
+
+    /**
+     * presses melee. Beginner and intermediate click each swing a beat after it's ready,
+     * like a person; the rest hold attack and swing the instant the cooldown ends
+     */
+    private swing(): void {
+        const player = this.player;
+        if (this.level !== "beginner" && this.level !== "intermediate") {
+            player.shootStart = true;
+            player.shootHold = true;
+            return;
+        }
+        // cooldown keeps counting below 0 once the swing is ready
+        if (player.weapons[WeaponSlot.Melee].cooldown > -this._swingDelay) return;
+        this._swingDelay = this.level === "beginner" ? util.random(0.25, 0.45) : util.random(0.12, 0.28);
+        player.shootStart = true;
     }
 
     /** center-to-center distance our melee swing connects at */
