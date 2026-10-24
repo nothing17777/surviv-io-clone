@@ -1077,6 +1077,10 @@ export class WeaponManager {
             let pos = v2.add(player.pos, v2.mul(player.dir, 1.5));
             let dir = v2.rotate(player.dir, angle);
             let distance: number | undefined;
+            if (shot.toCursor) {
+                // out to the cursor and back: a boomerang turns at half its distance
+                distance = math.clamp(player.toMouseLen * 2, 8, 70);
+            }
             if (shot.fromSky) {
                 // a star lands on the aim point, falling in from behind and to the side
                 const target = v2.add(player.mousePos, v2.mul(v2.perp(player.dir), (i - (count - 1) / 2) * 3));
@@ -1093,7 +1097,7 @@ export class WeaponManager {
                 dir,
                 layer: player.layer,
                 distance,
-                clipDistance: shot.fromSky,
+                clipDistance: shot.fromSky || shot.toCursor,
                 damageMult: 1,
                 shotFx: false,
                 reflectCount: 0,

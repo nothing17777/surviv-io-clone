@@ -250,6 +250,8 @@ export interface SwingShot {
     spread?: number;
     /** falls onto the aim point from off screen, like Star Wrath's stars */
     fromSky?: boolean;
+    /** a boomerang that turns back right at the cursor, like Zenith's swords */
+    toCursor?: boolean;
 }
 
 export const SwingShots: Record<string, SwingShot> = {
@@ -259,8 +261,8 @@ export const SwingShots: Record<string, SwingShot> = {
     tr_meowmere: { bullet: "bullet_cw_meowmere_cat" },
     // three pink stars fall onto where you aim
     tr_star_wrath: { bullet: "bullet_cw_star", count: 3, spread: 3, fromSky: true },
-    // three swords arc out at the cursor and fly back, seeking enemies on the way out
-    tr_zenith: { bullet: "bullet_cw_zenith_sword", count: 3, spread: 18 },
+    // a spread of spinning swords rush out to the cursor, whirl there and fly back, cutting through everything
+    tr_zenith: { bullet: "bullet_cw_zenith_sword", count: 5, spread: 14, toCursor: true },
 };
 
 const swingBullet = (b: Partial<BulletDef>): BulletDef => ({
@@ -317,11 +319,11 @@ export const SwingShotBullets: Record<string, BulletDef> = {
     }),
     bullet_cw_zenith_sword: swingBullet({
         damage: 30,
-        distance: 36,
+        distance: 70,
         speed: 55,
         pierce: true,
-        homing: true,
         boomerang: true,
+        spin: 18,
         tracerColor: "cw_rainbow",
         tracerWidth: 0.25,
         tracerLength: 0.6,
