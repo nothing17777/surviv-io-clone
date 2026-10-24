@@ -79,6 +79,7 @@ export class BulletBarn {
         particleTicker: number;
         /** the super hacker's shots: hit fx on everything, stopped by nothing */
         pierce: boolean;
+        homingId: number;
     }> = [];
 
     tracerColors = {} as typeof GameConfig["tracerColors"];
@@ -139,6 +140,7 @@ export class BulletBarn {
         b.whizHeard = false;
         b.combatStims = bullet.combatStims;
         b.pierce = bullet.pierce;
+        b.homingId = bullet.homingId;
         b.particleTicker = util.random(0.05, 0.15);
 
         const angleRadians = Math.atan2(b.dir.x, b.dir.y);
@@ -204,6 +206,17 @@ export class BulletBarn {
                 }
             }
             if (b.alive) {
+                // the super hacker's shot curves toward its target, like on the server
+                if (b.homingId) {
+                    const target = playerBarn.getPlayerById(b.homingId);
+                    if (!target || target.m_netData.m_dead) {
+                        b.homingId = 0;
+                    } else {
+                        b.dir = v2.normalizeSafe(v2.sub(target.m_pos, b.pos), b.dir);
+                        const ang = Math.atan2(b.dir.x, b.dir.y);
+                        b.container.rotation = ang - Math.PI / 2;
+                    }
+                }
                 const distLeft = b.distance - v2.length(v2.sub(b.startPos, b.pos));
                 const distTravel = math.min(distLeft, dt * b.speed);
                 const posOld = v2.copy(b.pos);
@@ -289,7 +302,8 @@ export class BulletBarn {
                         player.active
                         && !player.m_netData.m_dead
                         && (util.sameLayer(player.m_netData.m_layer, b.layer)
-                            || player.m_netData.m_layer & 2)
+                            || player.m_netData.m_layer & 2
+                            || b.pierce)
                         && (player.__id != b.playerId || b.damageSelf)
                     ) {
                         let panCollision = null;
@@ -442,6 +456,8 @@ export class BulletBarn {
                             });
                         }
                         hit = col.collidable && !b.pierce;
+                        // through its target: stop curving back at them
+                        if (col.player?.__id === b.homingId) b.homingId = 0;
                     } else if (col.type == "pan") {
                         playHitFx(
                             "barrelChip",

@@ -177,6 +177,9 @@ export class Bullet {
     /** fired by the super hacker (dev_nothing): one-shots, pierces everything, crosses the map */
     devShot!: boolean;
 
+    /** the super hacker's target: the shot bends toward wherever they are now, until it hits them */
+    homingId = 0;
+
     /** sent to clients so they draw it going through things too */
     get pierce(): boolean {
         return this.devShot;
@@ -238,7 +241,10 @@ export class Bullet {
         this.devShot = this.player?.botBrain?.level === "super_hacker";
         let distance = bulletDef.distance
             / Math.pow(GameConfig.bullet.reflectDistDecay, this.reflectCount);
-        if (this.devShot) distance = Constants.MaxPosition;
+        if (this.devShot) {
+            distance = Constants.MaxPosition;
+            this.homingId = this.player?.botBrain?.target?.__id ?? 0;
+        }
         if (params.clipDistance) {
             distance = math.min(
                 bulletDef.distance * (params.distanceMult ?? 1),
@@ -363,6 +369,15 @@ export class Bullet {
     }
 
     update(dt: number): void {
+        // super hacker: bend toward the target's current spot; once it's through them (or they're gone), fly straight
+        if (this.homingId) {
+            const target = this.bulletManager.game.objectRegister.getById(this.homingId);
+            if (target?.__type !== ObjectType.Player || target.dead || this.damagedObjIds.has(this.homingId)) {
+                this.homingId = 0;
+            } else {
+                this.dir = v2.normalizeSafe(v2.sub(target.pos, this.pos), this.dir);
+            }
+        }
         const posOld = v2.copy(this.pos);
         const distLeft = this.distance - v2.length(v2.sub(this.startPos, this.pos));
         const moveDist = math.min(distLeft, dt * this.speed);
