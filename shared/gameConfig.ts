@@ -156,7 +156,7 @@ export const GameConfig = {
     // the protocol we originated from was 78
     // remember to bump this every time a serialization function is changed
     // or a definition item added, removed or moved
-    protocolVersion: 1031,
+    protocolVersion: 1032,
     Action,
     Anim,
     DamageType,
@@ -397,6 +397,16 @@ export const GameConfig = {
         } as TracerColors,
         frag: { regular: 0xcb0000, saturated: 0xcb0000, apSaturated: 0xcb0000 } as TracerColors,
         invis: { regular: 0, saturated: 0, chambered: 0, apSaturated: 0 } as TracerColors,
+        // Terraria / Pixel Gun 3D weapon effects
+        cw_laser: { regular: 0xff2020, saturated: 0xff2020, chambered: 0xff2020, apSaturated: 0xff2020 } as TracerColors,
+        cw_plasma: { regular: 0x40e8ff, saturated: 0x40e8ff, chambered: 0x40e8ff, apSaturated: 0x40e8ff } as TracerColors,
+        cw_flame: { regular: 0xff8a10, saturated: 0xff8a10, chambered: 0xff8a10, apSaturated: 0xff8a10 } as TracerColors,
+        cw_frost: { regular: 0xb8f0ff, saturated: 0xb8f0ff, chambered: 0xb8f0ff, apSaturated: 0xb8f0ff } as TracerColors,
+        cw_poison: { regular: 0x60ff30, saturated: 0x60ff30, chambered: 0x60ff30, apSaturated: 0x60ff30 } as TracerColors,
+        cw_magic: { regular: 0xd060ff, saturated: 0xd060ff, chambered: 0xd060ff, apSaturated: 0xd060ff } as TracerColors,
+        cw_void: { regular: 0x5000a0, saturated: 0x5000a0, chambered: 0x5000a0, apSaturated: 0x5000a0 } as TracerColors,
+        cw_arrow: { regular: 0xe8d8b0, saturated: 0xe8d8b0, chambered: 0xe8d8b0, apSaturated: 0xe8d8b0 } as TracerColors,
+        cw_bubble: { regular: 0x60a8ff, saturated: 0x60a8ff, chambered: 0x60a8ff, apSaturated: 0x60a8ff } as TracerColors,
     },
     scopeZoomRadius: {
         desktop: {

@@ -182,8 +182,11 @@ export class Bullet {
 
     /** sent to clients so they draw it going through things too */
     get pierce(): boolean {
-        return this.devShot;
+        return this.devShot || this.defPierce;
     }
+
+    /** laser-style shots from custom weapons go through players and obstacles */
+    defPierce = false;
     canReflect!: boolean;
     damagedObjIds!: Set<number>;
 
@@ -239,6 +242,8 @@ export class Bullet {
         const distAdj = math.remap(distAdjIdx, 0, distAdjIdxMax, -1.0, 1.0);
 
         this.devShot = this.player?.botBrain?.level === "super_hacker";
+        this.defPierce = !!bulletDef.pierce;
+        this.homingId = bulletDef.homing && this.reflectCount === 0 ? this.findHomingTarget(params.pos, this.dir) : 0;
         let distance = bulletDef.distance
             / Math.pow(GameConfig.bullet.reflectDistDecay, this.reflectCount);
         if (this.devShot) {
@@ -372,7 +377,13 @@ export class Bullet {
         // super hacker: bend toward the target's current spot; once it's through them (or they're gone), fly straight
         if (this.homingId) {
             const target = this.bulletManager.game.objectRegister.getById(this.homingId);
-            if (target?.__type !== ObjectType.Player || target.dead || this.damagedObjIds.has(this.homingId)) {
+            if (
+                !this.devShot
+                && (target?.__type !== ObjectType.Player || target.dead || this.damagedObjIds.has(this.homingId))
+            ) {
+                // magic shots lose their target and fly straight on
+                this.homingId = 0;
+            } else if (target?.__type !== ObjectType.Player || target.dead || this.damagedObjIds.has(this.homingId)) {
                 // done with it: end here instead of flying on across the map (hundreds of these lag clients)
                 this.homingId = 0;
                 this.alive = false;
@@ -638,12 +649,12 @@ export class Bullet {
                     dir: this.dir,
                 });
 
-                if (mapDef.reflectBullets && !this.devShot) {
+                if (mapDef.reflectBullets && !this.pierce) {
                     this.reflect(col.point, col.normal, col.obj!.__id);
                 }
 
                 // Continue travelling if non-collidable
-                hit = col.collidable && !this.devShot;
+                hit = col.collidable && !this.pierce;
             } else if (col.type == "player") {
                 if (!shooterDead) {
                     const isHighValueTarget = this.player?.hasPerk("targeting") && col.player!.perks.length;
@@ -671,7 +682,9 @@ export class Bullet {
                             : undefined,
                     });
                 }
-                hit = col.collidable && !this.devShot;
+                hit = col.collidable && !this.pierce;
+                // a homing shot that pierces still ends in its target
+                if (this.defPierce && col.player?.__id === this.homingId) hit = true;
             } else if (col.type == "pan") {
                 // pans don't stop the super hacker either
                 if (this.devShot) continue;
@@ -684,6 +697,23 @@ export class Bullet {
                 break;
             }
         }
+    }
+
+    /** nearest living enemy ahead of the shooter, for homing (magic) shots */
+    findHomingTarget(pos: Vec2, dir: Vec2): number {
+        let best = 0;
+        let bestDist = 45;
+        for (const p of this.bulletManager.game.playerBarn.livingPlayers) {
+            if (p.__id === this.playerId || (this.player && p.teamId === this.player.teamId)) continue;
+            if (!util.sameLayer(p.layer, this.layer)) continue;
+            const to = v2.sub(p.pos, pos);
+            const dist = v2.length(to);
+            // only things roughly where the shooter is aiming
+            if (dist >= bestDist || v2.dot(v2.normalizeSafe(to, dir), dir) < 0.7) continue;
+            best = p.__id;
+            bestDist = dist;
+        }
+        return best;
     }
 
     reflect(pos: Vec2, normal: Vec2, objId: number) {

@@ -1,6 +1,9 @@
 import { FactionTeam } from "../../gameConfig.ts";
 import { type DeepPartial, util } from "../../utils/util.ts";
 import type { Vec2 } from "../../utils/v2.ts";
+import { BulletDefs } from "./bulletDefs.ts";
+import { CustomGuns } from "./customWeaponDefs.ts";
+import { BaseGunLengths, GunEffects } from "./customWeaponEffects.ts";
 import type { BaseWeaponDef } from "./itemTypes.ts";
 
 export interface GunDef extends BaseWeaponDef {
@@ -3663,4 +3666,38 @@ const SkinDefs: Record<string, GunDef> = {
     }),
 };
 
-export const GunDefs: Record<string, GunDef> = { ...BaseDefs, ...SkinDefs };
+// Terraria and Pixel Gun 3D weapons: a base gun's stats and its game's effect, with the game's image.
+// Each gets its own bullet so the effect (laser, flame, homing magic...) can change it.
+const CustomGunDefs: Record<string, GunDef> = Object.fromEntries(
+    CustomGuns.map(([id, name, , base, effectName]) => {
+        const effect = GunEffects[effectName];
+        const baseBullet = BulletDefs[BaseDefs[base].bulletType];
+        const bulletType = `bullet_${id}`;
+        BulletDefs[bulletType] = {
+            ...baseBullet,
+            ...effect.bullet,
+            damage: baseBullet.damage * (effect.damageMult ?? 1),
+        };
+        // world sprites are 160px long, drawn at half scale
+        const scale = (BaseGunLengths[base] ?? 48) / 80;
+        const def = defineGunSkin(base, {
+            name,
+            noPotatoSwap: true,
+            bulletType,
+            lootImg: {
+                sprite: `img/custom-weapons/loot/${id}.png`,
+                tint: 0xffffff,
+                scale: 0.3,
+            },
+            worldImg: {
+                sprite: `img/custom-weapons/world/${id}.png`,
+                scale: { x: scale, y: scale },
+                tint: 0xffffff,
+                magImg: undefined,
+            },
+        });
+        return [id, util.mergeDeep(def, effect.gun ?? {})];
+    }),
+);
+
+export const GunDefs: Record<string, GunDef> = { ...BaseDefs, ...SkinDefs, ...CustomGunDefs };

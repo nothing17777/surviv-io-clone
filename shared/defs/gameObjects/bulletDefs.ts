@@ -20,6 +20,10 @@ export interface BulletDef {
     onHit?: string;
     noDistAdj?: boolean;
     useExplosiveRoundsAlt?: boolean;
+    /** goes through players and obstacles, like a laser */
+    pierce?: boolean;
+    /** curves toward the nearest enemy the shooter is aiming at */
+    homing?: boolean;
 }
 
 export const BaseDefs: Record<string, BulletDef> = {

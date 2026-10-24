@@ -79,6 +79,8 @@ export class BulletBarn {
         particleTicker: number;
         /** the super hacker's shots: hit fx on everything, stopped by nothing */
         pierce: boolean;
+        /** a laser-type custom weapon's shot: pierces like the super hacker's but only flies its range */
+        defPierce: boolean;
         homingId: number;
     }> = [];
 
@@ -140,6 +142,7 @@ export class BulletBarn {
         b.whizHeard = false;
         b.combatStims = bullet.combatStims;
         b.pierce = bullet.pierce;
+        b.defPierce = !!bulletDef.pierce;
         b.homingId = bullet.homingId;
         b.particleTicker = util.random(0.05, 0.15);
 
@@ -211,7 +214,8 @@ export class BulletBarn {
                     const target = playerBarn.getPlayerById(b.homingId);
                     if (!target || target.m_netData.m_dead) {
                         b.homingId = 0;
-                        b.alive = false;
+                        // the super hacker's shots end; magic ones fly on straight
+                        if (b.pierce && !b.defPierce) b.alive = false;
                     } else {
                         b.dir = v2.normalizeSafe(v2.sub(target.m_pos, b.pos), b.dir);
                         const ang = Math.atan2(b.dir.x, b.dir.y);

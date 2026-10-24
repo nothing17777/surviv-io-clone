@@ -178,6 +178,8 @@ export const helpers = {
             case "backpack":
             case "perk":
             case "xp":
+                // custom weapons point straight at their png
+                if (def.lootImg.sprite.startsWith("img/")) return def.lootImg.sprite;
                 return `img/loot/${def.lootImg.sprite.slice(0, -4)}.svg`;
             case "heal_effect":
             case "boost_effect":

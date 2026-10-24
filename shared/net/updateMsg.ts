@@ -381,7 +381,8 @@ export class UpdateMsg implements AbstractMsg {
                     s.writeFloat(bullet.distance, 0, Constants.MaxPosition, 16);
                 }
                 s.writeBoolean(bullet.pierce);
-                if (bullet.pierce) s.writeUint16(bullet.homingId);
+                s.writeBoolean(!!bullet.homingId);
+                if (bullet.homingId) s.writeUint16(bullet.homingId);
                 s.writeBoolean(bullet.shotFx);
                 if (bullet.shotFx) {
                     s.writeGameType(bullet.shotSourceType);
@@ -603,7 +604,7 @@ export class UpdateMsg implements AbstractMsg {
                     bullet.distance = s.readFloat(0, Constants.MaxPosition, 16);
                 }
                 bullet.pierce = s.readBoolean();
-                bullet.homingId = bullet.pierce ? s.readUint16() : 0;
+                bullet.homingId = s.readBoolean() ? s.readUint16() : 0;
                 bullet.shotFx = s.readBoolean();
                 if (bullet.shotFx) {
                     bullet.shotSourceType = s.readGameType();
@@ -748,7 +749,7 @@ export interface Bullet {
     distance: number;
     /** goes through everything it hits (the super hacker's shots) */
     pierce: boolean;
-    /** with pierce: the player it curves toward until it hits them, 0 = flies straight */
+    /** the player it curves toward until it hits them, 0 = flies straight */
     homingId: number;
     shotFx: boolean;
     shotSourceType: string;

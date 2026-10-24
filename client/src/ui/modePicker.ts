@@ -262,6 +262,7 @@ export function itemDesc(id: string): string {
 export function itemImage(id: string) {
     const def = (RawGameObjectDefs as Record<string, { lootImg?: { sprite?: string } }>)[id];
     const sprite = def?.lootImg?.sprite;
+    if (sprite?.startsWith("img/")) return sprite;
     return sprite ? `img/loot/${sprite.replace(/\.img$/, ".svg")}` : "";
 }
 

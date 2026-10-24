@@ -1,6 +1,8 @@
 import { Rarity } from "../../gameConfig.ts";
 import { type DeepPartial, util } from "../../utils/util.ts";
 import type { Vec2 } from "../../utils/v2.ts";
+import { CustomMelees } from "./customWeaponDefs.ts";
+import { MeleeEffects } from "./customWeaponEffects.ts";
 import type { BaseLoadoutItem, BaseWeaponDef } from "./itemTypes.ts";
 
 export interface MeleeDef extends BaseWeaponDef, BaseLoadoutItem {
@@ -1429,4 +1431,27 @@ const SkinDefs: Record<string, MeleeDef> = {
     }),
 };
 
-export const MeleeDefs: Record<string, MeleeDef> = { ...BaseDefs, ...SkinDefs };
+// Terraria and Pixel Gun 3D melee weapons: a katana swing tuned to how the weapon fights, with the game's image
+const CustomMeleeDefs: Record<string, MeleeDef> = Object.fromEntries(
+    CustomMelees.map(([id, name, , effect]) => [
+        id,
+        defineMeleeSkin("katana", {
+            ...MeleeEffects[effect],
+            name,
+            noPotatoSwap: true,
+            lootImg: {
+                sprite: `img/custom-weapons/loot/${id}.png`,
+                scale: 0.3,
+                mirror: false,
+                rot: 0,
+            },
+            // held sprite points along the swing like the katana's, 128px vs its 230px
+            worldImg: {
+                sprite: `img/custom-weapons/world/${id}.png`,
+                scale: { x: 0.63, y: 0.63 },
+            },
+        }),
+    ]),
+);
+
+export const MeleeDefs: Record<string, MeleeDef> = { ...BaseDefs, ...SkinDefs, ...CustomMeleeDefs };
