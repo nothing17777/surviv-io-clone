@@ -93,11 +93,12 @@ function loadSavedBotSettings(): BotSettingsByLevel {
 }
 
 const sameKitKey = "survev_same_kit";
+const botKitKey = "survev_same_kit_bots";
 
 /** the Same Kit loadout this browser last set, or the default kit */
-function loadSavedSameKit(): PrivateLoadout {
+function loadSavedSameKit(key = sameKitKey): PrivateLoadout {
     try {
-        const parsed = zPrivateLoadout.safeParse(JSON.parse(localStorage.getItem(sameKitKey) || "null"));
+        const parsed = zPrivateLoadout.safeParse(JSON.parse(localStorage.getItem(key) || "null"));
         if (parsed.success) return parsed.data;
     } catch {}
     return { ...defaultPrivateLoadout };
@@ -127,6 +128,8 @@ export class TeamMenu {
     godHeals = $(
         "#team-god-throwable-count, #team-god-throwable-unlimited, #team-god-all-perks, #team-god-bandage, #team-god-healthkit, #team-god-soda, #team-god-painkiller",
     );
+    botKitPickers = $(Object.keys(pickerSlotType).map((slot) => `#team-botkit-${slot}`).join(", "));
+    botKitHeals = $("#team-botkit-heals input");
     kitShared = $("#btn-team-kit-shared");
     kitOn = $("#btn-team-kit-on");
     kitOff = $("#btn-team-kit-off");
@@ -222,6 +225,15 @@ export class TeamMenu {
                 this.syncOwnKitToBots();
                 this.refreshUi();
             }
+        });
+        // Same Kit: the Bots' Kit goes to the bot sides that don't get everyone's kit
+        this.botKitPickers.add(this.botKitHeals).on("change", () => {
+            if (!this.isLeader) return;
+            try {
+                localStorage.setItem(botKitKey, JSON.stringify(this.readKitInputs("team-botkit")));
+            } catch {}
+            this.syncOwnKitToBots();
+            this.refreshUi();
         });
         $("#team-kit-ally-bots").on("change", (e) => {
             this.setRoomProperty("privateAllyBotsSameKit", (e.currentTarget as HTMLInputElement).checked);
@@ -1009,43 +1021,52 @@ export class TeamMenu {
     }
 
     /** the kit the pickers and count boxes show right now */
-    readKitInputs(): PrivateLoadout {
+    readKitInputs(prefix = "team-god"): PrivateLoadout {
         const num = (id: string, max: number) => {
             const val = Math.round(Number($(id).val()));
             return Number.isFinite(val) ? Math.min(max, Math.max(0, val)) : 0;
         };
         const loadout: PrivateLoadout = {
-            primary: $("#team-god-primary").val() as string,
-            secondary: $("#team-god-secondary").val() as string,
-            melee: $("#team-god-melee").val() as string,
-            throwable: $("#team-god-throwable").val() as string,
-            throwableCount: num("#team-god-throwable-count", throwableMax($("#team-god-throwable").val() as string)),
+            primary: $(`#${prefix}-primary`).val() as string,
+            secondary: $(`#${prefix}-secondary`).val() as string,
+            melee: $(`#${prefix}-melee`).val() as string,
+            throwable: $(`#${prefix}-throwable`).val() as string,
+            throwableCount: num(`#${prefix}-throwable-count`, throwableMax($(`#${prefix}-throwable`).val() as string)),
             armor: 3,
-            bandage: num("#team-god-bandage", 30),
-            healthkit: num("#team-god-healthkit", 4),
-            soda: num("#team-god-soda", 15),
-            painkiller: num("#team-god-painkiller", 4),
-            throwablesUnlimited: $("#team-god-throwable-unlimited").is(":checked"),
-            allGoodPerks: $("#team-god-all-perks").is(":checked"),
+            bandage: num(`#${prefix}-bandage`, 30),
+            healthkit: num(`#${prefix}-healthkit`, 4),
+            soda: num(`#${prefix}-soda`, 15),
+            painkiller: num(`#${prefix}-painkiller`, 4),
+            throwablesUnlimited: $(`#${prefix}-throwable-unlimited`).is(":checked"),
+            allGoodPerks: $(`#${prefix}-all-perks`).is(":checked"),
         };
 
         for (const slot of ["throwable2", "throwable3", "helmet", "chest", "backpack", "perk1", "perk2", "perk3"] as const) {
-            setKitSlot(loadout, slot, $(`#team-god-${slot}`).val() as string);
+            setKitSlot(loadout, slot, $(`#${prefix}-${slot}`).val() as string);
         }
         return loadout;
     }
 
     /**
      * God Kit (everyone their own): the leader's own kit goes to the bot sides
-     * whose box is ticked. Any other kit mode leaves the bots to the match.
+     * whose box is ticked. Same Kit: the Bots' Kit goes to the sides whose box
+     * isn't (ticked ones get everyone's kit). Loot leaves the bots to the match.
      */
     syncOwnKitToBots() {
         if (!this.isLeader) return;
-        const own = this.roomData.privateGodLoadout && !this.roomData.privateSharedKit
-            ? { ...defaultPrivateLoadout, ...loadoutToKit(loadGodLoadout()), ...loadDuelCounts("you") }
-            : null;
-        const ally = own && (this.roomData.privateAllyBotsSameKit ?? true) ? own : null;
-        const enemy = own && (this.roomData.privateEnemyBotsSameKit ?? true) ? own : null;
+        let ally: PrivateLoadout | null = null;
+        let enemy: PrivateLoadout | null = null;
+        const allySame = this.roomData.privateAllyBotsSameKit ?? true;
+        const enemySame = this.roomData.privateEnemyBotsSameKit ?? true;
+        if (this.sharedKitActive()) {
+            const bots = loadSavedSameKit(botKitKey);
+            ally = allySame ? null : bots;
+            enemy = enemySame ? null : bots;
+        } else if (this.roomData.privateGodLoadout) {
+            const own = { ...defaultPrivateLoadout, ...loadoutToKit(loadGodLoadout()), ...loadDuelCounts("you") };
+            ally = allySame ? own : null;
+            enemy = enemySame ? own : null;
+        }
         if (JSON.stringify(ally) === JSON.stringify(this.roomData.privateBotAllyKit ?? null)
             && JSON.stringify(enemy) === JSON.stringify(this.roomData.privateBotEnemyKit ?? null)) return;
         this.roomData.privateBotAllyKit = ally;
@@ -1321,6 +1342,29 @@ export class TeamMenu {
                     // the shared kit is the leader's to set; your own always is
                     this.godPickers.prop("disabled", shared && !this.isLeader);
                     this.godHeals.prop("disabled", shared && !this.isLeader);
+                }
+
+                // Same Kit with a bot side unticked: that side's own kit
+                const botKitShown = shared
+                    && !((this.roomData.privateAllyBotsSameKit ?? true) && (this.roomData.privateEnemyBotsSameKit ?? true));
+                $("#team-bot-kit").toggle(botKitShown);
+                if (botKitShown) {
+                    const kit = this.isLeader
+                        ? loadSavedSameKit(botKitKey)
+                        : this.roomData.privateBotEnemyKit ?? this.roomData.privateBotAllyKit ?? defaultPrivateLoadout;
+                    for (const [slot, type] of Object.entries(pickerSlotType)) {
+                        fillItemPicker("team-botkit", slot, type, kitSlot(kit, slot as PickerSlot));
+                    }
+                    const throwMax = throwableMax(kit.throwable);
+                    $("#team-botkit-throwable-count").attr("max", throwMax).val(Math.min(kit.throwableCount, throwMax));
+                    $("#team-botkit-throwable-unlimited").prop("checked", !!kit.throwablesUnlimited);
+                    $("#team-botkit-all-perks").prop("checked", !!kit.allGoodPerks);
+                    $("#team-botkit-bandage").val(kit.bandage);
+                    $("#team-botkit-healthkit").val(kit.healthkit);
+                    $("#team-botkit-soda").val(kit.soda);
+                    $("#team-botkit-painkiller").val(kit.painkiller);
+                    this.botKitPickers.prop("disabled", !this.isLeader);
+                    this.botKitHeals.prop("disabled", !this.isLeader);
                 }
             }
 

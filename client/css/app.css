@@ -7508,7 +7508,8 @@ input.bot-army-count::-webkit-outer-spin-button {
 }
 
 #team-bot-settings .botset-grid,
-#team-god-heals {
+#team-god-heals,
+#team-botkit-heals {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 4px;
@@ -7738,7 +7739,8 @@ input.bot-army-count::-webkit-outer-spin-button {
     background: rgba(0, 0, 0, 0.55);
 }
 
-#team-god-heals {
+#team-god-heals,
+#team-botkit-heals {
     gap: 3px;
 }
 
