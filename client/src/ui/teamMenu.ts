@@ -41,8 +41,10 @@ import {
     fillItemPicker,
     fillMapSelect,
     getModeMaps,
+    loadDuelCounts,
     loadGodLoadout,
     modeLabel,
+    saveDuelCounts,
     kitSlot,
     loadoutToKit,
     type PickerSlot,
@@ -207,25 +209,43 @@ export class TeamMenu {
                 }
                 saveGodLoadout(own);
                 syncGodLoadoutPickers();
+                const kit = this.readKitInputs();
+                saveDuelCounts("you", {
+                    throwableCount: kit.throwableCount,
+                    bandage: kit.bandage,
+                    healthkit: kit.healthkit,
+                    soda: kit.soda,
+                    painkiller: kit.painkiller,
+                    throwablesUnlimited: !!kit.throwablesUnlimited,
+                    allGoodPerks: !!kit.allGoodPerks,
+                });
+                this.syncOwnKitToBots();
                 this.refreshUi();
             }
         });
         $("#team-kit-ally-bots").on("change", (e) => {
             this.setRoomProperty("privateAllyBotsSameKit", (e.currentTarget as HTMLInputElement).checked);
+            this.syncOwnKitToBots();
         });
         $("#team-kit-enemy-bots").on("change", (e) => {
             this.setRoomProperty("privateEnemyBotsSameKit", (e.currentTarget as HTMLInputElement).checked);
+            this.syncOwnKitToBots();
         });
         // Same Kit = the god kit, but one the leader picks for everyone
         this.kitShared.on("click", () => {
             this.setRoomProperty("privateSharedKit", true);
             this.setRoomProperty("privateGodLoadout", true);
+            this.syncOwnKitToBots();
         });
         this.kitOn.on("click", () => {
             this.setRoomProperty("privateSharedKit", false);
             this.setRoomProperty("privateGodLoadout", true);
+            this.syncOwnKitToBots();
         });
-        this.kitOff.on("click", () => this.setRoomProperty("privateGodLoadout", false));
+        this.kitOff.on("click", () => {
+            this.setRoomProperty("privateGodLoadout", false);
+            this.syncOwnKitToBots();
+        });
         // Vs Bots: pick the opponent bots, and bot teammates for 2v2 and up
         $("#btn-team-bots-custom").on("click", () => this.setRoomProperty("privateVsBots", false));
         $("#btn-team-bots-vs").on("click", () => this.setRoomProperty("privateVsBots", true));
@@ -988,10 +1008,8 @@ export class TeamMenu {
         return !!this.roomData.privateGodLoadout && !!this.roomData.privateSharedKit;
     }
 
-    /** reads the kit pickers and pushes them to the room (leader only) */
-    sendPrivateLoadout() {
-        if (!this.isLeader) return;
-
+    /** the kit the pickers and count boxes show right now */
+    readKitInputs(): PrivateLoadout {
         const num = (id: string, max: number) => {
             const val = Math.round(Number($(id).val()));
             return Number.isFinite(val) ? Math.min(max, Math.max(0, val)) : 0;
@@ -1014,6 +1032,31 @@ export class TeamMenu {
         for (const slot of ["throwable2", "throwable3", "helmet", "chest", "backpack", "perk1", "perk2", "perk3"] as const) {
             setKitSlot(loadout, slot, $(`#team-god-${slot}`).val() as string);
         }
+        return loadout;
+    }
+
+    /**
+     * God Kit (everyone their own): the leader's own kit goes to the bot sides
+     * whose box is ticked. Any other kit mode leaves the bots to the match.
+     */
+    syncOwnKitToBots() {
+        if (!this.isLeader) return;
+        const own = this.roomData.privateGodLoadout && !this.roomData.privateSharedKit
+            ? { ...defaultPrivateLoadout, ...loadoutToKit(loadGodLoadout()), ...loadDuelCounts("you") }
+            : null;
+        const ally = own && (this.roomData.privateAllyBotsSameKit ?? true) ? own : null;
+        const enemy = own && (this.roomData.privateEnemyBotsSameKit ?? true) ? own : null;
+        if (JSON.stringify(ally) === JSON.stringify(this.roomData.privateBotAllyKit ?? null)
+            && JSON.stringify(enemy) === JSON.stringify(this.roomData.privateBotEnemyKit ?? null)) return;
+        this.roomData.privateBotAllyKit = ally;
+        this.roomData.privateBotEnemyKit = enemy;
+        this.sendMessage("setRoomProps", this.roomData);
+    }
+
+    /** reads the kit pickers and pushes them to the room (leader only) */
+    sendPrivateLoadout() {
+        if (!this.isLeader) return;
+        const loadout = this.readKitInputs();
         this.roomData.privateLoadout = loadout;
         try {
             localStorage.setItem(sameKitKey, JSON.stringify(loadout));
@@ -1024,6 +1067,7 @@ export class TeamMenu {
 
     tryStartGame() {
         if (this.isLeader && !this.roomData.findingGame) {
+            this.syncOwnKitToBots();
             const version = GameConfig.protocolVersion;
             let region = this.roomData.region;
             const paramRegion = helpers.getParameterByName("region");
@@ -1241,7 +1285,7 @@ export class TeamMenu {
                 // Pickers show the shared kit under Same Kit, and your own
                 // saved kit under God Kit. Loot has no kit to show.
                 $("#team-god-loadout").toggle(god);
-                $("#team-god-shared-only").toggle(shared);
+                $("#team-god-shared-only").toggle(god);
                 $("#team-kit-ally-bots")
                     .prop("checked", this.roomData.privateAllyBotsSameKit ?? true)
                     .prop("disabled", !this.isLeader);
@@ -1258,7 +1302,9 @@ export class TeamMenu {
                         fillItemPicker("team-god", slot, type, kitSlot(kit, slot as PickerSlot));
                     }
 
-                    if (shared) {
+                    {
+                        // your own counts under God Kit, the room's under Same Kit
+                        if (!shared) Object.assign(kit, loadDuelCounts("you"));
                         // the cap depends on which throwable is picked
                         const throwMax = throwableMax(kit.throwable);
                         $("#team-god-throwable-count").attr("max", throwMax).val(
@@ -1274,7 +1320,7 @@ export class TeamMenu {
 
                     // the shared kit is the leader's to set; your own always is
                     this.godPickers.prop("disabled", shared && !this.isLeader);
-                    this.godHeals.prop("disabled", !this.isLeader);
+                    this.godHeals.prop("disabled", shared && !this.isLeader);
                 }
             }
 

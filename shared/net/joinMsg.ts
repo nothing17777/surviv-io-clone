@@ -1,3 +1,4 @@
+import { math } from "../utils/math.ts";
 import { type AbstractMsg, type BitStream, Constants } from "./net.ts";
 
 export class JoinMsg implements AbstractMsg {
@@ -26,6 +27,14 @@ export class JoinMsg implements AbstractMsg {
         backpack: "",
         perks: [] as string[],
         extraThrowables: [] as string[],
+        /** consumable counts; left out = a full bag */
+        throwableCount: undefined as number | undefined,
+        bandage: undefined as number | undefined,
+        healthkit: undefined as number | undefined,
+        soda: undefined as number | undefined,
+        painkiller: undefined as number | undefined,
+        throwablesUnlimited: false,
+        allGoodPerks: false,
     };
 
     serialize(s: BitStream) {
@@ -61,6 +70,18 @@ export class JoinMsg implements AbstractMsg {
         s.writeArray(this.godLoadout.extraThrowables.slice(0, 2), 2, (t) => {
             s.writeGameType(t);
         });
+        const g = this.godLoadout;
+        const hasCounts = g.throwableCount !== undefined;
+        s.writeBoolean(hasCounts);
+        if (hasCounts) {
+            s.writeUint8(g.throwableCount ?? 0);
+            s.writeUint8(g.bandage ?? 0);
+            s.writeUint8(g.healthkit ?? 0);
+            s.writeUint8(g.soda ?? 0);
+            s.writeUint8(g.painkiller ?? 0);
+        }
+        s.writeBoolean(g.throwablesUnlimited);
+        s.writeBoolean(g.allGoodPerks);
     }
 
     deserialize(s: BitStream) {
@@ -90,5 +111,14 @@ export class JoinMsg implements AbstractMsg {
         this.godLoadout.backpack = s.readGameType();
         this.godLoadout.perks = s.readArray(2, () => s.readGameType());
         this.godLoadout.extraThrowables = s.readArray(2, () => s.readGameType());
+        if (s.readBoolean()) {
+            this.godLoadout.throwableCount = math.min(s.readUint8(), 40);
+            this.godLoadout.bandage = math.min(s.readUint8(), 30);
+            this.godLoadout.healthkit = math.min(s.readUint8(), 4);
+            this.godLoadout.soda = math.min(s.readUint8(), 15);
+            this.godLoadout.painkiller = math.min(s.readUint8(), 4);
+        }
+        this.godLoadout.throwablesUnlimited = s.readBoolean();
+        this.godLoadout.allGoodPerks = s.readBoolean();
     }
 }
