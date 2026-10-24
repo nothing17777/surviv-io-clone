@@ -24,6 +24,8 @@ export interface BulletDef {
     pierce?: boolean;
     /** curves toward the nearest enemy the shooter is aiming at */
     homing?: boolean;
+    /** bounces off any wall or obstacle, not just metal ones */
+    bounce?: boolean;
 }
 
 export const BaseDefs: Record<string, BulletDef> = {

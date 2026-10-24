@@ -3,7 +3,7 @@ import { type DeepPartial, util } from "../../utils/util.ts";
 import type { Vec2 } from "../../utils/v2.ts";
 import { BulletDefs } from "./bulletDefs.ts";
 import { CustomGuns } from "./customWeaponDefs.ts";
-import { BaseGunLengths, GunEffects } from "./customWeaponEffects.ts";
+import { BaseGunLengths, GunEffects, SwingShotBullets } from "./customWeaponEffects.ts";
 import type { BaseWeaponDef } from "./itemTypes.ts";
 
 export interface GunDef extends BaseWeaponDef {
@@ -3665,6 +3665,8 @@ const SkinDefs: Record<string, GunDef> = {
         },
     }),
 };
+
+Object.assign(BulletDefs, SwingShotBullets);
 
 // Terraria and Pixel Gun 3D weapons: a base gun's stats and its game's effect, with the game's image.
 // Each gets its own bullet so the effect (laser, flame, homing magic...) can change it.

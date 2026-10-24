@@ -1,5 +1,6 @@
 import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
 import type { MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
+import { SwingShots } from "../../../shared/defs/gameObjects/customWeaponEffects.ts";
 import { PerkProperties } from "../../../shared/defs/gameObjects/perkDefs.ts";
 import { type ThrowableDef, ThrowableDefs } from "../../../shared/defs/gameObjects/throwableDefs.ts";
 import { GameObjectDefs } from "../../../shared/defs/register.ts";
@@ -418,6 +419,7 @@ export class WeaponManager {
             this.player.playAnim(GameConfig.Anim.Melee, attack.cooldownTime);
             weapon.cooldown = attack.cooldownTime;
             this.meleeAttacks = [...attack.damageTimes];
+            this.fireSwingShot();
         }
 
         for (let i = 0; i < this.meleeAttacks.length; i++) {
@@ -1039,6 +1041,41 @@ export class WeaponManager {
         const rotated = v2.add(this.player.pos, v2.rotate(pos, rot));
         const rad = meleeDef.attack.rad;
         return collider.createCircle(rotated, rad);
+    }
+
+    /** Terraria / Pixel Gun 3D swords fire their own game's projectile with each swing */
+    fireSwingShot(): void {
+        const shot = SwingShots[this.activeWeapon];
+        if (!shot) return;
+        const player = this.player;
+        const count = shot.count ?? 1;
+        for (let i = 0; i < count; i++) {
+            const angle = math.deg2rad((i - (count - 1) / 2) * (shot.spread ?? 0));
+            let pos = v2.add(player.pos, v2.mul(player.dir, 1.5));
+            let dir = v2.rotate(player.dir, angle);
+            let distance: number | undefined;
+            if (shot.fromSky) {
+                // a star lands on the aim point, falling in from behind and to the side
+                const target = v2.add(player.mousePos, v2.mul(v2.perp(player.dir), (i - (count - 1) / 2) * 3));
+                pos = v2.add(target, v2.create(-10, 18));
+                dir = v2.normalize(v2.sub(target, pos));
+                distance = v2.length(v2.sub(target, pos));
+            }
+            player.game.bulletBarn.fireBullet({
+                playerId: player.__id,
+                bulletType: shot.bullet,
+                gameSourceType: this.activeWeapon,
+                damageType: GameConfig.DamageType.Player,
+                pos,
+                dir,
+                layer: player.layer,
+                distance,
+                clipDistance: shot.fromSky,
+                damageMult: 1,
+                shotFx: false,
+                reflectCount: 0,
+            });
+        }
     }
 
     meleeDamage(): void {

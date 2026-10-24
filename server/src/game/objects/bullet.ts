@@ -187,6 +187,9 @@ export class Bullet {
 
     /** laser-style shots from custom weapons go through players and obstacles */
     defPierce = false;
+
+    /** Meowmere's cats bounce off every obstacle */
+    bounce = false;
     canReflect!: boolean;
     damagedObjIds!: Set<number>;
 
@@ -243,6 +246,7 @@ export class Bullet {
 
         this.devShot = this.player?.botBrain?.level === "super_hacker";
         this.defPierce = !!bulletDef.pierce;
+        this.bounce = !!bulletDef.bounce;
         this.homingId = bulletDef.homing && this.reflectCount === 0 ? this.findHomingTarget(params.pos, this.dir) : 0;
         let distance = bulletDef.distance
             / Math.pow(GameConfig.bullet.reflectDistDecay, this.reflectCount);
@@ -649,7 +653,7 @@ export class Bullet {
                     dir: this.dir,
                 });
 
-                if (mapDef.reflectBullets && !this.pierce) {
+                if ((mapDef.reflectBullets || (this.bounce && col.collidable)) && !this.pierce) {
                     this.reflect(col.point, col.normal, col.obj!.__id);
                 }
 

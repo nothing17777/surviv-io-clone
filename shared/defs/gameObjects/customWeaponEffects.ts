@@ -116,3 +116,54 @@ export const BaseGunLengths: Record<string, number> = {
     barrett: 56,
     potato_cannon: 52,
 };
+
+/** what a sword fires with each swing in its own game */
+export interface SwingShot {
+    bullet: string;
+    count?: number;
+    /** degrees between shots when count > 1 */
+    spread?: number;
+    /** falls onto the aim point from off screen, like Star Wrath's stars */
+    fromSky?: boolean;
+}
+
+export const SwingShots: Record<string, SwingShot> = {
+    // a green beam that flies through everything
+    tr_terra_blade: { bullet: "bullet_cw_terra_beam" },
+    // a short purple slash wave
+    tr_night_s_edge: { bullet: "bullet_cw_night_wave" },
+    // holy light waves
+    tr_excalibur: { bullet: "bullet_cw_holy_wave" },
+    pg_excalibur: { bullet: "bullet_cw_holy_wave" },
+    // a rainbow cat that bounces off walls
+    tr_meowmere: { bullet: "bullet_cw_meowmere_cat" },
+    // stars rain down where you aim
+    tr_star_wrath: { bullet: "bullet_cw_star", count: 3, spread: 3, fromSky: true },
+    // a fan of spectral swords that seek enemies
+    tr_zenith: { bullet: "bullet_cw_zenith_sword", count: 5, spread: 12 },
+};
+
+const swingBullet = (b: Partial<BulletDef>): BulletDef => ({
+    type: "bullet",
+    damage: 25,
+    obstacleDamage: 1,
+    falloff: 1,
+    distance: 40,
+    speed: 50,
+    variance: 0,
+    shrapnel: false,
+    tracerColor: "cw_magic",
+    tracerWidth: 0.7,
+    tracerLength: 0.35,
+    noDistAdj: true,
+    ...b,
+});
+
+export const SwingShotBullets: Record<string, BulletDef> = {
+    bullet_cw_terra_beam: swingBullet({ damage: 32, distance: 45, speed: 55, pierce: true, tracerColor: "cw_terra" }),
+    bullet_cw_night_wave: swingBullet({ damage: 22, distance: 25, speed: 45, pierce: true }),
+    bullet_cw_holy_wave: swingBullet({ damage: 26, distance: 30, pierce: true, tracerColor: "cw_holy" }),
+    bullet_cw_meowmere_cat: swingBullet({ damage: 28, distance: 60, speed: 45, bounce: true, tracerColor: "cw_rainbow", tracerWidth: 0.45 }),
+    bullet_cw_star: swingBullet({ damage: 24, speed: 80, onHit: "explosion_cw_shock", tracerColor: "cw_star", tracerWidth: 0.4, tracerLength: 0.8 }),
+    bullet_cw_zenith_sword: swingBullet({ damage: 20, distance: 50, speed: 60, pierce: true, homing: true, tracerColor: "cw_rainbow", tracerWidth: 0.35, tracerLength: 0.7 }),
+};
