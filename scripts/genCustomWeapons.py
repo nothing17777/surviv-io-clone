@@ -24,7 +24,9 @@ PICKS = {
     "tr": {"Zenith", "Terra_Blade", "Night's_Edge", "Excalibur", "Meowmere", "Star_Wrath",
            "Megashark", "Minishark", "S.D.M.G.", "Last_Prism"},
     "pg": {"Prototype", "Dark_Matter_Generator", "Laser_Minigun", "Railgun", "Rocket_Launcher",
-           "Excalibur", "Gauss_Cannon", "Heavy_Sniper_Rifle", "Tesla_Cannon", "Combat_Rifle"},
+           "Excalibur", "Gauss_Cannon", "Heavy_Sniper_Rifle", "Tesla_Cannon", "Combat_Rifle",
+           "Pixel_Gun", "Armageddon", "Apocalypse", "Desert_Eagle", "Dual_Revolvers", "Grenade_Launcher",
+           "Laser_Bow", "Plasma_Rifle", "Mega_Destroyer", "Hellraiser"},
 }
 
 SOURCES = [("terraria-weapons", "tr", "Terraria"), ("pg3d-guns", "pg", "Pixel Gun 3D")]
