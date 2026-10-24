@@ -3683,7 +3683,7 @@ const CustomGunDefs: Record<string, GunDef> = Object.fromEntries(
         BulletDefs[bulletType] = {
             ...baseBullet,
             ...effect.bullet,
-            damage: baseBullet.damage * (effect.damageMult ?? 1),
+            damage: effect.bullet?.damage ?? baseBullet.damage * (effect.damageMult ?? 1),
         };
         // world sprites are 160px long, drawn at half scale
         const scale = (BaseGunLengths[base] ?? 48) / 80;

@@ -161,8 +161,8 @@ export const GunOverrides: Record<string, GunEffect> = {
     tr_sdmg: { gun: { fireDelay: 0.08 }, bullet: { tracerColor: "cw_plasma", tracerWidth: 0.14 } },
     // Ultimatum: a sniper-like shotgun whose 12 pellets go through walls and enemies; never reloads
     pg_ultimatum: {
-        bullet: { pierce: true, speed: 200, distance: 40, falloff: 0.8, tracerColor: "cw_plasma", tracerWidth: 0.14 },
-        damageMult: 1.6,
+        // 12 x 30: a near one-shot even if some pellets miss
+        bullet: { damage: 30, pierce: true, speed: 200, distance: 40, falloff: 0.8, tracerColor: "cw_plasma", tracerWidth: 0.14 },
         gun: {
             bulletCount: 12,
             shotSpread: 5,
@@ -185,7 +185,7 @@ export const GunOverrides: Record<string, GunEffect> = {
     // a stream of water
     pg_water_rifle: { gun: { fireMode: "auto", fireDelay: 0.09 } },
     // Portalium laser: blue
-    pg_prototype: { bullet: { tracerColor: "cw_plasma" } },
+    pg_prototype: { bullet: { damage: 200, tracerColor: "cw_plasma" } },
 };
 
 /** melee in surviv terms: all swing like a katana, these change how hard, fast and far */

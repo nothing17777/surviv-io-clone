@@ -778,14 +778,15 @@ export class Bullet {
     /** nearest living enemy ahead of the shooter, for homing (magic) shots */
     findHomingTarget(pos: Vec2, dir: Vec2): number {
         let best = 0;
-        let bestDist = 45;
+        let bestDist = 70;
         for (const p of this.bulletManager.game.playerBarn.livingPlayers) {
             if (p.__id === this.playerId || (this.player && p.teamId === this.player.teamId)) continue;
             if (!util.sameLayer(p.layer, this.layer)) continue;
             const to = v2.sub(p.pos, pos);
             const dist = v2.length(to);
             // only things roughly where the shooter is aiming
-            if (dist >= bestDist || v2.dot(v2.normalizeSafe(to, dir), dir) < 0.7) continue;
+            // anyone in front of the shooter (a ~140 degree cone), not just right on the aim line
+            if (dist >= bestDist || v2.dot(v2.normalizeSafe(to, dir), dir) < 0.35) continue;
             best = p.__id;
             bestDist = dist;
         }
