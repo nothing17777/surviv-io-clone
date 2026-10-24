@@ -158,11 +158,11 @@ export const GunOverrides: Record<string, GunEffect> = {
     // red beam
     pg_railgun: { bullet: { tracerColor: "cw_laser" } },
     // "insanely fast" (use time 5, about 12 shots/s) with shots that light up their path
-    tr_s_d_m_g: { gun: { fireDelay: 0.08 }, bullet: { tracerColor: "cw_plasma", tracerWidth: 0.14 } },
+    tr_sdmg: { gun: { fireDelay: 0.08 }, bullet: { tracerColor: "cw_plasma", tracerWidth: 0.14 } },
     // two barrels: two big blasts, then reload
     pg_double_barreled_shotgun: { gun: { maxClip: 2, maxReload: 2, extendedClip: 2, extendedReload: 2, fireDelay: 0.25 }, damageMult: 1.3 },
     // napalm: the blast leaves fire burning on the ground for a few seconds
-    pg_napalm_cannon: {
+    pg_napalmcannon: {
         bullet: { linger: { explosion: "explosion_cw_fire", duration: 3, interval: 0.4 }, tracerColor: "cw_flame" },
     },
     // a stream of water

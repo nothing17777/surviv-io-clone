@@ -128,7 +128,10 @@ def pick(table, key, default):
 
 
 def slug(name):
-    return re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
+    # the production build mangles anything containing "m_" (its name for internal fields),
+    # so S.D.M.G. becomes sdmg and napalm_cannon napalmcannon
+    out = re.sub(r"[^a-z0-9]+", "_", name.lower().replace(".", "")).strip("_")
+    return out.replace("m_", "m")
 
 
 def trim(im):
