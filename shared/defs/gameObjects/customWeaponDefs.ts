@@ -2,16 +2,17 @@
 
 /** [id, display name, game, base surviv gun, effect] */
 export const CustomGuns: Array<[string, string, string, string, string]> = [
-    ["tr_last_prism", "Last Prism", "Terraria", "famas", "laser"],
+    ["tr_last_prism", "Last Prism", "Terraria", "famas", "prism"],
     ["tr_megashark", "Megashark", "Terraria", "m249", "plain"],
     ["tr_minishark", "Minishark", "Terraria", "vector", "plain"],
     ["tr_s_d_m_g", "S.D.M.G.", "Terraria", "m249", "plain"],
     ["pg_combat_rifle", "Combat Rifle", "Pixel Gun 3D", "ak47", "plain"],
     ["pg_dark_matter_generator", "Dark Matter Generator", "Pixel Gun 3D", "famas", "void"],
+    ["pg_excalibur", "Excalibur", "Pixel Gun 3D", "m249", "minigun"],
     ["pg_gauss_cannon", "Gauss Cannon", "Pixel Gun 3D", "sv98", "rail"],
-    ["pg_heavy_sniper_rifle", "Heavy Sniper Rifle", "Pixel Gun 3D", "sv98", "plain"],
+    ["pg_heavy_sniper_rifle", "Heavy Sniper Rifle", "Pixel Gun 3D", "sv98", "sniper_pierce"],
     ["pg_laser_minigun", "Laser Minigun", "Pixel Gun 3D", "m249", "laser"],
-    ["pg_prototype", "Prototype", "Pixel Gun 3D", "ak47", "laser"],
+    ["pg_prototype", "Prototype", "Pixel Gun 3D", "sv98", "laser"],
     ["pg_railgun", "Railgun", "Pixel Gun 3D", "sv98", "rail"],
     ["pg_rocket_launcher", "Rocket Launcher", "Pixel Gun 3D", "barrett", "rocket"],
     ["pg_tesla_cannon", "Tesla Cannon", "Pixel Gun 3D", "barrett", "shock"],
@@ -25,5 +26,4 @@ export const CustomMelees: Array<[string, string, string, string]> = [
     ["tr_star_wrath", "Star Wrath", "Terraria", "legendary"],
     ["tr_terra_blade", "Terra Blade", "Terraria", "legendary"],
     ["tr_zenith", "Zenith", "Terraria", "legendary"],
-    ["pg_excalibur", "Excalibur", "Pixel Gun 3D", "legendary"],
 ];

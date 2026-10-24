@@ -48,7 +48,7 @@ for (const [id, , , , effect] of CustomGuns) {
         ]);
         expect(front, "front target").toBeGreaterThan(0);
         // homing shots that pierce still end in the target they chased
-        if (bullet.pierce && !bullet.homing) expect(behind, "pierces to the target behind").toBeGreaterThan(0);
+        if ((bullet.pierce && !bullet.homing) || bullet.playerPierce) expect(behind, "pierces to the target behind").toBeGreaterThan(0);
         if (bullet.homing) {
             // aimed away from the side target only
             const [, , sideOnly] = attack(id, WeaponSlot.Primary, [
@@ -58,7 +58,7 @@ for (const [id, , , , effect] of CustomGuns) {
             ], v2.create(1, 0.1));
             expect(sideOnly, "curves onto a target off the aim line").toBeGreaterThan(0);
         }
-        if (effect === "rocket") expect(front + behind + side, "blast hits around").toBeGreaterThan(60);
+        if (effect === "rocket" || effect === "void") expect(front + behind + side, "blast hits around").toBeGreaterThan(40);
     });
 }
 

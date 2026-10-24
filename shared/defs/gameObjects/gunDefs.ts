@@ -3,7 +3,7 @@ import { type DeepPartial, util } from "../../utils/util.ts";
 import type { Vec2 } from "../../utils/v2.ts";
 import { BulletDefs } from "./bulletDefs.ts";
 import { CustomGuns } from "./customWeaponDefs.ts";
-import { BaseGunLengths, GunEffects, SwingShotBullets } from "./customWeaponEffects.ts";
+import { BaseGunLengths, GunEffects, GunOverrides, SwingShotBullets } from "./customWeaponEffects.ts";
 import type { BaseWeaponDef } from "./itemTypes.ts";
 
 export interface GunDef extends BaseWeaponDef {
@@ -91,6 +91,10 @@ export interface GunDef extends BaseWeaponDef {
     reloadTimeAlt?: number;
     toMouseHit?: boolean;
     burstSounds?: number;
+    /** seconds of holding fire to reach full fire rate (starts 3x slower), like a minigun */
+    spinUp?: number;
+    /** seconds of holding fire for Last Prism's six beams to close into one 3x beam */
+    prismCharge?: number;
 }
 
 function defineGunSkin(baseType: string, params: DeepPartial<GunDef>): GunDef {
@@ -3672,7 +3676,8 @@ Object.assign(BulletDefs, SwingShotBullets);
 // Each gets its own bullet so the effect (laser, flame, homing magic...) can change it.
 const CustomGunDefs: Record<string, GunDef> = Object.fromEntries(
     CustomGuns.map(([id, name, , base, effectName]) => {
-        const effect = GunEffects[effectName];
+        const override = GunOverrides[id] ?? {};
+        const effect: typeof override = util.mergeDeep({}, GunEffects[effectName], override);
         const baseBullet = BulletDefs[BaseDefs[base].bulletType];
         const bulletType = `bullet_${id}`;
         BulletDefs[bulletType] = {

@@ -68,7 +68,35 @@ export class BulletBarn {
 
     damages: Array<DamageParams & { obj: GameObject }> = [];
 
+    /** dark matter vortexes: an explosion that keeps going off where the shot hit */
+    lingering: Array<{
+        explosion: string;
+        duration: number;
+        interval: number;
+        next: number;
+        pos: Vec2;
+        layer: number;
+        source?: Player;
+        gameSourceType: string;
+    }> = [];
+
     update(dt: number): void {
+        for (let i = this.lingering.length - 1; i >= 0; i--) {
+            const l = this.lingering[i];
+            l.duration -= dt;
+            l.next -= dt;
+            if (l.next <= 0) {
+                l.next += l.interval;
+                this.game.explosionBarn.addExplosion(l.explosion, l.pos, l.layer, {
+                    source: l.source,
+                    gameSourceType: l.gameSourceType,
+                    weaponSourceType: l.gameSourceType,
+                    damageType: GameConfig.DamageType.Player,
+                });
+            }
+            if (l.duration <= 0) this.lingering.splice(i, 1);
+        }
+
         let activeCount = 0;
         for (let i = 0; i < this.bullets.length; i++) {
             const bullet = this.bullets[i];
@@ -190,6 +218,13 @@ export class Bullet {
 
     /** Meowmere's cats bounce off every obstacle */
     bounce = false;
+
+    /** Terra Blade / Heavy Sniper shots go through players, losing some damage on each */
+    playerPierce = false;
+
+    /** Zenith's swords fly out, then back to the shooter */
+    boomerang = false;
+    returning = false;
     canReflect!: boolean;
     damagedObjIds!: Set<number>;
 
@@ -247,6 +282,9 @@ export class Bullet {
         this.devShot = this.player?.botBrain?.level === "super_hacker";
         this.defPierce = !!bulletDef.pierce;
         this.bounce = !!bulletDef.bounce;
+        this.playerPierce = !!bulletDef.playerPierce;
+        this.boomerang = !!bulletDef.boomerang;
+        this.returning = false;
         this.homingId = bulletDef.homing && this.reflectCount === 0 ? this.findHomingTarget(params.pos, this.dir) : 0;
         let distance = bulletDef.distance
             / Math.pow(GameConfig.bullet.reflectDistDecay, this.reflectCount);
@@ -378,6 +416,23 @@ export class Bullet {
     }
 
     update(dt: number): void {
+        // Zenith: halfway out it turns and flies back to the shooter, able to hit everyone again
+        if (this.boomerang) {
+            if (!this.returning && this.distanceTraveled >= this.distance / 2) {
+                this.returning = true;
+                this.homingId = 0;
+                this.damagedObjIds.clear();
+            }
+            if (this.returning) {
+                const owner = this.player;
+                if (!owner || owner.dead || v2.length(v2.sub(owner.pos, this.pos)) < 1.5) {
+                    this.alive = false;
+                    this.active = false;
+                    return;
+                }
+                this.dir = v2.normalizeSafe(v2.sub(owner.pos, this.pos), this.dir);
+            }
+        }
         // super hacker: bend toward the target's current spot; once it's through them (or they're gone), fly straight
         if (this.homingId) {
             const target = this.bulletManager.game.objectRegister.getById(this.homingId);
@@ -398,7 +453,9 @@ export class Bullet {
             }
         }
         const posOld = v2.copy(this.pos);
-        const distLeft = this.distance - v2.length(v2.sub(this.startPos, this.pos));
+        const distLeft = this.boomerang
+            ? this.distance - this.distanceTraveled
+            : this.distance - v2.length(v2.sub(this.startPos, this.pos));
         const moveDist = math.min(distLeft, dt * this.speed);
         this.distanceTraveled += moveDist;
 
@@ -427,6 +484,16 @@ export class Bullet {
             // since they spawn a bunch of explosions at once
             if (this.onHitFx === "explosion_rounds" && def.useExplosiveRoundsAlt) {
                 this.onHitFx = "explosion_rounds_sg";
+            }
+            if (def.linger) {
+                this.bulletManager.lingering.push({
+                    ...def.linger,
+                    pos: v2.sub(this.pos, v2.mul(this.dir, 0.1)),
+                    layer: this.layer,
+                    next: def.linger.interval,
+                    source: this.player,
+                    gameSourceType: this.shotSourceType,
+                });
             }
             this.bulletManager.game.explosionBarn.addExplosion(
                 this.onHitFx,
@@ -688,7 +755,12 @@ export class Bullet {
                 }
                 hit = col.collidable && !this.pierce;
                 // a homing shot that pierces still ends in its target
-                if (this.defPierce && col.player?.__id === this.homingId) hit = true;
+                if (this.defPierce && !this.boomerang && col.player?.__id === this.homingId) hit = true;
+                // going through players costs damage
+                if (this.playerPierce) {
+                    hit = false;
+                    this.damage *= 1 - (GameObjectDefs.typeToDef(this.bulletType, "bullet").pierceLoss ?? 0);
+                }
             } else if (col.type == "pan") {
                 // pans don't stop the super hacker either
                 if (this.devShot) continue;
@@ -722,9 +794,22 @@ export class Bullet {
 
     reflect(pos: Vec2, normal: Vec2, objId: number) {
         if (!this.canReflect) return;
-        if (this.reflectCount >= GameConfig.bullet.maxReflect) return;
+        const def = GameObjectDefs.typeToDef(this.bulletType, "bullet");
+        if (this.reflectCount >= (def.maxBounces ?? GameConfig.bullet.maxReflect)) return;
         if (this.reflected) return;
         this.reflected = true;
+
+        // Meowmere: a bigger rainbow blast at each bounce
+        if (def.bounceExplosions) {
+            const n = Math.min(this.reflectCount, def.bounceExplosions.length - 1);
+            this.bulletManager.game.explosionBarn.addExplosion(def.bounceExplosions[n], v2.copy(pos), this.layer, {
+                source: this.player,
+                gameSourceType: this.shotSourceType,
+                weaponSourceType: this.shotSourceType,
+                mapSourceType: this.mapSourceType,
+                damageType: this.damageType,
+            });
+        }
 
         const dot = v2.dot(this.dir, normal);
         const dir = v2.add(v2.mul(normal, dot * -2), this.dir);

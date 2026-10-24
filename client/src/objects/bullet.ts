@@ -82,6 +82,18 @@ export class BulletBarn {
         /** a laser-type custom weapon's shot: pierces like the super hacker's but only flies its range */
         defPierce: boolean;
         homingId: number;
+        /** Terra Blade / Heavy Sniper: through players, stopped by walls */
+        playerPierce: boolean;
+        /** Zenith: flies out, then back to the shooter */
+        boomerang: boolean;
+        returning: boolean;
+        traveled: number;
+        /** lasers: the trail runs all the way back to the muzzle */
+        beam: boolean;
+        /** custom weapons' projectile image (cat, star, orb...) */
+        fxSprite: PIXI.Sprite;
+        fxSize: number;
+        fxSpin: number;
     }> = [];
 
     tracerColors = {} as typeof GameConfig["tracerColors"];
@@ -113,6 +125,9 @@ export class BulletBarn {
             b.bulletTrail = PIXI.Sprite.from("player-bullet-trail-02.img");
             b.bulletTrail.anchor.set(0.5, 0.5);
             b.container.addChild(b.bulletTrail);
+            b.fxSprite = new PIXI.Sprite();
+            b.fxSprite.anchor.set(0.5, 0.5);
+            b.fxSprite.visible = false;
             this.bullets.push(b);
         }
 
@@ -143,6 +158,19 @@ export class BulletBarn {
         b.combatStims = bullet.combatStims;
         b.pierce = bullet.pierce;
         b.defPierce = !!bulletDef.pierce;
+        b.playerPierce = !!bulletDef.playerPierce;
+        b.boomerang = !!bulletDef.boomerang;
+        b.returning = false;
+        b.traveled = 0;
+        b.beam = !!bulletDef.beam;
+        const fxImg = bulletDef.sprites ? util.randomItem(bulletDef.sprites) : bulletDef.sprite;
+        b.fxSprite.visible = !!fxImg;
+        if (fxImg) {
+            b.fxSprite.texture = PIXI.Texture.from(fxImg);
+            b.fxSprite.rotation = 0;
+            b.fxSize = bulletDef.spriteSize ?? 2;
+            b.fxSpin = bulletDef.spin ?? 0;
+        }
         b.homingId = bullet.homingId;
         b.particleTicker = util.random(0.05, 0.15);
 
@@ -186,6 +214,7 @@ export class BulletBarn {
         }
         b.container.visible = true;
         renderer.addPIXIObj(b.container, b.layer, 20);
+        if (fxImg) renderer.addPIXIObj(b.fxSprite, b.layer, 21);
     }
 
     m_update(
@@ -202,28 +231,59 @@ export class BulletBarn {
         for (let i = 0; i < this.bullets.length; i++) {
             const b = this.bullets[i];
             if (b.collided) {
-                b.scale = math.max(b.scale - dt * 6, 0);
+                b.fxSprite.visible = false;
+                // beams fade out where they are instead of shrinking into the hit point
+                if (b.beam) {
+                    b.bulletTrail.alpha = math.max(b.bulletTrail.alpha - dt * 5, 0);
+                    if (b.bulletTrail.alpha <= 0) b.scale = 0;
+                } else {
+                    b.scale = math.max(b.scale - dt * 6, 0);
+                }
                 if (b.scale <= 0) {
                     b.collided = false;
                     b.container.visible = false;
                 }
             }
             if (b.alive) {
+                // Zenith's swords turn back halfway, like on the server
+                if (b.boomerang) {
+                    if (!b.returning && b.traveled >= b.distance / 2) {
+                        b.returning = true;
+                        b.homingId = 0;
+                    }
+                    if (b.returning) {
+                        const owner = playerBarn.getPlayerById(b.playerId);
+                        if (!owner || owner.m_netData.m_dead || v2.length(v2.sub(owner.m_pos, b.pos)) < 1.5) {
+                            b.alive = false;
+                            b.container.visible = false;
+                            b.fxSprite.visible = false;
+                            continue;
+                        }
+                        b.dir = v2.normalizeSafe(v2.sub(owner.m_pos, b.pos), b.dir);
+                        b.container.rotation = Math.atan2(b.dir.x, b.dir.y) - Math.PI / 2;
+                    }
+                }
                 // the super hacker's shot curves toward its target, like on the server
                 if (b.homingId) {
                     const target = playerBarn.getPlayerById(b.homingId);
                     if (!target || target.m_netData.m_dead) {
                         b.homingId = 0;
                         // the super hacker's shots end; magic ones fly on straight
-                        if (b.pierce && !b.defPierce) b.alive = false;
+                        if (b.pierce && !b.defPierce) {
+                            b.alive = false;
+                            b.fxSprite.visible = false;
+                        }
                     } else {
                         b.dir = v2.normalizeSafe(v2.sub(target.m_pos, b.pos), b.dir);
                         const ang = Math.atan2(b.dir.x, b.dir.y);
                         b.container.rotation = ang - Math.PI / 2;
                     }
                 }
-                const distLeft = b.distance - v2.length(v2.sub(b.startPos, b.pos));
+                const distLeft = b.boomerang
+                    ? b.distance - b.traveled
+                    : b.distance - v2.length(v2.sub(b.startPos, b.pos));
                 const distTravel = math.min(distLeft, dt * b.speed);
+                b.traveled += distTravel;
                 const posOld = v2.copy(b.pos);
                 b.pos = v2.add(b.pos, v2.mul(b.dir, distTravel));
 
@@ -461,9 +521,9 @@ export class BulletBarn {
                                 filter: "muffled",
                             });
                         }
-                        hit = col.collidable && !b.pierce;
+                        hit = col.collidable && !b.pierce && !b.playerPierce;
                         // through its target: it ends there, like on the server
-                        if (b.pierce && col.player?.__id === b.homingId) {
+                        if (b.pierce && !b.boomerang && col.player?.__id === b.homingId) {
                             b.homingId = 0;
                             hit = true;
                         }
@@ -557,8 +617,18 @@ export class BulletBarn {
                 const screenPos = camera.m_pointToScreen(b.pos);
                 b.container.position.set(screenPos.x, screenPos.y);
                 const screenScale = camera.m_pixels(1);
-                const trailLength = math.min(b.tracerLength * 15, dist / 2);
+                // a beam reaches back to where it was fired; Zenith's turning swords keep a short trail
+                const trailLength = b.beam ? dist / 2 : math.min(b.tracerLength * 15, (b.boomerang ? b.traveled : dist) / 2);
                 b.container.scale.set(screenScale * trailLength * b.scale, screenScale);
+                if (b.fxSprite.visible) {
+                    const tex = b.fxSprite.texture;
+                    b.fxSprite.position.set(screenPos.x, screenPos.y);
+                    const s = camera.m_pixels(b.fxSize) / Math.max(tex.width, 1);
+                    b.fxSprite.scale.set(s, s);
+                    b.fxSprite.rotation = b.fxSpin
+                        ? b.fxSprite.rotation + b.fxSpin * 0.016
+                        : b.container.rotation;
+                }
             }
         }
     }

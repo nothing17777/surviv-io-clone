@@ -2,7 +2,7 @@ import { Rarity } from "../../gameConfig.ts";
 import { type DeepPartial, util } from "../../utils/util.ts";
 import type { Vec2 } from "../../utils/v2.ts";
 import { CustomMelees } from "./customWeaponDefs.ts";
-import { MeleeEffects } from "./customWeaponEffects.ts";
+import { MeleeEffects, MeleeOverrides } from "./customWeaponEffects.ts";
 import type { BaseLoadoutItem, BaseWeaponDef } from "./itemTypes.ts";
 
 export interface MeleeDef extends BaseWeaponDef, BaseLoadoutItem {
@@ -1436,7 +1436,7 @@ const CustomMeleeDefs: Record<string, MeleeDef> = Object.fromEntries(
     CustomMelees.map(([id, name, , effect]) => [
         id,
         defineMeleeSkin("katana", {
-            ...MeleeEffects[effect],
+            ...util.mergeDeep({}, MeleeEffects[effect], MeleeOverrides[id] ?? {}),
             name,
             noPotatoSwap: true,
             lootImg: {

@@ -26,6 +26,26 @@ export interface BulletDef {
     homing?: boolean;
     /** bounces off any wall or obstacle, not just metal ones */
     bounce?: boolean;
+    /** how many times a bouncing shot bounces (default GameConfig.bullet.maxReflect) */
+    maxBounces?: number;
+    /** explosion at each bounce, by bounce number (the last repeats) */
+    bounceExplosions?: string[];
+    /** goes through players (not walls), losing pierceLoss of its damage on each */
+    playerPierce?: boolean;
+    pierceLoss?: number;
+    /** drawn as a solid beam from the muzzle to the shot, like a laser */
+    beam?: boolean;
+    /** flies out half its range, then back to the shooter */
+    boomerang?: boolean;
+    /** keeps exploding where it hit, like a vortex */
+    linger?: { explosion: string; duration: number; interval: number };
+    /** image drawn on the shot, pointing along it (one picked at random from sprites) */
+    sprite?: string;
+    sprites?: string[];
+    /** image length in world units */
+    spriteSize?: number;
+    /** turns per second */
+    spin?: number;
 }
 
 export const BaseDefs: Record<string, BulletDef> = {

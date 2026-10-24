@@ -17,19 +17,42 @@ export interface GunEffect {
 
 export const GunEffects: Record<string, GunEffect> = {
     plain: {},
-    // straight beam: near instant, goes through players and walls
+    // straight beam: near instant, goes through players and walls, drawn as a solid beam
     laser: {
-        bullet: { pierce: true, speed: 220, tracerColor: "cw_laser", tracerWidth: 0.2, tracerLength: 1.6, falloff: 1 },
+        bullet: { pierce: true, beam: true, speed: 400, tracerColor: "cw_laser", tracerWidth: 0.2, falloff: 1 },
     },
-    // railgun / gauss: one slow heavy beam through everything
+    // railgun / gauss: one instant heavy beam through everything
     rail: {
-        bullet: { pierce: true, speed: 300, distance: 300, tracerColor: "cw_plasma", tracerWidth: 0.3, tracerLength: 2 },
+        bullet: { pierce: true, beam: true, speed: 500, distance: 300, tracerColor: "cw_plasma", tracerWidth: 0.35 },
         damageMult: 1.6,
     },
-    // plasma, tesla, lightning: shots burst with a shock on impact
+    // Last Prism: six rainbow beams that close into one 3x beam over 3 seconds of firing
+    prism: {
+        bullet: { pierce: true, beam: true, speed: 400, distance: 70, falloff: 1, tracerColor: "cw_rainbow", tracerWidth: 0.25 },
+        gun: { prismCharge: 3, fireMode: "auto", fireDelay: 0.1, shotSpread: 0, moveSpread: 0, maxClip: 200, maxReload: 200 },
+    },
+    // Pixel Gun 3D Excalibur: a minigun that spins up over about 1.5 s to 10 shots/s
+    minigun: {
+        gun: { spinUp: 1.45, fireDelay: 0.1, isMinigun: true },
+    },
+    // Heavy Sniper Rifle: shots go through players, losing damage on each
+    sniper_pierce: {
+        bullet: { playerPierce: true, pierceLoss: 0.25 },
+    },
+    // Tesla Cannon: slow, short range electric orbs that blow up in a shock
     shock: {
-        bullet: { onHit: "explosion_cw_shock", tracerColor: "cw_plasma", tracerWidth: 0.16, speed: 130 },
-        damageMult: 0.85,
+        bullet: {
+            onHit: "explosion_cw_tesla",
+            tracerColor: "cw_plasma",
+            tracerWidth: 0.3,
+            tracerLength: 0.3,
+            speed: 40,
+            distance: 45,
+            sprite: "img/custom-weapons/fx/tesla_orb.png",
+            spriteSize: 2.2,
+            spin: 8,
+        },
+        damageMult: 0.7,
     },
     // flamethrowers: short range, a stream of fire that bursts on hit
     flame: {
@@ -58,9 +81,21 @@ export const GunEffects: Record<string, GunEffect> = {
     magic: {
         bullet: { homing: true, speed: 55, distance: 70, falloff: 1, tracerColor: "cw_magic", tracerWidth: 0.22 },
     },
-    // black holes, dark matter: seek and pierce
+    // Dark Matter Generator: explosive orbs that leave a damaging vortex for a few seconds
     void: {
-        bullet: { homing: true, pierce: true, speed: 50, distance: 70, tracerColor: "cw_void", tracerWidth: 0.3 },
+        bullet: {
+            onHit: "explosion_cw_dark",
+            linger: { explosion: "explosion_cw_vortex", duration: 3, interval: 0.5 },
+            speed: 45,
+            distance: 80,
+            tracerColor: "cw_void",
+            tracerWidth: 0.4,
+            tracerLength: 0.4,
+            sprite: "img/custom-weapons/fx/dark_orb.png",
+            spriteSize: 2.4,
+            spin: -5,
+        },
+        damageMult: 0.8,
     },
     // bows and crossbows: slow heavy arrows
     arrow: {
@@ -81,10 +116,32 @@ export const GunEffects: Record<string, GunEffect> = {
             tracerColor: "cw_flame",
             tracerWidth: 0.4,
             tracerLength: 0.6,
+            sprite: "img/custom-weapons/fx/rocket.png",
+            spriteSize: 2.6,
         },
         damageMult: 0.5,
-        gun: { maxClip: 4, maxReload: 4, extendedClip: 6, extendedReload: 6, fireDelay: 0.9, bulletCount: 1, shotSpread: 1 },
+        // one rocket per 3 s reload, like Pixel Gun 3D
+        gun: {
+            maxClip: 1,
+            maxReload: 1,
+            extendedClip: 1,
+            extendedReload: 1,
+            reloadTime: 3,
+            fireDelay: 0.5,
+            bulletCount: 1,
+            shotSpread: 1,
+        },
     },
+};
+
+/** tweaks to one weapon on top of its effect, from its wiki page */
+export const GunOverrides: Record<string, GunEffect> = {
+    // purple lasers
+    pg_laser_minigun: { bullet: { tracerColor: "cw_magic" } },
+    // red beam
+    pg_railgun: { bullet: { tracerColor: "cw_laser" } },
+    // Portalium laser: blue
+    pg_prototype: { bullet: { tracerColor: "cw_plasma" } },
 };
 
 /** melee in surviv terms: all swing like a katana, these change how hard, fast and far */
@@ -117,6 +174,24 @@ export const BaseGunLengths: Record<string, number> = {
     potato_cannon: 52,
 };
 
+/** tweaks to one melee weapon, from its wiki page */
+export const MeleeOverrides: Record<string, DeepPartial<MeleeDef>> = {
+    // a purple aura swings out past the blade, and a second one toward the cursor: no flying projectile
+    tr_night_s_edge: { damage: 45, attack: { offset: { x: 2.6, y: 0 }, rad: 2.8, cooldownTime: 0.42 } },
+    // a big yellow aura reaching about twice the blade's length
+    tr_excalibur: { damage: 55, attack: { offset: { x: 3.2, y: 0 }, rad: 3.2, cooldownTime: 0.33 } },
+};
+
+/** the glowing aura drawn around each swing, as in Terraria */
+export const SwingArcs: Record<string, string> = {
+    tr_terra_blade: "img/custom-weapons/fx/arc_green.png",
+    tr_night_s_edge: "img/custom-weapons/fx/arc_purple.png",
+    tr_excalibur: "img/custom-weapons/fx/arc_gold.png",
+    tr_meowmere: "img/custom-weapons/fx/arc_rainbow.png",
+    tr_star_wrath: "img/custom-weapons/fx/arc_pink.png",
+    tr_zenith: "img/custom-weapons/fx/arc_rainbow.png",
+};
+
 /** what a sword fires with each swing in its own game */
 export interface SwingShot {
     bullet: string;
@@ -128,19 +203,14 @@ export interface SwingShot {
 }
 
 export const SwingShots: Record<string, SwingShot> = {
-    // a green beam that flies through everything
+    // a fast green slash that goes through enemies (losing 25% each) and stops at walls
     tr_terra_blade: { bullet: "bullet_cw_terra_beam" },
-    // a short purple slash wave
-    tr_night_s_edge: { bullet: "bullet_cw_night_wave" },
-    // holy light waves
-    tr_excalibur: { bullet: "bullet_cw_holy_wave" },
-    pg_excalibur: { bullet: "bullet_cw_holy_wave" },
-    // a rainbow cat that bounces off walls
+    // a cat head with a rainbow trail that bounces 4 times, blowing up bigger each bounce
     tr_meowmere: { bullet: "bullet_cw_meowmere_cat" },
-    // stars rain down where you aim
+    // three pink stars fall onto where you aim
     tr_star_wrath: { bullet: "bullet_cw_star", count: 3, spread: 3, fromSky: true },
-    // a fan of spectral swords that seek enemies
-    tr_zenith: { bullet: "bullet_cw_zenith_sword", count: 5, spread: 12 },
+    // three swords arc out at the cursor and fly back, seeking enemies on the way out
+    tr_zenith: { bullet: "bullet_cw_zenith_sword", count: 3, spread: 18 },
 };
 
 const swingBullet = (b: Partial<BulletDef>): BulletDef => ({
@@ -160,10 +230,59 @@ const swingBullet = (b: Partial<BulletDef>): BulletDef => ({
 });
 
 export const SwingShotBullets: Record<string, BulletDef> = {
-    bullet_cw_terra_beam: swingBullet({ damage: 32, distance: 45, speed: 55, pierce: true, tracerColor: "cw_terra" }),
-    bullet_cw_night_wave: swingBullet({ damage: 22, distance: 25, speed: 45, pierce: true }),
-    bullet_cw_holy_wave: swingBullet({ damage: 26, distance: 30, pierce: true, tracerColor: "cw_holy" }),
-    bullet_cw_meowmere_cat: swingBullet({ damage: 28, distance: 60, speed: 45, bounce: true, tracerColor: "cw_rainbow", tracerWidth: 0.45 }),
-    bullet_cw_star: swingBullet({ damage: 24, speed: 80, onHit: "explosion_cw_shock", tracerColor: "cw_star", tracerWidth: 0.4, tracerLength: 0.8 }),
-    bullet_cw_zenith_sword: swingBullet({ damage: 20, distance: 50, speed: 60, pierce: true, homing: true, tracerColor: "cw_rainbow", tracerWidth: 0.35, tracerLength: 0.7 }),
+    bullet_cw_terra_beam: swingBullet({
+        damage: 34,
+        distance: 45,
+        speed: 60,
+        playerPierce: true,
+        pierceLoss: 0.25,
+        tracerColor: "cw_terra",
+        tracerWidth: 0.3,
+        sprite: "img/custom-weapons/fx/terra_slash.png",
+        spriteSize: 3,
+    }),
+    bullet_cw_meowmere_cat: swingBullet({
+        damage: 30,
+        distance: 60,
+        speed: 45,
+        playerPierce: true,
+        bounce: true,
+        maxBounces: 4,
+        bounceExplosions: ["explosion_cw_rainbow_1", "explosion_cw_rainbow_2", "explosion_cw_rainbow_3", "explosion_cw_rainbow_4"],
+        tracerColor: "cw_rainbow",
+        tracerWidth: 0.45,
+        sprite: "img/custom-weapons/fx/cat.png",
+        spriteSize: 1.8,
+    }),
+    bullet_cw_star: swingBullet({
+        damage: 26,
+        speed: 80,
+        onHit: "explosion_cw_star",
+        tracerColor: "cw_star",
+        tracerWidth: 0.4,
+        tracerLength: 0.8,
+        sprite: "img/custom-weapons/fx/star.png",
+        spriteSize: 1.8,
+        spin: 10,
+    }),
+    bullet_cw_zenith_sword: swingBullet({
+        damage: 30,
+        distance: 36,
+        speed: 55,
+        pierce: true,
+        homing: true,
+        boomerang: true,
+        tracerColor: "cw_rainbow",
+        tracerWidth: 0.25,
+        tracerLength: 0.6,
+        sprites: [
+            "img/custom-weapons/world/tr_zenith.png",
+            "img/custom-weapons/world/tr_terra_blade.png",
+            "img/custom-weapons/world/tr_meowmere.png",
+            "img/custom-weapons/world/tr_star_wrath.png",
+            "img/custom-weapons/world/tr_night_s_edge.png",
+            "img/custom-weapons/world/tr_excalibur.png",
+        ],
+        spriteSize: 3.2,
+    }),
 };

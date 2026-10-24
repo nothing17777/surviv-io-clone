@@ -50,6 +50,7 @@ NOT_MELEE = {"eventide", "marrow", "the_undertaker", "zeus_chain-sword"}
 
 # first matching pattern picks the base surviv gun to clone
 GUN_BASES = [
+    (r"^prototype$", "sv98"),
     (r"tactical_shotgun|dual_shotguns", "saiga"),
     (r"shotgun|boomstick|shotbow|dragon_breath|triple_bite|cerberus", "m870"),
     (r"semi_auto_sniper", "svd"),
@@ -75,6 +76,9 @@ GUN_BASES = [
 
 # first matching pattern picks what the gun does (see shared/defs/gameObjects/customWeaponEffects.ts)
 GUN_EFFECTS = [
+    (r"last_prism", "prism"),
+    (r"heavy_sniper", "sniper_pierce"),
+    (r"^excalibur$", "minigun"),
     (r"launcher|rocket|bazooka|napalm|snowman_cannon|ko_cannon|star_cannon|celebration|apocalypse|"
      r"armageddon|mega_destroyer|big_buddy|huge_boy|sandgun|destruction_system|grenade", "rocket"),
     (r"railgun|gauss|impulse|photon|anti-|one_shot|neutron", "rail"),
@@ -166,13 +170,15 @@ def main():
                 im = im.resize((im.width * 4, im.height * 4), Image.NEAREST)
             fit(im, 128, pixel).save(os.path.join(OUT, "loot", wid + ".png"))
 
-            if MELEE.search(key) and key not in NOT_MELEE:
+            # Pixel Gun 3D's Excalibur is a minigun, not a sword
+            is_melee = MELEE.search(key) and key not in NOT_MELEE and not (prefix == "pg" and key == "excalibur")
+            if is_melee:
                 # held melee sprites point right like the katana's
                 fit(sideways(im), 128, pixel).save(os.path.join(OUT, "world", wid + ".png"))
                 melees.append((wid, name, game, pick(MELEE_EFFECTS, key, "sword")))
                 continue
             fit(upright(im), 160, pixel).save(os.path.join(OUT, "world", wid + ".png"))
-            gunBase = next((b for p, b in GUN_BASES if re.search(p, key)), "ak47")
+            gunBase = "m249" if (prefix == "pg" and key == "excalibur") else pick(GUN_BASES, key, "ak47")
             guns.append((wid, name, game, gunBase, pick(GUN_EFFECTS, key, "plain")))
 
     lines = [

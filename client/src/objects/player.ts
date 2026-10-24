@@ -3,6 +3,7 @@ import * as PIXI from "pixi.js-legacy";
 import type { LootDef } from "../../../shared/defs/gameObjectDefs.ts";
 import type { BoostDef, HealDef } from "./../../../shared/defs/gameObjects/gearDefs.ts";
 import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
+import { SwingArcs } from "../../../shared/defs/gameObjects/customWeaponEffects.ts";
 import { type MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
 import type { CookImg, ThrowableDef, ThrowableHandImgKey } from "../../../shared/defs/gameObjects/throwableDefs.ts";
 import type { ObstacleDef } from "../../../shared/defs/mapObjects/obstacles/obstacleDefs.ts";
@@ -191,6 +192,10 @@ export class Player implements AbstractObject {
     footRContainer = new PIXI.Container();
 
     bodyContainer = new PIXI.Container();
+
+    /** the glowing aura a Terraria sword leaves on each swing */
+    swingArc = new PIXI.Sprite();
+    swingArcTicker = 1;
 
     container = new PIXI.Container();
     nameText = createPlayerNameText();
@@ -382,6 +387,9 @@ export class Player implements AbstractObject {
         this.bodyContainer.addChild(this.patchSprite);
         this.bodyContainer.addChild(this.bodyEffectSprite);
         this.bodyContainer.addChild(this.handLContainer);
+        this.swingArc.anchor.set(0, 0.5);
+        this.swingArc.visible = false;
+        this.bodyContainer.addChild(this.swingArc);
         this.bodyContainer.addChild(this.handRContainer);
         this.bodyContainer.addChild(this.visorSprite);
         this.bodyContainer.addChild(this.helmetSprite);
@@ -2211,6 +2219,15 @@ export class Player implements AbstractObject {
         this.anim.data = this.selectAnim(type);
         this.anim.seq = seq;
         this.anim.ticker = 0;
+        const arc = type === Anim.Melee ? SwingArcs[this.m_netData.m_activeWeapon] : undefined;
+        if (arc) {
+            const def = GameObjectDefs.typeToDef(this.m_netData.m_activeWeapon, "melee");
+            // as big as the swing reaches; the arc image is 118px in radius
+            const reach = (def.attack.offset.x + def.attack.rad) * 16;
+            this.swingArc.texture = PIXI.Texture.from(arc);
+            this.swingArc.scale.set(reach / 118, reach / 118);
+            this.swingArcTicker = 0;
+        }
         for (let i = 0; i < this.bones.length; i++) {
             const a = this.anim.bones[i];
             a.weight = 0;
@@ -2219,6 +2236,13 @@ export class Player implements AbstractObject {
     }
 
     updateAnim(dt: number, animCtx: AnimCtx) {
+        // the swing aura sweeps across and fades in a quarter second
+        this.swingArcTicker += dt / 0.25;
+        this.swingArc.visible = this.swingArcTicker < 1;
+        if (this.swingArc.visible) {
+            this.swingArc.alpha = 1 - this.swingArcTicker;
+            this.swingArc.rotation = math.lerp(this.swingArcTicker, -0.7, 0.7);
+        }
         if (this.anim.data.type == "none") {
             this.playAnim(Anim.None, this.anim.seq);
         }

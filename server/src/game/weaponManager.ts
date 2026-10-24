@@ -60,6 +60,9 @@ export class WeaponManager {
 
     meleeAttacks: number[] = [];
 
+    /** how long fire has been held with the current gun, for minigun spin up and Last Prism's charge */
+    holdTime = 0;
+
     meleeAnimCooldown = 0;
 
     get cookingThrowable() {
@@ -363,6 +366,8 @@ export class WeaponManager {
             this.scheduledReload = false;
             this.tryReload();
         }
+
+        this.holdTime = player.shootHold && weapon.ammo > 0 ? this.holdTime + dt : 0;
 
         switch (itemDef.fireMode) {
             case "auto":
@@ -727,6 +732,10 @@ export class WeaponManager {
         const firstShotAccuracy = weapon.recoilTime <= 0;
 
         weapon.cooldown = itemDef.fireDelay;
+        // minigun: starts 3x slower and spins up to full rate
+        if (itemDef.spinUp) {
+            weapon.cooldown *= math.lerp(math.min(this.holdTime / itemDef.spinUp, 1), 3, 1);
+        }
         weapon.recoilTime = itemDef.recoilTime;
 
         // Check firing location
@@ -950,6 +959,20 @@ export class WeaponManager {
                 reflectObjId: this.player.obstacleOutfit?.__id,
                 onHitFx: hasExplosive ? "explosion_rounds" : undefined,
             };
+
+            // Last Prism: six beams fanned out that close into one beam doing 3x damage
+            if (itemDef.prismCharge) {
+                const t = math.min(this.holdTime / itemDef.prismCharge, 1);
+                if (t >= 1) {
+                    params.damageMult *= 3;
+                } else {
+                    for (let k = 0; k < 6; k++) {
+                        const ang = math.deg2rad((k - 2.5) * 8 * (1 - t));
+                        this.player.game.bulletBarn.fireBullet({ ...params, dir: v2.rotate(shotDir, ang), shotFx: k === 0 });
+                    }
+                    continue;
+                }
+            }
 
             this.player.game.bulletBarn.fireBullet(params);
 
