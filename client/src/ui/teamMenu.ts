@@ -240,6 +240,9 @@ export class TeamMenu {
             this.setRoomProperty("privateAllyBotsSameKit", (e.currentTarget as HTMLInputElement).checked);
             this.syncOwnKitToBots();
         });
+        $("#team-no-kill-loot").on("change", (e) => {
+            this.setRoomProperty("privateNoKillLoot", (e.currentTarget as HTMLInputElement).checked);
+        });
         $("#team-kit-enemy-bots").on("change", (e) => {
             this.setRoomProperty("privateEnemyBotsSameKit", (e.currentTarget as HTMLInputElement).checked);
             this.syncOwnKitToBots();
@@ -1313,6 +1316,9 @@ export class TeamMenu {
                     .prop("disabled", !this.isLeader);
                 $("#team-kit-enemy-bots")
                     .prop("checked", this.roomData.privateEnemyBotsSameKit ?? true)
+                    .prop("disabled", !this.isLeader);
+                $("#team-no-kill-loot")
+                    .prop("checked", !!this.roomData.privateNoKillLoot)
                     .prop("disabled", !this.isLeader);
                 if (god) {
                     const kit = shared

@@ -2982,6 +2982,7 @@ export class Player extends BaseGameObject {
         //
         // drop loot
         //
+        const lootBefore = this.game.lootBarn.loots.length;
 
         for (let i = 0; i < GameConfig.WeaponSlot.Count; i++) {
             const weap = this.weapons[i];
@@ -3060,6 +3061,16 @@ export class Player extends BaseGameObject {
         }
         this._perks.length = 0;
         this._perkTypes.length = 0;
+
+        // private match "No kill loot": take back everything that just dropped
+        if (this.game.config.privateMatch?.noKillLoot) {
+            const barn = this.game.lootBarn;
+            for (const loot of barn.loots.splice(lootBefore)) {
+                loot.destroy();
+                const i = barn.newLoots.indexOf(loot);
+                if (i >= 0) barn.newLoots.splice(i, 1);
+            }
+        }
 
         // Wipe inventory
         this.invManager.wipeInventory();

@@ -56,6 +56,8 @@ export interface ServerGameConfig {
         /** Same Kit: whether bots on the leader's side / the other side get it */
         allyBotsSameKit?: boolean;
         enemyBotsSameKit?: boolean;
+        /** killed players drop nothing */
+        noKillLoot?: boolean;
         /** weapons for bots on the leader's side / the other side, over their level's kit */
         allyBotKit?: PrivateLoadout;
         enemyBotKit?: PrivateLoadout;
@@ -98,6 +100,7 @@ export const zFindGamePrivateBody = z.object({
             leaderSide: z.number().int().min(0).max(1).optional(),
             allyBotsSameKit: z.boolean().optional(),
             enemyBotsSameKit: z.boolean().optional(),
+            noKillLoot: z.boolean().optional(),
             allyBotKit: zPrivateLoadout.optional(),
             enemyBotKit: zPrivateLoadout.optional(),
             customMap: zCustomMap.optional(),
