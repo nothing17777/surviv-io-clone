@@ -101,8 +101,8 @@ export const GunEffects: Record<string, GunEffect> = {
     nanobots: {
         bullet: {
             homing: true,
-            speed: 45,
-            distance: 80,
+            speed: 75,
+            distance: 120,
             falloff: 1,
             onHit: "explosion_cw_star",
             tracerColor: "cw_flame",
