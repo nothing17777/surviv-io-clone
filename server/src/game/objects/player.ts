@@ -4467,12 +4467,14 @@ export class Player extends BaseGameObject {
             this.weaponManager.setWeapon(slot, type, gunDef.maxClip);
         }
 
-        const throwDef = GameObjectDefs.typeToDefSafe(godLoadout.throwable);
-        const throwable = throwDef?.type === "throwable" ? godLoadout.throwable : "frag";
+        // only throwables with an inventory slot; others (bomb_iron, mirv_mini...) have no bag size
+        const isBagThrowable = (t: string) =>
+            t in GameConfig.bagSizes && GameObjectDefs.typeToDefSafe(t)?.type === "throwable";
+        const throwable = isBagThrowable(godLoadout.throwable) ? godLoadout.throwable : "frag";
         // only the picked throwables; the full bag would hand out every kind
         const carried = [
             throwable,
-            ...(godLoadout.extraThrowables ?? []).filter((t) => GameObjectDefs.typeToDefSafe(t)?.type === "throwable"),
+            ...(godLoadout.extraThrowables ?? []).filter(isBagThrowable),
         ];
         for (const item of Object.keys(GameConfig.bagSizes) as InventoryItem[]) {
             if (!carried.includes(item) && GameObjectDefs.typeToDefSafe(item)?.type === "throwable") {
