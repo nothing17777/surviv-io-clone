@@ -162,11 +162,6 @@ export function loadoutToKit(l: GodLoadout) {
     };
 }
 
-/** your saved God Kit: picks plus consumable counts and the two toggles */
-export function loadPersonalKit(): PrivateLoadout {
-    return { ...defaultPrivateLoadout, ...loadoutToKit(loadGodLoadout()), ...loadDuelCounts("you") };
-}
-
 export function saveGodLoadout(loadout: GodLoadout, key = godLoadoutKey) {
     try {
         localStorage.setItem(key, JSON.stringify(loadout));
@@ -333,17 +328,12 @@ const countFields = [
     ["painkiller", "Pills", 4],
 ] as const;
 type CountKey = (typeof countFields)[number][0];
-const flagFields = [
-    ["throwablesUnlimited", "Unlimited throws"],
-    ["allGoodPerks", "All good perks"],
-] as const;
-type FlagKey = (typeof flagFields)[number][0];
-export type DuelCounts = Pick<PrivateLoadout, CountKey> & Record<FlagKey, boolean>;
+export type DuelCounts = Pick<PrivateLoadout, CountKey>;
 type CountSide = "you" | "bot" | "ally";
 
 export function loadDuelCounts(side: CountSide): DuelCounts {
     const counts = {} as DuelCounts;
-    let saved: Partial<Record<CountKey | FlagKey, unknown>> = {};
+    let saved: Partial<Record<CountKey, unknown>> = {};
     try {
         saved = JSON.parse(localStorage.getItem(`survev_duel_counts_${side}`) || "{}");
     } catch {}
@@ -351,14 +341,7 @@ export function loadDuelCounts(side: CountSide): DuelCounts {
         const v = Number(saved[key]);
         counts[key] = Number.isFinite(v) ? Math.min(max, Math.max(0, Math.round(v))) : defaultPrivateLoadout[key];
     }
-    for (const [key] of flagFields) counts[key] = saved[key] === true;
     return counts;
-}
-
-export function saveDuelCounts(side: CountSide, counts: DuelCounts) {
-    try {
-        localStorage.setItem(`survev_duel_counts_${side}`, JSON.stringify(counts));
-    } catch {}
 }
 
 /** number inputs for each side's consumables, saved in this browser */
@@ -373,17 +356,6 @@ export function initDuelCounts() {
                 const v = Math.round(Number(input.val()));
                 all[key] = Number.isFinite(v) ? Math.min(max, Math.max(0, v)) : all[key];
                 input.val(all[key]);
-                try {
-                    localStorage.setItem(`survev_duel_counts_${side}`, JSON.stringify(all));
-                } catch {}
-            });
-            box.append($("<label>", { class: "god-heal" }).append($("<span>", { text: label }), input));
-        }
-        for (const [key, label] of flagFields) {
-            const input = $("<input>", { type: "checkbox" }).prop("checked", counts[key]);
-            input.on("change", () => {
-                const all = loadDuelCounts(side);
-                all[key] = input.prop("checked") as boolean;
                 try {
                     localStorage.setItem(`survev_duel_counts_${side}`, JSON.stringify(all));
                 } catch {}

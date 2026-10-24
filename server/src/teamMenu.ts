@@ -269,9 +269,8 @@ class Room {
         this.data.privateSharedKit = props.privateSharedKit ?? this.data.privateSharedKit;
         this.data.privateAllyBotsSameKit = props.privateAllyBotsSameKit ?? this.data.privateAllyBotsSameKit;
         this.data.privateEnemyBotsSameKit = props.privateEnemyBotsSameKit ?? this.data.privateEnemyBotsSameKit;
-        // null clears a side's kit, missing leaves it alone
-        if (props.privateBotAllyKit !== undefined) this.data.privateBotAllyKit = props.privateBotAllyKit;
-        if (props.privateBotEnemyKit !== undefined) this.data.privateBotEnemyKit = props.privateBotEnemyKit;
+        this.data.privateBotAllyKit = props.privateBotAllyKit ?? this.data.privateBotAllyKit;
+        this.data.privateBotEnemyKit = props.privateBotEnemyKit ?? this.data.privateBotEnemyKit;
         // the leader owns the kit; zod already clamped the numbers
         if (props.privateLoadout) {
             this.data.privateLoadout = props.privateLoadout;
@@ -398,8 +397,8 @@ class Room {
                     leaderSide: this.data.privateVsBots ? 0 : (this.players[0]?.team ?? 0),
                     allyBotsSameKit: this.data.privateAllyBotsSameKit,
                     enemyBotsSameKit: this.data.privateEnemyBotsSameKit,
-                    allyBotKit: this.data.privateBotAllyKit ?? undefined,
-                    enemyBotKit: this.data.privateBotEnemyKit ?? undefined,
+                    allyBotKit: this.data.privateBotAllyKit,
+                    enemyBotKit: this.data.privateBotEnemyKit,
                     customMap: customMap ?? undefined,
                     bots: this.data.privateVsBots || ffa ? undefined : [...this.data.privateBots, ...this.botFill(customMap)],
                     botSettings: this.data.privateBotSettings,
