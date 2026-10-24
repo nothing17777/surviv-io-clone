@@ -1077,9 +1077,21 @@ export class WeaponManager {
             let pos = v2.add(player.pos, v2.mul(player.dir, 1.5));
             let dir = v2.rotate(player.dir, angle);
             let distance: number | undefined;
+            let homingId = 0;
             if (shot.toCursor) {
-                // out to the cursor and back: a boomerang turns at half its distance
-                distance = math.clamp(player.toMouseLen * 2, 8, 70);
+                // Zenith: every sword converges on the cursor, anywhere on screen, and swords lock onto
+                // whoever is nearest the cursor. A boomerang turns at half its distance, so that's twice the trip.
+                const k = i - (count - 1) / 2;
+                let target = v2.add(player.mousePos, v2.mul(v2.perp(player.dir), k * 1.5));
+                const enemy = this.nearestEnemyTo(player.mousePos, 10);
+                if (enemy) {
+                    target = enemy.pos;
+                    homingId = enemy.__id;
+                }
+                dir = v2.normalizeSafe(v2.sub(target, pos), player.dir);
+                // fan the swords out a little on the way so they don't overlap
+                dir = v2.rotate(dir, math.deg2rad(k * (shot.spread ?? 0)));
+                distance = math.clamp(v2.length(v2.sub(target, pos)) * 2, 4, 140);
             }
             if (shot.fromSky) {
                 // a star lands on the aim point, falling in from behind and to the side
@@ -1088,7 +1100,7 @@ export class WeaponManager {
                 dir = v2.normalize(v2.sub(target, pos));
                 distance = v2.length(v2.sub(target, pos));
             }
-            player.game.bulletBarn.fireBullet({
+            const bullet = player.game.bulletBarn.fireBullet({
                 playerId: player.__id,
                 bulletType: shot.bullet,
                 gameSourceType: this.activeWeapon,
@@ -1102,6 +1114,7 @@ export class WeaponManager {
                 shotFx: false,
                 reflectCount: 0,
             });
+            if (homingId) bullet.homingId = homingId;
         }
         // a wide wave: parallel shots across its width, spaced wider than a player so nobody is hit twice
         for (const off of shot.lanes?.offsets ?? []) {
@@ -1118,6 +1131,22 @@ export class WeaponManager {
                 reflectCount: 0,
             });
         }
+    }
+
+    /** the living enemy closest to a point, within rad */
+    nearestEnemyTo(pos: Vec2, rad: number): Player | undefined {
+        let best: Player | undefined;
+        let bestDist = rad;
+        for (const p of this.player.game.playerBarn.livingPlayers) {
+            if (p === this.player || p.teamId === this.player.teamId) continue;
+            if (!util.sameLayer(p.layer, this.player.layer)) continue;
+            const dist = v2.length(v2.sub(p.pos, pos));
+            if (dist < bestDist) {
+                best = p;
+                bestDist = dist;
+            }
+        }
+        return best;
     }
 
     meleeDamage(): void {

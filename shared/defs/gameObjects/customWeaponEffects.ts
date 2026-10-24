@@ -266,8 +266,9 @@ export const SwingShots: Record<string, SwingShot> = {
     tr_meowmere: { bullet: "bullet_cw_meowmere_cat" },
     // three pink stars fall onto where you aim
     tr_star_wrath: { bullet: "bullet_cw_star", count: 3, spread: 3, fromSky: true },
-    // a spread of spinning swords rush out to the cursor, whirl there and fly back, cutting through everything
-    tr_zenith: { bullet: "bullet_cw_zenith_sword", count: 5, spread: 14, toCursor: true },
+    // a flurry of spinning swords rush to the cursor anywhere on screen (locking onto an enemy near it),
+    // then fly back, cutting through walls and everyone both ways
+    tr_zenith: { bullet: "bullet_cw_zenith_sword", count: 6, spread: 6, toCursor: true },
 };
 
 const swingBullet = (b: Partial<BulletDef>): BulletDef => ({
@@ -335,8 +336,8 @@ export const SwingShotBullets: Record<string, BulletDef> = {
     }),
     bullet_cw_zenith_sword: swingBullet({
         damage: 30,
-        distance: 70,
-        speed: 55,
+        distance: 140,
+        speed: 100,
         pierce: true,
         boomerang: true,
         spin: 18,
