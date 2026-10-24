@@ -162,11 +162,11 @@ export const GunOverrides: Record<string, GunEffect> = {
     // Ultimatum: a sniper-like shotgun whose 12 pellets go through walls and enemies; never reloads
     pg_ultimatum: {
         // 12 x 30: a near one-shot even if some pellets miss
-        bullet: { damage: 30, pierce: true, speed: 200, distance: 40, falloff: 0.8, tracerColor: "cw_plasma", tracerWidth: 0.14 },
+        bullet: { damage: 30, pierce: true, speed: 200, distance: 55, falloff: 0.8, tracerColor: "cw_plasma", tracerWidth: 0.14 },
         gun: {
             bulletCount: 12,
-            shotSpread: 5,
-            moveSpread: 8,
+            shotSpread: 3,
+            moveSpread: 5,
             // ammo is sent as one byte, so 250 is about as big as a clip gets
             maxClip: 250,
             maxReload: 250,
