@@ -27,7 +27,7 @@ import {
 } from "../../../../shared/gameConfig.ts";
 import * as net from "../../../../shared/net/net.ts";
 import { ObjectType } from "../../../../shared/net/objectSerializeFns.ts";
-import { goodPerks, type PrivateLoadout } from "../../../../shared/types/api.ts";
+import { goodPerks, isHackerLevel, type PrivateLoadout } from "../../../../shared/types/api.ts";
 import { type Circle, coldet } from "../../../../shared/utils/coldet.ts";
 import { collider } from "../../../../shared/utils/collider.ts";
 import { math } from "../../../../shared/utils/math.ts";
@@ -871,7 +871,7 @@ export class Player extends BaseGameObject {
 
     /** the hacker's pan blocks and draws twice as big */
     get bigPan() {
-        return this.botBrain?.level === "hacker";
+        return isHackerLevel(this.botBrain?.level);
     }
     healEffect = false;
     healEffectTicker = 0;
@@ -4916,7 +4916,7 @@ export class Player extends BaseGameObject {
         }
 
         // the hacker bot moves at double speed, the scripter at 1.3x
-        if (this.botBrain?.level === "hacker") this.speed *= 2;
+        if (isHackerLevel(this.botBrain?.level)) this.speed *= 2;
         else if (this.botBrain?.level === "scripter") this.speed *= 1.3;
 
         this.speed = math.clamp(this.speed, 1, 10000);

@@ -6,7 +6,7 @@ import { api } from "./api.ts";
 import type { ConfigManager } from "./config.ts";
 import { device } from "./device.ts";
 import type { Localization } from "./ui/localization.ts";
-import { type BotLevel, BotLevels } from "../../shared/types/api.ts";
+import { type BotLevel, BotLevels, botLevelName } from "../../shared/types/api.ts";
 import { fillMapSelect, getModeMaps, isDuelMap, isGodLoadoutMap, modeLabel } from "./ui/modePicker.ts";
 
 /** value of the "Duel (Bots)" entry in the main menu map dropdown */
@@ -166,7 +166,7 @@ export class SiteInfo {
                 class: "server-select menu-option btn-hollow btn-hollow-selected",
             });
             for (const level of BotLevels) {
-                const text = `${label}: ${level[0].toUpperCase()}${level.slice(1)}`;
+                const text = `${label}: ${botLevelName(level)}`;
                 sel.append($("<option>", { value: level, text }));
             }
             sel.val(BotLevels.includes(saved as BotLevel) ? saved : "intermediate");

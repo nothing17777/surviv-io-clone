@@ -6,6 +6,7 @@ import {
     type BotArmy,
     type BotLevel,
     BotLevels,
+    botLevelName,
     type BotSettingsByLevel,
     defaultBotSettings,
     defaultPrivateLoadout,
@@ -643,7 +644,7 @@ export class TeamMenu {
         for (const level of BotLevels) {
             const tab = $("<a/>", {
                 class: "btn-hollow btn-darken team-menu-option botset-tab",
-                text: `${level[0].toUpperCase()}${level.slice(1)}`,
+                text: botLevelName(level),
                 "data-level": level,
             });
             tab.on("click", () => {
@@ -971,7 +972,7 @@ export class TeamMenu {
             const preset = $("<div/>", { class: "bot-army-preset" });
             const pick = $("<select/>", { class: "server-select menu-option btn-hollow btn-hollow-selected bot-army-preset-level" });
             for (const level of BotLevels) {
-                pick.append($("<option/>", { value: level, text: `${level[0].toUpperCase()}${level.slice(1)}` }));
+                pick.append($("<option/>", { value: level, text: botLevelName(level) }));
             }
             pick.val(this.armyPresetLevel);
             preset.append(pick);
@@ -991,7 +992,7 @@ export class TeamMenu {
             BotLevels.forEach((level, i) => {
                 const count = army[side][i];
                 const row = $("<div/>", { class: "bot-army-row" + (count ? " has-bots" : "") });
-                row.append($("<span/>", { class: "bot-army-name", text: `${level[0].toUpperCase()}${level.slice(1)}` }));
+                row.append($("<span/>", { class: "bot-army-name", text: botLevelName(level) }));
                 const data = { "data-side": side, "data-level": level };
                 const step = (delta: number, text: string) =>
                     $("<a/>", { class: "btn-hollow bot-army-step", text, ...data, "data-delta": delta });

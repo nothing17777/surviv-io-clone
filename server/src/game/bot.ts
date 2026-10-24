@@ -13,6 +13,7 @@ import {
     defaultBotSettings,
     defaultPrivateLoadout,
     goodPerks,
+    isHackerLevel,
     type PrivateBot,
     type VsBots,
 } from "../../../shared/types/api.ts";
@@ -143,6 +144,24 @@ const Skills: Record<BotLevel, BotSkill> = {
         cook: 2.2,
         throwError: 0.5,
         panBlock: 0.8,
+        wallhack: true,
+    },
+    /** the hacker, plus it sees everyone; its shots one-shot, pierce everything and never stop (bullet.ts) */
+    super_hacker: {
+        accuracy: 1,
+        dodge: 0.9,
+        reaction: 0,
+        lead: true,
+        turnRate: 1000,
+        burst: [1000, 0],
+        noSpread: true,
+        spin: true,
+        quickSwitch: true,
+        strafeTime: [0.2, 0.6],
+        throwEvery: [4, 7],
+        cook: 2.4,
+        throwError: 0.5,
+        panBlock: 1,
         wallhack: true,
     },
 };
@@ -361,7 +380,7 @@ export class BotBrain {
 
     /** only hackers and scripters swap to the pan in hand to catch shots */
     get panSwap(): boolean {
-        return this.level === "hacker" || this.level === "scripter";
+        return isHackerLevel(this.level) || this.level === "scripter";
     }
 
     /** whether we catch this bullet on the back-worn pan: rolled once per bullet */
@@ -395,7 +414,12 @@ export class BotBrain {
 
     /** only hackers phase through bullets; everyone else has to step out of the way */
     get phaseDodge(): boolean {
-        return this.level === "hacker";
+        return isHackerLevel(this.level);
+    }
+
+    /** dev_nothing: its bullets go through anything to anyone, so every foe is in reach */
+    get superHacker(): boolean {
+        return this.level === "super_hacker";
     }
 
     /**
@@ -492,7 +516,7 @@ export class BotBrain {
         // wallhack: someone it can't shoot is only a place to go, after zone, heals and revives
         if (this.target && this.skill.wallhack) {
             const d = v2.distance(this.target.pos, player.pos);
-            if (d > 80 || !this.canShoot(this.target)) {
+            if (!this.superHacker && (d > 80 || !this.canShoot(this.target))) {
                 this._lastThreat = v2.copy(this.target.pos);
                 this._sinceThreat = 0;
                 this._lastFoe = this.target;
@@ -542,7 +566,7 @@ export class BotBrain {
             if (!this._deflecting) this.pickCombatWeapon(v2.distance(this.target.pos, player.pos), this.target);
             // hurt and carrying heals: fall back behind cover (hackers just keep fighting)
             this._retreat = undefined;
-            if (player.health < 35 && this.settings.heal && this.pickHeal() && this.level !== "hacker" && this.level !== "scripter") {
+            if (player.health < 35 && this.settings.heal && this.pickHeal() && !isHackerLevel(this.level) && this.level !== "scripter") {
                 this._retreat = this.findCover(this.target.pos);
             }
             return;
@@ -751,6 +775,7 @@ export class BotBrain {
 
     /** same floor and nothing solid between us */
     private canShoot(target: Player): boolean {
+        if (this.superHacker) return true;
         return !!util.sameLayer(target.layer, this.player.layer) && this.canSee(target.pos);
     }
 
@@ -788,6 +813,7 @@ export class BotBrain {
 
     /** how far this gun's bullets travel */
     private gunRange(slot: number): number {
+        if (this.superHacker) return 1000;
         const def = GameObjectDefs.typeToDefSafe(this.player.weapons[slot].type);
         if (def?.type !== "gun") return 0;
         return gunDefRange(def as GunDef);
@@ -964,7 +990,7 @@ export class BotBrain {
             const isGun = weapDef?.type === "gun";
             const gunDef = isGun ? (weapDef as GunDef) : undefined;
             // stay where the gun actually reaches
-            const range = gunDef ? gunDefRange(gunDef) * 0.9 : 0;
+            const range = !gunDef ? 0 : this.superHacker ? 1000 : gunDefRange(gunDef) * 0.9;
             const prefDist = !gunDef ? 0 : Math.min(isShotgun(gunDef) ? 7 : 16, range * 0.7);
 
             // strafe sideways and hold the preferred range
@@ -1758,7 +1784,11 @@ export function addBot(game: Game, level: BotLevel, side?: number): Player {
     const joinMsg = new net.JoinMsg();
     // every hacker after the first gets a number, so hacker vs hacker kill feeds stay readable
     const hackers = game.playerBarn.players.filter((p) => p.botBrain?.level === "hacker").length;
-    joinMsg.name = level === "hacker" ? `austrian painter${hackers ? ` ${hackers + 1}` : ""}` : randomBotName();
+    joinMsg.name = level === "hacker"
+        ? `austrian painter${hackers ? ` ${hackers + 1}` : ""}`
+        : level === "super_hacker"
+        ? "dev_nothing"
+        : randomBotName();
     const star = game.config.privateMatch?.filmStar;
     if (star && side === 0 && level !== "hacker" && !game.playerBarn.players.some((p) => p.name === star)) {
         joinMsg.name = star;
@@ -1787,7 +1817,7 @@ export function addBot(game: Game, level: BotLevel, side?: number): Player {
     else if (!sameKit && game.godLoadout && game.fixedLoadout) player.applyGodLoadout(defaultPrivateLoadout);
     player.lockedKit = !!pm?.lockedKits && !!(ally ? pm?.allyBotKit : pm?.enemyBotKit);
     player.botBrain = new BotBrain(player, level, settings);
-    if (level === "hacker") {
+    if (isHackerLevel(level)) {
         for (const perk of HackerPerks) {
             if (player.perks.length >= net.Constants.MaxPerks - 1) break;
             if (!player.hasPerk(perk)) player.addPerk(perk, false);

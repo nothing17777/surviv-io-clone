@@ -96,8 +96,19 @@ export const defaultPrivateLoadout: PrivateLoadout = {
     painkiller: 4,
 };
 
-export const BotLevels = ["beginner", "intermediate", "advanced", "hacker", "scripter"] as const;
+export const BotLevels = ["beginner", "intermediate", "advanced", "hacker", "scripter", "super_hacker"] as const;
 export type BotLevel = (typeof BotLevels)[number];
+
+/** how a level reads in menus */
+export function botLevelName(level: BotLevel): string {
+    if (level === "super_hacker") return "Super Hacker";
+    return `${level[0].toUpperCase()}${level.slice(1)}`;
+}
+
+/** the hacker and the super hacker, which is a hacker with more on top */
+export function isHackerLevel(level: BotLevel | undefined): boolean {
+    return level === "hacker" || level === "super_hacker";
+}
 
 export const MaxPrivateBots = 16;
 
@@ -146,6 +157,7 @@ export const zBotSettingsByLevel = z.object({
     advanced: zBotSettings,
     hacker: zBotSettings,
     scripter: zBotSettings,
+    super_hacker: zBotSettings,
 });
 export type BotSettingsByLevel = z.infer<typeof zBotSettingsByLevel>;
 
@@ -156,6 +168,7 @@ const levelAimDodge: Record<BotLevel, [number, number]> = {
     advanced: [75, 70],
     hacker: [100, 90],
     scripter: [100, 99],
+    super_hacker: [100, 100],
 };
 
 export function defaultBotSettings(): BotSettingsByLevel {
@@ -174,9 +187,10 @@ export function defaultBotSettings(): BotSettingsByLevel {
             kit: null,
         };
     }
-    // hackers and scripters come with an M249, an AWM-S and a pan
+    // hackers, scripters and the super hacker come with an M249, an AWM-S and a pan
     settings.hacker.kit = { ...defaultPrivateLoadout, primary: "m249", secondary: "awc", melee: "pan" };
     settings.scripter.kit = { ...defaultPrivateLoadout, primary: "m249", secondary: "awc", melee: "pan" };
+    settings.super_hacker.kit = { ...defaultPrivateLoadout, primary: "m249", secondary: "awc", melee: "pan" };
     return settings;
 }
 

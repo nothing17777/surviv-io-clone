@@ -174,6 +174,8 @@ export class Bullet {
     isShrapnel!: boolean;
     skipCollision!: boolean;
     reflected!: boolean;
+    /** fired by the super hacker (dev_nothing): one-shots, pierces everything, crosses the map */
+    devShot!: boolean;
     canReflect!: boolean;
     damagedObjIds!: Set<number>;
 
@@ -228,8 +230,10 @@ export class Bullet {
             : distAdjIdxMax / 2;
         const distAdj = math.remap(distAdjIdx, 0, distAdjIdxMax, -1.0, 1.0);
 
+        this.devShot = this.player?.botBrain?.level === "super_hacker";
         let distance = bulletDef.distance
             / Math.pow(GameConfig.bullet.reflectDistDecay, this.reflectCount);
+        if (this.devShot) distance = Constants.MaxPosition;
         if (params.clipDistance) {
             distance = math.min(
                 bulletDef.distance * (params.distanceMult ?? 1),
@@ -261,7 +265,8 @@ export class Bullet {
             0,
             Constants.MaxPosition,
         );
-        this.clipDistance = !!params.clipDistance;
+        // the client works out range from the gun unless told; tell it for the super hacker's map-wide shots
+        this.clipDistance = !!params.clipDistance || this.devShot;
         this.endPos = v2.add(params.pos, v2.mul(this.dir, this.distance));
         this.clientEndPos = v2.copy(this.endPos);
         this.damage = bulletDef.damage * this.damageMult;
@@ -341,7 +346,7 @@ export class Bullet {
         // Store furthest possible travel distance to
         // an indestructible obstacle for the client.
         let maxDistance = this.distance;
-        for (let i = 0; i < colIds.length; i++) {
+        for (let i = 0; i < colIds.length && !this.devShot; i++) {
             const col = colIds[i];
             const obj = col.obj;
             if (obj && !obj.destructible) {
@@ -608,12 +613,12 @@ export class Bullet {
                     dir: this.dir,
                 });
 
-                if (mapDef.reflectBullets) {
+                if (mapDef.reflectBullets && !this.devShot) {
                     this.reflect(col.point, col.normal, col.obj!.__id);
                 }
 
                 // Continue travelling if non-collidable
-                hit = col.collidable;
+                hit = col.collidable && !this.devShot;
             } else if (col.type == "player") {
                 if (!shooterDead) {
                     const isHighValueTarget = this.player?.hasPerk("targeting") && col.player!.perks.length;
@@ -630,16 +635,21 @@ export class Bullet {
                         mapSourceType: this.mapSourceType,
                         source: this.player,
                         damageType: this.damageType,
-                        amount: multiplier * finalDamage,
+                        // the super hacker's shots go through any armor and health
+                        amount: this.devShot ? 10000 : multiplier * finalDamage,
                         dir: this.dir,
                         isExplosion: this.isShrapnel,
-                        armorPenetration: this.apRounds
+                        armorPenetration: this.devShot
+                            ? 1
+                            : this.apRounds
                             ? PerkProperties.ap_rounds.armorPenetration
                             : undefined,
                     });
                 }
-                hit = col.collidable;
+                hit = col.collidable && !this.devShot;
             } else if (col.type == "pan") {
+                // pans don't stop the super hacker either
+                if (this.devShot) continue;
                 hit = col.collidable;
                 this.reflect(col.point, col.normal, col.obj?.__id ?? 0);
             }
