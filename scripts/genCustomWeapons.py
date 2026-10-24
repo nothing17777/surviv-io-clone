@@ -50,6 +50,9 @@ MELEE = re.compile(
 # Eventide and Marrow are bows, not melee
 NOT_MELEE = {"eventide", "marrow", "the_undertaker", "zeus_chain-sword"}
 
+# images drawn facing left, mirrored so the muzzle points right like the rest
+FLIP = {"S.D.M.G."}
+
 # first matching pattern picks the base surviv gun to clone
 GUN_BASES = [
     (r"^prototype$", "sv98"),
@@ -166,6 +169,8 @@ def main():
             key = base.replace('"', "").lower()
             wid = f"{prefix}_{slug(base)}"
             im = trim(Image.open(os.path.join(src, file)).convert("RGBA"))
+            if base in FLIP:
+                im = im.transpose(Image.FLIP_LEFT_RIGHT)
             pixel = prefix == "tr"
             # pixel art is upscaled first so rotating it stays crisp
             if pixel:

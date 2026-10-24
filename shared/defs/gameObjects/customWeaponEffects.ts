@@ -140,6 +140,8 @@ export const GunOverrides: Record<string, GunEffect> = {
     pg_laser_minigun: { bullet: { tracerColor: "cw_magic" } },
     // red beam
     pg_railgun: { bullet: { tracerColor: "cw_laser" } },
+    // "insanely fast" (use time 5, about 12 shots/s) with shots that light up their path
+    tr_s_d_m_g: { gun: { fireDelay: 0.08 }, bullet: { tracerColor: "cw_plasma", tracerWidth: 0.14 } },
     // Portalium laser: blue
     pg_prototype: { bullet: { tracerColor: "cw_plasma" } },
 };
@@ -176,10 +178,16 @@ export const BaseGunLengths: Record<string, number> = {
 
 /** tweaks to one melee weapon, from its wiki page */
 export const MeleeOverrides: Record<string, DeepPartial<MeleeDef>> = {
-    // a purple aura swings out past the blade, and a second one toward the cursor: no flying projectile
-    tr_night_s_edge: { damage: 45, attack: { offset: { x: 2.6, y: 0 }, rad: 2.8, cooldownTime: 0.42 } },
+    // Terraria swords swing over and over while you hold, sweeping a wide arc around you that hits
+    // everything in it. Swing time is the wiki's use time / 60 s; damage scales with its wiki damage.
+    tr_terra_blade: { damage: 38, autoAttack: true, attack: { offset: { x: 1.4, y: 0 }, rad: 3, cooldownTime: 0.3 } },
+    // a purple aura past the blade, and a second one toward the cursor: no flying projectile
+    tr_night_s_edge: { damage: 34, autoAttack: true, attack: { offset: { x: 1.8, y: 0 }, rad: 3.2, cooldownTime: 0.42 } },
     // a big yellow aura reaching about twice the blade's length
-    tr_excalibur: { damage: 55, attack: { offset: { x: 3.2, y: 0 }, rad: 3.2, cooldownTime: 0.33 } },
+    tr_excalibur: { damage: 42, autoAttack: true, attack: { offset: { x: 2.2, y: 0 }, rad: 3.6, cooldownTime: 0.33 } },
+    tr_meowmere: { damage: 46, autoAttack: true, attack: { offset: { x: 1.4, y: 0 }, rad: 3, cooldownTime: 0.23 } },
+    tr_star_wrath: { damage: 44, autoAttack: true, attack: { offset: { x: 1.4, y: 0 }, rad: 3, cooldownTime: 0.27 } },
+    tr_zenith: { damage: 50, autoAttack: true, attack: { offset: { x: 1.4, y: 0 }, rad: 3, cooldownTime: 0.5 } },
 };
 
 /** the glowing aura drawn around each swing, as in Terraria */

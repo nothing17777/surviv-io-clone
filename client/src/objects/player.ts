@@ -197,6 +197,11 @@ export class Player implements AbstractObject {
     swingArc = new PIXI.Sprite();
     swingArcTicker = 1;
 
+    /** a Terraria sword sweeping round the player, like its overhead swing */
+    swingSword = new PIXI.Sprite();
+    swingSwordTicker = 1;
+    swingSwordTime = 0.3;
+
     container = new PIXI.Container();
     nameText = createPlayerNameText();
     auraContainer = new PIXI.Container();
@@ -390,6 +395,10 @@ export class Player implements AbstractObject {
         this.swingArc.anchor.set(0, 0.5);
         this.swingArc.visible = false;
         this.bodyContainer.addChild(this.swingArc);
+        // world sword images point right with the handle at the left edge
+        this.swingSword.anchor.set(0.05, 0.5);
+        this.swingSword.visible = false;
+        this.bodyContainer.addChild(this.swingSword);
         this.bodyContainer.addChild(this.handRContainer);
         this.bodyContainer.addChild(this.visorSprite);
         this.bodyContainer.addChild(this.helmetSprite);
@@ -2227,6 +2236,14 @@ export class Player implements AbstractObject {
             this.swingArc.texture = PIXI.Texture.from(arc);
             this.swingArc.scale.set(reach / 118, reach / 118);
             this.swingArcTicker = 0;
+            if (this.m_netData.m_activeWeapon.startsWith("tr_")) {
+                const tex = PIXI.Texture.from(`img/custom-weapons/world/${this.m_netData.m_activeWeapon}.png`);
+                this.swingSword.texture = tex;
+                const s = reach / 128;
+                this.swingSword.scale.set(s, s);
+                this.swingSwordTime = def.attack.cooldownTime;
+                this.swingSwordTicker = 0;
+            }
         }
         for (let i = 0; i < this.bones.length; i++) {
             const a = this.anim.bones[i];
@@ -2236,6 +2253,14 @@ export class Player implements AbstractObject {
     }
 
     updateAnim(dt: number, animCtx: AnimCtx) {
+        // the sword sweeps from one side round to the other over the swing
+        this.swingSwordTicker += dt / this.swingSwordTime;
+        this.swingSword.visible = this.swingSwordTicker < 1;
+        if (this.swingSword.visible) {
+            const t = 1 - (1 - this.swingSwordTicker) ** 2;
+            this.swingSword.rotation = math.lerp(t, -1.9, 1.9);
+        }
+        this.meleeSprite.alpha = this.swingSword.visible ? 0 : 1;
         // the swing aura sweeps across and fades in a quarter second
         this.swingArcTicker += dt / 0.25;
         this.swingArc.visible = this.swingArcTicker < 1;
