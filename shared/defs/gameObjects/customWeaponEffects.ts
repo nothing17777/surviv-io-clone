@@ -159,7 +159,7 @@ export const GunOverrides: Record<string, GunEffect> = {
     pg_railgun: { bullet: { tracerColor: "cw_laser" } },
     // "insanely fast" (use time 5, about 12 shots/s) with shots that light up their path
     tr_sdmg: { gun: { fireDelay: 0.08 }, bullet: { tracerColor: "cw_plasma", tracerWidth: 0.14 } },
-    // Ultimatum: a sniper-like shotgun whose 12 pellets go through walls and enemies, one shell per reload
+    // Ultimatum: a sniper-like shotgun whose 12 pellets go through walls and enemies; never reloads
     pg_ultimatum: {
         bullet: { pierce: true, speed: 200, distance: 40, falloff: 0.8, tracerColor: "cw_plasma", tracerWidth: 0.14 },
         damageMult: 1.6,
@@ -167,12 +167,13 @@ export const GunOverrides: Record<string, GunEffect> = {
             bulletCount: 12,
             shotSpread: 5,
             moveSpread: 8,
-            maxClip: 1,
-            maxReload: 1,
-            extendedClip: 1,
-            extendedReload: 1,
-            reloadTime: 2.4,
-            fireDelay: 0.3,
+            // ammo is sent as one byte, so 250 is about as big as a clip gets
+            maxClip: 250,
+            maxReload: 250,
+            extendedClip: 250,
+            extendedReload: 250,
+            ammoInfinite: true,
+            fireDelay: 1,
         },
     },
     // two barrels: two big blasts, then reload
