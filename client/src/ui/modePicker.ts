@@ -278,10 +278,22 @@ export function fillItemPicker(prefix: string, slot: string, type: string, value
 
     const items = defsOfType(type);
     if (optionalSlots.has(slot)) items.unshift({ id: "", name: `No ${slot.startsWith("perk") ? "perk" : slot === "chest" ? "vest" : slot.startsWith("throwable") ? "throwable" : slot}` });
-    if (sel.children().length !== items.length) {
+    if (sel.find("option").length !== items.length) {
         sel.empty();
-        for (const item of items) {
-            sel.append($("<option>", { value: item.id, text: item.name, title: itemDesc(item.id) }));
+        // the Terraria / Pixel Gun 3D weapons get their own sections after surviv's own
+        const groups: Array<[string, (id: string) => boolean]> = [
+            ["surviv.io", (id) => !id.startsWith("tr_") && !id.startsWith("pg_")],
+            ["Terraria", (id) => id.startsWith("tr_")],
+            ["Pixel Gun 3D", (id) => id.startsWith("pg_")],
+        ];
+        const hasCustom = items.some((item) => item.id.startsWith("tr_") || item.id.startsWith("pg_"));
+        for (const [label, inGroup] of hasCustom ? groups : [["", () => true] as const]) {
+            const groupItems = items.filter((item) => inGroup(item.id));
+            if (!groupItems.length) continue;
+            const parent = label ? $("<optgroup>", { label }).appendTo(sel) : sel;
+            for (const item of groupItems) {
+                parent.append($("<option>", { value: item.id, text: item.name, title: itemDesc(item.id) }));
+            }
         }
     }
     if (!sel.parent().hasClass("god-row")) {
