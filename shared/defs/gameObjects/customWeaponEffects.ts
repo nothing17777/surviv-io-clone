@@ -252,11 +252,16 @@ export interface SwingShot {
     fromSky?: boolean;
     /** a boomerang that turns back right at the cursor, like Zenith's swords */
     toCursor?: boolean;
+    /** extra shots fired alongside, offset sideways by these many units, so a wide wave hits along its width */
+    lanes?: { bullet: string; offsets: number[] };
 }
 
 export const SwingShots: Record<string, SwingShot> = {
     // a fast green slash that goes through enemies (losing 25% each) and stops at walls
-    tr_terra_blade: { bullet: "bullet_cw_terra_beam" },
+    tr_terra_blade: {
+        bullet: "bullet_cw_terra_beam",
+        lanes: { bullet: "bullet_cw_terra_beam_edge", offsets: [-2.4, 2.4] },
+    },
     // a cat head with a rainbow trail that bounces 4 times, blowing up bigger each bounce
     tr_meowmere: { bullet: "bullet_cw_meowmere_cat" },
     // three pink stars fall onto where you aim
@@ -282,6 +287,7 @@ const swingBullet = (b: Partial<BulletDef>): BulletDef => ({
 });
 
 export const SwingShotBullets: Record<string, BulletDef> = {
+    // a big curved wave of green energy
     bullet_cw_terra_beam: swingBullet({
         damage: 34,
         distance: 45,
@@ -291,7 +297,17 @@ export const SwingShotBullets: Record<string, BulletDef> = {
         tracerColor: "cw_terra",
         tracerWidth: 0.3,
         sprite: "img/custom-weapons/fx/terra_slash.png",
-        spriteSize: 3,
+        spriteSize: 6,
+    }),
+    // the rest of the wave's width: hits, but draws nothing (the crescent covers it)
+    bullet_cw_terra_beam_edge: swingBullet({
+        damage: 34,
+        distance: 45,
+        speed: 60,
+        playerPierce: true,
+        pierceLoss: 0.25,
+        tracerColor: "invis",
+        tracerWidth: 0,
     }),
     bullet_cw_meowmere_cat: swingBullet({
         damage: 30,

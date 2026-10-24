@@ -1103,6 +1103,21 @@ export class WeaponManager {
                 reflectCount: 0,
             });
         }
+        // a wide wave: parallel shots across its width, spaced wider than a player so nobody is hit twice
+        for (const off of shot.lanes?.offsets ?? []) {
+            player.game.bulletBarn.fireBullet({
+                playerId: player.__id,
+                bulletType: shot.lanes!.bullet,
+                gameSourceType: this.activeWeapon,
+                damageType: GameConfig.DamageType.Player,
+                pos: v2.add(v2.add(player.pos, v2.mul(player.dir, 1.5)), v2.mul(v2.perp(player.dir), off)),
+                dir: player.dir,
+                layer: player.layer,
+                damageMult: 1,
+                shotFx: false,
+                reflectCount: 0,
+            });
+        }
     }
 
     meleeDamage(): void {
