@@ -41,78 +41,169 @@ const Notes: Record<string, string> = {
     tr_sdmg: "Insanely fast, glowing shots.",
 };
 
-interface Card {
+type Tab = "gun" | "melee";
+
+interface Row {
     id: string;
     name: string;
     game: string;
+    img: string;
     desc: string;
-    stats: string;
+    values: Record<string, number>;
 }
+
+interface Column {
+    key: string;
+    label: string;
+    /** larger is better, so clicking sorts high to low first */
+    desc?: boolean;
+    places?: number;
+}
+
+const columns: Record<Tab, Column[]> = {
+    gun: [
+        { key: "damage", label: "Damage", desc: true, places: 1 },
+        { key: "pellets", label: "Pellets", desc: true },
+        { key: "dps", label: "DPS", desc: true },
+        { key: "rate", label: "Shots/s", desc: true, places: 1 },
+        { key: "clip", label: "Clip", desc: true },
+        { key: "reload", label: "Reload s", places: 1 },
+        { key: "range", label: "Range", desc: true },
+        { key: "speed", label: "Bullet speed", desc: true },
+    ],
+    melee: [
+        { key: "damage", label: "Damage", desc: true },
+        { key: "swing", label: "s/swing", places: 2 },
+        { key: "dps", label: "DPS", desc: true },
+        { key: "reach", label: "Reach", desc: true, places: 1 },
+    ],
+};
 
 function round(n: number, places = 0) {
     const m = 10 ** places;
     return Math.round(n * m) / m;
 }
 
-function cards(): Card[] {
-    const out: Card[] = [];
-    for (const [id, name, game, , effect] of CustomGuns) {
+function lootImg(id: string) {
+    return (GameObjectDefs.typeToDef(id) as { lootImg: { sprite: string } }).lootImg.sprite;
+}
+
+function gunRows(): Row[] {
+    return CustomGuns.map(([id, name, game, , effect]) => {
         const def = GameObjectDefs.typeToDef(id, "gun");
         const bullet = GameObjectDefs.typeToDef(def.bulletType, "bullet");
-        const dmg = def.bulletCount > 1 ? `${round(bullet.damage)} x${def.bulletCount}` : `${round(bullet.damage)}`;
-        out.push({
+        const rate = 1 / def.fireDelay;
+        return {
             id,
             name,
             game,
+            img: lootImg(id),
             desc: [GunEffectText[effect] ?? "", Notes[id] ?? ""].filter(Boolean).join(" "),
-            stats: `Gun - ${dmg} dmg - ${round(1 / def.fireDelay, 1)}/s - ${def.maxClip} clip - range ${round(bullet.distance)}`,
-        });
-    }
-    for (const [id, name, game] of CustomMelees) {
+            values: {
+                damage: bullet.damage,
+                pellets: def.bulletCount,
+                dps: bullet.damage * def.bulletCount * rate,
+                rate,
+                clip: def.maxClip,
+                reload: def.reloadTime,
+                range: bullet.distance,
+                speed: bullet.speed,
+            },
+        };
+    });
+}
+
+function meleeRows(): Row[] {
+    return CustomMelees.map(([id, name, game]) => {
         const def = GameObjectDefs.typeToDef(id, "melee");
-        out.push({
+        return {
             id,
             name,
             game,
+            img: lootImg(id),
             desc: SwordText[id] ?? (SwingShots[id] ? "Fires a projectile each swing." : "Swings hard and wide."),
-            stats: `Melee - ${def.damage} dmg - ${round(def.attack.cooldownTime, 2)} s/swing`,
-        });
-    }
-    return out;
+            values: {
+                damage: def.damage,
+                swing: def.attack.cooldownTime,
+                dps: def.damage / def.attack.cooldownTime,
+                reach: def.attack.offset.x + def.attack.rad,
+            },
+        };
+    });
 }
 
 /** The catalog of Terraria and Pixel Gun 3D weapons, opened from the icon next to the Armory. */
 export function initCrossoverCatalog() {
     const modal = $("#modal-crossover");
     if (!modal.length) return;
-    const all = cards();
+    const rows: Record<Tab, Row[]> = { gun: gunRows(), melee: meleeRows() };
+    const table = $("#crossover-table");
+    let tab: Tab = "gun";
     let game = "";
+    let sortKey = "name";
+    let sortDesc = false;
 
     function render() {
-        const q = (($("#crossover-search").val() as string) || "").toLowerCase();
-        const shown = all.filter((c) => (!game || c.game === game) && (!q || c.name.toLowerCase().includes(q)));
-        const grid = $("#crossover-grid").empty();
-        for (const c of shown) {
-            const def = GameObjectDefs.typeToDef(c.id) as { lootImg: { sprite: string } };
-            grid.append(
-                $("<div>", { class: "crossover-card" }).append(
-                    $("<img>", { src: def.lootImg.sprite, alt: "" }),
-                    $("<div>").append(
-                        $("<div>", { class: "crossover-name", text: c.name }),
-                        $("<div>", { class: "crossover-game", text: c.game }),
-                        $("<div>", { class: "crossover-desc", text: c.desc }),
-                        $("<div>", { class: "crossover-stats", text: c.stats }),
-                    ),
+        const cols = columns[tab];
+        const query = (($("#crossover-search").val() as string) || "").trim().toLowerCase();
+        const list = rows[tab]
+            .filter((row) => (!game || row.game === game) && (!query || row.name.toLowerCase().includes(query)))
+            .sort((a, b) => {
+                const cmp = sortKey === "name"
+                    ? a.name.localeCompare(b.name)
+                    : sortKey === "game"
+                    ? a.game.localeCompare(b.game) || a.name.localeCompare(b.name)
+                    : a.values[sortKey] - b.values[sortKey];
+                return sortDesc ? -cmp : cmp;
+            });
+
+        const head = $("<tr>").append(
+            $("<th>", { class: "armory-th armory-th-name", text: "Weapon", "data-key": "name" }),
+            $("<th>", { class: "armory-th armory-text", text: "Game", "data-key": "game" }),
+        );
+        for (const col of cols) head.append($("<th>", { class: "armory-th", text: col.label, "data-key": col.key }));
+        head.append($("<th>", { class: "armory-text", text: "What it does" }));
+        head.find(`.armory-th[data-key="${sortKey}"]`).addClass(sortDesc ? "sort-desc" : "sort-asc");
+
+        const body = $("<tbody>");
+        for (const row of list) {
+            const tr = $("<tr>", { class: "armory-row" }).append(
+                $("<td>", { class: "armory-name" }).append(
+                    $("<img>", { class: "armory-img", src: row.img, alt: "" }),
+                    $("<span>", { text: row.name }),
                 ),
+                $("<td>", { class: "armory-text", text: row.game }),
             );
+            for (const col of cols) tr.append($("<td>", { text: round(row.values[col.key], col.places) }));
+            tr.append($("<td>", { class: "armory-text", text: row.desc }));
+            body.append(tr);
         }
-        $("#crossover-count").text(`${shown.length} weapons`);
+        table.empty().append($("<thead>").append(head), body);
+        $("#crossover-count").text(`${list.length} of ${rows[tab].length}`);
     }
 
-    $("#crossover-controls").on("click", ".armory-tab", (e) => {
-        $("#crossover-controls .armory-tab").removeClass("armory-tab-selected");
+    $("#crossover-tabs").on("click", ".armory-tab", (e) => {
+        $("#crossover-tabs .armory-tab").removeClass("armory-tab-selected");
         $(e.currentTarget).addClass("armory-tab-selected");
-        game = $(e.currentTarget).data("game") || "";
+        tab = $(e.currentTarget).attr("data-tab") as Tab;
+        sortKey = "name";
+        sortDesc = false;
+        render();
+    });
+    $("#crossover-games").on("click", ".armory-tab", (e) => {
+        $("#crossover-games .armory-tab").removeClass("armory-tab-selected");
+        $(e.currentTarget).addClass("armory-tab-selected");
+        game = $(e.currentTarget).attr("data-game") || "";
+        render();
+    });
+    table.on("click", ".armory-th", (e) => {
+        const key = $(e.currentTarget).attr("data-key")!;
+        if (key === sortKey) {
+            sortDesc = !sortDesc;
+        } else {
+            sortKey = key;
+            sortDesc = !!columns[tab].find((c) => c.key === key)?.desc;
+        }
         render();
     });
     $("#crossover-search").on("input", render);
