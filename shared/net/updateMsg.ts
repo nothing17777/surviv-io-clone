@@ -380,6 +380,7 @@ export class UpdateMsg implements AbstractMsg {
                 if (bullet.clipDistance) {
                     s.writeFloat(bullet.distance, 0, Constants.MaxPosition, 16);
                 }
+                s.writeBoolean(bullet.pierce);
                 s.writeBoolean(bullet.shotFx);
                 if (bullet.shotFx) {
                     s.writeGameType(bullet.shotSourceType);
@@ -600,6 +601,7 @@ export class UpdateMsg implements AbstractMsg {
                 if (bullet.clipDistance) {
                     bullet.distance = s.readFloat(0, Constants.MaxPosition, 16);
                 }
+                bullet.pierce = s.readBoolean();
                 bullet.shotFx = s.readBoolean();
                 if (bullet.shotFx) {
                     bullet.shotSourceType = s.readGameType();
@@ -742,6 +744,8 @@ export interface Bullet {
     distAdjIdx: number;
     clipDistance: boolean;
     distance: number;
+    /** goes through everything it hits (the super hacker's shots) */
+    pierce: boolean;
     shotFx: boolean;
     shotSourceType: string;
     shotOffhand: boolean;

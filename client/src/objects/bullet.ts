@@ -77,6 +77,8 @@ export class BulletBarn {
         tracerAlphaMin?: number;
         combatStims: boolean;
         particleTicker: number;
+        /** the super hacker's shots: hit fx on everything, stopped by nothing */
+        pierce: boolean;
     }> = [];
 
     tracerColors = {} as typeof GameConfig["tracerColors"];
@@ -136,6 +138,7 @@ export class BulletBarn {
         b.reflectObjId = bullet.reflectObjId;
         b.whizHeard = false;
         b.combatStims = bullet.combatStims;
+        b.pierce = bullet.pierce;
         b.particleTicker = util.random(0.05, 0.15);
 
         const angleRadians = Math.atan2(b.dir.x, b.dir.y);
@@ -404,7 +407,7 @@ export class BulletBarn {
                         );
 
                         // Continue travelling if non-collidable
-                        hit = col.collidable;
+                        hit = col.collidable && !b.pierce;
                     } else if (col.type == "player") {
                         // Don't create a hit particle if the shooting
                         // player is dead; this helps avoid confusion around
@@ -438,7 +441,7 @@ export class BulletBarn {
                                 filter: "muffled",
                             });
                         }
-                        hit = col.collidable;
+                        hit = col.collidable && !b.pierce;
                     } else if (col.type == "pan") {
                         playHitFx(
                             "barrelChip",
@@ -449,7 +452,7 @@ export class BulletBarn {
                             particleBarn,
                             audioManager,
                         );
-                        hit = col.collidable;
+                        hit = col.collidable && !b.pierce;
                     }
                     if (hit) {
                         b.pos = col.point;

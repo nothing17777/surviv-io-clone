@@ -176,6 +176,11 @@ export class Bullet {
     reflected!: boolean;
     /** fired by the super hacker (dev_nothing): one-shots, pierces everything, crosses the map */
     devShot!: boolean;
+
+    /** sent to clients so they draw it going through things too */
+    get pierce(): boolean {
+        return this.devShot;
+    }
     canReflect!: boolean;
     damagedObjIds!: Set<number>;
 
@@ -452,7 +457,8 @@ export class Bullet {
                 if (
                     !(
                         !obj.dead
-                        && (util.sameLayer(obj.layer, this.layer) || 2 & obj.layer)
+                        // the super hacker's shots reach into bunkers and up from them too
+                        && (util.sameLayer(obj.layer, this.layer) || 2 & obj.layer || this.devShot)
                         && (obj.__id !== this.playerId || this.damageSelf)
                         && obj.__id !== this.reflectObjId
                     )
