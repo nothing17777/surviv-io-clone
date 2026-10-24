@@ -2555,6 +2555,9 @@ export class Player extends BaseGameObject {
             }
         }
 
+        // the super hacker has 10,000 health: kept as 100 (the network only sends 0-100), everything hits it for 1%
+        if (this.botBrain?.level === "super_hacker") finalDamage *= GameConfig.player.health / 10000;
+
         if (this._health - finalDamage < 0) {
             if (this.hasPerk("lifeline")) {
                 // Checks to see if the perk can mitigate the damage

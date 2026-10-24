@@ -211,6 +211,7 @@ export class BulletBarn {
                     const target = playerBarn.getPlayerById(b.homingId);
                     if (!target || target.m_netData.m_dead) {
                         b.homingId = 0;
+                        b.alive = false;
                     } else {
                         b.dir = v2.normalizeSafe(v2.sub(target.m_pos, b.pos), b.dir);
                         const ang = Math.atan2(b.dir.x, b.dir.y);
@@ -271,7 +272,8 @@ export class BulletBarn {
 
                 // Obstacles
                 const obstacles = map.m_obstaclePool.m_getPool();
-                for (let j = 0; j < obstacles.length; j++) {
+                // the super hacker's shots go through every obstacle: skip testing all of them each frame
+                for (let j = 0; j < (b.pierce ? 0 : obstacles.length); j++) {
                     const obstacle = obstacles[j];
                     if (
                         !!obstacle.active
@@ -456,8 +458,11 @@ export class BulletBarn {
                             });
                         }
                         hit = col.collidable && !b.pierce;
-                        // through its target: stop curving back at them
-                        if (col.player?.__id === b.homingId) b.homingId = 0;
+                        // through its target: it ends there, like on the server
+                        if (b.pierce && col.player?.__id === b.homingId) {
+                            b.homingId = 0;
+                            hit = true;
+                        }
                     } else if (col.type == "pan") {
                         playHitFx(
                             "barrelChip",

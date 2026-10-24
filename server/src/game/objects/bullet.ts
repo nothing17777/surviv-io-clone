@@ -373,7 +373,11 @@ export class Bullet {
         if (this.homingId) {
             const target = this.bulletManager.game.objectRegister.getById(this.homingId);
             if (target?.__type !== ObjectType.Player || target.dead || this.damagedObjIds.has(this.homingId)) {
+                // done with it: end here instead of flying on across the map (hundreds of these lag clients)
                 this.homingId = 0;
+                this.alive = false;
+                this.active = false;
+                return;
             } else {
                 this.dir = v2.normalizeSafe(v2.sub(target.pos, this.pos), this.dir);
             }
