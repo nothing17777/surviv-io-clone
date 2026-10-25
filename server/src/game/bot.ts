@@ -1815,6 +1815,7 @@ export function addBot(game: Game, level: BotLevel, side?: number): Player {
     const kit = (ally ? pm?.allyBotKit : pm?.enemyBotKit) ?? settings?.kit;
     if (!sameKit && kit) player.applyGodLoadout(kit);
     else if (!sameKit && game.godLoadout && game.fixedLoadout) player.applyGodLoadout(defaultPrivateLoadout);
+    if (pm?.emptyInventory) player.emptyInventory();
     player.lockedKit = !!pm?.lockedKits && !!(ally ? pm?.allyBotKit : pm?.enemyBotKit);
     player.botBrain = new BotBrain(player, level, settings);
     if (isHackerLevel(level)) {

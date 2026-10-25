@@ -58,6 +58,7 @@ export interface RoomData {
     privateEnemyBotsSameKit: boolean;
     /** killed players drop nothing */
     privateNoKillLoot?: boolean;
+    privateEmptyInventory?: boolean;
     /** Duel (Bots): weapons for the bots on each side, over their level's kit */
     /** null clears it */
     privateBotAllyKit?: PrivateLoadout | null;
@@ -149,6 +150,7 @@ export const zClientRoomData = z.object({
     privateAllyBotsSameKit: z.boolean().optional(),
     privateEnemyBotsSameKit: z.boolean().optional(),
     privateNoKillLoot: z.boolean().optional(),
+    privateEmptyInventory: z.boolean().optional(),
     privateBotAllyKit: zPrivateLoadout.nullable().optional(),
     privateBotEnemyKit: zPrivateLoadout.nullable().optional(),
     privateLoadout: zPrivateLoadout.optional(),

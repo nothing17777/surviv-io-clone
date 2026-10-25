@@ -230,6 +230,7 @@ export class PlayerBarn {
             const fixed = this.game.fixedLoadout;
             player.applyGodLoadout(fixed ?? joinMsg.godLoadout);
         }
+        if (this.game.config.privateMatch?.emptyInventory) player.emptyInventory();
 
         return player;
     }
@@ -4581,6 +4582,24 @@ export class Player extends BaseGameObject {
      * guns / melee / throwable that were picked. In a private match every field
      * comes from the party leader instead of the joining player.
      */
+    /** private match "empty inventory": fists, no gear, nothing in the bag */
+    emptyInventory() {
+        this.helmet = "";
+        this.chest = "";
+        this.backpack = "backpack00";
+        for (const item of Object.keys(GameConfig.bagSizes) as InventoryItem[]) {
+            this.invManager.set(item, item === "1xscope" ? 1 : 0);
+        }
+        this.scope = "1xscope";
+        this.zoom = this.scopeZoomRadius[this.scope];
+        this.unlimitedThrowables = false;
+        this.weaponManager.setWeapon(GameConfig.WeaponSlot.Primary, "", 0);
+        this.weaponManager.setWeapon(GameConfig.WeaponSlot.Secondary, "", 0);
+        this.weaponManager.setWeapon(GameConfig.WeaponSlot.Throwable, "", 0);
+        this.weaponManager.setWeapon(GameConfig.WeaponSlot.Melee, "fists", 0);
+        this.weaponManager.setCurWeapIndex(GameConfig.WeaponSlot.Melee);
+    }
+
     applyGodLoadout(
         godLoadout: Pick<net.JoinMsg["godLoadout"], "primary" | "secondary" | "throwable" | "melee"> & Partial<PrivateLoadout>,
     ) {

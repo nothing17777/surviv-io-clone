@@ -130,6 +130,7 @@ class Room {
         privateAllyBotsSameKit: true,
         privateEnemyBotsSameKit: true,
         privateNoKillLoot: false,
+        privateEmptyInventory: false,
         privateLoadout: { ...defaultPrivateLoadout },
         customMap: null,
         privateBots: [],
@@ -272,6 +273,7 @@ class Room {
         this.data.privateAllyBotsSameKit = props.privateAllyBotsSameKit ?? this.data.privateAllyBotsSameKit;
         this.data.privateEnemyBotsSameKit = props.privateEnemyBotsSameKit ?? this.data.privateEnemyBotsSameKit;
         this.data.privateNoKillLoot = props.privateNoKillLoot ?? this.data.privateNoKillLoot;
+        this.data.privateEmptyInventory = props.privateEmptyInventory ?? this.data.privateEmptyInventory;
         // null clears a side's kit, missing leaves it alone
         if (props.privateBotAllyKit !== undefined) this.data.privateBotAllyKit = props.privateBotAllyKit;
         if (props.privateBotEnemyKit !== undefined) this.data.privateBotEnemyKit = props.privateBotEnemyKit;
@@ -407,6 +409,7 @@ class Room {
                     allyBotsSameKit: this.data.privateAllyBotsSameKit,
                     enemyBotsSameKit: this.data.privateEnemyBotsSameKit,
                     noKillLoot: !!this.data.privateNoKillLoot,
+                    emptyInventory: !!this.data.privateEmptyInventory,
                     allyBotKit: this.data.privateBotAllyKit ?? undefined,
                     enemyBotKit: this.data.privateBotEnemyKit ?? undefined,
                     customMap: customMap ?? undefined,

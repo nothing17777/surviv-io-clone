@@ -58,6 +58,8 @@ export interface ServerGameConfig {
         enemyBotsSameKit?: boolean;
         /** killed players drop nothing */
         noKillLoot?: boolean;
+        /** everyone (bots too) spawns with fists and nothing else */
+        emptyInventory?: boolean;
         /** weapons for bots on the leader's side / the other side, over their level's kit */
         allyBotKit?: PrivateLoadout;
         enemyBotKit?: PrivateLoadout;
@@ -101,6 +103,7 @@ export const zFindGamePrivateBody = z.object({
             allyBotsSameKit: z.boolean().optional(),
             enemyBotsSameKit: z.boolean().optional(),
             noKillLoot: z.boolean().optional(),
+            emptyInventory: z.boolean().optional(),
             allyBotKit: zPrivateLoadout.optional(),
             enemyBotKit: zPrivateLoadout.optional(),
             customMap: zCustomMap.optional(),
