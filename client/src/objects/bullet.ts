@@ -61,6 +61,7 @@ export class BulletBarn {
         collided: boolean;
         scale: number;
         playerId: number;
+        bulletType: string;
         pos: Vec2;
         dir: Vec2;
         layer: number;
@@ -150,6 +151,7 @@ export class BulletBarn {
         b.collided = false;
         b.scale = 1;
         b.playerId = bullet.playerId;
+        b.bulletType = bullet.bulletType;
         b.startPos = v2.copy(bullet.pos);
         b.pos = v2.copy(bullet.pos);
         b.dir = v2.copy(bullet.dir);

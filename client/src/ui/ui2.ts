@@ -280,6 +280,7 @@ export class UiManager2 {
         health: {
             inner: domElemById("ui-health-actual"),
             depleted: domElemById("ui-health-depleted"),
+            shield: domElemById("ui-shield-actual"),
         },
         boost: {
             div: domElemById("ui-boost-counter"),
@@ -712,6 +713,7 @@ export class UiManager2 {
         state.health = activePlayer.m_netData.m_dead
             ? 0
             : math.max(activePlayer.m_localData.m_health, 1);
+        (state as any).shield = (activePlayer.m_localData as any).m_shield ?? 0;
         state.boost = activePlayer.m_localData.m_boost;
         state.downed = activePlayer.m_netData.m_downed;
 
@@ -1175,11 +1177,17 @@ export class UiManager2 {
             dom.health.inner.style.backgroundColor = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 1.0)`;
             dom.health.inner.style.width = `${state.health}%`;
             dom.health.depleted.style.width = `${state.health}%`;
-            dom.health.depleted.style.display = state.health > 0 ? "block" : "none";
-            if (state.health > 25) {
-                dom.health.inner.classList.remove("ui-bar-danger");
-            } else {
-                dom.health.inner.classList.add("ui-bar-danger");
+            if (dom.health.inner.classList) {
+                if (state.health > 25) {
+                    dom.health.inner.classList.remove("ui-bar-danger");
+                } else {
+                    dom.health.inner.classList.add("ui-bar-danger");
+                }
+            }
+            if (dom.health.shield) {
+                const shieldPercent = math.clamp((state as any).shield ?? 0, 0, 100);
+                dom.health.shield.style.width = `${shieldPercent}%`;
+                dom.health.shield.style.display = shieldPercent > 0 ? "block" : "none";
             }
         }
         if (patch.boost) {

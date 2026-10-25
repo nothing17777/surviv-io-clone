@@ -527,7 +527,7 @@ export class Client {
             // To avoid setting the spectating player fields to dirty
             updateMsg.activePlayerData = {
                 healthDirty: true,
-                health: player.health,
+                health: player.maxHealth !== 100 ? (player.health / player.maxHealth) * 100 : player.health,
                 boostDirty: true,
                 boost: player.boost,
                 zoomDirty: true,
@@ -542,11 +542,18 @@ export class Client {
                 weapons: player.weapons,
                 spectatorCountDirty: true,
                 spectatorCount: player.spectatorCount,
+                shieldDirty: true,
+                shield: player.shield,
             };
             this.startedSpectating = false;
         } else {
             updateMsg.activePlayerIdDirty = player.__id !== this.lastPlayerId;
-            updateMsg.activePlayerData = player;
+            updateMsg.activePlayerData = player.maxHealth !== 100
+                ? {
+                    ...player,
+                    health: (player.health / player.maxHealth) * 100,
+                }
+                : player;
         }
         this.lastPlayerId = player.__id;
 

@@ -49,6 +49,11 @@ function serializeActivePlayer(s: BitStream, data: LocalDataWithDirty) {
         s.writeUint8(data.spectatorCount);
     }
 
+    s.writeBoolean(!!data.shieldDirty);
+    if (data.shieldDirty) {
+        s.writeFloat(data.shield ?? 0, 0, 200, 8);
+    }
+
     s.writeAlignToNextByte();
 }
 
@@ -100,6 +105,10 @@ function deserializeActivePlayer(s: BitStream, data: LocalDataWithDirty) {
     data.spectatorCountDirty = s.readBoolean();
     if (data.spectatorCountDirty) {
         data.spectatorCount = s.readUint8();
+    }
+    data.shieldDirty = s.readBoolean();
+    if (data.shieldDirty) {
+        data.shield = s.readFloat(0, 200, 8);
     }
     s.readAlignToNextByte();
 }
@@ -837,6 +846,7 @@ export interface LocalData {
         ammo: number;
     }>;
     spectatorCount: number;
+    shield?: number;
 }
 
 export interface LocalDataWithDirty extends LocalData {
@@ -847,6 +857,7 @@ export interface LocalDataWithDirty extends LocalData {
     inventoryDirty: boolean;
     weapsDirty: boolean;
     spectatorCountDirty: boolean;
+    shieldDirty?: boolean;
 }
 
 export interface PlayerStatus {

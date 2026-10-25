@@ -434,7 +434,14 @@ export class Game {
         );
         this.updateAmbience();
 
-        this.m_camera.m_pos = v2.copy(this.m_activePlayer.m_visualPos);
+        const judgeBullet = this.m_bulletBarn.bullets.find(
+            (b) => b.alive && b.playerId === this.m_activePlayer.__id && b.bulletType === "bullet_pg_judge",
+        );
+        if (judgeBullet) {
+            this.m_camera.m_pos = v2.copy(judgeBullet.pos);
+        } else {
+            this.m_camera.m_pos = v2.copy(this.m_activePlayer.m_visualPos);
+        }
         this.m_camera.m_applyShake();
         const zoom = this.m_activePlayer.m_getZoom();
 

@@ -12,7 +12,7 @@ const mapDef: PartialMapDef = {
         name: "Duel",
         icon: "",
         buttonCss: "",
-        backgroundImg: "img/main_splash.png",
+        backgroundImg: "img/splashes/main.webp",
     },
     gameMode: {
         maxPlayers: 8,

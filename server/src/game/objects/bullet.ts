@@ -452,6 +452,18 @@ export class Bullet {
                 this.dir = v2.normalizeSafe(v2.sub(target.pos, this.pos), this.dir);
             }
         }
+        if (this.bulletType === "bullet_pg_judge") {
+            const player = this.player;
+            if (player && !player.dead) {
+                player.activeJudgeRocket = this;
+                const toMouse = v2.sub(player.mousePos, this.pos);
+                if (v2.length(toMouse) > 0.5) {
+                    const targetDir = v2.normalize(toMouse);
+                    this.dir = v2.normalizeSafe(v2.lerp(dt * 4, this.dir, targetDir), this.dir);
+                    this.endPos = v2.add(this.pos, v2.mul(this.dir, this.distance - this.distanceTraveled));
+                }
+            }
+        }
         const posOld = v2.copy(this.pos);
         const distLeft = this.boomerang
             ? this.distance - this.distanceTraveled
@@ -752,6 +764,16 @@ export class Bullet {
                             ? PerkProperties.ap_rounds.armorPenetration
                             : undefined,
                     });
+                    if (col.player.teamId !== this.player?.teamId) {
+                        if (this.shotSourceType === "pg_nanobots_rifle" || this.bulletType === "bullet_pg_nanobots_rifle") {
+                            col.player.applyBleed(4, this.player);
+                        } else if (this.shotSourceType === "pg_acid_shotgun" || this.bulletType === "bullet_pg_acid_shotgun") {
+                            col.player.applyPoison(4, this.player);
+                        } else if (this.shotSourceType === "pg_frozen_dragon" || this.bulletType === "bullet_pg_frozen_dragon") {
+                            col.player.applyBurn(2, this.player);
+                            col.player.freeze("explosion_cw_frost", 0, 2);
+                        }
+                    }
                 }
                 hit = col.collidable && !this.pierce;
                 // a homing shot that pierces still ends in its target

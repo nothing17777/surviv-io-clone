@@ -197,6 +197,7 @@ test("Update Msg", () => {
         curWeapIdx: 0,
         spectatorCountDirty: true,
         spectatorCount: util.randomInt(0, 255),
+        shieldDirty: false,
     };
 
     inMsg.gasDirty = true;

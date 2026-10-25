@@ -460,6 +460,7 @@ export class PlayerBarn {
             player.weapsDirty = false;
             player.spectatorCountDirty = false;
             player.groupStatusDirty = false;
+            player.shieldDirty = false;
             if (flushPlayerStatus) {
                 player.playerStatusDirty = false;
             }
@@ -673,6 +674,7 @@ export class Player extends BaseGameObject {
      */
     playerStatusDirty = false;
 
+    maxHealth: number = GameConfig.player.health;
     private _health: number = GameConfig.player.health;
 
     get health(): number {
@@ -680,20 +682,64 @@ export class Player extends BaseGameObject {
     }
 
     set health(health: number) {
-        health = math.clamp(health, 0, GameConfig.player.health);
+        health = math.clamp(health, 0, this.maxHealth);
         if (this._health === health) return;
         this._health = health;
         this.healthDirty = true;
         this.setGroupStatuses();
 
         if (this.obstacleOutfit) {
-            const healthT = math.clamp(this._health / 100, 0, 1);
+            const healthT = math.clamp(this._health / this.maxHealth, 0, 1);
 
             if (!math.eqAbs(this.obstacleOutfit.healthT, healthT, 0.01)) {
                 this.obstacleOutfit.healthT = healthT;
                 this.obstacleOutfit.setDirty();
             }
         }
+    }
+
+    // Bleed debuff
+    bleedDotDuration = 0;
+    bleedDotTicker = 0;
+    bleedDotSource?: Player;
+
+    // Poison debuff
+    poisonDuration = 0;
+    poisonTicker = 0;
+    poisonSource?: Player;
+
+    // Burn debuff
+    burnDuration = 0;
+    burnTicker = 0;
+    burnSource?: Player;
+
+    // Eclipse shield
+    shield = 0;
+    shieldDirty = false;
+    eclipseHitCount = 0;
+
+    // Judge rocket
+    activeJudgeRocket?: any;
+
+    // Summoner
+    summonerRegenTimer = 0;
+    minionFocusEnemy?: Player;
+    minionFocusTimer = 0;
+    minionAttackCooldowns: number[] = [0, 0.15, 0.3, 0.45];
+
+    applyBleed(duration: number, source?: Player) {
+        this.bleedDotDuration = Math.max(this.bleedDotDuration, duration);
+        if (source) this.bleedDotSource = source;
+    }
+
+    applyPoison(duration: number, source?: Player) {
+        this.poisonDuration = Math.max(this.poisonDuration, duration);
+        if (source) this.poisonSource = source;
+    }
+
+    applyBurn(duration: number, source?: Player) {
+        this.burnDuration = Math.max(this.burnDuration, duration);
+        if (source) this.burnSource = source;
     }
 
     minBoost = 0;
@@ -970,6 +1016,11 @@ export class Player extends BaseGameObject {
                 this.health = 100;
                 this.boost = 100;
                 this.giveHaste(GameConfig.HasteType.Windwalk, 5);
+                break;
+            case "summoner":
+                this.maxHealth = 150;
+                this.health = 150;
+                this.lockedKit = true;
                 break;
         }
 
@@ -1841,6 +1892,139 @@ export class Player extends BaseGameObject {
         }
 
         //
+        // DoT Debuffs & Custom Kit Effects
+        //
+        if (!this.dead) {
+            // Bleed: 10 dmg per sec for 4s
+            if (this.bleedDotDuration > 0) {
+                this.bleedDotDuration -= dt;
+                this.bleedDotTicker += dt;
+                if (this.bleedDotTicker >= 0.25) {
+                    this.bleedDotTicker -= 0.25;
+                    this.damage({
+                        amount: 2.5,
+                        damageType: GameConfig.DamageType.Bleeding,
+                        source: this.bleedDotSource,
+                        gameSourceType: "pg_nanobots_rifle",
+                        weaponSourceType: "pg_nanobots_rifle",
+                    });
+                }
+            } else {
+                this.bleedDotTicker = 0;
+            }
+
+            // Poison: 10 dmg per sec for 4s
+            if (this.poisonDuration > 0) {
+                this.poisonDuration -= dt;
+                this.poisonTicker += dt;
+                if (this.poisonTicker >= 0.25) {
+                    this.poisonTicker -= 0.25;
+                    this.damage({
+                        amount: 2.5,
+                        damageType: GameConfig.DamageType.Bleeding,
+                        source: this.poisonSource,
+                        gameSourceType: "pg_acid_shotgun",
+                        weaponSourceType: "pg_acid_shotgun",
+                    });
+                }
+            } else {
+                this.poisonTicker = 0;
+            }
+
+            // Burn (Frozen Dragon): 2s burn
+            if (this.burnDuration > 0) {
+                this.burnDuration -= dt;
+                this.burnTicker += dt;
+                if (this.burnTicker >= 0.25) {
+                    this.burnTicker -= 0.25;
+                    this.damage({
+                        amount: 2.5,
+                        damageType: GameConfig.DamageType.Bleeding,
+                        source: this.burnSource,
+                        gameSourceType: "pg_frozen_dragon",
+                        weaponSourceType: "pg_frozen_dragon",
+                    });
+                }
+            } else {
+                this.burnTicker = 0;
+            }
+
+            // Heroic Epee: heal 12 hp per second while holding
+            if (this.weapons[this.curWeapIdx]?.type === "pg_heroic_epee") {
+                if (this.health < this.maxHealth) {
+                    this.health = Math.min(this.health + 12 * dt, this.maxHealth);
+                    this.setDirty();
+                }
+            }
+
+            // Summoner passive: recovers 20 hp every 5 seconds
+            if (this.role === "summoner") {
+                this.summonerRegenTimer += dt;
+                if (this.summonerRegenTimer >= 5) {
+                    this.summonerRegenTimer -= 5;
+                    if (this.health < this.maxHealth) {
+                        this.health = Math.min(this.health + 20, this.maxHealth);
+                        this.setDirty();
+                    }
+                }
+
+                // Whip focus target decay
+                if (this.minionFocusTimer > 0) {
+                    this.minionFocusTimer -= dt;
+                    if (this.minionFocusTimer <= 0 || this.minionFocusEnemy?.dead) {
+                        this.minionFocusEnemy = undefined;
+                    }
+                }
+
+                // Blade staff minions (4 minions)
+                // Attacks any enemy within 15 tiles (or whip focused target)
+                let targetEnemy = this.minionFocusEnemy;
+                if (!targetEnemy || targetEnemy.dead || !util.sameLayer(targetEnemy.layer, this.layer)) {
+                    targetEnemy = undefined;
+                    let closestDist = 15;
+                    for (const p of this.game.playerBarn.livingPlayers) {
+                        if (p === this || p.teamId === this.teamId || !util.sameLayer(p.layer, this.layer)) continue;
+                        const dist = v2.length(v2.sub(p.pos, this.pos));
+                        if (dist < closestDist) {
+                            closestDist = dist;
+                            targetEnemy = p;
+                        }
+                    }
+                }
+
+                for (let i = 0; i < 4; i++) {
+                    this.minionAttackCooldowns[i] -= dt;
+                    if (this.minionAttackCooldowns[i] <= 0 && targetEnemy) {
+                        this.minionAttackCooldowns[i] = 0.6;
+                        const minionDir = v2.normalizeSafe(v2.sub(targetEnemy.pos, this.pos), this.dir);
+                        const minionOffset = v2.rotate(v2.create(1.5, 0), (i * Math.PI) / 2);
+                        const spawnPos = v2.add(this.pos, minionOffset);
+                        this.game.bulletBarn.fireBullet({
+                            bulletType: "bullet_cw_blade_staff_minion",
+                            pos: spawnPos,
+                            dir: minionDir,
+                            layer: this.layer,
+                            playerId: this.__id,
+                            damageType: GameConfig.DamageType.Player,
+                            gameSourceType: "blade_staff_minion",
+                            weaponSourceType: "whip_spinal_tap",
+                            shotFx: true,
+                        });
+                    }
+                }
+            }
+
+            // Judge rocket movement restriction: cannot move while rocket is active
+            if (this.activeJudgeRocket?.active) {
+                this.speed = 0;
+                this.moveVel = v2.create(0, 0);
+            }
+        } else {
+            this.minionFocusEnemy = undefined;
+            this.activeJudgeRocket = undefined;
+        }
+
+        //
         // Haste logic
         //
         if (this.hasteType != GameConfig.HasteType.None) {
@@ -2558,6 +2742,19 @@ export class Player extends BaseGameObject {
         // the super hacker has 10,000 health: kept as 100 (the network only sends 0-100), everything hits it for 1%
         if (this.botBrain?.level === "super_hacker") finalDamage *= GameConfig.player.health / 10000;
 
+        // Shield absorbs damage first
+        if (this.shield > 0 && finalDamage > 0) {
+            if (this.shield >= finalDamage) {
+                this.shield -= finalDamage;
+                finalDamage = 0;
+            } else {
+                finalDamage -= this.shield;
+                this.shield = 0;
+            }
+            this.shieldDirty = true;
+            this.setDirty();
+        }
+
         if (this._health - finalDamage < 0) {
             if (this.hasPerk("lifeline")) {
                 // Checks to see if the perk can mitigate the damage
@@ -2594,6 +2791,19 @@ export class Player extends BaseGameObject {
         }
 
         this.health -= finalDamage;
+
+        if (playerSource && params.source !== this) {
+            if (params.weaponSourceType === "pg_nanobots_rifle" || params.gameSourceType === "pg_nanobots_rifle" || params.gameSourceType === "bullet_pg_nanobots_rifle") {
+                this.applyBleed(4, playerSource);
+            }
+            if (params.weaponSourceType === "pg_acid_shotgun" || params.gameSourceType === "pg_acid_shotgun" || params.gameSourceType === "bullet_pg_acid_shotgun") {
+                this.applyPoison(4, playerSource);
+            }
+            if (params.weaponSourceType === "pg_frozen_dragon" || params.gameSourceType === "pg_frozen_dragon" || params.gameSourceType === "bullet_pg_frozen_dragon") {
+                this.applyBurn(2, playerSource);
+                this.freeze("explosion_cw_frost", 0, 2);
+            }
+        }
 
         if (this.game.isTeamMode) {
             this.setGroupStatuses();
@@ -3797,7 +4007,7 @@ export class Player extends BaseGameObject {
         if (obj.destroyed) return;
 
         const def = GameObjectDefs.typeToDef(obj.type);
-        if (this.lockedKit && (def.type === "gun" || def.type === "melee" || def.type === "throwable")) return;
+        if (this.lockedKit && (def.type === "gun" || def.type === "melee" || def.type === "throwable" || def.type === "perk" || def.type === "heal" || def.type === "boost")) return;
         if (
             (this.actionType == GameConfig.Action.UseItem && def.type != "gun")
             || this.actionType == GameConfig.Action.Revive

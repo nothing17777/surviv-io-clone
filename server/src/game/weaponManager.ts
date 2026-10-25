@@ -1072,6 +1072,8 @@ export class WeaponManager {
         if (!shot) return;
         const player = this.player;
         const count = shot.count ?? 1;
+        // Zenith: the swords share out the enemies around the cursor, nearest first
+        const cursorEnemies = shot.toCursor ? this.enemiesNear(player.mousePos, 20) : [];
         for (let i = 0; i < count; i++) {
             const angle = math.deg2rad((i - (count - 1) / 2) * (shot.spread ?? 0));
             let pos = v2.add(player.pos, v2.mul(player.dir, 1.5));
@@ -1080,10 +1082,10 @@ export class WeaponManager {
             let homingId = 0;
             if (shot.toCursor) {
                 // Zenith: every sword converges on the cursor, anywhere on screen, and swords lock onto
-                // whoever is nearest the cursor. A boomerang turns at half its distance, so that's twice the trip.
+                // an enemy within 20 of it. A boomerang turns at half its distance, so that's twice the trip.
                 const k = i - (count - 1) / 2;
                 let target = v2.add(player.mousePos, v2.mul(v2.perp(player.dir), k * 1.5));
-                const enemy = this.nearestEnemyTo(player.mousePos, 10);
+                const enemy = cursorEnemies.length ? cursorEnemies[i % cursorEnemies.length] : undefined;
                 if (enemy) {
                     target = enemy.pos;
                     homingId = enemy.__id;
@@ -1133,20 +1135,16 @@ export class WeaponManager {
         }
     }
 
-    /** the living enemy closest to a point, within rad */
-    nearestEnemyTo(pos: Vec2, rad: number): Player | undefined {
-        let best: Player | undefined;
-        let bestDist = rad;
-        for (const p of this.player.game.playerBarn.livingPlayers) {
-            if (p === this.player || p.teamId === this.player.teamId) continue;
-            if (!util.sameLayer(p.layer, this.player.layer)) continue;
-            const dist = v2.length(v2.sub(p.pos, pos));
-            if (dist < bestDist) {
-                best = p;
-                bestDist = dist;
-            }
-        }
-        return best;
+    /** living enemies within rad of a point, nearest first */
+    enemiesNear(pos: Vec2, rad: number): Player[] {
+        return this.player.game.playerBarn.livingPlayers
+            .filter((p) =>
+                p !== this.player
+                && p.teamId !== this.player.teamId
+                && util.sameLayer(p.layer, this.player.layer)
+                && v2.length(v2.sub(p.pos, pos)) < rad
+            )
+            .sort((a, b) => v2.length(v2.sub(a.pos, pos)) - v2.length(v2.sub(b.pos, pos)));
     }
 
     meleeDamage(): void {
@@ -1301,6 +1299,22 @@ export class WeaponManager {
                     source: this.player,
                     dir: hit.dir,
                 });
+                if (obj.teamId !== this.player.teamId) {
+                    if (this.activeWeapon === "sundered_sky") {
+                        this.player.health = Math.min(this.player.health + 40, this.player.maxHealth);
+                        this.player.setDirty();
+                    } else if (this.activeWeapon === "eclipse") {
+                        this.player.eclipseHitCount = (this.player.eclipseHitCount ?? 0) + 1;
+                        if (this.player.eclipseHitCount % 2 === 0) {
+                            this.player.shield = Math.min((this.player.shield ?? 0) + 50, 150);
+                            this.player.shieldDirty = true;
+                            this.player.setDirty();
+                        }
+                    } else if (this.activeWeapon === "whip_spinal_tap") {
+                        this.player.minionFocusEnemy = obj as Player;
+                        this.player.minionFocusTimer = 10;
+                    }
+                }
             }
         }
     }

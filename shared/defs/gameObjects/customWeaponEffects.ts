@@ -149,6 +149,99 @@ export const GunEffects: Record<string, GunEffect> = {
             shotSpread: 1,
         },
     },
+    // Multitaskers: fast fire rate, 32 dmg per shot, splash dmg, 30 capacity, fast mobility
+    multitaskers: {
+        bullet: {
+            damage: 32,
+            speed: 120,
+            distance: 70,
+            onHit: "explosion_cw_multitaskers",
+            tracerColor: "cw_flame",
+            tracerWidth: 0.22,
+        },
+        gun: {
+            fireMode: "auto",
+            fireDelay: 0.08,
+            maxClip: 30,
+            maxReload: 30,
+            extendedClip: 30,
+            extendedReload: 30,
+            shotSpread: 3,
+            moveSpread: 4,
+            speed: { equip: 3.5, attack: 1 },
+        },
+    },
+    // Christmas Ultimatum: 6 capacity, 150 dmg direct hit, cluster bomb whose frags split again, -20% dmg per split
+    christmas_ultimatum: {
+        bullet: {
+            damage: 150,
+            speed: 55,
+            distance: 85,
+            falloff: 1,
+            onHit: "explosion_cw_christmas_tree_1",
+            sprite: "img/custom-weapons/fx/christmas_tree.png",
+            spriteSize: 2.5,
+            tracerColor: "cw_flame",
+            tracerWidth: 0.35,
+        },
+        gun: {
+            maxClip: 6,
+            maxReload: 6,
+            extendedClip: 6,
+            extendedReload: 6,
+            reloadTime: 2.4,
+            fireDelay: 0.6,
+            bulletCount: 1,
+            shotSpread: 1,
+        },
+    },
+    // Judge: 1 capacity, 250 dmg direct hit, controllable orange rocket up to 400 tiles
+    judge: {
+        bullet: {
+            damage: 250,
+            speed: 32,
+            distance: 400,
+            falloff: 1,
+            onHit: "explosion_cw_judge",
+            sprite: "img/custom-weapons/fx/judge_rocket.png",
+            spriteSize: 2.8,
+            tracerColor: "cw_flame",
+            tracerWidth: 0.45,
+        },
+        gun: {
+            maxClip: 1,
+            maxReload: 1,
+            extendedClip: 1,
+            extendedReload: 1,
+            reloadTime: 3.0,
+            fireDelay: 1.0,
+            bulletCount: 1,
+            shotSpread: 0,
+        },
+    },
+    // Frozen Dragon: flamethrower with blue flames, 12 dmg per hit, 60 capacity, fast fire rate, slow & burn for 2s
+    frozen_dragon: {
+        bullet: {
+            damage: 12,
+            speed: 55,
+            distance: 38,
+            falloff: 1,
+            onHit: "explosion_cw_frozen_dragon",
+            tracerColor: "cw_plasma",
+            tracerWidth: 0.35,
+            tracerLength: 0.4,
+        },
+        gun: {
+            fireMode: "auto",
+            fireDelay: 0.075,
+            maxClip: 60,
+            maxReload: 60,
+            extendedClip: 60,
+            extendedReload: 60,
+            shotSpread: 8,
+            moveSpread: 10,
+        },
+    },
 };
 
 /** tweaks to one weapon on top of its effect, from its wiki page */
@@ -200,6 +293,14 @@ export const MeleeEffects: Record<string, DeepPartial<MeleeDef>> = {
     reach: { damage: 34, attack: { offset: { x: 3.5, y: 0 }, rad: 2.2, cooldownTime: 0.5 } },
     // terra blade, starfury, zenith...: shoot or summon something with each swing, so they hit far and hard
     legendary: { damage: 55, armorPiercing: true, attack: { offset: { x: 3, y: 0 }, rad: 3, cooldownTime: 0.4 } },
+    // Spinal Tap: long range whip (10 tiles, 20 dmg)
+    whip: { damage: 20, autoAttack: true, attack: { offset: { x: 5, y: 0 }, rad: 5.5, cooldownTime: 0.45 } },
+    // Heroic Epee: 30 dmg, fast mobility, 12 hp/s heal while holding
+    heroic_epee: { damage: 30, speed: { equip: 1.25, attack: 1.05 }, attack: { offset: { x: 2.2, y: 0 }, rad: 2.4, cooldownTime: 0.35 } },
+    // Sundered Sky: 40 dmg, heal 40 health on hit
+    sundered_sky: { damage: 40, attack: { offset: { x: 2.6, y: 0 }, rad: 2.8, cooldownTime: 0.45 } },
+    // Eclipse: 60 dmg, gain a 50 hp shield every second hit
+    eclipse: { damage: 60, attack: { offset: { x: 2.4, y: 0 }, rad: 2.6, cooldownTime: 0.5 } },
 };
 
 /** how long each base gun is drawn in hand, in sprite units */
@@ -260,7 +361,7 @@ export const SwingShots: Record<string, SwingShot> = {
     // a fast green slash that goes through enemies (losing 25% each) and stops at walls
     tr_terra_blade: {
         bullet: "bullet_cw_terra_beam",
-        lanes: { bullet: "bullet_cw_terra_beam_edge", offsets: [-2.4, 2.4] },
+        lanes: { bullet: "bullet_cw_terra_beam_edge", offsets: [-4.5, -2.25, 2.25, 4.5] },
     },
     // a cat head with a rainbow trail that bounces 4 times, blowing up bigger each bounce
     tr_meowmere: { bullet: "bullet_cw_meowmere_cat" },
@@ -288,7 +389,7 @@ const swingBullet = (b: Partial<BulletDef>): BulletDef => ({
 });
 
 export const SwingShotBullets: Record<string, BulletDef> = {
-    // a big curved wave of green energy
+    // a big curved wave of green energy (increased width)
     bullet_cw_terra_beam: swingBullet({
         damage: 34,
         distance: 45,
@@ -296,9 +397,9 @@ export const SwingShotBullets: Record<string, BulletDef> = {
         playerPierce: true,
         pierceLoss: 0.25,
         tracerColor: "cw_terra",
-        tracerWidth: 0.3,
+        tracerWidth: 1.2,
         sprite: "img/custom-weapons/fx/terra_slash.png",
-        spriteSize: 6,
+        spriteSize: 12,
     }),
     // the rest of the wave's width: hits, but draws nothing (the crescent covers it)
     bullet_cw_terra_beam_edge: swingBullet({
@@ -355,5 +456,37 @@ export const SwingShotBullets: Record<string, BulletDef> = {
             "img/custom-weapons/world/tr_excalibur.png",
         ],
         spriteSize: 3.2,
+    }),
+    bullet_cw_christmas_tree_frag: swingBullet({
+        damage: 120,
+        speed: 50,
+        distance: 18,
+        onHit: "explosion_cw_christmas_tree_2",
+        sprite: "img/custom-weapons/fx/christmas_tree.png",
+        spriteSize: 1.8,
+        tracerColor: "cw_flame",
+        tracerWidth: 0.25,
+    }),
+    bullet_cw_christmas_tree_subfrag: swingBullet({
+        damage: 96,
+        speed: 40,
+        distance: 12,
+        onHit: "explosion_cw_christmas_tree_3",
+        sprite: "img/custom-weapons/fx/christmas_tree.png",
+        spriteSize: 1.2,
+        tracerColor: "cw_flame",
+        tracerWidth: 0.2,
+    }),
+    bullet_cw_blade_staff_minion: swingBullet({
+        damage: 10,
+        speed: 120,
+        distance: 25,
+        playerPierce: true,
+        pierceLoss: 0,
+        sprite: "img/custom-weapons/fx/blade_staff_minion.png",
+        spriteSize: 2.0,
+        tracerColor: "cw_magic",
+        tracerWidth: 0.3,
+        tracerLength: 0.6,
     }),
 };

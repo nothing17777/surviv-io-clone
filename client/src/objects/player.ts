@@ -603,6 +603,10 @@ export class Player implements AbstractObject {
             this.zoomFast = false;
         }
 
+        if (data.shieldDirty) {
+            (this.m_localData as any).m_shield = data.shield;
+        }
+
         if (data.actionDirty) {
             this.m_action.time = data.action.time;
             this.m_action.duration = data.action.duration;
@@ -989,6 +993,7 @@ export class Player implements AbstractObject {
         const inWater = this.surface.type == "water";
         this.updateSubmersion(dt, map);
         this.updateFrozenState(dt);
+        this.updateMinions(dt);
 
         // Play a footstep if we've moved enough
         if (!this.m_netData.m_dead) {
@@ -2651,6 +2656,36 @@ export class Player implements AbstractObject {
             ? 1
             : math.remap(this.frozenTicker, 0, fadeDuration, 0, 1);
         this.bodyEffectSprite.visible = this.frozenTicker > 0;
+    }
+
+    minionSprites: PIXI.Sprite[] = [];
+    minionAngle = 0;
+
+    updateMinions(dt: number) {
+        const isSummoner = this.m_netData.m_role === "summoner" && !this.m_netData.m_dead;
+        if (isSummoner) {
+            if (this.minionSprites.length === 0) {
+                for (let i = 0; i < 4; i++) {
+                    const s = PIXI.Sprite.from("img/custom-weapons/fx/blade_staff_minion.png");
+                    s.anchor.set(0.5, 0.5);
+                    s.scale.set(0.4, 0.4);
+                    this.container.addChild(s);
+                    this.minionSprites.push(s);
+                }
+            }
+            this.minionAngle += dt * 3.5;
+            for (let i = 0; i < 4; i++) {
+                const s = this.minionSprites[i];
+                s.visible = true;
+                const a = this.minionAngle + (i * Math.PI) / 2;
+                s.position.set(Math.cos(a) * 55, Math.sin(a) * 55);
+                s.rotation = a + Math.PI / 2;
+            }
+        } else if (this.minionSprites.length > 0) {
+            for (const s of this.minionSprites) {
+                s.visible = false;
+            }
+        }
     }
 
     addRecoil(amount: number, leftHand: boolean, rightHand: boolean) {

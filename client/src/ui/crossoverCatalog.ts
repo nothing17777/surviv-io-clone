@@ -20,7 +20,11 @@ const GunEffectText: Record<string, string> = {
     arrow: "Slow, heavy arrows.",
     bubble: "Slow water shots.",
     rocket: "Rocket that blows up like a frag. One shot per reload.",
-    nanobots: "Nanobot swarms that home in on enemies and burst.",
+    nanobots: "Nanobot swarms that home in on enemies and burst, inflicting bleed.",
+    multitaskers: "Fast firing dual guns with splash damage and high mobility.",
+    christmas_ultimatum: "Cluster bomb tree rocket whose fragments split again, dropping 20% damage each split.",
+    judge: "Slow, cursor-steered rocket that carries player camera up to 400 tiles.",
+    frozen_dragon: "Flamethrower shooting blue flames that slow and burn for 2 seconds.",
 };
 
 /** what each sword does beyond its swing */
@@ -31,6 +35,10 @@ const SwordText: Record<string, string> = {
     tr_meowmere: "Throws a rainbow cat that bounces 4 times, blowing up bigger each bounce.",
     tr_star_wrath: "Calls three stars down onto your cursor.",
     tr_zenith: "Sends spinning swords out to your cursor and back.",
+    whip_spinal_tap: "10-tile bone whip that focuses blade staff minions on the hit enemy.",
+    pg_heroic_epee: "Swift rapier that regenerates 12 HP per second while holding.",
+    sundered_sky: "Heavy strikes that heal 40 HP on hit.",
+    eclipse: "Strikes for 60 damage and grants a 50 HP shield every second hit.",
 };
 
 /** per weapon notes from its wiki page, where the effect alone doesn't say it */
