@@ -1294,8 +1294,8 @@ export class TeamMenu {
                 const fillDef = MapDefs[this.roomData.privateMapName as MapDefKey];
                 const army = !vsBots && (!!custom || !!fillDef?.gameMode.factionMode);
                 $("#team-bot-army").toggle(army);
-                // 50v50: the bot picker sets the sides, so 1v1-4v4 means nothing
-                this.privateSizes.toggle(!army);
+                // only Vs Bots and free for all need a size; otherwise the A/B tags set the sides
+                this.privateSizes.toggle((vsBots || (!custom && !!fillDef?.gameMode.ffaMode)) && !army);
                 if (army) this.refreshBotArmy();
                 // free for all: no sides (the size is the party's team size), the lobby fills itself with bots
                 const ffa = !custom && !!fillDef?.gameMode.ffaMode;

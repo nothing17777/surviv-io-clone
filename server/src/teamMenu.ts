@@ -3,6 +3,7 @@ import { getCookie } from "hono/cookie";
 import type { UpgradeWebSocket, WSContext } from "hono/ws";
 import { randomUUID } from "node:crypto";
 import { type MapDefKey, MapDefs } from "../../shared/defs/mapDefs.ts";
+import { TeamMode } from "../../shared/gameConfig.ts";
 import {
     BotLevels,
     defaultBotSettings,
@@ -390,7 +391,12 @@ class Room {
         const customMap = this.data.privateMatch ? this.customMap : null;
         const res = await this.teamMenu.server.findGame({
             mapName: customMap ? customMap.biome : this.data.privateMatch ? this.data.privateMapName : mode.mapName,
-            teamMode: this.data.privateMatch ? this.data.privateTeamSize : mode.teamMode,
+            // picked sides: everyone on a side is one squad and sees their teammates' names
+            teamMode: this.data.privateMatch
+                ? (this.data.privateVsBots || ffa || customMap || MapDefs[this.data.privateMapName as MapDefKey]?.gameMode.factionMode
+                    ? this.data.privateTeamSize
+                    : TeamMode.Squad)
+                : mode.teamMode,
             privateMatch: this.data.privateMatch
                 ? {
                     godLoadout: this.data.privateGodLoadout,
