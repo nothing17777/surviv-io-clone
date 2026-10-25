@@ -91,6 +91,10 @@ export interface ObjectsFullData {
         healEffect: boolean;
         lastStandEffect: boolean;
 
+        /** bleed / poison debuffs, drawn as a red / green dot over the head */
+        bleeding: boolean;
+        poisoned: boolean;
+
         frozen: boolean;
         frozenOri: number;
         frozenType: string;
@@ -223,6 +227,9 @@ export const ObjectSerializeFns: {
             s.writeBoolean(data.healEffect);
             s.writeBoolean(data.lastStandEffect);
 
+            s.writeBoolean(data.bleeding);
+            s.writeBoolean(data.poisoned);
+
             s.writeBoolean(data.frozen);
             if (data.frozen) {
                 s.writeBits(data.frozenOri, 2);
@@ -292,6 +299,9 @@ export const ObjectSerializeFns: {
             data.bigPan = s.readBoolean();
             data.healEffect = s.readBoolean();
             data.lastStandEffect = s.readBoolean();
+
+            data.bleeding = s.readBoolean();
+            data.poisoned = s.readBoolean();
 
             data.frozen = s.readBoolean();
             data.frozenOri = 0;

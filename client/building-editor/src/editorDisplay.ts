@@ -220,6 +220,8 @@ export class EditorDisplay {
             bigPan: false,
             healEffect: false,
             lastStandEffect: false,
+            bleeding: false,
+            poisoned: false,
             frozen: false,
             frozenOri: 0,
             frozenType: "",

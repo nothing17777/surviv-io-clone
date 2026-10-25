@@ -721,12 +721,22 @@ export class Player extends BaseGameObject {
     // Judge rocket
     activeJudgeRocket?: any;
 
+    get bleeding() {
+        return this.bleedDotDuration > 0;
+    }
+
+    get poisoned() {
+        return this.poisonDuration > 0;
+    }
+
     applyBleed(duration: number, source?: Player) {
+        if (this.bleedDotDuration <= 0) this.setDirty();
         this.bleedDotDuration = Math.max(this.bleedDotDuration, duration);
         if (source) this.bleedDotSource = source;
     }
 
     applyPoison(duration: number, source?: Player) {
+        if (this.poisonDuration <= 0) this.setDirty();
         this.poisonDuration = Math.max(this.poisonDuration, duration);
         if (source) this.poisonSource = source;
     }
@@ -1899,6 +1909,7 @@ export class Player extends BaseGameObject {
                         dir: this.dir,
                     });
                 }
+                if (this.bleedDotDuration <= 0) this.setDirty();
             } else {
                 this.bleedDotTicker = 0;
             }
@@ -1918,6 +1929,7 @@ export class Player extends BaseGameObject {
                         dir: this.dir,
                     });
                 }
+                if (this.poisonDuration <= 0) this.setDirty();
             } else {
                 this.poisonTicker = 0;
             }
@@ -2123,7 +2135,11 @@ export class Player extends BaseGameObject {
         }
 
         // Judge: you stand still while steering its rocket
-        if (this.activeJudgeRocket?.active) v2.set(movement, v2.create(0, 0));
+        const rocket = this.activeJudgeRocket;
+        if (rocket && !(rocket.active && rocket.alive && rocket.bulletType === "bullet_pg_judge" && rocket.player === this)) {
+            this.activeJudgeRocket = undefined;
+        }
+        if (this.activeJudgeRocket) v2.set(movement, v2.create(0, 0));
 
         const hasTreeClimbing = this.hasPerk("tree_climbing");
 

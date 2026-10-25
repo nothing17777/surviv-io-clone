@@ -780,6 +780,8 @@ export class Bullet {
             }
             if (hit) {
                 this.pos = col.point;
+                // custom explosive shots go off on the player they hit, so the blast can't miss them
+                if (col.type == "player" && this.onHitFx?.startsWith("explosion_cw")) this.pos = v2.copy(col.player!.pos);
                 this.alive = false;
                 break;
             }

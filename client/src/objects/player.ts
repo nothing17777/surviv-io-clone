@@ -310,6 +310,8 @@ export class Player implements AbstractObject {
         m_bigPan: boolean;
         m_healEffect: boolean;
         m_adrenalineEffect: boolean;
+        bleeding: boolean;
+        poisoned: boolean;
         m_frozen: boolean;
         m_frozenOri: number;
         m_frozenType: string;
@@ -473,6 +475,8 @@ export class Player implements AbstractObject {
             m_bigPan: false,
             m_healEffect: false,
             m_adrenalineEffect: false,
+            bleeding: false,
+            poisoned: false,
             m_frozen: false,
             m_frozenOri: 0,
             m_frozenType: "",
@@ -555,6 +559,8 @@ export class Player implements AbstractObject {
             this.m_netData.m_bigPan = data.bigPan;
             this.m_netData.m_healEffect = data.healEffect;
             this.m_netData.m_adrenalineEffect = data.lastStandEffect;
+            this.m_netData.bleeding = data.bleeding;
+            this.m_netData.poisoned = data.poisoned;
             this.m_netData.m_frozen = data.frozen;
             this.m_netData.m_frozenOri = data.frozenOri;
             if (this.m_netData.m_frozenType !== data.frozenType) {
@@ -995,6 +1001,7 @@ export class Player implements AbstractObject {
         const inWater = this.surface.type == "water";
         this.updateSubmersion(dt, map);
         this.updateFrozenState(dt);
+        this.updateDebuffDots(dt);
 
         // Play a footstep if we've moved enough
         if (!this.m_netData.m_dead) {
@@ -2657,6 +2664,36 @@ export class Player implements AbstractObject {
             ? 1
             : math.remap(this.frozenTicker, 0, fadeDuration, 0, 1);
         this.bodyEffectSprite.visible = this.frozenTicker > 0;
+    }
+
+    debuffDots: PIXI.Graphics | null = null;
+    debuffTicker = 0;
+
+    /** a pulsing red dot over the head while bleeding, green while poisoned */
+    updateDebuffDots(dt: number) {
+        const colors: number[] = [];
+        if (!this.m_netData.m_dead) {
+            if (this.m_netData.bleeding) colors.push(0xe53935);
+            if (this.m_netData.poisoned) colors.push(0x43d32f);
+        }
+        if (!colors.length && !this.debuffDots) return;
+        if (!this.debuffDots) {
+            this.debuffDots = new PIXI.Graphics();
+            this.container.addChild(this.debuffDots);
+        }
+        const g = this.debuffDots;
+        g.clear();
+        g.visible = colors.length > 0;
+        if (!g.visible) return;
+        this.debuffTicker += dt;
+        const pulse = 1 + 0.15 * Math.sin(this.debuffTicker * 8);
+        colors.forEach((color, i) => {
+            const x = (i - (colors.length - 1) / 2) * 18;
+            g.lineStyle(2, 0x000000, 0.6);
+            g.beginFill(color, 0.9);
+            g.drawCircle(x, -42, 7 * pulse);
+            g.endFill();
+        });
     }
 
     addRecoil(amount: number, leftHand: boolean, rightHand: boolean) {
