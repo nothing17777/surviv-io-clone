@@ -687,7 +687,7 @@ export class BulletBarn {
             const b = this.bullets[i];
             if (b.whip) {
                 b.whipChain.visible = b.alive;
-                if (b.alive) drawWhip(b.whipChain, camera.m_pointToScreen(b.whipFrom), camera.m_pointToScreen(b.pos), camera.m_pixels(3.2));
+                if (b.alive) drawWhip(b.whipChain, camera.m_pointToScreen(b.whipFrom), camera.m_pointToScreen(b.pos), camera.m_pixels(6));
             }
             if (b.alive || b.collided) {
                 const dist = v2.length(v2.sub(b.pos, b.startPos));
