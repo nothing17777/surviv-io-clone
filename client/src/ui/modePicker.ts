@@ -1,5 +1,6 @@
 import $ from "jquery";
 import en from "../en.json";
+import { HiddenCustomGuns } from "../../../shared/defs/gameObjects/customWeaponEffects.ts";
 import { BulletDefs } from "../../../shared/defs/gameObjects/bulletDefs.ts";
 import { RawGameObjectDefs } from "../../../shared/defs/gameObjectDefs.ts";
 import { type MapDefKey, MapDefs } from "../../../shared/defs/mapDefs.ts";
@@ -276,7 +277,7 @@ export function fillItemPicker(prefix: string, slot: string, type: string, value
     const sel = $(`#${prefix}-${slot}`);
     if (!sel.length) return;
 
-    const items = defsOfType(type);
+    const items = defsOfType(type).filter((item) => !HiddenCustomGuns.has(item.id));
     if (optionalSlots.has(slot)) items.unshift({ id: "", name: `No ${slot.startsWith("perk") ? "perk" : slot === "chest" ? "vest" : slot.startsWith("throwable") ? "throwable" : slot}` });
     if (sel.find("option").length !== items.length) {
         sel.empty();

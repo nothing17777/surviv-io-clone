@@ -15,6 +15,27 @@ export interface GunEffect {
     gun?: DeepPartial<GunDef>;
 }
 
+/** kept in the game but left out of the loadout dropdowns and the potato swap */
+export const HiddenCustomGuns = new Set([
+    "pg_apocalypse",
+    "pg_armageddon",
+    "pg_combat_rifle",
+    "pg_crossbow",
+    "pg_desert_eagle",
+    "pg_dual_revolvers",
+    "pg_grenade_launcher",
+    "pg_heavy_sniper_rifle",
+    "pg_laser_bow",
+    "pg_machine_gun",
+    "pg_napalmcannon",
+    "pg_mega_destroyer",
+    "pg_railgun",
+    "pg_rocket_launcher",
+    "pg_tesla_cannon",
+    "pg_water_rifle",
+    "pg_sniper_rifle",
+]);
+
 export const GunEffects: Record<string, GunEffect> = {
     plain: {},
     // straight beam: near instant, goes through players and walls, drawn as a solid beam

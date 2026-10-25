@@ -3,7 +3,7 @@ import { type DeepPartial, util } from "../../utils/util.ts";
 import type { Vec2 } from "../../utils/v2.ts";
 import { BulletDefs } from "./bulletDefs.ts";
 import { CustomGuns, CustomWeaponsVersion } from "./customWeaponDefs.ts";
-import { BaseGunLengths, GunEffects, GunOverrides, SwingShotBullets } from "./customWeaponEffects.ts";
+import { BaseGunLengths, GunEffects, GunOverrides, HiddenCustomGuns, SwingShotBullets } from "./customWeaponEffects.ts";
 import type { BaseWeaponDef } from "./itemTypes.ts";
 
 export interface GunDef extends BaseWeaponDef {
@@ -3689,7 +3689,8 @@ const CustomGunDefs: Record<string, GunDef> = Object.fromEntries(
         const scale = (BaseGunLengths[base] ?? 48) / 80;
         const def = defineGunSkin(base, {
             name,
-            noPotatoSwap: true,
+            // the potato and tomato swap into them too, except the hidden ones
+            noPotatoSwap: HiddenCustomGuns.has(id),
             bulletType,
             lootImg: {
                 sprite: `img/custom-weapons/loot/${id}.png?v=${CustomWeaponsVersion}`,
