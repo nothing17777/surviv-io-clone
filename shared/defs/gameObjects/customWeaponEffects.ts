@@ -64,6 +64,9 @@ export const GunEffects: Record<string, GunEffect> = {
             tracerColor: "cw_flame",
             tracerWidth: 0.35,
             tracerLength: 0.4,
+            flame: true,
+            sprites: ["img/custom-weapons/fx/flame_1.png", "img/custom-weapons/fx/flame_2.png", "img/custom-weapons/fx/flame_3.png"],
+            spriteSize: 2.6,
         },
         damageMult: 0.6,
         gun: { shotSpread: 10, moveSpread: 12 },
@@ -227,9 +230,16 @@ export const GunEffects: Record<string, GunEffect> = {
             distance: 38,
             falloff: 1,
             onHit: "explosion_cw_frozen_dragon",
-            tracerColor: "cw_plasma",
+            tracerColor: "cw_frost",
             tracerWidth: 0.35,
             tracerLength: 0.4,
+            flame: true,
+            sprites: [
+                "img/custom-weapons/fx/frost_flame_1.png",
+                "img/custom-weapons/fx/frost_flame_2.png",
+                "img/custom-weapons/fx/frost_flame_3.png",
+            ],
+            spriteSize: 3,
         },
         gun: {
             fireMode: "auto",
@@ -293,7 +303,7 @@ export const MeleeEffects: Record<string, DeepPartial<MeleeDef>> = {
     reach: { damage: 34, attack: { offset: { x: 3.5, y: 0 }, rad: 2.2, cooldownTime: 0.5 } },
     // terra blade, starfury, zenith...: shoot or summon something with each swing, so they hit far and hard
     legendary: { damage: 55, armorPiercing: true, attack: { offset: { x: 3, y: 0 }, rad: 3, cooldownTime: 0.4 } },
-    // Spinal Tap: long range whip (10 tiles, 20 dmg)
+    // whips: long range lash (10 tiles, 20 dmg)
     whip: { damage: 20, autoAttack: true, attack: { offset: { x: 5, y: 0 }, rad: 5.5, cooldownTime: 0.45 } },
     // Heroic Epee: 30 dmg, fast mobility, 12 hp/s heal while holding
     heroic_epee: { damage: 30, speed: { equip: 1.25, attack: 1.05 }, attack: { offset: { x: 2.2, y: 0 }, rad: 2.4, cooldownTime: 0.35 } },
@@ -476,17 +486,5 @@ export const SwingShotBullets: Record<string, BulletDef> = {
         spriteSize: 1.2,
         tracerColor: "cw_flame",
         tracerWidth: 0.2,
-    }),
-    bullet_cw_blade_staff_minion: swingBullet({
-        damage: 10,
-        speed: 120,
-        distance: 25,
-        playerPierce: true,
-        pierceLoss: 0,
-        sprite: "img/custom-weapons/fx/blade_staff_minion.png",
-        spriteSize: 2.0,
-        tracerColor: "cw_magic",
-        tracerWidth: 0.3,
-        tracerLength: 0.6,
     }),
 };

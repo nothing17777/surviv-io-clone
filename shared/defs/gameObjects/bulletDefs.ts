@@ -48,6 +48,8 @@ export interface BulletDef {
     spriteSize?: number;
     /** turns per second */
     spin?: number;
+    /** a flamethrower puff: the sprite swells, turns and fades out as it flies, with no tracer */
+    flame?: boolean;
 }
 
 export const BaseDefs: Record<string, BulletDef> = {

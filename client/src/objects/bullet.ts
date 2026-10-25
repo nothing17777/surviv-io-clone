@@ -98,6 +98,7 @@ export class BulletBarn {
         beam: boolean;
         /** custom weapons' projectile image (cat, star, orb...) */
         fxSprite: PIXI.Sprite;
+        flame: boolean;
         fxSize: number;
         fxSpin: number;
     }> = [];
@@ -180,6 +181,13 @@ export class BulletBarn {
             b.fxSize = bulletDef.spriteSize ?? 2;
             b.fxSpin = bulletDef.spin ?? 0;
         }
+        b.flame = !!bulletDef.flame;
+        b.fxSprite.alpha = 1;
+        b.fxSprite.blendMode = b.flame ? PIXI.BLEND_MODES.ADD : PIXI.BLEND_MODES.NORMAL;
+        if (b.flame) {
+            b.fxSprite.rotation = util.random(0, Math.PI * 2);
+            b.fxSpin = util.random(-6, 6);
+        }
         b.homingId = bullet.homingId;
         b.particleTicker = util.random(0.05, 0.15);
 
@@ -221,7 +229,7 @@ export class BulletBarn {
         if (b.reflectCount > 0) {
             b.bulletTrail.alpha *= 0.5;
         }
-        b.container.visible = true;
+        b.container.visible = !b.flame;
         renderer.addPIXIObj(b.container, b.layer, 20);
         if (fxImg) renderer.addPIXIObj(b.fxSprite, b.layer, 21);
     }
@@ -307,7 +315,15 @@ export class BulletBarn {
                         b.container.rotation = ang - Math.PI / 2;
                     }
                 }
-                const distLeft = b.boomerang
+                // the Judge's rocket turns toward where its owner aims, like on the server
+                if (b.bulletType === "bullet_pg_judge") {
+                    const owner = playerBarn.getPlayerById(b.playerId);
+                    if (owner && !owner.m_netData.m_dead) {
+                        b.dir = v2.normalizeSafe(v2.lerp(math.min(dt * 4, 1), b.dir, owner.m_dir), b.dir);
+                        b.container.rotation = Math.atan2(b.dir.x, b.dir.y) - Math.PI / 2;
+                    }
+                }
+                const distLeft = b.boomerang || b.bulletType === "bullet_pg_judge"
                     ? b.distance - b.traveled
                     : b.distance - v2.length(v2.sub(b.startPos, b.pos));
                 const distTravel = math.min(distLeft, dt * b.speed);
@@ -651,7 +667,13 @@ export class BulletBarn {
                 if (b.fxSprite.visible) {
                     const tex = b.fxSprite.texture;
                     b.fxSprite.position.set(screenPos.x, screenPos.y);
-                    const s = camera.m_pixels(b.fxSize) / Math.max(tex.width, 1);
+                    let s = camera.m_pixels(b.fxSize) / Math.max(tex.width, 1);
+                    if (b.flame) {
+                        // starts as a tight burst at the muzzle and billows out as it burns away
+                        const t = math.clamp(dist / Math.max(b.distance, 1), 0, 1);
+                        s *= 0.35 + 1.65 * Math.sqrt(t);
+                        b.fxSprite.alpha = (1 - t ** 1.6 * 0.9) * (b.collided ? b.scale : 1);
+                    }
                     b.fxSprite.scale.set(s, s);
                     b.fxSprite.rotation = b.fxSpin
                         ? b.fxSprite.rotation + b.fxSpin * 0.016

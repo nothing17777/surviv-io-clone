@@ -280,13 +280,15 @@ export function fillItemPicker(prefix: string, slot: string, type: string, value
     if (optionalSlots.has(slot)) items.unshift({ id: "", name: `No ${slot.startsWith("perk") ? "perk" : slot === "chest" ? "vest" : slot.startsWith("throwable") ? "throwable" : slot}` });
     if (sel.find("option").length !== items.length) {
         sel.empty();
-        // the Terraria / Pixel Gun 3D weapons get their own sections after surviv's own
+        // the Terraria / Pixel Gun 3D / League weapons get their own sections after surviv's own
+        const isCustom = (id: string) => id.startsWith("tr_") || id.startsWith("pg_") || id.startsWith("lol_");
         const groups: Array<[string, (id: string) => boolean]> = [
-            ["surviv.io", (id) => !id.startsWith("tr_") && !id.startsWith("pg_")],
+            ["surviv.io", (id) => !isCustom(id)],
             ["Terraria", (id) => id.startsWith("tr_")],
             ["Pixel Gun 3D", (id) => id.startsWith("pg_")],
+            ["League of Legends", (id) => id.startsWith("lol_")],
         ];
-        const hasCustom = items.some((item) => item.id.startsWith("tr_") || item.id.startsWith("pg_"));
+        const hasCustom = items.some((item) => isCustom(item.id));
         for (const [label, inGroup] of hasCustom ? groups : [["", () => true] as const]) {
             const groupItems = items.filter((item) => inGroup(item.id));
             if (!groupItems.length) continue;

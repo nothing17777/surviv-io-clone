@@ -713,7 +713,10 @@ export class UiManager2 {
         state.health = activePlayer.m_netData.m_dead
             ? 0
             : math.max(activePlayer.m_localData.m_health, 1);
-        (state as any).shield = (activePlayer.m_localData as any).m_shield ?? 0;
+        // Eclipse's shield bar: drawn every frame, since it changes without the health changing
+        const shield = activePlayer.m_netData.m_dead ? 0 : math.clamp(activePlayer.m_localData.shield ?? 0, 0, 100);
+        this.dom.health.shield.style.width = `${shield}%`;
+        this.dom.health.shield.style.display = shield > 0 ? "block" : "none";
         state.boost = activePlayer.m_localData.m_boost;
         state.downed = activePlayer.m_netData.m_downed;
 
@@ -1183,11 +1186,6 @@ export class UiManager2 {
                 } else {
                     dom.health.inner.classList.add("ui-bar-danger");
                 }
-            }
-            if (dom.health.shield) {
-                const shieldPercent = math.clamp((state as any).shield ?? 0, 0, 100);
-                dom.health.shield.style.width = `${shieldPercent}%`;
-                dom.health.shield.style.display = shieldPercent > 0 ? "block" : "none";
             }
         }
         if (patch.boost) {

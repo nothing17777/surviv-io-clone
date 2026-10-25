@@ -230,7 +230,6 @@ export class PlayerBarn {
             const fixed = this.game.fixedLoadout;
             player.applyGodLoadout(fixed ?? joinMsg.godLoadout);
         }
-        if (this.game.map.mapDef.gameMode.summonerKit) player.promoteToRole("summoner");
 
         return player;
     }
@@ -722,12 +721,6 @@ export class Player extends BaseGameObject {
     // Judge rocket
     activeJudgeRocket?: any;
 
-    // Summoner
-    summonerRegenTimer = 0;
-    minionFocusEnemy?: Player;
-    minionFocusTimer = 0;
-    minionAttackCooldowns: number[] = [0, 0.15, 0.3, 0.45];
-
     applyBleed(duration: number, source?: Player) {
         this.bleedDotDuration = Math.max(this.bleedDotDuration, duration);
         if (source) this.bleedDotSource = source;
@@ -1017,18 +1010,6 @@ export class Player extends BaseGameObject {
                 this.health = 100;
                 this.boost = 100;
                 this.giveHaste(GameConfig.HasteType.Windwalk, 5);
-                break;
-            case "summoner":
-                // its own slots only: the whip, no guns, throwables, perks or consumables
-                this.maxHealth = 150;
-                this.health = 150;
-                for (const slot of [GameConfig.WeaponSlot.Primary, GameConfig.WeaponSlot.Secondary, GameConfig.WeaponSlot.Throwable]) {
-                    this.weaponManager.setWeapon(slot, "", 0);
-                }
-                this.weaponManager.setWeapon(GameConfig.WeaponSlot.Melee, "whip_spinal_tap", 0);
-                this.weaponManager.setCurWeapIndex(GameConfig.WeaponSlot.Melee);
-                for (const item of Object.keys(this.invManager.items) as InventoryItem[]) this.invManager.set(item, 0);
-                this.lockedKit = true;
                 break;
         }
 
@@ -1968,65 +1949,8 @@ export class Player extends BaseGameObject {
                 }
             }
 
-            // Summoner passive: recovers 20 hp every 5 seconds
-            if (this.role === "summoner") {
-                this.summonerRegenTimer += dt;
-                if (this.summonerRegenTimer >= 5) {
-                    this.summonerRegenTimer -= 5;
-                    if (this.health < this.maxHealth) {
-                        this.health = Math.min(this.health + 20, this.maxHealth);
-                        this.setDirty();
-                    }
-                }
-
-                // Whip focus target decay
-                if (this.minionFocusTimer > 0) {
-                    this.minionFocusTimer -= dt;
-                    if (this.minionFocusTimer <= 0 || this.minionFocusEnemy?.dead) {
-                        this.minionFocusEnemy = undefined;
-                    }
-                }
-
-                // Blade staff minions (4 minions)
-                // Attacks any enemy within 15 tiles (or whip focused target)
-                let targetEnemy = this.minionFocusEnemy;
-                if (!targetEnemy || targetEnemy.dead || !util.sameLayer(targetEnemy.layer, this.layer)) {
-                    targetEnemy = undefined;
-                    let closestDist = 15;
-                    for (const p of this.game.playerBarn.livingPlayers) {
-                        if (p === this || p.teamId === this.teamId || !util.sameLayer(p.layer, this.layer)) continue;
-                        const dist = v2.length(v2.sub(p.pos, this.pos));
-                        if (dist < closestDist) {
-                            closestDist = dist;
-                            targetEnemy = p;
-                        }
-                    }
-                }
-
-                for (let i = 0; i < 4; i++) {
-                    this.minionAttackCooldowns[i] -= dt;
-                    if (this.minionAttackCooldowns[i] <= 0 && targetEnemy) {
-                        this.minionAttackCooldowns[i] = 0.6;
-                        const minionDir = v2.normalizeSafe(v2.sub(targetEnemy.pos, this.pos), this.dir);
-                        const minionOffset = v2.rotate(v2.create(1.5, 0), (i * Math.PI) / 2);
-                        const spawnPos = v2.add(this.pos, minionOffset);
-                        this.game.bulletBarn.fireBullet({
-                            bulletType: "bullet_cw_blade_staff_minion",
-                            pos: spawnPos,
-                            dir: minionDir,
-                            layer: this.layer,
-                            playerId: this.__id,
-                            damageType: GameConfig.DamageType.Player,
-                            gameSourceType: "whip_spinal_tap",
-                            damageMult: 1,
-                            shotFx: true,
-                        });
-                    }
-                }
-            }
 
         } else {
-            this.minionFocusEnemy = undefined;
             this.activeJudgeRocket = undefined;
         }
 
@@ -4012,7 +3936,7 @@ export class Player extends BaseGameObject {
         if (obj.destroyed) return;
 
         const def = GameObjectDefs.typeToDef(obj.type);
-        if (this.lockedKit && (def.type === "gun" || def.type === "melee" || def.type === "throwable" || def.type === "perk" || def.type === "heal" || def.type === "boost")) return;
+        if (this.lockedKit && (def.type === "gun" || def.type === "melee" || def.type === "throwable")) return;
         if (
             (this.actionType == GameConfig.Action.UseItem && def.type != "gun")
             || this.actionType == GameConfig.Action.Revive

@@ -569,30 +569,5 @@ export const RoleDefs: Record<string, RoleDef> = {
             spriteScale: 0.3,
         },
     },
-    summoner: {
-        type: "role",
-        announce: false,
-        killFeed: {
-            assign: false,
-            dead: true,
-            color: "#c084fc",
-        },
-        sound: {
-            assign: "spawn_01",
-            dead: "player_dead_01",
-        },
-        defaultItems: createDefaultItems({
-            weapons: [
-                { type: "", ammo: 0 },
-                { type: "", ammo: 0 },
-                { type: "whip_spinal_tap", ammo: 0 },
-                { type: "", ammo: 0 },
-            ],
-            backpack: "backpack03",
-            outfit: "outfitBase",
-            inventory: {},
-        }),
-        color: 0xc084fc,
-    },
 };
 

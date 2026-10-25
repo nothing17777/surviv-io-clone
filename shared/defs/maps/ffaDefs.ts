@@ -23,12 +23,6 @@ export const FfaGod = util.mergeDeep({}, Ffa, {
     gameMode: { godLoadout: true },
 } satisfies PartialMapDef) as MapDef;
 
-/** Free For All where everyone spawns as a summoner: whip and blade staff minions */
-export const FfaSummoner = util.mergeDeep({}, Ffa, {
-    desc: { name: "Free For All (Summoner Kit)" },
-    gameMode: { summonerKit: true },
-} satisfies PartialMapDef) as MapDef;
-
 /** Zombie Apocalypse: the lobby packed with bots of every level, hackers and scripters included */
 export const Zombie = util.mergeDeep({}, Main, {
     desc: { name: "Zombie Apocalypse" },

@@ -456,16 +456,15 @@ export class Bullet {
             const player = this.player;
             if (player && !player.dead) {
                 player.activeJudgeRocket = this;
-                const toMouse = v2.sub(player.mousePos, this.pos);
-                if (v2.length(toMouse) > 0.5) {
-                    const targetDir = v2.normalize(toMouse);
-                    this.dir = v2.normalizeSafe(v2.lerp(dt * 4, this.dir, targetDir), this.dir);
-                    this.endPos = v2.add(this.pos, v2.mul(this.dir, this.distance - this.distanceTraveled));
-                }
+                // the camera follows the rocket, so the player's aim is from the rocket to the cursor;
+                // turn toward it (the client does the same with the player's networked dir)
+                this.dir = v2.normalizeSafe(v2.lerp(math.min(dt * 4, 1), this.dir, player.dir), this.dir);
+                this.endPos = v2.add(this.pos, v2.mul(this.dir, this.distance - this.distanceTraveled));
             }
         }
         const posOld = v2.copy(this.pos);
-        const distLeft = this.boomerang
+        // a steered rocket counts the path it flew, not the straight line back
+        const distLeft = this.boomerang || this.bulletType === "bullet_pg_judge"
             ? this.distance - this.distanceTraveled
             : this.distance - v2.length(v2.sub(this.startPos, this.pos));
         const moveDist = math.min(distLeft, dt * this.speed);

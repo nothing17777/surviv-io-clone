@@ -1300,19 +1300,16 @@ export class WeaponManager {
                     dir: hit.dir,
                 });
                 if (obj.teamId !== this.player.teamId) {
-                    if (this.activeWeapon === "sundered_sky") {
+                    if (this.activeWeapon === "lol_sundered_sky") {
                         this.player.health = Math.min(this.player.health + 40, this.player.maxHealth);
                         this.player.setDirty();
-                    } else if (this.activeWeapon === "eclipse") {
+                    } else if (this.activeWeapon === "lol_eclipse") {
                         this.player.eclipseHitCount = (this.player.eclipseHitCount ?? 0) + 1;
                         if (this.player.eclipseHitCount % 2 === 0) {
                             this.player.shield = Math.min((this.player.shield ?? 0) + 50, 150);
                             this.player.shieldDirty = true;
                             this.player.setDirty();
                         }
-                    } else if (this.activeWeapon === "whip_spinal_tap") {
-                        this.player.minionFocusEnemy = obj as Player;
-                        this.player.minionFocusTimer = 10;
                     }
                 }
             }

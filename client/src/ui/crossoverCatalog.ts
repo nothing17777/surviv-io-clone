@@ -35,10 +35,10 @@ const SwordText: Record<string, string> = {
     tr_meowmere: "Throws a rainbow cat that bounces 4 times, blowing up bigger each bounce.",
     tr_star_wrath: "Calls three stars down onto your cursor.",
     tr_zenith: "Sends spinning swords out to your cursor and back.",
-    whip_spinal_tap: "10-tile bone whip that focuses blade staff minions on the hit enemy.",
+    tr_spinal_tap: "Bone whip that lashes enemies up to 10 tiles away.",
     pg_heroic_epee: "Swift rapier that regenerates 12 HP per second while holding.",
-    sundered_sky: "Heavy strikes that heal 40 HP on hit.",
-    eclipse: "Strikes for 60 damage and grants a 50 HP shield every second hit.",
+    lol_sundered_sky: "Heavy strikes that heal 40 HP on hit.",
+    lol_eclipse: "Strikes for 60 damage and grants a 50 HP shield every second hit.",
 };
 
 /** per weapon notes from its wiki page, where the effect alone doesn't say it */
