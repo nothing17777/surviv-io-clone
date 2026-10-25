@@ -641,16 +641,18 @@ export class Client {
         const extendedRadius = 1.1 * radius;
         const radiusSquared = extendedRadius * extendedRadius;
 
+        // while steering a Judge rocket the view is around the rocket
+        const viewPos = player.activeJudgeRocket?.pos ?? player.pos;
         const bullets = game.bulletBarn.newBullets;
         for (let i = 0; i < bullets.length; i++) {
             const bullet = bullets[i];
             if (
-                v2.lengthSqr(v2.sub(bullet.pos, player.pos)) < radiusSquared
-                || v2.lengthSqr(v2.sub(bullet.clientEndPos, player.pos)) < radiusSquared
+                v2.lengthSqr(v2.sub(bullet.pos, viewPos)) < radiusSquared
+                || v2.lengthSqr(v2.sub(bullet.clientEndPos, viewPos)) < radiusSquared
                 || coldet.intersectSegmentCircle(
                     bullet.pos,
                     bullet.clientEndPos,
-                    player.pos,
+                    viewPos,
                     extendedRadius,
                 )
             ) {
@@ -661,7 +663,7 @@ export class Client {
         for (let i = 0; i < game.explosionBarn.newExplosions.length; i++) {
             const explosion = game.explosionBarn.newExplosions[i];
             const rad = explosion.rad + extendedRadius;
-            if (v2.lengthSqr(v2.sub(explosion.pos, player.pos)) < rad * rad) {
+            if (v2.lengthSqr(v2.sub(explosion.pos, viewPos)) < rad * rad) {
                 updateMsg.explosions.push(explosion);
             }
         }

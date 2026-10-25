@@ -15,6 +15,8 @@ export type ExplosionDef =
         dropRandomLoot?: number;
         healTeam?: boolean;
         healAmount?: number;
+        /** shrapnel in a fixed triangle (one straight ahead, two to the sides) instead of random directions */
+        shrapnelTriangle?: boolean;
     }
     & (
         | {
@@ -433,7 +435,8 @@ export const ExplosionDefs: Record<string, ExplosionDef> = {
         damage: 100,
         obstacleDamage: 2,
         rad: { min: 2.5, max: 4.2 },
-        shrapnelCount: 4,
+        shrapnelCount: 3,
+        shrapnelTriangle: true,
         shrapnelType: "bullet_cw_christmas_tree_frag",
         explosionEffectType: "frag",
         decalType: "decal_frag_explosion",
@@ -444,6 +447,7 @@ export const ExplosionDefs: Record<string, ExplosionDef> = {
         obstacleDamage: 1.8,
         rad: { min: 2.0, max: 3.2 },
         shrapnelCount: 3,
+        shrapnelTriangle: true,
         shrapnelType: "bullet_cw_christmas_tree_subfrag",
         explosionEffectType: "frag",
         decalType: "decal_frag_explosion",

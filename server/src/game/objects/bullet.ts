@@ -519,6 +519,7 @@ export class Bullet {
                     mapSourceType: this.mapSourceType,
                     damageType: this.damageType,
                 },
+                this.dir,
             );
         }
 

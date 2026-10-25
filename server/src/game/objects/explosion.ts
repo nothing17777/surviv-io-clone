@@ -159,6 +159,8 @@ export class ExplosionBarn {
 
         const bulletDef = GameObjectDefs.typeToDefSafe(def.shrapnelType);
         if (bulletDef && bulletDef.type === "bullet") {
+            // a triangle points along the shot: one straight on, the other two 120 degrees round
+            const ahead = explosion.dir ?? v2.randomUnit();
             for (let i = 0, count = shrapnelCount; i < count; i++) {
                 this.game.bulletBarn.fireBullet({
                     bulletType: def.shrapnelType,
@@ -170,10 +172,10 @@ export class ExplosionBarn {
                     damageMult: shrapnelDamageMult,
                     speedMult: shrapnelSpeedMult,
                     trailSaturated: hasAmped,
-                    varianceT: Math.random(),
+                    varianceT: def.shrapnelTriangle ? 0.5 : Math.random(),
                     gameSourceType: explosion.damageParams.gameSourceType!,
                     mapSourceType: explosion.damageParams.mapSourceType,
-                    dir: v2.randomUnit(),
+                    dir: def.shrapnelTriangle ? v2.rotate(ahead, (i * Math.PI * 2) / count) : v2.randomUnit(),
                 });
             }
         }
@@ -268,6 +270,8 @@ export class ExplosionBarn {
         pos: Vec2,
         layer: number,
         damageParams: Omit<DamageParams, "damage" | "dir">,
+        /** the way the shot that set it off was flying, for shrapnelTriangle */
+        dir?: Vec2,
     ) {
         const def = GameObjectDefs.typeToDef(type, "explosion");
 
@@ -277,6 +281,7 @@ export class ExplosionBarn {
             pos,
             layer,
             damageParams,
+            dir,
         };
         this.explosions.push(explosion);
         this.newExplosions.push(explosion);
@@ -289,4 +294,5 @@ interface Explosion {
     pos: Vec2;
     layer: number;
     damageParams: Omit<DamageParams, "damage" | "dir">;
+    dir?: Vec2;
 }
