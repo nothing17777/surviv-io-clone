@@ -228,7 +228,7 @@ export class BulletBarn {
         if (b.reflectCount > 0) {
             b.bulletTrail.alpha *= 0.5;
         }
-        b.container.visible = !b.flame;
+        b.container.visible = true;
         renderer.addPIXIObj(b.container, b.layer, 20);
         if (fxImg) renderer.addPIXIObj(b.fxSprite, b.layer, 21);
     }
@@ -662,7 +662,13 @@ export class BulletBarn {
                 const screenScale = camera.m_pixels(1);
                 // a beam reaches back to where it was fired; Zenith's turning swords keep a short trail
                 const trailLength = b.beam ? dist / 2 : math.min(b.tracerLength * 15, (b.boomerang ? b.traveled : dist) / 2);
-                b.container.scale.set(screenScale * trailLength * b.scale, screenScale);
+                // a flame's trail is a short wide glow under its puff, growing as it burns out
+                const flameT = b.flame ? math.clamp(dist / Math.max(b.distance, 1), 0, 1) : 0;
+                b.container.scale.set(
+                    screenScale * (b.flame ? 1.2 + 1.8 * flameT : trailLength) * b.scale,
+                    screenScale * (b.flame ? 2 + 4 * flameT : 1),
+                );
+                if (b.flame) b.bulletTrail.alpha = 1 - flameT * 0.8;
                 if (b.fxSprite.visible) {
                     const tex = b.fxSprite.texture;
                     b.fxSprite.position.set(screenPos.x, screenPos.y);
