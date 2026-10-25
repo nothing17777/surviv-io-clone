@@ -64,6 +64,13 @@ interface BotSkill {
     wallhack?: boolean;
 }
 
+/** seconds a bot waits after its melee is ready before swinging again (missing = auto swing) */
+const SwingDelay: Partial<Record<BotLevel, [number, number]>> = {
+    beginner: [0.6, 1],
+    intermediate: [0.4, 0.7],
+    advanced: [0.2, 0.4],
+};
+
 const Skills: Record<BotLevel, BotSkill> = {
     beginner: {
         accuracy: 0.35,
@@ -299,7 +306,7 @@ export class BotBrain {
     private _unstickTicker = 0;
     private _spin = Math.random() * Math.PI * 2;
     private _lastCooldown = 0;
-    /** extra wait before beginner/intermediate swing again */
+    /** extra wait before a non-hacker bot swings again */
     private _swingDelay = 0;
     private _targetVel = v2.create(0, 0);
     private _targetLastPos = v2.create(0, 0);
@@ -1717,19 +1724,20 @@ export class BotBrain {
     }
 
     /**
-     * presses melee. Beginner and intermediate click each swing a beat after it's ready,
-     * like a person; the rest hold attack and swing the instant the cooldown ends
+     * presses melee. Beginner, intermediate and advanced click each swing a beat after
+     * it's ready, like a person; hackers hold attack and swing the instant the cooldown ends
      */
     private swing(): void {
         const player = this.player;
-        if (this.level !== "beginner" && this.level !== "intermediate") {
+        if (!(this.level in SwingDelay)) {
             player.shootStart = true;
             player.shootHold = true;
             return;
         }
         // cooldown keeps counting below 0 once the swing is ready
         if (player.weapons[WeaponSlot.Melee].cooldown > -this._swingDelay) return;
-        this._swingDelay = this.level === "beginner" ? util.random(0.25, 0.45) : util.random(0.12, 0.28);
+        const [min, max] = SwingDelay[this.level]!;
+        this._swingDelay = util.random(min, max);
         player.shootStart = true;
     }
 
