@@ -228,7 +228,7 @@ export class BulletBarn {
         if (b.reflectCount > 0) {
             b.bulletTrail.alpha *= 0.5;
         }
-        b.container.visible = true;
+        b.container.visible = !b.flame;
         renderer.addPIXIObj(b.container, b.layer, 20);
         if (fxImg) renderer.addPIXIObj(b.fxSprite, b.layer, 21);
     }
@@ -331,6 +331,17 @@ export class BulletBarn {
                 b.pos = v2.add(b.pos, v2.mul(b.dir, distTravel));
 
                 b.particleTicker += dt;
+                // flames leave a trail of overlapping puffs, so a held trigger reads as one stream of fire
+                if (b.flame && b.particleTicker >= 0.012) {
+                    b.particleTicker = 0;
+                    const particle = particleBarn.addParticle(
+                        "flame_puff",
+                        b.layer,
+                        v2.lerp(Math.random(), posOld, b.pos),
+                        v2.mul(b.dir, b.speed * 0.15),
+                    );
+                    particle.setColor(b.bulletTrail.tint as number);
+                }
                 if (b.combatStims && b.particleTicker >= 0.15) {
                     const particle = particleBarn.addParticle(
                         "boost_basic",

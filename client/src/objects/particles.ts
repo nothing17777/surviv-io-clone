@@ -2132,6 +2132,24 @@ const ParticleDefs: Record<string, ParticleDef> = {
             return util.rgbToInt(util.hsvToRgb(0, 1, util.random(0.82, 0.84)));
         },
     },
+    // flamethrower stream: soft puffs left behind each flame shot, tinted by the gun
+    flame_puff: {
+        image: ["part-smoke-01.img", "part-smoke-02.img"],
+        life: new Range(0.22, 0.34),
+        drag: 2,
+        rotVel: new Range(-Math.PI * 2, Math.PI * 2),
+        scale: {
+            start: new Range(0.03, 0.045),
+            end: new Range(0.11, 0.15),
+            lerp: new Range(0, 1),
+        },
+        alpha: {
+            start: 0.85,
+            end: 0,
+            lerp: new Range(0.35, 1),
+        },
+        color: 0xffffff,
+    },
     explosionSmoke: {
         image: ["part-smoke-01.img"],
         life: new Range(2, 3),
