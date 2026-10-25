@@ -329,7 +329,7 @@ export const MeleeEffects: Record<string, DeepPartial<MeleeDef>> = {
     legendary: { damage: 55, armorPiercing: true, attack: { offset: { x: 3, y: 0 }, rad: 3, cooldownTime: 0.4 } },
     // whips: long range lash (10 tiles, 20 dmg)
     // whips: the swing itself only reaches arm's length, the lash (a swing shot) does the long range
-    whip: { damage: 35, autoAttack: true, attack: { offset: { x: 2.5, y: 0 }, rad: 2, cooldownTime: 0.7 } },
+    whip: { damage: 35, autoAttack: true, attack: { offset: { x: 2.5, y: 0 }, rad: 2, cooldownTime: 1.15 } },
     // Heroic Epee: 30 dmg, fast mobility, 12 hp/s heal while holding
     heroic_epee: { damage: 30, speed: { equip: 1.25, attack: 1.05 }, attack: { offset: { x: 2.2, y: 0 }, rad: 2.4, cooldownTime: 0.35 } },
     // Sundered Sky: 40 dmg, heal 40 health on hit
@@ -476,7 +476,7 @@ export const SwingShotBullets: Record<string, BulletDef> = {
     bullet_cw_whip_lash: swingBullet({
         damage: 35,
         distance: 200,
-        speed: 340,
+        speed: 180,
         playerPierce: true,
         pierceLoss: 0,
         boomerang: true,

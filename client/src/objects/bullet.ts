@@ -101,6 +101,7 @@ export class BulletBarn {
         flame: boolean;
         whip: boolean;
         whipFrom: Vec2;
+        whipChain: PIXI.Container;
         fxSize: number;
         fxSpin: number;
     }> = [];
@@ -135,6 +136,8 @@ export class BulletBarn {
             b.bulletTrail.anchor.set(0.5, 0.5);
             b.container.addChild(b.bulletTrail);
             b.fxSprite = new PIXI.Sprite();
+            b.whipChain = new PIXI.Container();
+            b.whipChain.visible = false;
             b.fxSprite.anchor.set(0.5, 0.5);
             b.fxSprite.visible = false;
             this.bullets.push(b);
@@ -186,7 +189,14 @@ export class BulletBarn {
         b.flame = !!bulletDef.flame;
         b.whip = !!bulletDef.whip;
         b.whipFrom = v2.copy(bullet.pos);
-        if (b.whip) b.fxSprite.texture.baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
+        if (b.whip) {
+            // the whip is drawn as a chain of its own pieces instead of the single sprite
+            b.fxSprite.visible = false;
+            b.whipChain.visible = true;
+            renderer.addPIXIObj(b.whipChain, b.layer, 21);
+        } else {
+            b.whipChain.visible = false;
+        }
         b.fxSprite.alpha = 1;
         if (b.flame) {
             b.fxSprite.rotation = util.random(0, Math.PI * 2);
@@ -675,6 +685,10 @@ export class BulletBarn {
     m_render(camera: Camera) {
         for (let i = 0; i < this.bullets.length; i++) {
             const b = this.bullets[i];
+            if (b.whip) {
+                b.whipChain.visible = b.alive;
+                if (b.alive) drawWhip(b.whipChain, camera.m_pointToScreen(b.whipFrom), camera.m_pointToScreen(b.pos), camera.m_pixels(1.4));
+            }
             if (b.alive || b.collided) {
                 const dist = v2.length(v2.sub(b.pos, b.startPos));
                 const screenPos = camera.m_pointToScreen(b.pos);
@@ -700,17 +714,6 @@ export class BulletBarn {
                         b.fxSprite.alpha = (1 - t ** 1.6 * 0.9) * (b.collided ? b.scale : 1);
                     }
                     b.fxSprite.scale.set(s, s);
-                    if (b.whip) {
-                        // stretched from the hand to the tip, handle end at the hand
-                        const from = camera.m_pointToScreen(b.whipFrom);
-                        const dx = screenPos.x - from.x;
-                        const dy = screenPos.y - from.y;
-                        const len = Math.max(Math.hypot(dx, dy), 1);
-                        b.fxSprite.position.set((from.x + screenPos.x) / 2, (from.y + screenPos.y) / 2);
-                        b.fxSprite.rotation = Math.atan2(dy, dx);
-                        b.fxSprite.scale.set(len / Math.max(tex.width, 1), camera.m_pixels(1.1) / Math.max(tex.height, 1));
-                        continue;
-                    }
                     b.fxSprite.rotation = b.fxSpin
                         ? b.fxSprite.rotation + b.fxSpin * 0.016
                         : b.container.rotation;
@@ -718,4 +721,47 @@ export class BulletBarn {
             }
         }
     }
+}
+
+// the Spinal Tap image, cut into handle, one link (repeated along the whip) and tip, in source pixels
+const whipParts = { handle: [0, 25], link: [25, 39], tip: [64, 86] } as const;
+let whipTextures: Record<keyof typeof whipParts, PIXI.Texture> | undefined;
+
+/** lays the whip from the hand to the tip: handle, as many real-size links as fit, then the tip */
+function drawWhip(chain: PIXI.Container, from: Vec2, to: Vec2, height: number) {
+    if (!whipTextures) {
+        const base = PIXI.BaseTexture.from("img/custom-weapons/fx/whip_lash.png");
+        base.scaleMode = PIXI.SCALE_MODES.NEAREST;
+        const part = ([x0, x1]: readonly [number, number]) => new PIXI.Texture(base, new PIXI.Rectangle(x0, 0, x1 - x0, 18));
+        whipTextures = { handle: part(whipParts.handle), link: part(whipParts.link), tip: part(whipParts.tip) };
+    }
+    const k = height / 18;
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const len = Math.hypot(dx, dy);
+    const rot = Math.atan2(dy, dx);
+    const ux = dx / Math.max(len, 1);
+    const uy = dy / Math.max(len, 1);
+    const handleLen = 25 * k;
+    const tipLen = 22 * k;
+    const linkLen = 14 * k;
+    const links = Math.max(0, Math.floor((len - handleLen - tipLen) / linkLen));
+    const pieces: Array<[PIXI.Texture, number]> = [[whipTextures.handle, 0]];
+    for (let n = 0; n < links; n++) pieces.push([whipTextures.link, handleLen + n * linkLen]);
+    pieces.push([whipTextures.tip, Math.max(len - tipLen, handleLen * 0.5)]);
+    while (chain.children.length < pieces.length) {
+        const s = new PIXI.Sprite();
+        s.anchor.set(0, 0.5);
+        chain.addChild(s);
+    }
+    chain.children.forEach((c, n) => {
+        const s = c as PIXI.Sprite;
+        s.visible = n < pieces.length;
+        if (!s.visible) return;
+        const [tex, at] = pieces[n];
+        s.texture = tex;
+        s.scale.set(k, k);
+        s.rotation = rot;
+        s.position.set(from.x + ux * at, from.y + uy * at);
+    });
 }
