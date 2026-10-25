@@ -62,6 +62,8 @@ export interface ServerGameConfig {
         emptyInventory?: boolean;
         /** the full map at squad size instead of the small duel arena */
         bigMap?: boolean;
+        /** free for all rules, for custom maps whose biome isn't a free for all map */
+        ffa?: { allLevels: boolean; maxPlayers?: number; potato?: boolean };
         /** weapons for bots on the leader's side / the other side, over their level's kit */
         allyBotKit?: PrivateLoadout;
         enemyBotKit?: PrivateLoadout;
@@ -107,6 +109,7 @@ export const zFindGamePrivateBody = z.object({
             noKillLoot: z.boolean().optional(),
             emptyInventory: z.boolean().optional(),
             bigMap: z.boolean().optional(),
+            ffa: z.object({ allLevels: z.boolean(), maxPlayers: z.number().optional(), potato: z.boolean().optional() }).optional(),
             allyBotKit: zPrivateLoadout.optional(),
             enemyBotKit: zPrivateLoadout.optional(),
             customMap: zCustomMap.optional(),

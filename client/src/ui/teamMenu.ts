@@ -1298,13 +1298,14 @@ export class TeamMenu {
                     .prop("disabled", !this.isLeader);
                 $("#team-private-hint").toggle(!vsBots);
                 const fillDef = MapDefs[this.roomData.privateMapName as MapDefKey];
-                const army = !vsBots && (!!custom || !!fillDef?.gameMode.factionMode);
+                // free for all: no sides (the size is the party's team size), the lobby fills itself with bots;
+                // a custom map plays as free for all too when a free for all map is picked
+                const ffa = !vsBots && !!fillDef?.gameMode.ffaMode;
+                const army = !vsBots && !ffa && (!!custom || !!fillDef?.gameMode.factionMode);
                 $("#team-bot-army").toggle(army);
                 // only Vs Bots and free for all need a size; otherwise the A/B tags set the sides
-                this.privateSizes.toggle((vsBots || (!custom && !!fillDef?.gameMode.ffaMode)) && !army);
+                this.privateSizes.toggle((vsBots || ffa) && !army);
                 if (army) this.refreshBotArmy();
-                // free for all: no sides (the size is the party's team size), the lobby fills itself with bots
-                const ffa = !custom && !!fillDef?.gameMode.ffaMode;
                 if (ffa) $("#team-private-hint").hide();
                 $("#team-bot-settings").closest(".team-section").toggle(!ffa);
                 // Same Kit / God Kit / Loot

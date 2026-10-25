@@ -362,7 +362,8 @@ class Room {
             return;
         }
 
-        const ffa = !!MapDefs[this.data.privateMapName as MapDefKey]?.gameMode.ffaMode && !this.customMap;
+        const ffaDef = MapDefs[this.data.privateMapName as MapDefKey]?.gameMode;
+        const ffa = !!ffaDef?.ffaMode && !this.data.privateVsBots;
         if (this.data.privateMatch && !ffa) {
             playerData.forEach((data, i) => {
                 // vs bots: the whole party is Team A
@@ -412,6 +413,8 @@ class Room {
                     noKillLoot: !!this.data.privateNoKillLoot,
                     emptyInventory: !!this.data.privateEmptyInventory,
                     bigMap: this.data.privateBigMap ?? ffa,
+                    // a custom map takes the picked free for all rules
+                    ffa: ffa ? { allLevels: !!ffaDef?.ffaAllLevels, maxPlayers: ffaDef?.maxPlayers, potato: !!ffaDef?.potatoMode } : undefined,
                     allyBotKit: this.data.privateBotAllyKit ?? undefined,
                     enemyBotKit: this.data.privateBotEnemyKit ?? undefined,
                     customMap: customMap ?? undefined,

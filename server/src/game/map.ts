@@ -288,6 +288,15 @@ export class GameMap {
 
         this.mapId = mapDef.mapId;
 
+        const ffaRules = game.config.privateMatch?.ffa;
+        if (ffaRules) {
+            mapDef.gameMode.ffaMode = true;
+            mapDef.gameMode.ffaAllLevels = ffaRules.allLevels;
+            if (ffaRules.maxPlayers) mapDef.gameMode.maxPlayers = ffaRules.maxPlayers;
+            // potato free for all: hits swap weapons on any map
+            if (ffaRules.potato) mapDef.gameMode.potatoMode = true;
+        }
+
         const bigMap = game.config.privateMatch?.bigMap ?? !!mapDef.gameMode.ffaMode;
         const scale = (this.scale = game.teamMode > TeamMode.Duo || (game.config.privateMatch && bigMap) ? "large" : "small");
 
