@@ -548,11 +548,9 @@ export class Client {
             this.startedSpectating = false;
         } else {
             updateMsg.activePlayerIdDirty = player.__id !== this.lastPlayerId;
+            // the network sends health as 0-100, so a 150 HP summoner is scaled down
             updateMsg.activePlayerData = player.maxHealth !== 100
-                ? {
-                    ...player,
-                    health: (player.health / player.maxHealth) * 100,
-                }
+                ? Object.create(player, { health: { value: (player.health / player.maxHealth) * 100 } })
                 : player;
         }
         this.lastPlayerId = player.__id;

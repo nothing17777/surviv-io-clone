@@ -244,15 +244,6 @@ export class ExplosionBarn {
                     obj.decrementViewDistance();
                 }
 
-                if (explosion.type === "explosion_cw_poison") {
-                    obj.applyPoison(4, explosion.damageParams.source as Player);
-                }
-                if (explosion.type === "explosion_cw_frozen_dragon") {
-                    obj.applyBurn(2, explosion.damageParams.source as Player);
-                }
-                if (explosion.type === "explosion_cw_star" && explosion.damageParams.weaponSourceType === "pg_nanobots_rifle") {
-                    obj.applyBleed(4, explosion.damageParams.source as Player);
-                }
             }
         }
 

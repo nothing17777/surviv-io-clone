@@ -764,16 +764,6 @@ export class Bullet {
                             ? PerkProperties.ap_rounds.armorPenetration
                             : undefined,
                     });
-                    if (col.player.teamId !== this.player?.teamId) {
-                        if (this.shotSourceType === "pg_nanobots_rifle" || this.bulletType === "bullet_pg_nanobots_rifle") {
-                            col.player.applyBleed(4, this.player);
-                        } else if (this.shotSourceType === "pg_acid_shotgun" || this.bulletType === "bullet_pg_acid_shotgun") {
-                            col.player.applyPoison(4, this.player);
-                        } else if (this.shotSourceType === "pg_frozen_dragon" || this.bulletType === "bullet_pg_frozen_dragon") {
-                            col.player.applyBurn(2, this.player);
-                            col.player.freeze("explosion_cw_frost", 0, 2);
-                        }
-                    }
                 }
                 hit = col.collidable && !this.pierce;
                 // a homing shot that pierces still ends in its target

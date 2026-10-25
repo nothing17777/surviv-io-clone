@@ -571,9 +571,9 @@ export const RoleDefs: Record<string, RoleDef> = {
     },
     summoner: {
         type: "role",
-        announce: true,
+        announce: false,
         killFeed: {
-            assign: true,
+            assign: false,
             dead: true,
             color: "#c084fc",
         },
@@ -583,7 +583,7 @@ export const RoleDefs: Record<string, RoleDef> = {
         },
         defaultItems: createDefaultItems({
             weapons: [
-                { type: "whip_spinal_tap", ammo: 0 },
+                { type: "", ammo: 0 },
                 { type: "", ammo: 0 },
                 { type: "whip_spinal_tap", ammo: 0 },
                 { type: "", ammo: 0 },

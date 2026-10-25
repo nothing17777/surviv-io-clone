@@ -230,6 +230,7 @@ export class PlayerBarn {
             const fixed = this.game.fixedLoadout;
             player.applyGodLoadout(fixed ?? joinMsg.godLoadout);
         }
+        if (this.game.map.mapDef.gameMode.summonerKit) player.promoteToRole("summoner");
 
         return player;
     }
@@ -1018,8 +1019,15 @@ export class Player extends BaseGameObject {
                 this.giveHaste(GameConfig.HasteType.Windwalk, 5);
                 break;
             case "summoner":
+                // its own slots only: the whip, no guns, throwables, perks or consumables
                 this.maxHealth = 150;
                 this.health = 150;
+                for (const slot of [GameConfig.WeaponSlot.Primary, GameConfig.WeaponSlot.Secondary, GameConfig.WeaponSlot.Throwable]) {
+                    this.weaponManager.setWeapon(slot, "", 0);
+                }
+                this.weaponManager.setWeapon(GameConfig.WeaponSlot.Melee, "whip_spinal_tap", 0);
+                this.weaponManager.setCurWeapIndex(GameConfig.WeaponSlot.Melee);
+                for (const item of Object.keys(this.invManager.items) as InventoryItem[]) this.invManager.set(item, 0);
                 this.lockedKit = true;
                 break;
         }
@@ -1907,6 +1915,7 @@ export class Player extends BaseGameObject {
                         source: this.bleedDotSource,
                         gameSourceType: "pg_nanobots_rifle",
                         weaponSourceType: "pg_nanobots_rifle",
+                        dir: this.dir,
                     });
                 }
             } else {
@@ -1925,6 +1934,7 @@ export class Player extends BaseGameObject {
                         source: this.poisonSource,
                         gameSourceType: "pg_acid_shotgun",
                         weaponSourceType: "pg_acid_shotgun",
+                        dir: this.dir,
                     });
                 }
             } else {
@@ -1943,6 +1953,7 @@ export class Player extends BaseGameObject {
                         source: this.burnSource,
                         gameSourceType: "pg_frozen_dragon",
                         weaponSourceType: "pg_frozen_dragon",
+                        dir: this.dir,
                     });
                 }
             } else {
@@ -2006,19 +2017,14 @@ export class Player extends BaseGameObject {
                             layer: this.layer,
                             playerId: this.__id,
                             damageType: GameConfig.DamageType.Player,
-                            gameSourceType: "blade_staff_minion",
-                            weaponSourceType: "whip_spinal_tap",
+                            gameSourceType: "whip_spinal_tap",
+                            damageMult: 1,
                             shotFx: true,
                         });
                     }
                 }
             }
 
-            // Judge rocket movement restriction: cannot move while rocket is active
-            if (this.activeJudgeRocket?.active) {
-                this.speed = 0;
-                this.moveVel = v2.create(0, 0);
-            }
         } else {
             this.minionFocusEnemy = undefined;
             this.activeJudgeRocket = undefined;
@@ -2191,6 +2197,9 @@ export class Player extends BaseGameObject {
             v2.set(this.vel, v2.mul(this.vel, 1 / (1 + dt * 4)));
             v2.set(this.pos, v2.add(this.pos, v2.mul(this.vel, dt)));
         }
+
+        // Judge: you stand still while steering its rocket
+        if (this.activeJudgeRocket?.active) v2.set(movement, v2.create(0, 0));
 
         const hasTreeClimbing = this.hasPerk("tree_climbing");
 
@@ -2792,17 +2801,13 @@ export class Player extends BaseGameObject {
 
         this.health -= finalDamage;
 
-        if (playerSource && params.source !== this) {
-            if (params.weaponSourceType === "pg_nanobots_rifle" || params.gameSourceType === "pg_nanobots_rifle" || params.gameSourceType === "bullet_pg_nanobots_rifle") {
-                this.applyBleed(4, playerSource);
-            }
-            if (params.weaponSourceType === "pg_acid_shotgun" || params.gameSourceType === "pg_acid_shotgun" || params.gameSourceType === "bullet_pg_acid_shotgun") {
-                this.applyPoison(4, playerSource);
-            }
-            if (params.weaponSourceType === "pg_frozen_dragon" || params.gameSourceType === "pg_frozen_dragon" || params.gameSourceType === "bullet_pg_frozen_dragon") {
-                this.applyBurn(2, playerSource);
-                this.freeze("explosion_cw_frost", 0, 2);
-            }
+        // debuff weapons (the debuff's own ticks are Bleeding damage, so they don't refresh it);
+        // Frozen Dragon's slow comes from its explosion's freezeDuration
+        if (playerSource && params.source !== this && params.damageType !== GameConfig.DamageType.Bleeding) {
+            const src = params.gameSourceType;
+            if (src === "pg_nanobots_rifle") this.applyBleed(4, playerSource);
+            else if (src === "pg_acid_shotgun") this.applyPoison(4, playerSource);
+            else if (src === "pg_frozen_dragon") this.applyBurn(2, playerSource);
         }
 
         if (this.game.isTeamMode) {

@@ -16,6 +16,7 @@
     { mapName: "storm", teamMode: 4, enabled: true },
     { mapName: "ffa", teamMode: 1, enabled: true },
     { mapName: "ffa_god", teamMode: 1, enabled: true },
+    { mapName: "ffa_summoner", teamMode: 1, enabled: true },
     { mapName: "zombie", teamMode: 1, enabled: true },
     { mapName: "main", teamMode: 1, enabled: true },
     { mapName: "main", teamMode: 2, enabled: true },
