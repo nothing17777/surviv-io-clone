@@ -183,7 +183,6 @@ export class BulletBarn {
         }
         b.flame = !!bulletDef.flame;
         b.fxSprite.alpha = 1;
-        b.fxSprite.blendMode = b.flame ? PIXI.BLEND_MODES.ADD : PIXI.BLEND_MODES.NORMAL;
         if (b.flame) {
             b.fxSprite.rotation = util.random(0, Math.PI * 2);
             b.fxSpin = util.random(-6, 6);
