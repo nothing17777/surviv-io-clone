@@ -264,7 +264,7 @@ export const GunEffects: Record<string, GunEffect> = {
                 "img/custom-weapons/fx/frost_flame_2.png",
                 "img/custom-weapons/fx/frost_flame_3.png",
             ],
-            spriteSize: 5,
+            spriteSize: 15,
         },
         gun: {
             fireMode: "auto",
