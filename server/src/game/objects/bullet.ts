@@ -256,7 +256,8 @@ export class Bullet {
         this.speed = bulletDef.speed * this.speedMult * variance;
         this.hasModifier = this.speedMult !== 1 || this.distanceMult !== 1;
         this.onHitFx = bulletDef.onHit ?? params.onHitFx;
-        this.canReflect = this.onHitFx !== "explosion_rounds";
+        // flames burn out on walls instead of bouncing off metal
+        this.canReflect = this.onHitFx !== "explosion_rounds" && !bulletDef.flame;
         this.damagedObjIds = new Set();
 
         this.hasOnHitFx = !!this.onHitFx;

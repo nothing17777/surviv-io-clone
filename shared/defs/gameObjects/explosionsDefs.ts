@@ -430,7 +430,7 @@ export const ExplosionDefs: Record<string, ExplosionDef> = {
     },
     explosion_cw_christmas_tree_1: {
         type: "explosion",
-        damage: 150,
+        damage: 100,
         obstacleDamage: 2,
         rad: { min: 2.5, max: 4.2 },
         shrapnelCount: 4,
@@ -440,7 +440,7 @@ export const ExplosionDefs: Record<string, ExplosionDef> = {
     },
     explosion_cw_christmas_tree_2: {
         type: "explosion",
-        damage: 120,
+        damage: 80,
         obstacleDamage: 1.8,
         rad: { min: 2.0, max: 3.2 },
         shrapnelCount: 3,
@@ -450,7 +450,7 @@ export const ExplosionDefs: Record<string, ExplosionDef> = {
     },
     explosion_cw_christmas_tree_3: {
         type: "explosion",
-        damage: 96,
+        damage: 64,
         obstacleDamage: 1.5,
         rad: { min: 1.5, max: 2.5 },
         shrapnelCount: 0,

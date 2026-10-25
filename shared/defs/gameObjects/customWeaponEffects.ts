@@ -251,6 +251,9 @@ export const GunEffects: Record<string, GunEffect> = {
             distance: 38,
             falloff: 1,
             onHit: "explosion_cw_frozen_dragon",
+            // burns through everyone in its path and stops at the first wall
+            playerPierce: true,
+            pierceLoss: 0,
             tracerColor: "cw_frost",
             tracerWidth: 0.35,
             tracerLength: 0.4,
@@ -325,7 +328,7 @@ export const MeleeEffects: Record<string, DeepPartial<MeleeDef>> = {
     // terra blade, starfury, zenith...: shoot or summon something with each swing, so they hit far and hard
     legendary: { damage: 55, armorPiercing: true, attack: { offset: { x: 3, y: 0 }, rad: 3, cooldownTime: 0.4 } },
     // whips: long range lash (10 tiles, 20 dmg)
-    whip: { damage: 20, autoAttack: true, attack: { offset: { x: 5, y: 0 }, rad: 5.5, cooldownTime: 0.45 } },
+    whip: { damage: 20, autoAttack: true, attack: { offset: { x: 8, y: 0 }, rad: 7, cooldownTime: 0.45 } },
     // Heroic Epee: 30 dmg, fast mobility, 12 hp/s heal while holding
     heroic_epee: { damage: 30, speed: { equip: 1.25, attack: 1.05 }, attack: { offset: { x: 2.2, y: 0 }, rad: 2.4, cooldownTime: 0.35 } },
     // Sundered Sky: 40 dmg, heal 40 health on hit
@@ -489,7 +492,7 @@ export const SwingShotBullets: Record<string, BulletDef> = {
         spriteSize: 3.2,
     }),
     bullet_cw_christmas_tree_frag: swingBullet({
-        damage: 120,
+        damage: 0,
         speed: 50,
         distance: 18,
         onHit: "explosion_cw_christmas_tree_2",
@@ -499,7 +502,7 @@ export const SwingShotBullets: Record<string, BulletDef> = {
         tracerWidth: 0.25,
     }),
     bullet_cw_christmas_tree_subfrag: swingBullet({
-        damage: 96,
+        damage: 0,
         speed: 40,
         distance: 12,
         onHit: "explosion_cw_christmas_tree_3",

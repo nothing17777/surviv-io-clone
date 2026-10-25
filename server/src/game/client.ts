@@ -493,7 +493,8 @@ export class Client {
             width = height;
             height = tmp;
         }
-        const rect = collider.createAabbExtents(player.pos, v2.create(width, height));
+        // while steering a Judge rocket the camera is on the rocket, so send what's around it
+        const rect = collider.createAabbExtents(player.activeJudgeRocket?.pos ?? player.pos, v2.create(width, height));
 
         const newVisibleObjects = game.grid.intersectAABBSet(rect);
         // client crashes if active player is not visible

@@ -280,7 +280,9 @@ export class UiManager2 {
         health: {
             inner: domElemById("ui-health-actual"),
             depleted: domElemById("ui-health-depleted"),
+            shieldBar: domElemById("ui-shield-bar"),
             shield: domElemById("ui-shield-actual"),
+            shieldText: domElemById("ui-shield-text"),
         },
         boost: {
             div: domElemById("ui-boost-counter"),
@@ -714,9 +716,11 @@ export class UiManager2 {
             ? 0
             : math.max(activePlayer.m_localData.m_health, 1);
         // Eclipse's shield bar: drawn every frame, since it changes without the health changing
-        const shield = activePlayer.m_netData.m_dead ? 0 : math.clamp(activePlayer.m_localData.shield ?? 0, 0, 100);
-        this.dom.health.shield.style.width = `${shield}%`;
-        this.dom.health.shield.style.display = shield > 0 ? "block" : "none";
+        // the bar is full at the 150 shield cap
+        const shield = activePlayer.m_netData.m_dead ? 0 : math.max(activePlayer.m_localData.shield ?? 0, 0);
+        this.dom.health.shieldBar.style.display = shield > 0 ? "block" : "none";
+        this.dom.health.shield.style.width = `${math.min(shield / 1.5, 100)}%`;
+        this.dom.health.shieldText.textContent = shield > 0 ? `${Math.ceil(shield)}` : "";
         state.boost = activePlayer.m_localData.m_boost;
         state.downed = activePlayer.m_netData.m_downed;
 

@@ -606,7 +606,11 @@
                         <div id="ui-health-container">
                             <div class="ui-bar-inner" id="ui-health-actual"></div>
                             <div class="ui-bar-inner" id="ui-health-depleted"></div>
-                            <div class="ui-bar-inner" id="ui-shield-actual" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: linear-gradient(to right, #60a5fa, #93c5fd); box-shadow: 0 0 10px #60a5fa; border-radius: 4px; pointer-events: none; z-index: 10; display: none;"></div>
+                            <!-- Eclipse's shield: its own bar above health, emptied before health is -->
+                            <div id="ui-shield-bar" style="position: absolute; left: 0; right: 0; top: -18px; height: 12px; background: rgba(0, 0, 0, 0.45); border-radius: 4px; pointer-events: none; display: none;">
+                                <div id="ui-shield-actual" style="height: 100%; width: 0%; background: linear-gradient(to right, #3b82f6, #93c5fd); box-shadow: 0 0 8px #60a5fa; border-radius: 4px;"></div>
+                                <div id="ui-shield-text" style="position: absolute; left: 0; right: 0; top: -1px; text-align: center; font-size: 11px; font-weight: bold; color: #fff; text-shadow: 0 0 2px #000;"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
