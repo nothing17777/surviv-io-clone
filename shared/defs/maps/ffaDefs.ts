@@ -3,6 +3,9 @@ import type { MapDef } from "../mapDefs.ts";
 import { Main, type PartialMapDef } from "./baseDefs.ts";
 import { Potato } from "./potatoDefs.ts";
 
+/** the full original surviv map (the squad size) even though it's solo */
+const FullSize = { mapGen: { map: { scale: { small: 1.28125 } } } } satisfies PartialMapDef;
+
 /**
  * Free For All: the normal map filled to 100 players with bots (no hackers or scripters).
  */
@@ -14,6 +17,7 @@ const mapDef: PartialMapDef = {
         maxPlayers: 100,
         ffaMode: true,
     },
+    ...FullSize,
 };
 
 export const Ffa = util.mergeDeep({}, Main, mapDef) as MapDef;
@@ -28,10 +32,12 @@ export const FfaGod = util.mergeDeep({}, Ffa, {
 export const Zombie = util.mergeDeep({}, Main, {
     desc: { name: "Zombie Apocalypse" },
     gameMode: { ffaMode: true, ffaAllLevels: true },
+    ...FullSize,
 } satisfies PartialMapDef) as MapDef;
 
 /** Free For All on the potato map */
 export const FfaPotato = util.mergeDeep({}, Potato, {
     desc: { name: "Free For All (Potato)" },
     gameMode: { maxPlayers: 100, ffaMode: true },
+    ...FullSize,
 } satisfies PartialMapDef) as MapDef;
