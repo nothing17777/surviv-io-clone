@@ -52,6 +52,8 @@ export interface BulletDef {
     flame?: boolean;
     /** a whip: its sprite stretches from the shooter's hand out to the shot, so it extends and snaps back */
     whip?: boolean;
+    /** draw only the sprite, without the usual bullet tracer */
+    noTracer?: boolean;
 }
 
 export const BaseDefs: Record<string, BulletDef> = {

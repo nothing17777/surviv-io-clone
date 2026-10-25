@@ -243,7 +243,7 @@ export class BulletBarn {
         if (b.reflectCount > 0) {
             b.bulletTrail.alpha *= 0.5;
         }
-        b.container.visible = !b.flame && !b.whip;
+        b.container.visible = !b.flame && !b.whip && !bulletDef.noTracer;
         renderer.addPIXIObj(b.container, b.layer, 20);
         if (fxImg) renderer.addPIXIObj(b.fxSprite, b.layer, 21);
     }
@@ -687,7 +687,7 @@ export class BulletBarn {
             const b = this.bullets[i];
             if (b.whip) {
                 b.whipChain.visible = b.alive;
-                if (b.alive) drawWhip(b.whipChain, camera.m_pointToScreen(b.whipFrom), camera.m_pointToScreen(b.pos), camera.m_pixels(1.4));
+                if (b.alive) drawWhip(b.whipChain, camera.m_pointToScreen(b.whipFrom), camera.m_pointToScreen(b.pos), camera.m_pixels(3.2));
             }
             if (b.alive || b.collided) {
                 const dist = v2.length(v2.sub(b.pos, b.startPos));
