@@ -1,6 +1,6 @@
 import $ from "jquery";
 import { CustomGuns, CustomMelees } from "../../../shared/defs/gameObjects/customWeaponDefs.ts";
-import { SwingShots } from "../../../shared/defs/gameObjects/customWeaponEffects.ts";
+import { HiddenCustomGuns, SwingShots } from "../../../shared/defs/gameObjects/customWeaponEffects.ts";
 import { GameObjectDefs } from "../../../shared/defs/register.ts";
 
 /** what each effect does, in a sentence */
@@ -97,7 +97,7 @@ function lootImg(id: string) {
 }
 
 function gunRows(): Row[] {
-    return CustomGuns.map(([id, name, game, , effect]) => {
+    return CustomGuns.filter(([id]) => !HiddenCustomGuns.has(id)).map(([id, name, game, , effect]) => {
         const def = GameObjectDefs.typeToDef(id, "gun");
         const bullet = GameObjectDefs.typeToDef(def.bulletType, "bullet");
         const rate = 1 / def.fireDelay;
