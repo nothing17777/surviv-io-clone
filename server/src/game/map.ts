@@ -293,8 +293,8 @@ export class GameMap {
         // Every duel plays on the same small arena, whichever map was picked:
         // a 1v1 spread over a 50v50 sized map is mostly walking. Density
         // spawns scale with area on their own; fixed spawns that no longer fit
-        // are simply skipped by the placement retries.
-        if (game.duelRules) {
+        // are simply skipped by the placement retries. Free For All keeps its full map.
+        if (game.duelRules && !mapDef.gameMode.ffaMode) {
             mapDef.mapGen.map = {
                 ...mapDef.mapGen.map,
                 ...util.cloneDeep(MapDefs.duel.mapGen.map),
