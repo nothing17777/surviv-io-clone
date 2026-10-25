@@ -50,6 +50,8 @@ export interface BulletDef {
     spin?: number;
     /** a flamethrower puff: the sprite swells, turns and fades out as it flies, with no tracer */
     flame?: boolean;
+    /** a whip: its sprite stretches from the shooter's hand out to the shot, so it extends and snaps back */
+    whip?: boolean;
 }
 
 export const BaseDefs: Record<string, BulletDef> = {

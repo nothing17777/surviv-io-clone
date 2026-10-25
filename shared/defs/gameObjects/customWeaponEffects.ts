@@ -328,7 +328,8 @@ export const MeleeEffects: Record<string, DeepPartial<MeleeDef>> = {
     // terra blade, starfury, zenith...: shoot or summon something with each swing, so they hit far and hard
     legendary: { damage: 55, armorPiercing: true, attack: { offset: { x: 3, y: 0 }, rad: 3, cooldownTime: 0.4 } },
     // whips: long range lash (10 tiles, 20 dmg)
-    whip: { damage: 20, autoAttack: true, attack: { offset: { x: 8, y: 0 }, rad: 7, cooldownTime: 0.45 } },
+    // whips: the swing itself only reaches arm's length, the lash (a swing shot) does the long range
+    whip: { damage: 35, autoAttack: true, attack: { offset: { x: 2.5, y: 0 }, rad: 2, cooldownTime: 0.7 } },
     // Heroic Epee: 30 dmg, fast mobility, 12 hp/s heal while holding
     heroic_epee: { damage: 30, speed: { equip: 1.25, attack: 1.05 }, attack: { offset: { x: 2.2, y: 0 }, rad: 2.4, cooldownTime: 0.35 } },
     // Sundered Sky: 40 dmg, heal 40 health on hit
@@ -404,6 +405,8 @@ export const SwingShots: Record<string, SwingShot> = {
     // a flurry of spinning swords rush to the cursor anywhere on screen (locking onto an enemy near it),
     // then fly back, cutting through walls and everyone both ways
     tr_zenith: { bullet: "bullet_cw_zenith_sword", count: 6, spread: 6, toCursor: true },
+    // the whip lashes out 100 tiles and snaps back
+    tr_spinal_tap: { bullet: "bullet_cw_whip_lash" },
 };
 
 const swingBullet = (b: Partial<BulletDef>): BulletDef => ({
@@ -468,6 +471,19 @@ export const SwingShotBullets: Record<string, BulletDef> = {
         sprite: "img/custom-weapons/fx/star.png",
         spriteSize: 1.8,
         spin: 10,
+    }),
+    // the whip's tip: out 100 and back (a boomerang turns at half its distance), through everyone, stopped by walls
+    bullet_cw_whip_lash: swingBullet({
+        damage: 35,
+        distance: 200,
+        speed: 340,
+        playerPierce: true,
+        pierceLoss: 0,
+        boomerang: true,
+        whip: true,
+        sprite: "img/custom-weapons/fx/whip_lash.png",
+        spriteSize: 3,
+        tracerColor: "cw_magic",
     }),
     bullet_cw_zenith_sword: swingBullet({
         damage: 30,
