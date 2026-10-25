@@ -60,6 +60,8 @@ export interface ServerGameConfig {
         noKillLoot?: boolean;
         /** everyone (bots too) spawns with fists and nothing else */
         emptyInventory?: boolean;
+        /** the full map at squad size instead of the small duel arena */
+        bigMap?: boolean;
         /** weapons for bots on the leader's side / the other side, over their level's kit */
         allyBotKit?: PrivateLoadout;
         enemyBotKit?: PrivateLoadout;
@@ -104,6 +106,7 @@ export const zFindGamePrivateBody = z.object({
             enemyBotsSameKit: z.boolean().optional(),
             noKillLoot: z.boolean().optional(),
             emptyInventory: z.boolean().optional(),
+            bigMap: z.boolean().optional(),
             allyBotKit: zPrivateLoadout.optional(),
             enemyBotKit: zPrivateLoadout.optional(),
             customMap: zCustomMap.optional(),

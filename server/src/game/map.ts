@@ -288,13 +288,14 @@ export class GameMap {
 
         this.mapId = mapDef.mapId;
 
-        const scale = (this.scale = game.teamMode > TeamMode.Duo ? "large" : "small");
+        const bigMap = game.config.privateMatch?.bigMap ?? !!mapDef.gameMode.ffaMode;
+        const scale = (this.scale = game.teamMode > TeamMode.Duo || (game.config.privateMatch && bigMap) ? "large" : "small");
 
         // Every duel plays on the same small arena, whichever map was picked:
         // a 1v1 spread over a 50v50 sized map is mostly walking. Density
         // spawns scale with area on their own; fixed spawns that no longer fit
         // are simply skipped by the placement retries. Free For All keeps its full map.
-        if (game.duelRules && !mapDef.gameMode.ffaMode) {
+        if (game.duelRules && !bigMap) {
             mapDef.mapGen.map = {
                 ...mapDef.mapGen.map,
                 ...util.cloneDeep(MapDefs.duel.mapGen.map),

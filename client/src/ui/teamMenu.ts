@@ -240,6 +240,9 @@ export class TeamMenu {
             this.setRoomProperty("privateAllyBotsSameKit", (e.currentTarget as HTMLInputElement).checked);
             this.syncOwnKitToBots();
         });
+        $("#team-big-map").on("change", (e) => {
+            this.setRoomProperty("privateBigMap", (e.currentTarget as HTMLInputElement).checked);
+        });
         $("#team-empty-inv").on("change", (e) => {
             this.setRoomProperty("privateEmptyInventory", (e.currentTarget as HTMLInputElement).checked);
         });
@@ -1319,6 +1322,14 @@ export class TeamMenu {
                     .prop("disabled", !this.isLeader);
                 $("#team-kit-enemy-bots")
                     .prop("checked", this.roomData.privateEnemyBotsSameKit ?? true)
+                    .prop("disabled", !this.isLeader);
+                // unset: free for all plays big, everything else on the small arena
+                $("#team-big-map")
+                    .prop(
+                        "checked",
+                        this.roomData.privateBigMap
+                            ?? !!MapDefs[this.roomData.privateMapName as MapDefKey]?.gameMode.ffaMode,
+                    )
                     .prop("disabled", !this.isLeader);
                 $("#team-empty-inv")
                     .prop("checked", !!this.roomData.privateEmptyInventory)
