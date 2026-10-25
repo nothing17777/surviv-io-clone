@@ -99,9 +99,6 @@ export class BulletBarn {
         /** custom weapons' projectile image (cat, star, orb...) */
         fxSprite: PIXI.Sprite;
         flame: boolean;
-        whip: boolean;
-        whipFrom: Vec2;
-        whipTex: PIXI.Texture | null;
         fxSize: number;
         fxSpin: number;
     }> = [];
@@ -136,7 +133,6 @@ export class BulletBarn {
             b.bulletTrail.anchor.set(0.5, 0.5);
             b.container.addChild(b.bulletTrail);
             b.fxSprite = new PIXI.Sprite();
-            b.whipTex = null;
             b.fxSprite.anchor.set(0.5, 0.5);
             b.fxSprite.visible = false;
             this.bullets.push(b);
@@ -186,21 +182,6 @@ export class BulletBarn {
             b.fxSpin = bulletDef.spin ?? 0;
         }
         b.flame = !!bulletDef.flame;
-        b.whip = !!bulletDef.whip;
-        b.whipFrom = v2.copy(bullet.pos);
-        if (b.whip) {
-            // a long strip of the whip's links with the tip at its right end; render shows as much as is out
-            if (!b.whipTex) {
-                const base = PIXI.BaseTexture.from("img/custom-weapons/fx/whip_strip.png");
-                base.scaleMode = PIXI.SCALE_MODES.NEAREST;
-                b.whipTex = new PIXI.Texture(base, new PIXI.Rectangle(0, 0, 1, whipStripHeight));
-            }
-            b.fxSprite.texture = b.whipTex;
-            b.fxSprite.visible = true;
-            b.fxSprite.anchor.set(1, 0.5);
-        } else {
-            b.fxSprite.anchor.set(0.5, 0.5);
-        }
         b.fxSprite.alpha = 1;
         if (b.flame) {
             b.fxSprite.rotation = util.random(0, Math.PI * 2);
@@ -247,7 +228,7 @@ export class BulletBarn {
         if (b.reflectCount > 0) {
             b.bulletTrail.alpha *= 0.5;
         }
-        b.container.visible = !b.flame && !b.whip && !bulletDef.noTracer;
+        b.container.visible = !b.flame && !bulletDef.noTracer;
         renderer.addPIXIObj(b.container, b.layer, 20);
         if (fxImg) renderer.addPIXIObj(b.fxSprite, b.layer, 21);
     }
@@ -349,10 +330,6 @@ export class BulletBarn {
                 const posOld = v2.copy(b.pos);
                 b.pos = v2.add(b.pos, v2.mul(b.dir, distTravel));
 
-                if (b.whip) {
-                    const owner = playerBarn.getPlayerById(b.playerId);
-                    if (owner) b.whipFrom = v2.copy(owner.m_pos);
-                }
                 b.particleTicker += dt;
                 // flames leave a trail of overlapping puffs, so a held trigger reads as one stream of fire
                 if (b.flame && b.particleTicker >= 0.012) {
@@ -714,22 +691,6 @@ export class BulletBarn {
                         b.fxSprite.alpha = (1 - t ** 1.6 * 0.9) * (b.collided ? b.scale : 1);
                     }
                     b.fxSprite.scale.set(s, s);
-                    if (b.whip && b.whipTex) {
-                        // wait for the strip to load: a frame can't be set on an empty texture
-                        b.fxSprite.alpha = b.whipTex.baseTexture.valid ? 1 : 0;
-                        if (!b.whipTex.baseTexture.valid) continue;
-                        // tip at the shot, reaching back to the hand: show that much of the strip's right end
-                        const from = camera.m_pointToScreen(b.whipFrom);
-                        const dx = screenPos.x - from.x;
-                        const dy = screenPos.y - from.y;
-                        const k = camera.m_pixels(2.4) / whipStripHeight;
-                        const w = math.clamp(Math.hypot(dx, dy) / k, 1, whipStripWidth);
-                        b.whipTex.frame = new PIXI.Rectangle(whipStripWidth - w, 0, w, whipStripHeight);
-                        b.whipTex.updateUvs();
-                        b.fxSprite.scale.set(k, k);
-                        b.fxSprite.rotation = Math.atan2(dy, dx);
-                        continue;
-                    }
                     b.fxSprite.rotation = b.fxSpin
                         ? b.fxSprite.rotation + b.fxSpin * 0.016
                         : b.container.rotation;
@@ -739,7 +700,3 @@ export class BulletBarn {
     }
 }
 
-
-/** whip_strip.png: the Spinal Tap's handle, 120 links and tip, 18px tall */
-const whipStripWidth = 1727;
-const whipStripHeight = 18;

@@ -55,7 +55,6 @@ export const CustomMelees: Array<[string, string, string, string]> = [
     ["tr_star_wrath", "Star Wrath", "Terraria", "legendary"],
     ["tr_terra_blade", "Terra Blade", "Terraria", "legendary"],
     ["tr_zenith", "Zenith", "Terraria", "legendary"],
-    ["tr_spinal_tap", "Spinal Tap", "Terraria", "whip"],
     ["pg_heroic_epee", "Heroic Epee", "Pixel Gun 3D", "heroic_epee"],
     ["lol_sundered_sky", "Sundered Sky", "League of Legends", "sundered_sky"],
     ["lol_eclipse", "Eclipse", "League of Legends", "eclipse"],
