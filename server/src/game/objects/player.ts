@@ -2826,7 +2826,10 @@ export class Player extends BaseGameObject {
         if (playerSource && params.source !== this && params.damageType !== GameConfig.DamageType.Bleeding) {
             const src = params.gameSourceType;
             if (src === "pg_nanobots_rifle" || src === "kit_wolverine_claws") this.applyBleed(4, playerSource);
-            else if (src === "kit_spider_slash") {
+            else if ((src === "kit_ultron_blast" || src === "kit_wizard_stars") && params.dir && !this.webPull) {
+                // slight knockback, moved like a short slide so walls still stop it
+                this.webPull = { target: v2.add(this.pos, v2.mul(v2.normalizeSafe(params.dir), 1.5)), speed: 20, time: 0.12 };
+            } else if (src === "kit_spider_slash") {
                 this.applyBleed(4, playerSource);
                 playerSource.spiderRegenTime = 4;
                 playerSource.shield = math.min(playerSource.shield + 20, 400);
