@@ -640,7 +640,7 @@ export const SwingShotBullets: Record<string, BulletDef> = {
         tracerWidth: 0.25,
         tracerLength: 1.4,
         sprite: "img/custom-weapons/world/tr_zenith.png",
-        spriteSize: 2.6,
+        spriteSize: 4.5,
     }),
     bullet_cw_christmas_tree_frag: swingBullet({
         damage: 0,
