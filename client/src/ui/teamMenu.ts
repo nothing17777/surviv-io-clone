@@ -1037,6 +1037,7 @@ export class TeamMenu {
             return Number.isFinite(val) ? Math.min(max, Math.max(0, val)) : 0;
         };
         const loadout: PrivateLoadout = {
+            kit: ($(`#${prefix}-kit`).val() as string) || "default",
             primary: $(`#${prefix}-primary`).val() as string,
             secondary: $(`#${prefix}-secondary`).val() as string,
             melee: $(`#${prefix}-melee`).val() as string,
@@ -1251,9 +1252,8 @@ export class TeamMenu {
                 fillMapSelect(this.privateMapSelect, getModeMaps(modes), this.roomData.privateMapName);
                 this.privateMapSelect.prop("disabled", !this.isLeader);
 
-                // an uploaded map replaces the map picker
+                // the game mode stays pickable with an uploaded map: the map plays in that mode
                 const custom = this.roomData.customMap;
-                this.privateMapSelect.toggle(!custom);
                 $("#team-custom-map-info").toggle(!!custom || !!this.customMapError);
                 $("#team-custom-map-name").text(custom ? `Custom map: ${custom.name}` : "");
                 $("#team-custom-map-desc")
@@ -1373,6 +1373,8 @@ export class TeamMenu {
                 const botKitShown = shared
                     && !((this.roomData.privateAllyBotsSameKit ?? true) && (this.roomData.privateEnemyBotsSameKit ?? true));
                 $("#team-bot-kit").toggle(botKitShown);
+                // bot kits only apply when everyone shares one kit
+                $("#team-bot-kits-section").toggle(shared);
                 if (botKitShown) {
                     const kit = this.isLeader
                         ? loadSavedSameKit(botKitKey)

@@ -8674,3 +8674,18 @@ body.team-menu-open #menu-loadout {
 #crossover-table td.armory-text {
     min-width: 260px;
 }
+
+.team-step-title {
+    padding: 6px 2px 2px;
+    color: #cccccc;
+    font-size: 13px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.team-step-hint {
+    margin: 2px 2px 6px;
+    color: #aaaaaa;
+    font-size: 11px;
+}

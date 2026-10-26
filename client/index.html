@@ -1392,11 +1392,12 @@
                                                 </div>
                                             </div>
                                             <div id="team-private-options" style="display: none">
+                                                <div class="team-step-title">1 · Game Mode</div>
                                                 <select
                                                     id="team-private-map-select"
                                                     class="btn-hollow btn-hollow-selected server-select menu-option"
                                                 ></select>
-                                                <details name="team-sections" class="team-section"><summary>Custom Map</summary>
+                                                <details name="team-sections" class="team-section"><summary>2 · Map &amp; Settings</summary>
 <div id="team-custom-map">
                                                     <div id="team-custom-map-info">
                                                         <div id="team-custom-map-name"></div>
@@ -1423,9 +1424,18 @@
                                                         hidden
                                                     >
                                                 </div>
-                                                </details>
 <div class="team-menu-options-buttons" id="team-private-sizes"></div>
-                                                <details name="team-sections" class="team-section" open><summary>Bots</summary>
+                                                <label class="god-heal" id="team-no-kill-loot-row"><span>No loot from kills</span>
+                                                    <input id="team-no-kill-loot" type="checkbox" />
+                                                </label>
+                                                <label class="god-heal" id="team-big-map-row"><span>Big map (off = small arena)</span>
+                                                    <input id="team-big-map" type="checkbox" />
+                                                </label>
+                                                <label class="god-heal" id="team-empty-inv-row"><span>Spawn with empty inventory</span>
+                                                    <input id="team-empty-inv" type="checkbox" />
+                                                </label>
+                                                </details>
+                                                <details name="team-sections" class="team-section" open><summary>3 · Bots</summary>
 <div id="team-bots">
                                                     <div class="team-menu-options-buttons">
                                                         <a
@@ -1465,31 +1475,22 @@
                                                     <div id="team-bot-army" class="bot-army"></div>
                                                 </div>
                                                 </details>
-                                                <details name="team-sections" class="team-section"><summary>Loadout</summary>
+                                                <details name="team-sections" class="team-section"><summary>4 · Loadout &amp; Kit</summary>
 <div class="team-menu-options-buttons" id="team-kit-buttons">
                                                     <a
                                                         class="btn-hollow btn-darken team-menu-option"
                                                         id="btn-team-kit-shared"
-                                                    >Same Kit</a>
+                                                    >Same for Everyone</a>
                                                     <a
                                                         class="btn-hollow btn-darken team-menu-option"
                                                         id="btn-team-kit-on"
-                                                    >God Kit</a>
+                                                    >Everyone Picks</a>
                                                     <a
                                                         class="btn-hollow btn-darken team-menu-option"
                                                         id="btn-team-kit-off"
-                                                    >Loot</a>
+                                                    >Loot Only</a>
                                                 </div>
-                                                <label class="god-heal" id="team-no-kill-loot-row"><span>No loot from kills</span>
-                                                    <input id="team-no-kill-loot" type="checkbox" />
-                                                </label>
-                                                <label class="god-heal" id="team-big-map-row"><span>Big map (off = small arena)</span>
-                                                    <input id="team-big-map" type="checkbox" />
-                                                </label>
-                                                <label class="god-heal" id="team-empty-inv-row"><span>Spawn with empty inventory</span>
-                                                    <input id="team-empty-inv" type="checkbox" />
-                                                </label>
-                                                <div id="team-private-hint">
+                                                                                                <div id="team-private-hint">
                                                     Click a player's A / B tag to switch sides.
                                                 </div>
                                                 <div id="team-god-loadout">
@@ -1602,16 +1603,20 @@
                                                                     class="menu-option"
                                                                 />
                                                             </label>
-                                                            <label class="god-heal"><span>Teammate bots get this kit</span>
+                                                                                                                    </div>
+                                                    </div>
+                                                    
+                                                </div>
+                                                </details>
+                                                <details name="team-sections" class="team-section" id="team-bot-kits-section"><summary>5 · Bot Kits</summary>
+                                                <div class="team-step-hint">Ticked: bots on that side use everyone's kit. Unticked: they use the Bots' Kit below. Click a bot under Bots to give it its own kit.</div>
+                                                <label class="god-heal"><span>Teammate bots get this kit</span>
                                                                 <input id="team-kit-ally-bots" type="checkbox" />
                                                             </label>
                                                             <label class="god-heal"><span>Enemy bots get this kit</span>
                                                                 <input id="team-kit-enemy-bots" type="checkbox" />
                                                             </label>
-                                                        </div>
-                                                    </div>
-                                                    <!-- Same Kit: what the bot sides left unticked above spawn with -->
-                                                    <div id="team-bot-kit">
+                                                <div id="team-bot-kit">
                                                         <div class="god-loadout-title">Bots' Kit</div>
                                                         <select id="team-botkit-kit" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
                                                         <select
@@ -1686,7 +1691,6 @@
                                                             </label>
                                                         </div>
                                                     </div>
-                                                </div>
                                                 </details>
                                             </div>
 
