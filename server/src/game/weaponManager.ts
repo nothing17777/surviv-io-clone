@@ -533,6 +533,8 @@ export class WeaponManager {
         if (curWeapon.ammo >= stats.maxClip) {
             return;
         }
+        // kit guns reload with energy
+        if (weaponDef.reloadEnergy && this.player.energy < weaponDef.reloadEnergy) return;
 
         let duration = weaponDef.reloadTime;
         let action: number = GameConfig.Action.Reload;
@@ -558,6 +560,14 @@ export class WeaponManager {
      */
     reload(curWeapIdx = this.curWeapIdx, fullReload = false): void {
         if (!this.weapons[curWeapIdx].type) return; // prevent rare bug
+        const reloadEnergy = GameObjectDefs.typeToDefSafe(this.weapons[curWeapIdx].type)?.type === "gun"
+            ? GameObjectDefs.typeToDef(this.weapons[curWeapIdx].type, "gun").reloadEnergy
+            : undefined;
+        if (reloadEnergy) {
+            if (this.player.energy < reloadEnergy) return;
+            this.player.energy -= reloadEnergy;
+            this.player.energyDirty = true;
+        }
         const weapon = this.weapons[curWeapIdx];
         const weaponDef = GameObjectDefs.typeToDef(weapon.type, "gun");
         const ammoStats = this.getAmmoStats(weaponDef);
@@ -898,7 +908,9 @@ export class WeaponManager {
                 speedMult *= PerkProperties.bonus_45.empoweredSpeedMult;
             }
 
-            const deviation = (empowered45 || firstShotAccuracy)
+            const deviation = itemDef.ringShot
+                ? (i / bulletCount) * 360
+                : (empowered45 || firstShotAccuracy)
                 ? 0
                 : util.random(-0.5, 0.5) * (spread || 0);
             const shotDir = v2.rotate(direction, math.deg2rad(deviation));
@@ -929,7 +941,10 @@ export class WeaponManager {
                 }
             }
 
-            const shotPos = v2.add(gunPos, v2.mul(toBlt, toBltLen));
+            // ring shots start just outside the shooter, each on its own side
+            const shotPos = itemDef.ringShot
+                ? v2.add(this.player.pos, v2.mul(shotDir, this.player.rad + 0.5))
+                : v2.add(gunPos, v2.mul(toBlt, toBltLen));
             let distance = Number.MAX_VALUE;
             if (itemDef.toMouseHit) {
                 distance = math.max(toMouseLen - gunLen, 0.0);

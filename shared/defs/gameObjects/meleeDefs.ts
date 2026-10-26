@@ -1454,4 +1454,17 @@ const CustomMeleeDefs: Record<string, MeleeDef> = Object.fromEntries(
     ]),
 );
 
-export const MeleeDefs: Record<string, MeleeDef> = { ...BaseDefs, ...SkinDefs, ...CustomMeleeDefs };
+// Wolverine's claws: kit only, 35 dmg and a 4 s bleed
+const KitMeleeDefs: Record<string, MeleeDef> = {
+    kit_wolverine_claws: defineMeleeSkin("katana", {
+        name: "Adamantium Claws",
+        noPotatoSwap: true,
+        damage: 35,
+        autoAttack: true,
+        attack: { offset: { x: 2, y: 0 }, rad: 2.6, cooldownTime: 0.35 },
+        lootImg: { sprite: `img/custom-weapons/loot/kit_wolverine_claws.png?v=${CustomWeaponsVersion}`, scale: 0.3, mirror: false, rot: 0 },
+        worldImg: { sprite: `img/custom-weapons/world/kit_wolverine_claws.png?v=${CustomWeaponsVersion}`, scale: { x: 0.4, y: 0.4 } },
+    }),
+};
+
+export const MeleeDefs: Record<string, MeleeDef> = { ...BaseDefs, ...SkinDefs, ...CustomMeleeDefs, ...KitMeleeDefs };

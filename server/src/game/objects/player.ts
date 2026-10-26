@@ -1,3 +1,4 @@
+import { KitDefs, isKitItem } from "../../../../shared/defs/gameObjects/kitDefs.ts";
 import { type GameObjectDef, type LootDef, WeaponTypeToDefs } from "../../../../shared/defs/gameObjectDefs.ts";
 import { EmotesDefs } from "../../../../shared/defs/gameObjects/emoteDefs.ts";
 import {
@@ -462,6 +463,7 @@ export class PlayerBarn {
             player.spectatorCountDirty = false;
             player.groupStatusDirty = false;
             player.shieldDirty = false;
+            player.energyDirty = false;
             if (flushPlayerStatus) {
                 player.playerStatusDirty = false;
             }
@@ -717,6 +719,15 @@ export class Player extends BaseGameObject {
     // Eclipse shield
     shield = 0;
     shieldDirty = false;
+
+    /** KitDefs id */
+    kit = "default";
+    /** kit energy (Iron Man) */
+    energy = 0;
+    maxEnergy = 0;
+    /** kit shield cap; 0 = none */
+    maxShield = 0;
+    energyDirty = false;
     eclipseHitCount = 0;
 
     // Judge rocket
@@ -1963,6 +1974,8 @@ export class Player extends BaseGameObject {
                 this.burnTicker = 0;
             }
 
+            this.updateKit(dt);
+
             // Heroic Epee: heal 12 hp per second while holding
             if (this.weapons[this.curWeapIdx]?.type === "pg_heroic_epee") {
                 if (this.health < this.maxHealth) {
@@ -2755,7 +2768,7 @@ export class Player extends BaseGameObject {
         // Frozen Dragon's slow comes from its explosion's freezeDuration
         if (playerSource && params.source !== this && params.damageType !== GameConfig.DamageType.Bleeding) {
             const src = params.gameSourceType;
-            if (src === "pg_nanobots_rifle") this.applyBleed(4, playerSource);
+            if (src === "pg_nanobots_rifle" || src === "kit_wolverine_claws") this.applyBleed(4, playerSource);
             else if (src === "pg_acid_shotgun") this.applyPoison(4, playerSource);
             else if (src === "pg_frozen_dragon") this.applyBurn(2, playerSource);
             else if (src === "pg_photon_sniper_rifle") this.applyBurn(4, playerSource, src);
@@ -3153,6 +3166,11 @@ export class Player extends BaseGameObject {
         for (let i = 0; i < GameConfig.WeaponSlot.Count; i++) {
             const weap = this.weapons[i];
             if (!weap.type) continue;
+            // kit weapons never drop
+            if (isKitItem(weap.type)) {
+                weap.type = i === GameConfig.WeaponSlot.Melee ? "fists" : "";
+                continue;
+            }
             const def = GameObjectDefs.typeToDef(weap.type);
             switch (def.type) {
                 case "gun":
@@ -3191,7 +3209,7 @@ export class Player extends BaseGameObject {
 
         for (const item of GEAR_TYPES) {
             const type = this[item];
-            if (!type) continue;
+            if (!type || this.kit !== "default") continue;
             const def = GameObjectDefs.typeToDef(type) as HelmetDef | ChestDef | BackpackDef;
             if (!!(def as ChestDef).noDrop || def.level < 1) continue;
             this.game.lootBarn.addLoot(type, this.pos, this.layer, 1, {
@@ -3964,6 +3982,8 @@ export class Player extends BaseGameObject {
 
         const def = GameObjectDefs.typeToDef(obj.type);
         if (this.lockedKit && (def.type === "gun" || def.type === "melee" || def.type === "throwable")) return;
+        // kits pick nothing up: no normal weapons, gear, perks or consumables
+        if (this.kit !== "default") return;
         if (
             (this.actionType == GameConfig.Action.UseItem && def.type != "gun")
             || this.actionType == GameConfig.Action.Revive
@@ -4613,6 +4633,16 @@ export class Player extends BaseGameObject {
     applyGodLoadout(
         godLoadout: Pick<net.JoinMsg["godLoadout"], "primary" | "secondary" | "throwable" | "melee"> & Partial<PrivateLoadout>,
     ) {
+        const kitId = godLoadout.kit;
+        if (kitId && kitId !== "default" && KitDefs[kitId]) {
+            this.applyKit(kitId);
+            return;
+        }
+        // kit weapons stay in their kit
+        godLoadout = { ...godLoadout };
+        for (const slot of ["primary", "secondary", "melee"] as const) {
+            if (isKitItem(godLoadout[slot] ?? "")) godLoadout[slot] = "";
+        }
         // exact gear when picked ("" = none), else the armor tier
         const gear = (id: string | undefined, type: string) =>
             id !== undefined && (id === "" || GameObjectDefs.typeToDefSafe(id)?.type === type) ? id : undefined;
@@ -5040,6 +5070,71 @@ export class Player extends BaseGameObject {
         }
     }
 
+    /** turns this player into a kit character: its stats, gear and locked weapons, nothing else */
+    applyKit(kitId: string) {
+        const kit = KitDefs[kitId];
+        this.kit = kitId;
+        this.lockedKit = true;
+        this.maxHealth = kit.health;
+        this.health = kit.health;
+        this.helmet = kit.helmet;
+        this.chest = kit.chest;
+        this.backpack = "backpack00";
+        this.outfit = kit.outfit;
+        for (const item of Object.keys(this.invManager.items) as InventoryItem[]) this.invManager.set(item, 0);
+        this.inventoryDirty = true;
+        for (let i = this.perks.length - 1; i >= 0; i--) this.removePerk(this.perks[i].type);
+        this.weaponManager.setWeapon(GameConfig.WeaponSlot.Primary, kit.primary ?? "", 0);
+        this.weaponManager.setWeapon(GameConfig.WeaponSlot.Secondary, kit.secondary ?? "", 0);
+        this.weaponManager.setWeapon(GameConfig.WeaponSlot.Throwable, "", 0);
+        this.weaponManager.setWeapon(GameConfig.WeaponSlot.Melee, kit.melee, 0);
+        for (const slot of [GameConfig.WeaponSlot.Primary, GameConfig.WeaponSlot.Secondary]) {
+            const type = this.weapons[slot].type;
+            if (type) this.weapons[slot].ammo = GameObjectDefs.typeToDef(type, "gun").maxClip;
+        }
+        this.weaponManager.setCurWeapIndex(kit.primary ? GameConfig.WeaponSlot.Primary : GameConfig.WeaponSlot.Melee, true);
+        this.maxShield = kit.shield ?? 0;
+        this.shield = this.maxShield;
+        this.shieldDirty = true;
+        this.maxEnergy = kit.energy?.max ?? 0;
+        this.energy = this.maxEnergy;
+        this.energyDirty = true;
+        if (kit.fullBoost) this.boost = 100;
+        this.weapsDirty = true;
+        this.setDirty();
+    }
+
+    /** a kit's per-second effects: regen, full adrenaline, energy */
+    updateKit(dt: number) {
+        const kit = KitDefs[this.kit];
+        if (this.kit === "default" || !kit || this.dead) return;
+        if (kit.fullBoost && this.boost < 100) this.boost = 100;
+        if (kit.regen && this.health < this.maxHealth) {
+            const rate = this.health < (kit.lowHealth ?? 0) ? kit.regen * 2 : kit.regen;
+            this.health = math.min(this.health + rate * dt, this.maxHealth);
+        }
+        const e = kit.energy;
+        if (e) {
+            const before = Math.round(this.energy);
+            this.energy = math.min(this.energy + e.perSecond * dt, e.max);
+            if (this.health < this.maxHealth) {
+                const cost = e.healCost * dt;
+                if (this.energy >= cost) {
+                    this.energy -= cost;
+                    this.health = math.min(this.health + e.heal * dt, this.maxHealth);
+                }
+            } else if (this.shield < this.maxShield) {
+                const cost = e.shieldCost * dt;
+                if (this.energy >= cost) {
+                    this.energy -= cost;
+                    this.shield = math.min(this.shield + e.shieldRegen * dt, this.maxShield);
+                    this.shieldDirty = true;
+                }
+            }
+            if (Math.round(this.energy) !== before) this.energyDirty = true;
+        }
+    }
+
     recalculateSpeed(hasTreeClimbing: boolean): void {
         if (this.debug.speedEnabled) {
             this.speed = this.debug.speed;
@@ -5119,6 +5214,7 @@ export class Player extends BaseGameObject {
         if (isHackerLevel(this.botBrain?.level)) this.speed *= 2;
         else if (this.botBrain?.level === "scripter") this.speed *= 1.3;
 
+        this.speed += KitDefs[this.kit]?.speedBonus ?? 0;
         this.speed = math.clamp(this.speed, 1, 10000);
     }
 }

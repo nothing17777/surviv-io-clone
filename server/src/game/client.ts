@@ -545,6 +545,10 @@ export class Client {
                 spectatorCount: player.spectatorCount,
                 shieldDirty: true,
                 shield: player.shield,
+                energyDirty: true,
+                energy: player.energy,
+                maxEnergy: player.maxEnergy,
+                maxShield: player.maxShield,
             };
             this.startedSpectating = false;
         } else {
@@ -577,7 +581,7 @@ export class Client {
             let statuses: GroupStatus[] = [];
             for (const p of teamPlayers) {
                 statuses.push({
-                    health: p.health,
+                    health: (p.health / p.maxHealth) * 100,
                     disconnected: p.disconnected,
                 });
             }

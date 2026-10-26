@@ -35,6 +35,8 @@ export class JoinMsg implements AbstractMsg {
         painkiller: undefined as number | undefined,
         throwablesUnlimited: false,
         allGoodPerks: false,
+        /** KitDefs id; "" or "default" = the normal game */
+        kit: "",
     };
 
     serialize(s: BitStream) {
@@ -82,6 +84,7 @@ export class JoinMsg implements AbstractMsg {
         }
         s.writeBoolean(g.throwablesUnlimited);
         s.writeBoolean(g.allGoodPerks);
+        s.writeString(g.kit ?? "", 16);
     }
 
     deserialize(s: BitStream) {
@@ -120,5 +123,6 @@ export class JoinMsg implements AbstractMsg {
         }
         this.godLoadout.throwablesUnlimited = s.readBoolean();
         this.godLoadout.allGoodPerks = s.readBoolean();
+        this.godLoadout.kit = s.readString(16);
     }
 }

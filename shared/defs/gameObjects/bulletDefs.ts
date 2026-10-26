@@ -24,6 +24,10 @@ export interface BulletDef {
     pierce?: boolean;
     /** curves toward the nearest enemy the shooter is aiming at */
     homing?: boolean;
+    /** with homing: picks the enemy nearest where the shooter aims, wherever the shot is headed */
+    homingFromAim?: boolean;
+    /** draws the trail (or beam) with this image instead of the plain tracer */
+    trailSprite?: string;
     /** bounces off any wall or obstacle, not just metal ones */
     bounce?: boolean;
     /** how many times a bouncing shot bounces (default GameConfig.bullet.maxReflect) */

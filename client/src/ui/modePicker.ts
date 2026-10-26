@@ -1,5 +1,6 @@
 import $ from "jquery";
 import en from "../en.json";
+import { KitDefs, isKitItem } from "../../../shared/defs/gameObjects/kitDefs.ts";
 import { HiddenCustomGuns } from "../../../shared/defs/gameObjects/customWeaponEffects.ts";
 import { BulletDefs } from "../../../shared/defs/gameObjects/bulletDefs.ts";
 import { RawGameObjectDefs } from "../../../shared/defs/gameObjectDefs.ts";
@@ -64,6 +65,7 @@ const godLoadoutKey = "survev_god_loadout";
 
 /** every slot a loadout picker can set; perks are three optional slots */
 export const pickerSlotType = {
+    kit: "kit",
     primary: "gun",
     secondary: "gun",
     melee: "melee",
@@ -85,6 +87,7 @@ const optionalSlots = new Set<string>(["helmet", "chest", "perk1", "perk2", "per
 export type GodLoadout = Record<PickerSlot, string>;
 
 const defaultGodLoadout: GodLoadout = {
+    kit: "default",
     primary: "m4a1",
     secondary: "mp220",
     throwable: "frag",
@@ -108,6 +111,7 @@ export function loadGodLoadout(key = godLoadoutKey): GodLoadout {
     for (const slot of pickerSlots) {
         const id = loadout[slot];
         const ok = (id === "" && optionalSlots.has(slot))
+            || (slot === "kit" && !!KitDefs[id])
             || (RawGameObjectDefs as Record<string, { type: string }>)[id]?.type === pickerSlotType[slot];
         if (!ok) loadout[slot] = defaultGodLoadout[slot];
     }
@@ -124,6 +128,8 @@ export function kitSlot(kit: Partial<PrivateLoadout>, slot: PickerSlot): string 
         }
         case "backpack":
             return kit.backpack || "backpack03";
+        case "kit":
+            return kit.kit || "default";
         case "perk1":
         case "perk2":
         case "perk3":
@@ -151,6 +157,7 @@ export function setKitSlot(kit: Partial<PrivateLoadout>, slot: PickerSlot, value
 /** the picker slots as kit fields: gear by name, perks as a list */
 export function loadoutToKit(l: GodLoadout) {
     return {
+        kit: l.kit,
         primary: l.primary,
         secondary: l.secondary,
         throwable: l.throwable,
@@ -277,7 +284,10 @@ export function fillItemPicker(prefix: string, slot: string, type: string, value
     const sel = $(`#${prefix}-${slot}`);
     if (!sel.length) return;
 
-    const items = defsOfType(type).filter((item) => !HiddenCustomGuns.has(item.id));
+    // kit weapons only come with their kit
+    const items = type === "kit"
+        ? Object.entries(KitDefs).map(([id, kit]) => ({ id, name: `Kit: ${kit.name}` }))
+        : defsOfType(type).filter((item) => !HiddenCustomGuns.has(item.id) && !isKitItem(item.id));
     if (optionalSlots.has(slot)) items.unshift({ id: "", name: `No ${slot.startsWith("perk") ? "perk" : slot === "chest" ? "vest" : slot.startsWith("throwable") ? "throwable" : slot}` });
     if (sel.find("option").length !== items.length) {
         sel.empty();
@@ -312,6 +322,12 @@ export function fillItemPicker(prefix: string, slot: string, type: string, value
     }
     sel.val(value);
     sel.attr("title", itemDesc(value));
+    // a kit has its own weapons and gear: the other pickers only matter on the default kit
+    if (slot === "kit") {
+        for (const other of pickerSlots) {
+            if (other !== "kit") $(`#${prefix}-${other}`).closest(".god-row").toggle(value === "default");
+        }
+    }
     const img = $(`#${prefix}-${slot}-img`);
     const src = itemImage(value);
     img.attr({ src, title: itemDesc(value) }).toggle(!!src);

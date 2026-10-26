@@ -286,7 +286,11 @@ export class Bullet {
         this.playerPierce = !!bulletDef.playerPierce;
         this.boomerang = !!bulletDef.boomerang;
         this.returning = false;
-        this.homingId = bulletDef.homing && this.reflectCount === 0 ? this.findHomingTarget(params.pos, this.dir) : 0;
+        this.homingId = bulletDef.homing && this.reflectCount === 0
+            ? bulletDef.homingFromAim && this.player
+                ? this.findHomingTarget(this.player.pos, this.player.dir)
+                : this.findHomingTarget(params.pos, this.dir)
+            : 0;
         let distance = bulletDef.distance
             / Math.pow(GameConfig.bullet.reflectDistDecay, this.reflectCount);
         if (this.devShot) {

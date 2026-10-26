@@ -54,6 +54,13 @@ function serializeActivePlayer(s: BitStream, data: LocalDataWithDirty) {
         s.writeFloat(data.shield ?? 0, 0, 200, 8);
     }
 
+    s.writeBoolean(!!data.energyDirty);
+    if (data.energyDirty) {
+        s.writeUint16(Math.round(data.energy ?? 0));
+        s.writeUint16(data.maxEnergy ?? 0);
+        s.writeUint16(data.maxShield ?? 0);
+    }
+
     s.writeAlignToNextByte();
 }
 
@@ -109,6 +116,12 @@ function deserializeActivePlayer(s: BitStream, data: LocalDataWithDirty) {
     data.shieldDirty = s.readBoolean();
     if (data.shieldDirty) {
         data.shield = s.readFloat(0, 200, 8);
+    }
+    data.energyDirty = s.readBoolean();
+    if (data.energyDirty) {
+        data.energy = s.readUint16();
+        data.maxEnergy = s.readUint16();
+        data.maxShield = s.readUint16();
     }
     s.readAlignToNextByte();
 }
@@ -847,6 +860,11 @@ export interface LocalData {
     }>;
     spectatorCount: number;
     shield?: number;
+    /** kit energy (Iron Man); maxEnergy 0 = no energy bar */
+    energy?: number;
+    maxEnergy?: number;
+    /** kit shield cap for the shield bar; 0 = the Eclipse's 150 */
+    maxShield?: number;
 }
 
 export interface LocalDataWithDirty extends LocalData {
@@ -858,6 +876,7 @@ export interface LocalDataWithDirty extends LocalData {
     weapsDirty: boolean;
     spectatorCountDirty: boolean;
     shieldDirty?: boolean;
+    energyDirty?: boolean;
 }
 
 export interface PlayerStatus {

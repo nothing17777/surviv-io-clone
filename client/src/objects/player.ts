@@ -340,6 +340,9 @@ export class Player implements AbstractObject {
         }>;
         m_spectatorCount: number;
         shield: number;
+        energy?: number;
+        maxEnergy?: number;
+        maxShield?: number;
     };
 
     throwableStatePrev!: string;
@@ -616,6 +619,11 @@ export class Player implements AbstractObject {
 
         if (data.shieldDirty) {
             this.m_localData.shield = data.shield ?? 0;
+        }
+        if (data.energyDirty) {
+            this.m_localData.energy = data.energy ?? 0;
+            this.m_localData.maxEnergy = data.maxEnergy ?? 0;
+            this.m_localData.maxShield = data.maxShield ?? 0;
         }
 
         if (data.actionDirty) {

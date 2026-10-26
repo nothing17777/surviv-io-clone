@@ -208,6 +208,18 @@ export class BulletBarn {
             tracerWidth *= 2;
         }
         b.bulletTrail.scale.set(0.8, tracerWidth);
+        // a kit beam drawn with its own image, stretched to the plain tracer's size
+        const plainTrail = PIXI.Texture.from("player-bullet-trail-02.img");
+        if (bulletDef.trailSprite) {
+            const tex = PIXI.Texture.from(bulletDef.trailSprite);
+            b.bulletTrail.texture = tex;
+            b.bulletTrail.scale.set(
+                0.8 * plainTrail.width / Math.max(tex.width, 1),
+                tracerWidth * plainTrail.height / Math.max(tex.height, 1),
+            );
+        } else if (b.bulletTrail.texture !== plainTrail) {
+            b.bulletTrail.texture = plainTrail;
+        }
         b.tracerLength = bulletDef.tracerLength;
         b.suppressed = !!bulletDef.suppressed;
 
@@ -221,7 +233,7 @@ export class BulletBarn {
         } else if (player?.surface?.data.isBright) {
             tracerTint = tracerColors.saturated;
         }
-        b.bulletTrail.tint = tracerTint;
+        b.bulletTrail.tint = bulletDef.trailSprite ? 0xffffff : tracerTint;
         b.tracerAlphaRate = tracerColors.alphaRate;
         b.tracerAlphaMin = tracerColors.alphaMin;
         b.bulletTrail.alpha = 1;

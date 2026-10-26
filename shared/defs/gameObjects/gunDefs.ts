@@ -1,7 +1,7 @@
 import { FactionTeam } from "../../gameConfig.ts";
 import { type DeepPartial, util } from "../../utils/util.ts";
 import type { Vec2 } from "../../utils/v2.ts";
-import { BulletDefs } from "./bulletDefs.ts";
+import { type BulletDef, BulletDefs } from "./bulletDefs.ts";
 import { CustomGuns, CustomWeaponsVersion } from "./customWeaponDefs.ts";
 import { BaseGunLengths, GunEffects, GunOverrides, HiddenCustomGuns, SwingShotBullets } from "./customWeaponEffects.ts";
 import type { BaseWeaponDef } from "./itemTypes.ts";
@@ -95,6 +95,10 @@ export interface GunDef extends BaseWeaponDef {
     spinUp?: number;
     /** seconds of holding fire for Last Prism's six beams to close into one 3x beam */
     prismCharge?: number;
+    /** fires bulletCount shots evenly all around the shooter instead of a spread */
+    ringShot?: boolean;
+    /** a kit's energy each reload costs; no reload without it */
+    reloadEnergy?: number;
 }
 
 function defineGunSkin(baseType: string, params: DeepPartial<GunDef>): GunDef {
@@ -3708,4 +3712,79 @@ const CustomGunDefs: Record<string, GunDef> = Object.fromEntries(
     }),
 );
 
-export const GunDefs: Record<string, GunDef> = { ...BaseDefs, ...SkinDefs, ...CustomGunDefs };
+// kit-only guns: never loot, never in the normal loadout pickers
+const kitGun = (id: string, base: string, bullet: Partial<BulletDef>, gun: DeepPartial<GunDef>): [string, GunDef] => {
+    const bulletType = `bullet_${id}`;
+    BulletDefs[bulletType] = { ...BulletDefs[BaseDefs[base].bulletType], ...bullet };
+    const scale = (BaseGunLengths[base] ?? 48) / 80;
+    const def = defineGunSkin(base, {
+        noPotatoSwap: true,
+        bulletType,
+        ammoInfinite: true,
+        lootImg: { sprite: `img/custom-weapons/loot/${id}.png?v=${CustomWeaponsVersion}`, tint: 0xffffff, scale: 0.3 },
+        worldImg: {
+            sprite: `img/custom-weapons/world/${id}.png?v=${CustomWeaponsVersion}`,
+            scale: { x: scale, y: scale },
+            tint: 0xffffff,
+            magImg: undefined,
+        },
+    });
+    return [id, util.mergeDeep(def, gun)];
+};
+
+const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
+    // Iron Man repulsor: a wide cyan laser, 50 dmg, 1.4 shots/s, 10 rounds, 1 s reload for 10 energy
+    kitGun("kit_ironman_blast", "sv98", {
+        damage: 50,
+        beam: true,
+        speed: 400,
+        distance: 80,
+        falloff: 1,
+        tracerColor: "cw_plasma",
+        tracerWidth: 0.9,
+        trailSprite: "img/custom-weapons/fx/stardust_laser.png",
+    }, {
+        name: "Repulsor Blast",
+        fireMode: "single",
+        fireDelay: 0.714,
+        shotSpread: 0,
+        moveSpread: 0,
+        maxClip: 10,
+        maxReload: 10,
+        extendedClip: 10,
+        extendedReload: 10,
+        reloadTime: 1,
+        reloadEnergy: 10,
+    }),
+    // Iron Man rockets: 8 strongly homing rockets fired all around, 20 dmg each, 0.8 shots/s, 5 rounds,
+    // 2 s reload for 15 energy
+    kitGun("kit_ironman_rockets", "barrett", {
+        damage: 20,
+        speed: 55,
+        distance: 110,
+        falloff: 1,
+        homing: true,
+        homingFromAim: true,
+        tracerColor: "cw_flame",
+        tracerWidth: 0.25,
+        tracerLength: 0.4,
+        sprite: "img/custom-weapons/fx/lava_rocket.png",
+        spriteSize: 1.6,
+    }, {
+        name: "Micro Rockets",
+        fireMode: "single",
+        fireDelay: 1.25,
+        bulletCount: 8,
+        ringShot: true,
+        shotSpread: 0,
+        moveSpread: 0,
+        maxClip: 5,
+        maxReload: 5,
+        extendedClip: 5,
+        extendedReload: 5,
+        reloadTime: 2,
+        reloadEnergy: 15,
+    }),
+]);
+
+export const GunDefs: Record<string, GunDef> = { ...BaseDefs, ...SkinDefs, ...CustomGunDefs, ...KitGunDefs };

@@ -48,6 +48,8 @@ export const zPrivateLoadout = z.object({
     throwablesUnlimited: z.boolean().optional(),
     /** every perk in goodPerks on top of the picked ones */
     allGoodPerks: z.boolean().optional(),
+    /** KitDefs id; missing = default */
+    kit: z.string().max(16).optional(),
 });
 
 export type PrivateLoadout = z.infer<typeof zPrivateLoadout>;
