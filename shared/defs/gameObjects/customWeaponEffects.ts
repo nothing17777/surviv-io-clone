@@ -634,11 +634,13 @@ export const SwingShotBullets: Record<string, BulletDef> = {
         // swirls in a loop round the cursor before coming back
         orbit: { radius: 3.5, turns: 1 },
         spin: 18,
+        // just the spinning mini Zenith, no trail line
+        noTracer: true,
         tracerColor: "cw_rainbow",
         tracerWidth: 0.25,
         tracerLength: 1.4,
         sprite: "img/custom-weapons/world/tr_zenith.png",
-        spriteSize: 1.6,
+        spriteSize: 2.6,
     }),
     bullet_cw_christmas_tree_frag: swingBullet({
         damage: 0,
