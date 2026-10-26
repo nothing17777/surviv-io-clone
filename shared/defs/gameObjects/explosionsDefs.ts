@@ -359,6 +359,17 @@ export const ExplosionDefs: Record<string, ExplosionDef> = {
         decalType: "decal_rounds_explosion",
     },
     // the vortex a dark matter orb leaves behind, going off every half second
+    // Dark Matter Generator: a slight splash round the orb's hit
+    explosion_cw_dmg_splash: {
+        type: "explosion",
+        damage: 8,
+        obstacleDamage: 1,
+        rad: { min: 1, max: 2 },
+        shrapnelCount: 0,
+        shrapnelType: "",
+        explosionEffectType: "rounds",
+        decalType: "",
+    },
     explosion_cw_vortex: {
         type: "explosion",
         damage: 6,

@@ -320,7 +320,15 @@ export const GunOverrides: Record<string, GunEffect> = {
     pg_excalibur: { bullet: { damage: 21 }, gun: { maxClip: 70, maxReload: 70, extendedClip: 70, extendedReload: 70 } },
     // 2.14 shots/s, 12 capacity, 24 dmg (the orb's blast is its splash)
     pg_dark_matter_generator: {
-        bullet: { damage: 24, sprite: "img/custom-weapons/fx/nebula_orb.png", spriteSize: 2.4 },
+        // a spinning Nebula Arcanum orb with a slight splash (no lingering vortex)
+        bullet: {
+            damage: 24,
+            sprite: "img/custom-weapons/fx/nebula_orb.png",
+            spriteSize: 2.4,
+            noTracer: true,
+            onHit: "explosion_cw_dmg_splash",
+            linger: undefined,
+        },
         gun: { fireMode: "single", fireDelay: 0.467, maxClip: 12, maxReload: 12, extendedClip: 12, extendedReload: 12 },
     },
     // Gauss: stops at walls but still goes through enemies; 0.7317 shots/s, 6 capacity
