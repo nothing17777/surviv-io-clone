@@ -189,10 +189,11 @@ export const GunEffects: Record<string, GunEffect> = {
             speed: 120,
             distance: 70,
             onHit: "explosion_cw_multitaskers",
-            tracerColor: "cw_flame",
-            tracerWidth: 0.22,
+            // a cyan Phantasmal Deathray head, round end first, with a thin cyan trail
+            tracerColor: "cw_plasma",
+            tracerWidth: 0.12,
             sprite: "img/custom-weapons/fx/deathray.png",
-            spriteSize: 1.6,
+            spriteSize: 2.2,
         },
         gun: {
             fireMode: "auto",
