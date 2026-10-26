@@ -1277,6 +1277,18 @@ export class Game {
         for (let i = 0; i < msg.explosions.length; i++) {
             const e = msg.explosions[i];
             this.m_explosionBarn.addExplosion(e.type, e.pos, e.layer);
+            // the Judge rocket that made this blast ends here
+            if (e.type === "explosion_cw_judge") {
+                let rocket;
+                for (const b of this.m_bulletBarn.bullets) {
+                    if (!b.alive || b.bulletType !== "bullet_pg_judge") continue;
+                    if (!rocket || v2.distance(b.pos, e.pos) < v2.distance(rocket.pos, e.pos)) rocket = b;
+                }
+                if (rocket) {
+                    rocket.alive = false;
+                    rocket.collided = true;
+                }
+            }
         }
 
         // Create emotes and pings

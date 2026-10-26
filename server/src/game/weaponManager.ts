@@ -106,6 +106,9 @@ export class WeaponManager {
         }
 
         if (idx === this._curWeapIdx) return;
+        // no swapping while steering a Judge rocket
+        const rocket = this.player.activeJudgeRocket;
+        if (!forceSwitch && rocket?.alive && rocket.active) return;
         if (this.weapons[idx].type === "") return;
 
         const curWeaponDef = GameObjectDefs.typeToDefSafe(this.activeWeapon) as

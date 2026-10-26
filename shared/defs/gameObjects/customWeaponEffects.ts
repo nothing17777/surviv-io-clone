@@ -191,6 +191,8 @@ export const GunEffects: Record<string, GunEffect> = {
             onHit: "explosion_cw_multitaskers",
             tracerColor: "cw_flame",
             tracerWidth: 0.22,
+            sprite: "img/custom-weapons/fx/deathray.png",
+            spriteSize: 1.6,
         },
         gun: {
             fireMode: "auto",
@@ -269,13 +271,9 @@ export const GunEffects: Record<string, GunEffect> = {
             tracerColor: "cw_frost",
             tracerWidth: 0.35,
             tracerLength: 0.4,
-            flame: true,
-            sprites: [
-                "img/custom-weapons/fx/frost_flame_1.png",
-                "img/custom-weapons/fx/frost_flame_2.png",
-                "img/custom-weapons/fx/frost_flame_3.png",
-            ],
-            spriteSize: 15,
+            noTracer: true,
+            sprite: "img/custom-weapons/fx/frost_wave.png",
+            spriteSize: 3,
         },
         gun: {
             fireMode: "auto",
@@ -287,6 +285,7 @@ export const GunEffects: Record<string, GunEffect> = {
             extendedReload: 60,
             shotSpread: 8,
             moveSpread: 10,
+            sound: { shoot: "vss_01" },
         },
     },
 };
@@ -319,7 +318,7 @@ export const GunOverrides: Record<string, GunEffect> = {
     pg_excalibur: { bullet: { damage: 21 }, gun: { maxClip: 70, maxReload: 70, extendedClip: 70, extendedReload: 70 } },
     // 2.14 shots/s, 12 capacity, 24 dmg (the orb's blast is its splash)
     pg_dark_matter_generator: {
-        bullet: { damage: 24 },
+        bullet: { damage: 24, sprite: "img/custom-weapons/fx/nebula_orb.png", spriteSize: 2.4 },
         gun: { fireMode: "single", fireDelay: 0.467, maxClip: 12, maxReload: 12, extendedClip: 12, extendedReload: 12 },
     },
     // Gauss: stops at walls but still goes through enemies; 0.7317 shots/s, 6 capacity
@@ -415,13 +414,13 @@ export const MeleeOverrides: Record<string, DeepPartial<MeleeDef>> = {
     tr_excalibur: { damage: 42, autoAttack: true, attack: { offset: { x: 2.2, y: 0 }, rad: 3.6, cooldownTime: 0.33 } },
     tr_meowmere: { damage: 46, autoAttack: true, attack: { offset: { x: 1.4, y: 0 }, rad: 3, cooldownTime: 0.23 } },
     tr_star_wrath: { damage: 44, autoAttack: true, attack: { offset: { x: 1.4, y: 0 }, rad: 3, cooldownTime: 0.27 } },
-    // damage cut by 67%
-    tr_zenith: { damage: 16.5, autoAttack: true, attack: { offset: { x: 1.4, y: 0 }, rad: 3, cooldownTime: 0.5 } },
+    // damage cut by 30%
+    tr_zenith: { damage: 35, autoAttack: true, attack: { offset: { x: 1.4, y: 0 }, rad: 3, cooldownTime: 0.5 } },
 };
 
 /** the glowing aura drawn around each swing, as in Terraria */
 export const SwingArcs: Record<string, string> = {
-    tr_terra_blade: "img/custom-weapons/fx/arc_green.png",
+    tr_terra_blade: "img/custom-weapons/fx/terra_beam.png",
     tr_night_s_edge: "img/custom-weapons/fx/arc_purple.png",
     tr_excalibur: "img/custom-weapons/fx/arc_gold.png",
     tr_meowmere: "img/custom-weapons/fx/arc_rainbow.png",
@@ -453,9 +452,9 @@ export const SwingShots: Record<string, SwingShot> = {
     tr_meowmere: { bullet: "bullet_cw_meowmere_cat" },
     // three pink stars fall onto where you aim
     tr_star_wrath: { bullet: "bullet_cw_star", count: 3, spread: 3, fromSky: true },
-    // a flurry of spinning swords rush to the cursor anywhere on screen (locking onto an enemy near it),
+    // a swarm of 100 mini Zeniths rush to the cursor anywhere on screen (locking onto an enemy near it),
     // then fly back, cutting through walls and everyone both ways
-    tr_zenith: { bullet: "bullet_cw_zenith_sword", count: 6, spread: 6, toCursor: true },
+    tr_zenith: { bullet: "bullet_cw_zenith_sword", count: 100, spread: 0.6, toCursor: true },
 };
 
 const swingBullet = (b: Partial<BulletDef>): BulletDef => ({
@@ -484,7 +483,7 @@ export const SwingShotBullets: Record<string, BulletDef> = {
         pierceLoss: 0.25,
         tracerColor: "cw_terra",
         tracerWidth: 1.2,
-        sprite: "img/custom-weapons/fx/terra_slash.png",
+        sprite: "img/custom-weapons/fx/terra_beam.png",
         spriteSize: 12,
     }),
     // the rest of the wave's width: hits, but draws nothing (the crescent covers it)
@@ -522,7 +521,8 @@ export const SwingShotBullets: Record<string, BulletDef> = {
         spin: 10,
     }),
     bullet_cw_zenith_sword: swingBullet({
-        damage: 10,
+        // 100 of them: the old 6 x 30 total, cut by 30%, spread over the swarm
+        damage: 1.3,
         distance: 140,
         speed: 100,
         pierce: true,
@@ -533,15 +533,8 @@ export const SwingShotBullets: Record<string, BulletDef> = {
         tracerColor: "cw_rainbow",
         tracerWidth: 0.25,
         tracerLength: 1.4,
-        sprites: [
-            "img/custom-weapons/world/tr_zenith.png",
-            "img/custom-weapons/world/tr_terra_blade.png",
-            "img/custom-weapons/world/tr_meowmere.png",
-            "img/custom-weapons/world/tr_star_wrath.png",
-            "img/custom-weapons/world/tr_night_s_edge.png",
-            "img/custom-weapons/world/tr_excalibur.png",
-        ],
-        spriteSize: 3.2,
+        sprite: "img/custom-weapons/world/tr_zenith.png",
+        spriteSize: 1.6,
     }),
     bullet_cw_christmas_tree_frag: swingBullet({
         damage: 0,

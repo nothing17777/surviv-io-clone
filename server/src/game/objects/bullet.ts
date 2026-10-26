@@ -793,7 +793,8 @@ export class Bullet {
     /** nearest living enemy ahead of the shooter, for homing (magic) shots */
     findHomingTarget(pos: Vec2, dir: Vec2): number {
         let best = 0;
-        let bestDist = 70;
+        // as far as the shot can fly, so long range shots home too
+        let bestDist = Math.max(GameObjectDefs.typeToDef(this.bulletType, "bullet").distance, 70);
         for (const p of this.bulletManager.game.playerBarn.livingPlayers) {
             if (p.__id === this.playerId || (this.player && p.teamId === this.player.teamId)) continue;
             if (!util.sameLayer(p.layer, this.layer)) continue;

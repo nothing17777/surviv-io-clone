@@ -301,14 +301,15 @@ export class BulletBarn {
                 // the super hacker's shot curves toward its target, like on the server
                 if (b.homingId) {
                     const target = playerBarn.getPlayerById(b.homingId);
-                    if (!target || target.m_netData.m_dead) {
+                    // a far target may not have reached this client yet: keep the lock and fly on until it does
+                    if (target?.m_netData.m_dead) {
                         b.homingId = 0;
                         // the super hacker's shots end; magic ones fly on straight
                         if (b.pierce && !b.defPierce) {
                             b.alive = false;
                             b.fxSprite.visible = false;
                         }
-                    } else {
+                    } else if (target) {
                         b.dir = v2.normalizeSafe(v2.sub(target.m_pos, b.pos), b.dir);
                         const ang = Math.atan2(b.dir.x, b.dir.y);
                         b.container.rotation = ang - Math.PI / 2;
@@ -640,6 +641,9 @@ export class BulletBarn {
                         renderer.addPIXIObj(b.container, b.layer, 20);
                     }
                 }
+                // the Judge's rocket is steered on the server, so a hit guessed here may not be real:
+                // it keeps flying (and the camera on it) until the server's blast ends it
+                if (hit && b.bulletType === "bullet_pg_judge") hit = false;
                 if (hit || math.eqAbs(distLeft, distTravel)) {
                     b.collided = true;
                     b.alive = false;
