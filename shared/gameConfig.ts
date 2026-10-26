@@ -410,6 +410,7 @@ export const GameConfig = {
         cw_holy: { regular: 0xffe060, saturated: 0xffe060, chambered: 0xffe060, apSaturated: 0xffe060 } as TracerColors,
         cw_rainbow: { regular: 0xff70e0, saturated: 0x70e0ff, chambered: 0xffff70, apSaturated: 0xff70e0 } as TracerColors,
         cw_star: { regular: 0xffa0e0, saturated: 0xffa0e0, chambered: 0xffa0e0, apSaturated: 0xffa0e0 } as TracerColors,
+        cw_white: { regular: 0xffffff, saturated: 0xffffff, chambered: 0xffffff, apSaturated: 0xffffff } as TracerColors,
         cw_bubble: { regular: 0x60a8ff, saturated: 0x60a8ff, chambered: 0x60a8ff, apSaturated: 0x60a8ff } as TracerColors,
     },
     scopeZoomRadius: {

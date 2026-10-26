@@ -390,7 +390,7 @@ export class WeaponManager {
                 }
                 break;
             case "burst":
-                if (player.shootHold && weapon.cooldown < 0) {
+                if (player.shootHold && weapon.cooldown < 0 && this.payEnergy(itemDef.energyCost)) {
                     weapon.cooldown = 0;
                     for (let i = 0; i < itemDef.burstCount!; i++) {
                         this.bursts.push(weapon.cooldown);
@@ -402,6 +402,7 @@ export class WeaponManager {
                 for (let i = 0; i < this.bursts.length; i++) {
                     this.bursts[i] -= dt;
                     if (this.bursts[i] <= 0) {
+                        this.burstIndex = itemDef.burstCount! - this.bursts.length;
                         this.fireWeapon(this.offHand);
                         this.bursts.splice(i, 1);
                         i--;
@@ -421,8 +422,15 @@ export class WeaponManager {
             player.animType !== GameConfig.Anim.Melee
             && (player.shootStart || (player.shootHold && itemDef.autoAttack))
             && weapon.cooldown < 0
+            && this.payEnergy(itemDef.energyCost)
         ) {
             this.player.cancelAction();
+            // abilities in the melee slot
+            if (this.activeWeapon === "kit_ultron_minions") this.player.spawnMinions();
+            if (this.activeWeapon === "kit_wizard_enhance") {
+                this.player.kitEnhanceTime = 9;
+                this.player.setDirty();
+            }
 
             this.player.playAnim(GameConfig.Anim.Melee, attack.cooldownTime);
             weapon.cooldown = attack.cooldownTime * (this.player.charmed ? 2 : 1);
@@ -734,6 +742,18 @@ export class WeaponManager {
         return totalDamageMult;
     }
 
+    /** which shot of the current burst is being fired */
+    burstIndex = 0;
+
+    /** kit abilities: spend the energy, or say there isn't enough */
+    payEnergy(cost: number | undefined): boolean {
+        if (!cost) return true;
+        if (this.player.energy < cost) return false;
+        this.player.energy -= cost;
+        this.player.energyDirty = true;
+        return true;
+    }
+
     fireWeapon(offHand: boolean, forceFire?: boolean) {
         const itemDef = GameObjectDefs.typeToDef(this.activeWeapon, "gun");
 
@@ -741,6 +761,8 @@ export class WeaponManager {
         this.scheduledReload = weapon.ammo <= 1;
 
         if (weapon.ammo <= 0) return;
+        // abilities pay per use (a burst pays once, when it starts)
+        if (itemDef.fireMode !== "burst" && !this.payEnergy(itemDef.energyCost)) return;
 
         const firstShotAccuracy = weapon.recoilTime <= 0;
 
@@ -767,7 +789,7 @@ export class WeaponManager {
         this.player.cancelAction();
 
         // bots never empty their clip, so they never reload
-        if (!this.player.botBrain) weapon.ammo--;
+        if (!this.player.botBrain && !itemDef.energyCost) weapon.ammo--;
         this.player.weapsDirty = true;
 
         const collisionLayer = util.toGroundLayer(this.player.layer);
@@ -908,14 +930,16 @@ export class WeaponManager {
                 speedMult *= PerkProperties.bonus_45.empoweredSpeedMult;
             }
 
-            const deviation = itemDef.ringShot
+            const deviation = itemDef.shotAngles
+                ? (itemDef.shotAngles[i] ?? 0)
+                : itemDef.ringShot
                 ? (i / bulletCount) * 360
                 : itemDef.fanShot
                 ? (bulletCount > 1 ? i / (bulletCount - 1) - 0.5 : 0) * spread
                 : (empowered45 || firstShotAccuracy)
                 ? 0
                 : util.random(-0.5, 0.5) * (spread || 0);
-            const shotDir = v2.rotate(direction, math.deg2rad(deviation));
+            let shotDir = v2.rotate(direction, math.deg2rad(deviation));
 
             // Compute shot start position
             let bltStart = v2.add(gunPos, v2.mul(direction, gunLen));
@@ -944,9 +968,23 @@ export class WeaponManager {
             }
 
             // ring shots start just outside the shooter, each on its own side
-            const shotPos = itemDef.ringShot
+            let shotPos = itemDef.ringShot
                 ? v2.add(this.player.pos, v2.mul(shotDir, this.player.rad + 0.5))
                 : v2.add(gunPos, v2.mul(toBlt, toBltLen));
+            const shotBulletType = itemDef.bulletTypes?.[itemDef.fireMode === "burst" ? this.burstIndex : i] ?? bulletType;
+            // Star Blast: shots start side by side and close in on the point at the end of their range
+            if (itemDef.converge && itemDef.burstCount) {
+                const t = this.burstIndex / Math.max(itemDef.burstCount - 1, 1) - 0.5;
+                shotPos = v2.add(shotPos, v2.mul(v2.perp(direction), t * itemDef.converge));
+                const range = GameObjectDefs.typeToDef(shotBulletType, "bullet").distance;
+                shotDir = v2.normalizeSafe(v2.sub(v2.add(gunPos, v2.mul(direction, range)), shotPos), direction);
+            }
+            // an enhanced Wizard's spells go through walls and home in on the marked enemies
+            const ghost = this.player.kit === "wizard" && this.player.kitEnhanceTime > 0;
+            const marked = ghost ? [...this.player.wizardMarks].filter((p) => !p.dead) : [];
+            const ghostTarget = marked.length
+                ? marked.reduce((a, b) => (v2.length(v2.sub(a.pos, shotPos)) < v2.length(v2.sub(b.pos, shotPos)) ? a : b))
+                : undefined;
             let distance = Number.MAX_VALUE;
             if (itemDef.toMouseHit) {
                 distance = math.max(toMouseLen - gunLen, 0.0);
@@ -954,8 +992,10 @@ export class WeaponManager {
 
             const params: BulletParams = {
                 playerId: this.player.__id,
-                bulletType: bulletType,
+                bulletType: shotBulletType,
                 gameSourceType: this.activeWeapon,
+                ghost,
+                homingTargetId: ghostTarget?.__id,
                 damageType: GameConfig.DamageType.Player,
                 pos: shotPos,
                 dir: shotDir,

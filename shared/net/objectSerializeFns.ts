@@ -96,6 +96,10 @@ export interface ObjectsFullData {
         poisoned: boolean;
         burning: boolean;
         charmed: boolean;
+        /** kit aura drawn round the player: 0 none, 1 summoner daggers, 2 wizard circle, 3 enhanced */
+        kitAura: number;
+        /** inside an enhanced Wizard's circle: a sigil under them */
+        wizardMarked: boolean;
 
         frozen: boolean;
         frozenOri: number;
@@ -233,6 +237,8 @@ export const ObjectSerializeFns: {
             s.writeBoolean(data.poisoned);
             s.writeBoolean(data.burning);
             s.writeBoolean(data.charmed);
+            s.writeBits(data.kitAura, 2);
+            s.writeBoolean(data.wizardMarked);
 
             s.writeBoolean(data.frozen);
             if (data.frozen) {
@@ -308,6 +314,8 @@ export const ObjectSerializeFns: {
             data.poisoned = s.readBoolean();
             data.burning = s.readBoolean();
             data.charmed = s.readBoolean();
+            data.kitAura = s.readBits(2);
+            data.wizardMarked = s.readBoolean();
 
             data.frozen = s.readBoolean();
             data.frozenOri = 0;

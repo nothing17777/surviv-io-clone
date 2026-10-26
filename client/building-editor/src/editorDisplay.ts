@@ -224,6 +224,8 @@ export class EditorDisplay {
             poisoned: false,
             burning: false,
             charmed: false,
+            kitAura: 0,
+            wizardMarked: false,
             frozen: false,
             frozenOri: 0,
             frozenType: "",

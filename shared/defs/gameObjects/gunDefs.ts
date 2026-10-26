@@ -99,6 +99,14 @@ export interface GunDef extends BaseWeaponDef {
     ringShot?: boolean;
     /** bulletCount shots spaced evenly across shotSpread, like a crossbow volley */
     fanShot?: boolean;
+    /** degrees off the aim for each shot, in order (overrides the spread) */
+    shotAngles?: number[];
+    /** a different bullet for each shot (by shot index, or burst shot index) */
+    bulletTypes?: string[];
+    /** burst shots start side by side across this width and all aim at the end of the range */
+    converge?: number;
+    /** kit ability: energy each use costs (fireDelay is its cooldown); never reloads */
+    energyCost?: number;
     /** a kit's energy each reload costs; no reload without it */
     reloadEnergy?: number;
 }
@@ -3734,7 +3742,7 @@ const kitGun = (id: string, base: string, bullet: Partial<BulletDef>, gun: DeepP
     return [id, util.mergeDeep(def, gun)];
 };
 
-const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
+const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
     // Iron Man repulsor: a wide cyan laser, 50 dmg, 1.4 shots/s, 10 rounds, 1 s reload for 10 energy
     kitGun("kit_ironman_blast", "sv98", {
         damage: 50,
@@ -3789,4 +3797,204 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
     }),
 ]);
 
-export const GunDefs: Record<string, GunDef> = { ...BaseDefs, ...SkinDefs, ...CustomGunDefs, ...KitGunDefs };
+const kitAsset = (name: string) => `img/custom-weapons/fx/kit/${name}.png`;
+const kitBullet = (id: string, b: Partial<BulletDef>) => {
+    BulletDefs[id] = {
+        ...BulletDefs.bullet_9mm,
+        damage: 10,
+        obstacleDamage: 1,
+        falloff: 1,
+        variance: 0,
+        shrapnel: false,
+        tracerColor: "cw_magic",
+        tracerWidth: 0.2,
+        tracerLength: 0.6,
+        ...b,
+    } as BulletDef;
+    return id;
+};
+const orbColorTracer: Record<string, BulletDef["tracerColor"]> = { red: "cw_laser", blue: "cw_bubble", green: "cw_poison", yellow: "cw_holy", purple: "cw_magic", orange: "cw_flame" };
+for (const [color, tracer] of Object.entries(orbColorTracer)) {
+    // a coloured orb that bursts on contact or at the end of its range, then fires a laser at the nearest enemy
+    kitBullet(`bullet_kit_ultron_orb_${color}`, {
+        damage: 0,
+        speed: 70,
+        distance: 25,
+        onHit: "explosion_kit_orb",
+        tracerColor: tracer,
+        tracerWidth: 0.3,
+        sprite: kitAsset(`orb_${color}`),
+        spriteSize: 1.4,
+    });
+    kitBullet(`bullet_kit_ultron_orb_laser_${color}`, {
+        damage: 40,
+        speed: 300,
+        distance: 30,
+        beam: true,
+        tracerColor: tracer,
+        tracerWidth: 0.35,
+    });
+}
+// the Summoner's blade minions
+kitBullet("bullet_kit_dagger", {
+    speed: 90,
+    distance: 18,
+    tracerColor: "cw_magic",
+    tracerWidth: 0.12,
+    sprite: kitAsset("enchanted_dagger"),
+    spriteSize: 1.3,
+});
+// the Summoner's whip: a chain that lashes out 10 tiles from the hand
+kitBullet("bullet_kit_whip", {
+    damage: 20,
+    speed: 70,
+    distance: 10,
+    beam: true,
+    tracerColor: "cw_white",
+    tracerWidth: 0.6,
+    trailSprite: kitAsset("spinal_tap_proj"),
+});
+
+const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
+    // Spider-Man web: a fast white strand, 30 dmg; whatever it hits swings him there
+    kitGun("kit_spider_web", "deagle", {
+        damage: 30,
+        speed: 120,
+        distance: 20,
+        falloff: 1,
+        tracerColor: "cw_white",
+        tracerWidth: 0.3,
+        tracerLength: 1.2,
+        sprite: kitAsset("web_ball"),
+        spriteSize: 0.8,
+    }, {
+        name: "Web Shooter",
+        fireMode: "single",
+        fireDelay: 0.5,
+        shotSpread: 0,
+        moveSpread: 0,
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
+    // Ultron laser: a lasting purple beam while held, 12 dmg per 0.5 s, through enemies not walls,
+    // 25 energy per second
+    kitGun("kit_ultron_laser", "m249", {
+        damage: 2.4,
+        speed: 400,
+        distance: 35,
+        beam: true,
+        playerPierce: true,
+        pierceLoss: 0,
+        tracerColor: "cw_magic",
+        tracerWidth: 0.6,
+        trailSprite: kitAsset("star_wrath_proj"),
+    }, {
+        name: "Ultron Laser",
+        fireMode: "auto",
+        fireDelay: 0.1,
+        energyCost: 2.5,
+        shotSpread: 0,
+        moveSpread: 0,
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
+    // Ultron energy blast: six coloured orbs in a thin cone, 80 energy, 5 s cooldown
+    kitGun("kit_ultron_blast", "barrett", { damage: 0 }, {
+        name: "Energy Blast",
+        fireMode: "single",
+        fireDelay: 5,
+        energyCost: 80,
+        bulletCount: 6,
+        fanShot: true,
+        shotSpread: 10,
+        moveSpread: 0,
+        bulletTypes: ["red", "blue", "green", "yellow", "purple", "orange"].map((c) => `bullet_kit_ultron_orb_${c}`),
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
+    // Wizard magic blast: a flaming laser to max range plus 3 homing bolts in a cone, 50 energy, 1.2 s cooldown
+    kitGun("kit_wizard_blast", "famas", { damage: 0 }, {
+        name: "Magic Blast",
+        fireMode: "single",
+        fireDelay: 1.2,
+        energyCost: 50,
+        bulletCount: 4,
+        shotAngles: [0, -15, 0, 15],
+        bulletTypes: [
+            kitBullet("bullet_kit_wizard_laser", {
+                damage: 50,
+                speed: 400,
+                distance: 20,
+                beam: true,
+                playerPierce: true,
+                pierceLoss: 0,
+                tracerColor: "cw_flame",
+                tracerWidth: 0.9,
+                trailSprite: kitAsset("flaming_scythe"),
+            }),
+            ...["star_wrath_proj", "foxparks_fireball", "betsys_fireball"].map((img, i) =>
+                kitBullet(`bullet_kit_wizard_bolt_${i}`, {
+                    damage: 20,
+                    speed: 55,
+                    distance: 20,
+                    homing: true,
+                    homingFromAim: true,
+                    tracerColor: "cw_flame",
+                    tracerWidth: 0.2,
+                    sprite: kitAsset(img),
+                    spriteSize: 1.8,
+                })
+            ),
+        ],
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
+    // Wizard star blast: 9 bolts one after another within a second, starting spread out and closing
+    // in at max range, 25 dmg each, 100 energy, 3 s cooldown
+    kitGun("kit_wizard_stars", "famas", { damage: 0 }, {
+        name: "Star Blast",
+        fireMode: "burst",
+        burstCount: 9,
+        burstDelay: 0.11,
+        fireDelay: 2,
+        energyCost: 100,
+        converge: 6,
+        shotSpread: 0,
+        moveSpread: 0,
+        bulletTypes: [
+            "nebula_orb",
+            "kit/amber_bolt",
+            "kit/emerald_bolt",
+            "kit/twinkle",
+            "kit/ruby_bolt",
+            "kit/rainbow_rod",
+            "magic_missile",
+            "kit/sapphire_bolt",
+            "kit/amethyst_bolt",
+        ].map((img, i) =>
+            kitBullet(`bullet_kit_wizard_star_${i}`, {
+                damage: 25,
+                speed: 55,
+                distance: 25,
+                tracerColor: "cw_star",
+                tracerWidth: 0.2,
+                sprite: `img/custom-weapons/fx/${img}.png`,
+                spriteSize: 1.6,
+            })
+        ),
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
+]);
+
+export const GunDefs: Record<string, GunDef> = { ...BaseDefs, ...SkinDefs, ...CustomGunDefs, ...IronManGunDefs, ...KitGunDefs };

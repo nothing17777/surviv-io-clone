@@ -729,6 +729,25 @@ export class UiManager2 {
         this.dom.health.energyBar.style.display = maxEnergy > 0 ? "block" : "none";
         this.dom.health.energy.style.width = `${maxEnergy > 0 ? math.min((energy / maxEnergy) * 100, 100) : 0}%`;
         this.dom.health.energyText.textContent = maxEnergy > 0 ? `${Math.floor(energy)} / ${maxEnergy}` : "";
+        // kit abilities: a dark sweep and the seconds left over each slot on cooldown
+        const cooldowns = maxEnergy > 0 ? activePlayer.m_localData.abilityCooldowns ?? [] : [];
+        for (let i = 0; i < 3; i++) {
+            const slot = this.dom.weapons[i]?.div;
+            if (!slot) continue;
+            let cd = slot.querySelector<HTMLElement>(".ui-kit-cooldown");
+            const left = cooldowns[i] ?? 0;
+            if (!cd) {
+                if (left <= 0) continue;
+                cd = document.createElement("div");
+                cd.className = "ui-kit-cooldown";
+                cd.style.cssText =
+                    "position:absolute;inset:0;background:rgba(0,0,0,0.55);color:#fff;font-weight:bold;font-size:16px;display:flex;align-items:center;justify-content:center;pointer-events:none;border-radius:inherit;";
+                slot.style.position ||= "relative";
+                slot.appendChild(cd);
+            }
+            cd.style.display = left > 0 ? "flex" : "none";
+            cd.textContent = left > 0 ? left.toFixed(1) : "";
+        }
         this.dom.health.shieldText.textContent = shield > 0 ? `${Math.ceil(shield)}` : "";
         state.boost = activePlayer.m_localData.m_boost;
         state.downed = activePlayer.m_netData.m_downed;

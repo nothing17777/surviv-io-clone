@@ -485,5 +485,27 @@ export const ExplosionDefs: Record<string, ExplosionDef> = {
         freezeDuration: 2,
         frozenSprites: ["player-snow-01.img", "player-snow-02.img"],
     },
+    // Ultron's energy blast orbs: 60 dmg each
+    explosion_kit_orb: {
+        type: "explosion",
+        damage: 60,
+        obstacleDamage: 1,
+        rad: { min: 1, max: 1.8 },
+        shrapnelCount: 0,
+        shrapnelType: "",
+        explosionEffectType: "rounds",
+        decalType: "",
+    },
+    // Ultron's minions blow up after 20 s or when destroyed: 25 dmg
+    explosion_kit_minion: {
+        type: "explosion",
+        damage: 25,
+        obstacleDamage: 1,
+        rad: { min: 1.5, max: 3 },
+        shrapnelCount: 0,
+        shrapnelType: "",
+        explosionEffectType: "frag",
+        decalType: "decal_frag_small_explosion",
+    },
 };
 

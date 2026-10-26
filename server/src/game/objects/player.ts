@@ -1,4 +1,4 @@
-import { KitDefs, isKitItem } from "../../../../shared/defs/gameObjects/kitDefs.ts";
+import { KitDefs, UltronMinion, isKitItem, kitAura } from "../../../../shared/defs/gameObjects/kitDefs.ts";
 import { type GameObjectDef, type LootDef, WeaponTypeToDefs } from "../../../../shared/defs/gameObjectDefs.ts";
 import { EmotesDefs } from "../../../../shared/defs/gameObjects/emoteDefs.ts";
 import {
@@ -728,6 +728,36 @@ export class Player extends BaseGameObject {
     /** kit shield cap; 0 = none */
     maxShield = 0;
     energyDirty = false;
+    /** Wizard: seconds left of the enhanced circle */
+    kitEnhanceTime = 0;
+    regenPulseTimer = 0;
+    daggerTimer = 0;
+    daggerIndex = 0;
+    /** Summoner: the enemy the whip last hit, which the daggers go after first */
+    summonerFocusId = 0;
+    /** Spider-Man: swinging to where the web hit */
+    webPull?: { target: Vec2; speed: number; time: number };
+    /** Spider-Man: seconds left of 4x regen after a slash */
+    spiderRegenTime = 0;
+    /** Ultron minion: who summoned it and how long it has left */
+    minionOwner?: Player;
+    minionLife = 0;
+    minions: Player[] = [];
+    /** players this Wizard has marked (inside the enhanced circle) */
+    wizardMarks = new Set<Player>();
+    wizardMarked = false;
+
+    get kitAura() {
+        return this.dead ? 0 : kitAura(this.kit, this.kitEnhanceTime > 0);
+    }
+
+    /** seconds left on each ability slot (primary, secondary, melee) */
+    get abilityCooldowns() {
+        return [0, 1, 2].map((i) => {
+            const slot = [GameConfig.WeaponSlot.Primary, GameConfig.WeaponSlot.Secondary, GameConfig.WeaponSlot.Melee][i];
+            return Math.max(this.weapons[slot]?.cooldown ?? 0, 0);
+        });
+    }
     eclipseHitCount = 0;
 
     // Judge rocket
@@ -2182,12 +2212,21 @@ export class Player extends BaseGameObject {
         }
         if (this.activeJudgeRocket) v2.set(movement, v2.create(0, 0));
 
+        // Spider-Man swinging to where his web hit
+        if (this.webPull) {
+            const to = v2.sub(this.webPull.target, this.pos);
+            this.webPull.time -= dt;
+            if (v2.length(to) < 1 || this.webPull.time <= 0 || this.dead) this.webPull = undefined;
+            else v2.set(movement, v2.normalize(to));
+        }
+
         const hasTreeClimbing = this.hasPerk("tree_climbing");
 
         let steps: number;
 
         if (!v2.eq(movement, v2.create(0, 0))) {
             this.recalculateSpeed(hasTreeClimbing);
+            if (this.webPull) this.speed = this.webPull.speed;
             steps = Math.round(math.max(this.speed * dt + 5, 5));
 
             this.movingTicker += dt;
@@ -2787,6 +2826,15 @@ export class Player extends BaseGameObject {
         if (playerSource && params.source !== this && params.damageType !== GameConfig.DamageType.Bleeding) {
             const src = params.gameSourceType;
             if (src === "pg_nanobots_rifle" || src === "kit_wolverine_claws") this.applyBleed(4, playerSource);
+            else if (src === "kit_spider_slash") {
+                this.applyBleed(4, playerSource);
+                playerSource.spiderRegenTime = 4;
+                playerSource.shield = math.min(playerSource.shield + 20, 400);
+                playerSource.shieldDirty = true;
+            } else if (src === "kit_summoner_whip" && params.weaponSourceType === "kit_summoner_whip" && params.amount! >= 20) {
+                // the whip's lash (not a dagger) sets the minions' target
+                playerSource.summonerFocusId = this.__id;
+            }
             else if (src === "pg_acid_shotgun") this.applyPoison(4, playerSource);
             else if (src === "pg_frozen_dragon") this.applyBurn(2, playerSource);
             else if (src === "pg_photon_sniper_rifle") this.applyBurn(4, playerSource, src);
@@ -2915,6 +2963,21 @@ export class Player extends BaseGameObject {
 
     kill(params: DamageParams): void {
         if (this.dead) return;
+        // Ultron minions blow up when destroyed
+        if (this.minionOwner) {
+            this.game.explosionBarn.addExplosion(UltronMinion.explosion, v2.copy(this.pos), this.layer, {
+                source: this.minionOwner,
+                gameSourceType: "kit_ultron_minions",
+                weaponSourceType: "kit_ultron_minions",
+                damageType: GameConfig.DamageType.Player,
+            });
+        }
+        // a Wizard's marks go when the Wizard does
+        for (const p of this.wizardMarks) {
+            p.wizardMarked = false;
+            p.setDirty();
+        }
+        this.wizardMarks.clear();
         if (this.downed) this.downed = false;
         this.dead = true;
         this.killedIndex = this.game.playerBarn.nextKilledNumber++;
@@ -5135,6 +5198,7 @@ export class Player extends BaseGameObject {
     /** a kit's per-second effects: regen, full adrenaline, energy */
     updateKit(dt: number) {
         const kit = KitDefs[this.kit];
+        if (this.minionOwner) this.updateMinion(dt);
         if (this.kit === "default" || !kit || this.dead) return;
         if (kit.fullBoost && this.boost < 100) this.boost = 100;
         if (kit.regen && this.health < this.maxHealth) {
@@ -5145,13 +5209,13 @@ export class Player extends BaseGameObject {
         if (e) {
             const before = Math.round(this.energy);
             this.energy = math.min(this.energy + e.perSecond * dt, e.max);
-            if (this.health < this.maxHealth) {
+            if (e.heal > 0 && this.health < this.maxHealth) {
                 const cost = e.healCost * dt;
                 if (this.energy >= cost) {
                     this.energy -= cost;
                     this.health = math.min(this.health + e.heal * dt, this.maxHealth);
                 }
-            } else if (this.shield < this.maxShield) {
+            } else if (e.shieldRegen > 0 && this.shield < this.maxShield) {
                 const cost = e.shieldCost * dt;
                 if (this.energy >= cost) {
                     this.energy -= cost;
@@ -5160,6 +5224,136 @@ export class Player extends BaseGameObject {
                 }
             }
             if (Math.round(this.energy) !== before) this.energyDirty = true;
+            // ability kits show their cooldowns, which change every tick
+            if (this.abilityCooldowns.some((c) => c > 0)) this.energyDirty = true;
+        }
+        if (kit.regenPulse) {
+            this.regenPulseTimer += dt;
+            if (this.regenPulseTimer >= kit.regenPulse.every) {
+                this.regenPulseTimer -= kit.regenPulse.every;
+                this.health = math.min(this.health + kit.regenPulse.amount, this.maxHealth);
+            }
+        }
+        if (this.spiderRegenTime > 0) {
+            this.spiderRegenTime -= dt;
+            // Spider Slash: 4x regen (the base 10 hp/s is added above)
+            if (kit.regen) this.health = math.min(this.health + kit.regen * 3 * dt, this.maxHealth);
+        }
+        if (kit.daggers) this.updateDaggers(dt, kit.daggers);
+        if (kit.aura) this.updateAura(dt, kit.aura);
+    }
+
+    enemiesWithin(rad: number): Player[] {
+        return this.game.playerBarn.livingPlayers.filter(
+            (p) =>
+                p !== this && !p.dead && p.teamId !== this.teamId && util.sameLayer(p.layer, this.layer)
+                && v2.length(v2.sub(p.pos, this.pos)) <= rad,
+        );
+    }
+
+    /** Summoner: the blade minions take turns flying at the focused enemy, else the nearest one in range */
+    updateDaggers(dt: number, d: NonNullable<(typeof KitDefs)[string]["daggers"]>) {
+        this.daggerTimer -= dt;
+        if (this.daggerTimer > 0) return;
+        const near = this.enemiesWithin(d.range);
+        if (!near.length) return;
+        this.daggerTimer = d.interval / d.count;
+        const focus = near.find((p) => p.__id === this.summonerFocusId);
+        const target = focus
+            ?? near.reduce((a, b) => (v2.length(v2.sub(a.pos, this.pos)) < v2.length(v2.sub(b.pos, this.pos)) ? a : b));
+        // each dagger leaves from its spot on the circle round the player (the client draws them there)
+        const ang = ((this.daggerIndex++ % d.count) / d.count) * Math.PI * 2 + this.game.now * 0.002;
+        const from = v2.add(this.pos, v2.create(Math.cos(ang) * 2.2, Math.sin(ang) * 2.2));
+        this.game.bulletBarn.fireBullet({
+            playerId: this.__id,
+            bulletType: "bullet_kit_dagger",
+            gameSourceType: "kit_summoner_whip",
+            damageType: GameConfig.DamageType.Player,
+            pos: from,
+            dir: v2.normalizeSafe(v2.sub(target.pos, from), this.dir),
+            layer: this.layer,
+            damageMult: 1,
+            distance: Math.min(v2.length(v2.sub(target.pos, from)) + 2, d.range + 4),
+            clipDistance: true,
+            shotFx: false,
+            reflectCount: 0,
+        } as Parameters<typeof this.game.bulletBarn.fireBullet>[0]);
+    }
+
+    /** Wizard: each enemy in the circle feeds energy, shield and health; enhanced, it marks them */
+    updateAura(dt: number, a: NonNullable<(typeof KitDefs)[string]["aura"]>) {
+        const inside = this.enemiesWithin(a.radius);
+        if (inside.length) {
+            const n = inside.length;
+            this.energy = math.min(this.energy + a.energy * n * dt, this.maxEnergy);
+            this.shield = math.min(this.shield + a.shield * n * dt, this.maxShield);
+            this.health = math.min(this.health + a.health * n * dt, this.maxHealth);
+            this.shieldDirty = true;
+            this.energyDirty = true;
+        }
+        const wasEnhanced = this.kitEnhanceTime > 0;
+        if (this.kitEnhanceTime > 0) this.kitEnhanceTime -= dt;
+        if (wasEnhanced !== this.kitEnhanceTime > 0) this.setDirty();
+        const marks = new Set(this.kitEnhanceTime > 0 ? inside : []);
+        for (const p of this.wizardMarks) {
+            if (!marks.has(p)) {
+                p.wizardMarked = false;
+                p.setDirty();
+            }
+        }
+        for (const p of marks) {
+            if (!p.wizardMarked) {
+                p.wizardMarked = true;
+                p.setDirty();
+            }
+        }
+        this.wizardMarks = marks;
+    }
+
+    /** Ultron: up to 5 minions round the player; using it again only tops them back up to 5 */
+    spawnMinions() {
+        this.minions = this.minions.filter((m) => !m.dead);
+        const missing = UltronMinion.count - this.minions.length;
+        for (let i = 0; i < missing; i++) {
+            const m = this.game.addMinion(this, "beginner");
+            const ang = (i / Math.max(missing, 1)) * Math.PI * 2;
+            m.pos = v2.add(this.pos, v2.create(Math.cos(ang) * 3, Math.sin(ang) * 3));
+            m.layer = this.layer;
+            m.teamId = this.teamId;
+            m.minionOwner = this;
+            m.minionLife = UltronMinion.life;
+            m.kit = "minion";
+            m.lockedKit = true;
+            m.maxHealth = UltronMinion.health;
+            m.health = UltronMinion.health;
+            m.helmet = "helmet04";
+            m.chest = "chest04";
+            m.backpack = "backpack00";
+            m.outfit = "outfitKitMinion";
+            for (const item of Object.keys(m.invManager.items) as InventoryItem[]) m.invManager.set(item, 0);
+            for (let p = m.perks.length - 1; p >= 0; p--) m.removePerk(m.perks[p].type);
+            m.weaponManager.setWeapon(GameConfig.WeaponSlot.Primary, "", 0);
+            m.weaponManager.setWeapon(GameConfig.WeaponSlot.Secondary, "", 0);
+            m.weaponManager.setWeapon(GameConfig.WeaponSlot.Throwable, "", 0);
+            m.weaponManager.setWeapon(GameConfig.WeaponSlot.Melee, "fists", 0);
+            m.weaponManager.setCurWeapIndex(GameConfig.WeaponSlot.Melee, true);
+            m.weapsDirty = true;
+            m.setDirty();
+            this.minions.push(m);
+        }
+    }
+
+    /** an Ultron minion's timer: it blows up after 20 s, or when its summoner is gone */
+    updateMinion(dt: number) {
+        if (!this.minionOwner || this.dead) return;
+        this.minionLife -= dt;
+        if (this.minionLife <= 0 || this.minionOwner.dead) {
+            this.kill({
+                damageType: GameConfig.DamageType.Player,
+                source: this.minionOwner,
+                gameSourceType: "kit_ultron_minions",
+                dir: this.dir,
+            } as DamageParams);
         }
     }
 

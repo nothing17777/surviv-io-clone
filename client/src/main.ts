@@ -208,15 +208,10 @@ export class Application {
                 return false;
             });
             initCrossoverCatalog();
-            const crossoverModal = new MenuModal($("#modal-crossover"));
-            crossoverModal.onShow(() => {
-                $("#start-bottom-right, #start-top-right").fadeOut(200);
-            });
-            crossoverModal.onHide(() => {
-                $("#start-bottom-right, #start-top-right").fadeIn(200);
-            });
+            // the crossover icon opens the Armory's Custom Weapons tab
             $(".btn-crossover").on("click", () => {
-                crossoverModal.show();
+                armoryModal.show();
+                $('#armory-tabs .armory-tab[data-tab="custom"]').trigger("click");
                 return false;
             });
             $("#btn-map-maker, #btn-team-map-maker").on("click", () => {

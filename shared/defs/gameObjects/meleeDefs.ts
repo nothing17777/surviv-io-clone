@@ -7,6 +7,8 @@ import type { BaseLoadoutItem, BaseWeaponDef } from "./itemTypes.ts";
 
 export interface MeleeDef extends BaseWeaponDef, BaseLoadoutItem {
     type: "melee";
+    /** kit ability in the melee slot: energy each use costs (cooldownTime is its cooldown) */
+    energyCost?: number;
     name: string;
     autoAttack: boolean;
     switchDelay: number;
@@ -1466,5 +1468,45 @@ const KitMeleeDefs: Record<string, MeleeDef> = {
         worldImg: { sprite: `img/custom-weapons/world/kit_wolverine_claws.png?v=${CustomWeaponsVersion}`, scale: { x: 0.4, y: 0.4 } },
     }),
 };
+
+const kitMelee = (id: string, name: string, params: DeepPartial<MeleeDef>): [string, MeleeDef] => [
+    id,
+    defineMeleeSkin("katana", {
+        name,
+        noPotatoSwap: true,
+        ...params,
+        lootImg: { sprite: `img/custom-weapons/loot/${id}.png?v=${CustomWeaponsVersion}`, scale: 0.3, mirror: false, rot: 0 },
+        worldImg: { sprite: `img/custom-weapons/world/${id}.png?v=${CustomWeaponsVersion}`, scale: { x: 0.4, y: 0.4 } },
+    }),
+];
+
+Object.assign(
+    KitMeleeDefs,
+    Object.fromEntries([
+        // Spider-Man: 45 dmg, bleeds, 4x self regen for 4 s and a 20 hp shield on hit
+        kitMelee("kit_spider_slash", "Spider Slash", {
+            damage: 45,
+            autoAttack: true,
+            attack: { offset: { x: 2, y: 0 }, rad: 2.6, cooldownTime: 0.5 },
+        }),
+        // Summoner whip: lashes 10 tiles (the lash does the damage); the hit enemy becomes the minions' target
+        kitMelee("kit_summoner_whip", "Spinal Tap", {
+            damage: 0,
+            autoAttack: true,
+            attack: { offset: { x: 1, y: 0 }, rad: 0.5, cooldownTime: 0.55 },
+        }),
+        // abilities in the melee slot: using it is the "swing"
+        kitMelee("kit_ultron_minions", "Minion Spawn", {
+            damage: 0,
+            energyCost: 45,
+            attack: { offset: { x: 0, y: 0 }, rad: 0.1, cooldownTime: 4 },
+        }),
+        kitMelee("kit_wizard_enhance", "Enhance Circle", {
+            damage: 0,
+            energyCost: 100,
+            attack: { offset: { x: 0, y: 0 }, rad: 0.1, cooldownTime: 10 },
+        }),
+    ]),
+);
 
 export const MeleeDefs: Record<string, MeleeDef> = { ...BaseDefs, ...SkinDefs, ...CustomMeleeDefs, ...KitMeleeDefs };

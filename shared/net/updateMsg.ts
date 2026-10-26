@@ -51,7 +51,7 @@ function serializeActivePlayer(s: BitStream, data: LocalDataWithDirty) {
 
     s.writeBoolean(!!data.shieldDirty);
     if (data.shieldDirty) {
-        s.writeFloat(data.shield ?? 0, 0, 200, 8);
+        s.writeFloat(data.shield ?? 0, 0, 400, 10);
     }
 
     s.writeBoolean(!!data.energyDirty);
@@ -59,6 +59,8 @@ function serializeActivePlayer(s: BitStream, data: LocalDataWithDirty) {
         s.writeUint16(Math.round(data.energy ?? 0));
         s.writeUint16(data.maxEnergy ?? 0);
         s.writeUint16(data.maxShield ?? 0);
+        // ability cooldowns (tenths of a second) for primary, secondary, melee
+        for (let i = 0; i < 3; i++) s.writeUint8(Math.min(255, Math.ceil((data.abilityCooldowns?.[i] ?? 0) * 10)));
     }
 
     s.writeAlignToNextByte();
@@ -115,13 +117,14 @@ function deserializeActivePlayer(s: BitStream, data: LocalDataWithDirty) {
     }
     data.shieldDirty = s.readBoolean();
     if (data.shieldDirty) {
-        data.shield = s.readFloat(0, 200, 8);
+        data.shield = s.readFloat(0, 400, 10);
     }
     data.energyDirty = s.readBoolean();
     if (data.energyDirty) {
         data.energy = s.readUint16();
         data.maxEnergy = s.readUint16();
         data.maxShield = s.readUint16();
+        data.abilityCooldowns = [0, 1, 2].map(() => s.readUint8() / 10);
     }
     s.readAlignToNextByte();
 }
@@ -403,6 +406,7 @@ export class UpdateMsg implements AbstractMsg {
                     s.writeFloat(bullet.distance, 0, Constants.MaxPosition, 16);
                 }
                 s.writeBoolean(bullet.pierce);
+                s.writeBoolean(!!bullet.ghost);
                 s.writeBoolean(!!bullet.homingId);
                 if (bullet.homingId) s.writeUint16(bullet.homingId);
                 s.writeBoolean(bullet.shotFx);
@@ -626,6 +630,7 @@ export class UpdateMsg implements AbstractMsg {
                     bullet.distance = s.readFloat(0, Constants.MaxPosition, 16);
                 }
                 bullet.pierce = s.readBoolean();
+                bullet.ghost = s.readBoolean();
                 bullet.homingId = s.readBoolean() ? s.readUint16() : 0;
                 bullet.shotFx = s.readBoolean();
                 if (bullet.shotFx) {
@@ -773,6 +778,8 @@ export interface Bullet {
     pierce: boolean;
     /** the player it curves toward until it hits them, 0 = flies straight */
     homingId: number;
+    /** Wizard's enhanced shots: fly through walls */
+    ghost?: boolean;
     shotFx: boolean;
     shotSourceType: string;
     shotOffhand: boolean;
@@ -865,6 +872,8 @@ export interface LocalData {
     maxEnergy?: number;
     /** kit shield cap for the shield bar; 0 = the Eclipse's 150 */
     maxShield?: number;
+    /** kit abilities: seconds left on each slot's cooldown */
+    abilityCooldowns?: number[];
 }
 
 export interface LocalDataWithDirty extends LocalData {

@@ -22,11 +22,17 @@ export interface KitDef {
     /** hp per second, doubled under lowHealth */
     regen?: number;
     lowHealth?: number;
+    /** Summoner: this much hp every `every` seconds */
+    regenPulse?: { amount: number; every: number };
+    /** Summoner: orbiting blade minions that attack enemies within `range` of the player */
+    daggers?: { count: number; damage: number; range: number; interval: number };
+    /** Wizard: a circle around the player; per enemy inside, per second: energy, shield, hp */
+    aura?: { radius: number; energy: number; shield: number; health: number; enhanceTime: number };
     /** Iron Man: energy pays for reloads, healing and shield */
     energy?: {
         max: number;
         perSecond: number;
-        /** below max health: heals this many hp/s for healCost energy/s */
+        /** below max health: heals this many hp/s for healCost energy/s (0 = never) */
         heal: number;
         healCost: number;
         /** at full health: refills this many shield/s for shieldCost energy/s */
@@ -61,7 +67,67 @@ export const KitDefs: Record<string, KitDef> = {
         melee: "fists",
         energy: { max: 100, perSecond: 15, heal: 10, healCost: 5, shieldRegen: 15, shieldCost: 3 },
     },
+    spiderman: {
+        name: "Spider-Man",
+        health: 250,
+        helmet: "helmet04",
+        chest: "chest04",
+        outfit: "outfitKitSpiderman",
+        primary: "kit_spider_web",
+        melee: "kit_spider_slash",
+        fullBoost: true,
+        speedBonus: 2,
+        regen: 10,
+    },
+    ultron: {
+        name: "Ultron",
+        health: 50,
+        shield: 300,
+        helmet: "helmet04",
+        chest: "chest04",
+        outfit: "outfitKitUltron",
+        primary: "kit_ultron_laser",
+        secondary: "kit_ultron_blast",
+        melee: "kit_ultron_minions",
+        energy: { max: 200, perSecond: 20, heal: 0, healCost: 0, shieldRegen: 35, shieldCost: 10 },
+    },
+    summoner: {
+        name: "Summoner",
+        health: 150,
+        helmet: "",
+        chest: "",
+        outfit: "outfitKitSummoner",
+        melee: "kit_summoner_whip",
+        regenPulse: { amount: 20, every: 5 },
+        daggers: { count: 4, damage: 10, range: 15, interval: 0.4 },
+    },
+    wizard: {
+        name: "Wizard",
+        health: 100,
+        shield: 300,
+        helmet: "helmet04",
+        chest: "chest04",
+        outfit: "outfitKitWizard",
+        primary: "kit_wizard_blast",
+        secondary: "kit_wizard_stars",
+        melee: "kit_wizard_enhance",
+        energy: { max: 300, perSecond: 20, heal: 0, healCost: 0, shieldRegen: 0, shieldCost: 0 },
+        aura: { radius: 12, energy: 10, shield: 30, health: 5, enhanceTime: 9 },
+    },
 };
+
+/** Ultron's minions: bots that fight for their summoner, then blow up */
+export const UltronMinion = { count: 5, health: 50, life: 20, explosion: "explosion_kit_minion" };
+
+/** Ultron's energy blast orbs, one per colour, and the laser each one's blast fires */
+export const UltronOrbColors = ["red", "blue", "green", "yellow", "purple", "orange"] as const;
+
+/** the kit's player aura id sent to clients: 0 none, 1 summoner daggers, 2 wizard circle, 3 enhanced */
+export function kitAura(kit: string, enhanced: boolean) {
+    if (kit === "summoner") return 1;
+    if (kit === "wizard") return enhanced ? 3 : 2;
+    return 0;
+}
 
 export function isKitItem(type: string) {
     return type.startsWith("kit_");

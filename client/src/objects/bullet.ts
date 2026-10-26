@@ -83,6 +83,7 @@ export class BulletBarn {
         /** a laser-type custom weapon's shot: pierces like the super hacker's but only flies its range */
         defPierce: boolean;
         homingId: number;
+        ghost: boolean;
         /** Terra Blade / Heavy Sniper: through players, stopped by walls */
         playerPierce: boolean;
         /** Zenith: flies out, then back to the shooter */
@@ -188,6 +189,7 @@ export class BulletBarn {
             b.fxSpin = util.random(-6, 6);
         }
         b.homingId = bullet.homingId;
+        b.ghost = !!bullet.ghost;
         b.particleTicker = util.random(0.05, 0.15);
 
         const angleRadians = Math.atan2(b.dir.x, b.dir.y);
@@ -406,7 +408,7 @@ export class BulletBarn {
                 // Obstacles
                 const obstacles = map.m_obstaclePool.m_getPool();
                 // the super hacker's shots go through every obstacle: skip testing all of them each frame
-                for (let j = 0; j < (b.pierce ? 0 : obstacles.length); j++) {
+                for (let j = 0; j < (b.pierce || b.ghost ? 0 : obstacles.length); j++) {
                     const obstacle = obstacles[j];
                     if (
                         !!obstacle.active

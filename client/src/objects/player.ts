@@ -314,6 +314,8 @@ export class Player implements AbstractObject {
         poisoned: boolean;
         burning: boolean;
         charmed: boolean;
+        kitAura: number;
+        wizardMarked: boolean;
         m_frozen: boolean;
         m_frozenOri: number;
         m_frozenType: string;
@@ -344,6 +346,7 @@ export class Player implements AbstractObject {
         energy?: number;
         maxEnergy?: number;
         maxShield?: number;
+        abilityCooldowns?: number[];
     };
 
     throwableStatePrev!: string;
@@ -484,6 +487,8 @@ export class Player implements AbstractObject {
             poisoned: false,
             burning: false,
             charmed: false,
+            kitAura: 0,
+            wizardMarked: false,
             m_frozen: false,
             m_frozenOri: 0,
             m_frozenType: "",
@@ -570,6 +575,8 @@ export class Player implements AbstractObject {
             this.m_netData.poisoned = data.poisoned;
             this.m_netData.burning = data.burning;
             this.m_netData.charmed = data.charmed;
+            this.m_netData.kitAura = data.kitAura;
+            this.m_netData.wizardMarked = data.wizardMarked;
             this.m_netData.m_frozen = data.frozen;
             this.m_netData.m_frozenOri = data.frozenOri;
             if (this.m_netData.m_frozenType !== data.frozenType) {
@@ -627,6 +634,7 @@ export class Player implements AbstractObject {
             this.m_localData.energy = data.energy ?? 0;
             this.m_localData.maxEnergy = data.maxEnergy ?? 0;
             this.m_localData.maxShield = data.maxShield ?? 0;
+            this.m_localData.abilityCooldowns = data.abilityCooldowns;
         }
 
         if (data.actionDirty) {
@@ -1016,6 +1024,7 @@ export class Player implements AbstractObject {
         this.updateSubmersion(dt, map);
         this.updateFrozenState(dt);
         this.updateDebuffDots(dt);
+        this.updateKitVisuals(dt);
 
         // Play a footstep if we've moved enough
         if (!this.m_netData.m_dead) {
@@ -2678,6 +2687,69 @@ export class Player implements AbstractObject {
             ? 1
             : math.remap(this.frozenTicker, 0, fadeDuration, 0, 1);
         this.bodyEffectSprite.visible = this.frozenTicker > 0;
+    }
+
+    kitCircle: PIXI.Sprite | null = null;
+    kitSigil: PIXI.Sprite | null = null;
+    kitDaggers: PIXI.Sprite[] = [];
+    kitTicker = 0;
+
+    /**
+     * Kit visuals: the Summoner's blade minions circling the player, the Wizard's circle
+     * (lightning while enhanced) and the dark sigil under anyone an enhanced Wizard has marked
+     */
+    updateKitVisuals(dt: number) {
+        const dead = this.m_netData.m_dead;
+        const aura = dead ? 0 : this.m_netData.kitAura;
+        this.kitTicker += dt;
+        // 16 px per world unit inside the player's containers
+        const px = 16;
+        if (aura >= 2 || this.kitCircle) {
+            if (!this.kitCircle) {
+                this.kitCircle = new PIXI.Sprite();
+                this.kitCircle.anchor.set(0.5, 0.5);
+                this.kitCircle.alpha = 0.55;
+                this.auraContainer.addChildAt(this.kitCircle, 0);
+            }
+            this.kitCircle.visible = aura >= 2;
+            if (aura >= 2) {
+                const tex = PIXI.Texture.from(
+                    aura === 3 ? "img/custom-weapons/fx/kit/lightning_ritual.png" : "img/custom-weapons/fx/kit/armlet_of_ruin.png",
+                );
+                this.kitCircle.texture = tex;
+                const s = (2 * 12 * px) / Math.max(tex.width, 1);
+                this.kitCircle.scale.set(s, s);
+                this.kitCircle.rotation += dt * (aura === 3 ? 1.2 : 0.3);
+            }
+        }
+        if (this.m_netData.wizardMarked || this.kitSigil) {
+            if (!this.kitSigil) {
+                this.kitSigil = PIXI.Sprite.from("img/custom-weapons/fx/kit/dark_sigil.png");
+                this.kitSigil.anchor.set(0.5, 0.5);
+                this.auraContainer.addChild(this.kitSigil);
+            }
+            this.kitSigil.visible = this.m_netData.wizardMarked && !dead;
+            const tex = this.kitSigil.texture;
+            const s = (3.2 * px) / Math.max(tex.width, 1);
+            this.kitSigil.scale.set(s, s);
+            this.kitSigil.rotation -= dt * 0.8;
+        }
+        const daggers = aura === 1 ? 4 : 0;
+        while (this.kitDaggers.length < daggers) {
+            const d = PIXI.Sprite.from("img/custom-weapons/fx/kit/enchanted_dagger.png");
+            d.anchor.set(0.5, 0.5);
+            this.container.addChild(d);
+            this.kitDaggers.push(d);
+        }
+        this.kitDaggers.forEach((d, i) => {
+            d.visible = i < daggers;
+            if (!d.visible) return;
+            const ang = (i / daggers) * Math.PI * 2 + this.kitTicker * 2;
+            d.position.set(Math.cos(ang) * 2.2 * px, Math.sin(ang) * 2.2 * px);
+            d.rotation = ang + Math.PI / 2;
+            const s = (1.3 * px) / Math.max(d.texture.width, 1);
+            d.scale.set(s, s);
+        });
     }
 
     debuffDots: PIXI.Graphics | null = null;

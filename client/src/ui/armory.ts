@@ -351,7 +351,22 @@ export function initArmory() {
     }
 
     tabs.on("click", ".armory-tab", (e) => {
-        tab = $(e.currentTarget).attr("data-tab") as Tab;
+        const picked = $(e.currentTarget).attr("data-tab");
+        // the Terraria / Pixel Gun 3D / League weapons: the crossover catalog, shown in its own tab here
+        const custom = picked === "custom";
+        if (custom && !modal.find("#crossover-controls").length) {
+            modal.find(".modal-body").append($("#crossover-controls"), $("#crossover-table-wrap"));
+        }
+        modal.find("#crossover-controls, #crossover-table-wrap").toggle(custom);
+        search.toggle(!custom);
+        $("#armory-count").toggle(!custom);
+        $("#armory-table-wrap").toggle(!custom);
+        if (custom) {
+            tabs.find(".armory-tab").removeClass("armory-tab-selected");
+            $(e.currentTarget).addClass("armory-tab-selected");
+            return;
+        }
+        tab = picked as Tab;
         sortKey = "name";
         sortDesc = false;
         render();

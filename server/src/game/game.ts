@@ -7,7 +7,7 @@ import { math } from "../../../shared/utils/math.ts";
 import { Config } from "../config.ts";
 import { ServerLogger } from "../utils/logger.ts";
 import { type FindGamePrivateBody, type ServerGameConfig } from "../utils/types.ts";
-import { addPrivateBots, addVsBots, BotFiller } from "./bot.ts";
+import { addBot, addPrivateBots, addVsBots, BotFiller } from "./bot.ts";
 import { ClientBarn } from "./client.ts";
 import { GameModeManager } from "./gameModeManager.ts";
 import { Grid } from "./grid.ts";
@@ -22,7 +22,7 @@ import { Gas } from "./objects/gas.ts";
 import { LootBarn } from "./objects/loot.ts";
 import { MapIndicatorBarn } from "./objects/mapIndicator.ts";
 import { PlaneBarn } from "./objects/plane.ts";
-import { PlayerBarn } from "./objects/player.ts";
+import { type Player, PlayerBarn } from "./objects/player.ts";
 import { ProjectileBarn } from "./objects/projectile.ts";
 import { SmokeBarn } from "./objects/smoke.ts";
 import { Profiler } from "./profiler.ts";
@@ -138,6 +138,11 @@ export class Game {
     // for debug
     preventStart = false;
     debugSpeedMulti = 1;
+
+    /** an Ultron minion: a beginner bot on its summoner's side */
+    addMinion(owner: Player, level: Parameters<typeof addBot>[1]): Player {
+        return addBot(this, level, owner.privateSide, true);
+    }
 
     constructor(id: string, config: ServerGameConfig) {
         const start = Date.now();

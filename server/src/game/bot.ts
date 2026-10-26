@@ -1786,7 +1786,7 @@ const HackerPerks = goodPerks;
  * Spawns a bot straight into the game, through the same path a joining client takes.
  * `side` is the private match side; bots on a side join that side's group.
  */
-export function addBot(game: Game, level: BotLevel, side?: number): Player {
+export function addBot(game: Game, level: BotLevel, side?: number, minion = false): Player {
     const client = new BotClient(game, new NoOpSocket(), null, "");
 
     const joinMsg = new net.JoinMsg();
@@ -1813,6 +1813,11 @@ export function addBot(game: Game, level: BotLevel, side?: number): Player {
         bot: true,
     });
     client.player = player;
+    // Ultron minions get set up by their summoner instead
+    if (minion) {
+        player.botBrain = new BotBrain(player, level, undefined);
+        return player;
+    }
     const pm = game.config.privateMatch;
     const settings = pm?.botSettings?.[level];
     // Same Kit reaches teammate and enemy bots only if the leader left those on

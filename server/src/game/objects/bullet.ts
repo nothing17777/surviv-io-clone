@@ -29,6 +29,10 @@ interface BulletCollision {
 }
 
 export interface BulletParams {
+    /** Wizard's enhanced shots: fly through walls */
+    ghost?: boolean;
+    /** home in on this player instead of looking for one */
+    homingTargetId?: number;
     bulletType: string;
     gameSourceType: string;
     mapSourceType?: string;
@@ -207,6 +211,8 @@ export class Bullet {
 
     /** the super hacker's target: the shot bends toward wherever they are now, until it hits them */
     homingId = 0;
+    ghost = false;
+    firedAt = 0;
 
     /** sent to clients so they draw it going through things too */
     get pierce(): boolean {
@@ -286,7 +292,11 @@ export class Bullet {
         this.playerPierce = !!bulletDef.playerPierce;
         this.boomerang = !!bulletDef.boomerang;
         this.returning = false;
-        this.homingId = bulletDef.homing && this.reflectCount === 0
+        this.ghost = !!params.ghost;
+        this.firedAt = this.bulletManager.game.now;
+        this.homingId = params.homingTargetId
+            ? params.homingTargetId
+            : bulletDef.homing && this.reflectCount === 0
             ? bulletDef.homingFromAim && this.player
                 ? this.findHomingTarget(this.player.pos, this.player.dir)
                 : this.findHomingTarget(params.pos, this.dir)
@@ -409,7 +419,7 @@ export class Bullet {
         // Store furthest possible travel distance to
         // an indestructible obstacle for the client.
         let maxDistance = this.distance;
-        for (let i = 0; i < colIds.length && !this.devShot; i++) {
+        for (let i = 0; i < colIds.length && !this.devShot && !this.ghost; i++) {
             const col = colIds[i];
             const obj = col.obj;
             if (obj && !obj.destructible) {
@@ -492,6 +502,10 @@ export class Bullet {
             if (this.onHitFx === "explosion_rounds") {
                 this.onHitFx = "";
             }
+        }
+
+        if (!this.alive && !this.reflected && this.onHitFx && this.bulletType.startsWith("bullet_kit_ultron_orb_")) {
+            this.detonateOrbs();
         }
 
         if (!this.alive && !this.reflected && this.onHitFx) {
@@ -717,6 +731,7 @@ export class Bullet {
                 this.damagedObjIds.add(col.obj.__id);
             }
 
+            if (col.type == "obstacle" && this.ghost) continue;
             if (col.type == "obstacle") {
                 const mapDef = MapObjectDefs.typeToDef(col.obstacleType!, "obstacle");
 
@@ -786,11 +801,62 @@ export class Bullet {
             }
             if (hit) {
                 this.pos = col.point;
+                // Spider-Man's web swings him to whatever it hit, as fast as the web flew
+                if (this.bulletType === "bullet_kit_spider_web" && this.player && !this.player.dead) {
+                    this.player.webPull = { target: v2.copy(col.point), speed: this.speed, time: 1.5 };
+                }
                 // custom explosive shots go off on the player they hit, so the blast can't miss them
                 if (col.type == "player" && this.onHitFx?.startsWith("explosion_cw")) this.pos = v2.copy(col.player!.pos);
                 this.alive = false;
                 break;
             }
+        }
+    }
+
+    /**
+     * Ultron's energy blast: when one orb bursts, the rest of its volley burst with it, and every
+     * burst fires a laser of its colour at the nearest enemy
+     */
+    detonateOrbs() {
+        const game = this.bulletManager.game;
+        const volley = this.bulletManager.bullets.filter(
+            (b) =>
+                b !== this && b.active && b.alive && b.player === this.player
+                && b.bulletType.startsWith("bullet_kit_ultron_orb_") && Math.abs(b.firedAt - this.firedAt) < 50,
+        );
+        for (const b of [this, ...volley]) {
+            if (b !== this) {
+                b.alive = false;
+                b.active = false;
+                game.explosionBarn.addExplosion("explosion_kit_orb", v2.copy(b.pos), b.layer, {
+                    source: b.player,
+                    gameSourceType: b.shotSourceType,
+                    weaponSourceType: b.shotSourceType,
+                    damageType: b.damageType,
+                });
+            }
+            let target: Player | undefined;
+            let best = 30;
+            for (const p of game.playerBarn.livingPlayers) {
+                if (p === this.player || (this.player && p.teamId === this.player.teamId)) continue;
+                const d = v2.length(v2.sub(p.pos, b.pos));
+                if (d < best) {
+                    best = d;
+                    target = p;
+                }
+            }
+            if (!target) continue;
+            this.bulletManager.fireBullet({
+                playerId: this.playerId,
+                bulletType: b.bulletType.replace("_orb_", "_orb_laser_"),
+                gameSourceType: this.shotSourceType,
+                damageType: this.damageType,
+                pos: v2.copy(b.pos),
+                dir: v2.normalizeSafe(v2.sub(target.pos, b.pos), b.dir),
+                layer: b.layer,
+                damageMult: 1,
+                reflectCount: 0,
+            } as BulletParams);
         }
     }
 
