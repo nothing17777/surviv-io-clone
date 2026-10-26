@@ -297,6 +297,7 @@ export class LoadoutDisplay {
             lastStandEffect: false,
             bleeding: false,
             poisoned: false,
+            burning: false,
             frozen: false,
             frozenOri: 0,
             frozenType: "",

@@ -94,6 +94,7 @@ export interface ObjectsFullData {
         /** bleed / poison debuffs, drawn as a red / green dot over the head */
         bleeding: boolean;
         poisoned: boolean;
+        burning: boolean;
 
         frozen: boolean;
         frozenOri: number;
@@ -229,6 +230,7 @@ export const ObjectSerializeFns: {
 
             s.writeBoolean(data.bleeding);
             s.writeBoolean(data.poisoned);
+            s.writeBoolean(data.burning);
 
             s.writeBoolean(data.frozen);
             if (data.frozen) {
@@ -302,6 +304,7 @@ export const ObjectSerializeFns: {
 
             data.bleeding = s.readBoolean();
             data.poisoned = s.readBoolean();
+            data.burning = s.readBoolean();
 
             data.frozen = s.readBoolean();
             data.frozenOri = 0;

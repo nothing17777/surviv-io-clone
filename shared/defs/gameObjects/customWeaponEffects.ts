@@ -34,6 +34,15 @@ export const HiddenCustomGuns = new Set([
     "pg_tesla_cannon",
     "pg_water_rifle",
     "pg_sniper_rifle",
+    "pg_plasma_rifle",
+    "pg_pixel_gun",
+    "pg_shotgun",
+    "pg_hand_gatling",
+    "pg_double_barreled_shotgun",
+    // melee: left out of the loadout dropdowns too
+    "tr_meowmere",
+    "tr_night_s_edge",
+    "tr_star_wrath",
 ]);
 
 export const GunEffects: Record<string, GunEffect> = {
@@ -185,7 +194,8 @@ export const GunEffects: Record<string, GunEffect> = {
         },
         gun: {
             fireMode: "auto",
-            fireDelay: 0.08,
+            // 4.3 shots/s
+            fireDelay: 0.233,
             maxClip: 30,
             maxReload: 30,
             extendedClip: 30,
@@ -215,7 +225,8 @@ export const GunEffects: Record<string, GunEffect> = {
             extendedClip: 6,
             extendedReload: 6,
             reloadTime: 2.4,
-            fireDelay: 0.6,
+            // 0.7 shots/s
+            fireDelay: 1.43,
             bulletCount: 1,
             shotSpread: 1,
         },
@@ -247,7 +258,7 @@ export const GunEffects: Record<string, GunEffect> = {
     // Frozen Dragon: flamethrower with blue flames, 12 dmg per hit, 60 capacity, fast fire rate, slow & burn for 2s
     frozen_dragon: {
         bullet: {
-            damage: 12,
+            damage: 17,
             speed: 55,
             distance: 38,
             falloff: 1,
@@ -268,7 +279,8 @@ export const GunEffects: Record<string, GunEffect> = {
         },
         gun: {
             fireMode: "auto",
-            fireDelay: 0.075,
+            // 10 shots/s
+            fireDelay: 0.1,
             maxClip: 60,
             maxReload: 60,
             extendedClip: 60,
@@ -281,8 +293,47 @@ export const GunEffects: Record<string, GunEffect> = {
 
 /** tweaks to one weapon on top of its effect, from its wiki page */
 export const GunOverrides: Record<string, GunEffect> = {
-    // purple lasers
-    pg_laser_minigun: { bullet: { tracerColor: "cw_magic" } },
+    // purple lasers, 5 shots/s
+    pg_laser_minigun: {
+        bullet: { damage: 22, tracerColor: "cw_magic" },
+        gun: { fireDelay: 0.2, maxClip: 75, maxReload: 75, extendedClip: 75, extendedReload: 75 },
+    },
+    // Hellraiser: plain bullets at twice the flame range, 8.5 shots/s
+    pg_hellraiser: {
+        bullet: {
+            damage: 14,
+            distance: 40,
+            speed: 100,
+            onHit: undefined,
+            flame: false,
+            sprites: undefined,
+            tracerColor: "762mm",
+            tracerWidth: 0.1,
+            tracerLength: 0.8,
+        },
+        gun: { fireMode: "auto", fireDelay: 0.118, maxClip: 35, maxReload: 35, extendedClip: 35, extendedReload: 35, shotSpread: 3, moveSpread: 5 },
+    },
+    // 1.2 shots/s, pellets spread a bit wider
+    pg_acid_shotgun: { gun: { fireDelay: 0.833, shotSpread: 12 } },
+    // Excalibur minigun: 70 capacity, 21 dmg
+    pg_excalibur: { bullet: { damage: 21 }, gun: { maxClip: 70, maxReload: 70, extendedClip: 70, extendedReload: 70 } },
+    // 2.14 shots/s, 12 capacity, 24 dmg (the orb's blast is its splash)
+    pg_dark_matter_generator: {
+        bullet: { damage: 24 },
+        gun: { fireMode: "single", fireDelay: 0.467, maxClip: 12, maxReload: 12, extendedClip: 12, extendedReload: 12 },
+    },
+    // Gauss: stops at walls but still goes through enemies; 0.7317 shots/s, 6 capacity
+    pg_gauss_cannon: {
+        bullet: { pierce: false, playerPierce: true, pierceLoss: 0 },
+        gun: { fireMode: "single", fireDelay: 1.367, maxClip: 6, maxReload: 6, extendedClip: 6, extendedReload: 6 },
+    },
+    // 0.88 shots/s, 29 dmg
+    pg_nanobots_rifle: { bullet: { damage: 29 }, gun: { fireDelay: 1.136 } },
+    // Photon: a fast orange bullet (no beam, stops at walls), 91 dmg, 0.7 shots/s, burns for 4 s
+    pg_photon_sniper_rifle: {
+        bullet: { damage: 91, pierce: false, beam: false, speed: 160, tracerColor: "cw_flame", tracerWidth: 0.2 },
+        gun: { fireMode: "single", fireDelay: 1.43 },
+    },
     // red beam
     pg_railgun: { bullet: { tracerColor: "cw_laser" } },
     // "insanely fast" (use time 5, about 12 shots/s) with shots that light up their path
@@ -301,7 +352,8 @@ export const GunOverrides: Record<string, GunEffect> = {
             extendedClip: 250,
             extendedReload: 250,
             ammoInfinite: true,
-            fireDelay: 1,
+            // 0.375 shots/s
+            fireDelay: 2.67,
         },
     },
     // two barrels: two big blasts, then reload
@@ -312,8 +364,8 @@ export const GunOverrides: Record<string, GunEffect> = {
     },
     // a stream of water
     pg_water_rifle: { gun: { fireMode: "auto", fireDelay: 0.09 } },
-    // Portalium laser: blue
-    pg_prototype: { bullet: { damage: 200, tracerColor: "cw_plasma" } },
+    // Portalium laser: purple, 0.8108 shots/s
+    pg_prototype: { bullet: { damage: 200, tracerColor: "cw_magic" }, gun: { fireDelay: 1.233 } },
 };
 
 /** melee in surviv terms: all swing like a katana, these change how hard, fast and far */
@@ -363,7 +415,8 @@ export const MeleeOverrides: Record<string, DeepPartial<MeleeDef>> = {
     tr_excalibur: { damage: 42, autoAttack: true, attack: { offset: { x: 2.2, y: 0 }, rad: 3.6, cooldownTime: 0.33 } },
     tr_meowmere: { damage: 46, autoAttack: true, attack: { offset: { x: 1.4, y: 0 }, rad: 3, cooldownTime: 0.23 } },
     tr_star_wrath: { damage: 44, autoAttack: true, attack: { offset: { x: 1.4, y: 0 }, rad: 3, cooldownTime: 0.27 } },
-    tr_zenith: { damage: 50, autoAttack: true, attack: { offset: { x: 1.4, y: 0 }, rad: 3, cooldownTime: 0.5 } },
+    // damage cut by 67%
+    tr_zenith: { damage: 16.5, autoAttack: true, attack: { offset: { x: 1.4, y: 0 }, rad: 3, cooldownTime: 0.5 } },
 };
 
 /** the glowing aura drawn around each swing, as in Terraria */
@@ -469,7 +522,7 @@ export const SwingShotBullets: Record<string, BulletDef> = {
         spin: 10,
     }),
     bullet_cw_zenith_sword: swingBullet({
-        damage: 30,
+        damage: 10,
         distance: 140,
         speed: 100,
         pierce: true,

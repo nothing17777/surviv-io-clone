@@ -730,6 +730,10 @@ export class Player extends BaseGameObject {
         return this.poisonDuration > 0;
     }
 
+    get burning() {
+        return this.burnDuration > 0;
+    }
+
     applyBleed(duration: number, source?: Player) {
         if (this.bleedDotDuration <= 0) this.setDirty();
         this.bleedDotDuration = Math.max(this.bleedDotDuration, duration);
@@ -742,7 +746,11 @@ export class Player extends BaseGameObject {
         if (source) this.poisonSource = source;
     }
 
-    applyBurn(duration: number, source?: Player) {
+    burnWeapon = "pg_frozen_dragon";
+
+    applyBurn(duration: number, source?: Player, weapon = "pg_frozen_dragon") {
+        if (this.burnDuration <= 0) this.setDirty();
+        this.burnWeapon = weapon;
         this.burnDuration = Math.max(this.burnDuration, duration);
         if (source) this.burnSource = source;
     }
@@ -1945,11 +1953,12 @@ export class Player extends BaseGameObject {
                         amount: 2.5,
                         damageType: GameConfig.DamageType.Bleeding,
                         source: this.burnSource,
-                        gameSourceType: "pg_frozen_dragon",
-                        weaponSourceType: "pg_frozen_dragon",
+                        gameSourceType: this.burnWeapon,
+                        weaponSourceType: this.burnWeapon,
                         dir: this.dir,
                     });
                 }
+                if (this.burnDuration <= 0) this.setDirty();
             } else {
                 this.burnTicker = 0;
             }
@@ -2749,6 +2758,7 @@ export class Player extends BaseGameObject {
             if (src === "pg_nanobots_rifle") this.applyBleed(4, playerSource);
             else if (src === "pg_acid_shotgun") this.applyPoison(4, playerSource);
             else if (src === "pg_frozen_dragon") this.applyBurn(2, playerSource);
+            else if (src === "pg_photon_sniper_rifle") this.applyBurn(4, playerSource, src);
         }
 
         if (this.game.isTeamMode) {
