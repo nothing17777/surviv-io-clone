@@ -599,9 +599,9 @@ export const SwingShotBullets: Record<string, BulletDef> = {
         noTracer: true,
         tracerColor: "cw_terra",
         tracerWidth: 1.2,
-        // the Terra Beam fitted to the original slice's frame, so it draws the same size
+        // the Terra Beam with a light glow so it reads on grass; 9 wide x ~16 tall, about the old slice's size
         sprite: "img/custom-weapons/fx/terra_beam_proj.png",
-        spriteSize: 12,
+        spriteSize: 9,
     }),
     // the rest of the wave's width: hits, but draws nothing (the crescent covers it)
     bullet_cw_terra_beam_edge: swingBullet({
