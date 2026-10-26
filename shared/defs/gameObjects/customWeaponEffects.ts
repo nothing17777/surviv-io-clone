@@ -273,7 +273,8 @@ export const GunEffects: Record<string, GunEffect> = {
             tracerLength: 0.4,
             noTracer: true,
             sprite: "img/custom-weapons/fx/frost_wave.png",
-            spriteSize: 3,
+            // a bit smaller than the Christmas Ultimatum tree (80)
+            spriteSize: 60,
         },
         gun: {
             fireMode: "auto",
@@ -640,7 +641,8 @@ export const SwingShotBullets: Record<string, BulletDef> = {
         tracerWidth: 0.25,
         tracerLength: 1.4,
         sprite: "img/custom-weapons/world/tr_zenith.png",
-        spriteSize: 4.5,
+        // a bit smaller than the Christmas Ultimatum tree (80)
+        spriteSize: 60,
     }),
     bullet_cw_christmas_tree_frag: swingBullet({
         damage: 0,
