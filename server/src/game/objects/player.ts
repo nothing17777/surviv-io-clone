@@ -736,7 +736,7 @@ export class Player extends BaseGameObject {
     /** Summoner: the enemy the whip last hit, which the daggers go after first */
     summonerFocusId = 0;
     /** Spider-Man: swinging to where the web hit */
-    webPull?: { target: Vec2; speed: number; time: number };
+    webPull?: { target: Vec2; speed: number; time: number; lastDist?: number };
     /** Spider-Man: seconds left of 4x regen after a slash */
     spiderRegenTime = 0;
     /** Ultron minion: who summoned it and how long it has left */
@@ -2215,9 +2215,15 @@ export class Player extends BaseGameObject {
         // Spider-Man swinging to where his web hit
         if (this.webPull) {
             const to = v2.sub(this.webPull.target, this.pos);
+            const dist = v2.length(to);
             this.webPull.time -= dt;
-            if (v2.length(to) < 1 || this.webPull.time <= 0 || this.dead) this.webPull = undefined;
-            else v2.set(movement, v2.normalize(to));
+            // the hit point is on a wall's surface, so stop once the body reaches it (or a wall stops it)
+            const stuck = this.webPull.lastDist !== undefined && this.webPull.lastDist - dist < this.webPull.speed * dt * 0.25;
+            if (dist < this.rad + 0.5 || stuck || this.webPull.time <= 0 || this.dead) this.webPull = undefined;
+            else {
+                this.webPull.lastDist = dist;
+                v2.set(movement, v2.normalize(to));
+            }
         }
 
         const hasTreeClimbing = this.hasPerk("tree_climbing");

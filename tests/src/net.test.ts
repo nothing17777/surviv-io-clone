@@ -198,6 +198,7 @@ test("Update Msg", () => {
         spectatorCountDirty: true,
         spectatorCount: util.randomInt(0, 255),
         shieldDirty: false,
+        energyDirty: false,
     };
 
     inMsg.gasDirty = true;

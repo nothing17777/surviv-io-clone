@@ -789,7 +789,7 @@ export class WeaponManager {
         this.player.cancelAction();
 
         // bots never empty their clip, so they never reload
-        if (!this.player.botBrain && !itemDef.energyCost) weapon.ammo--;
+        if (!this.player.botBrain && itemDef.energyCost === undefined) weapon.ammo--;
         this.player.weapsDirty = true;
 
         const collisionLayer = util.toGroundLayer(this.player.layer);

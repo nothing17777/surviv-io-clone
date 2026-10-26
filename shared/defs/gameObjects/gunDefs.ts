@@ -3731,6 +3731,8 @@ const kitGun = (id: string, base: string, bullet: Partial<BulletDef>, gun: DeepP
         noPotatoSwap: true,
         bulletType,
         ammoInfinite: true,
+        // kit weapons swap in quickly, whatever gun they're built on
+        switchDelay: 0.15,
         lootImg: { sprite: `img/custom-weapons/loot/${id}.png?v=${CustomWeaponsVersion}`, tint: 0xffffff, scale: 0.3 },
         worldImg: {
             sprite: `img/custom-weapons/world/${id}.png?v=${CustomWeaponsVersion}`,
@@ -3800,7 +3802,8 @@ const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
 const kitAsset = (name: string) => `img/custom-weapons/fx/kit/${name}.png`;
 const kitBullet = (id: string, b: Partial<BulletDef>) => {
     BulletDefs[id] = {
-        ...BulletDefs.bullet_9mm,
+        ...BulletDefs.bullet_ak47,
+        type: "bullet",
         damage: 10,
         obstacleDamage: 1,
         falloff: 1,
@@ -3870,6 +3873,8 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
     }, {
         name: "Web Shooter",
         fireMode: "single",
+        // infinite: no ammo count, no reload
+        energyCost: 0,
         fireDelay: 0.5,
         shotSpread: 0,
         moveSpread: 0,
