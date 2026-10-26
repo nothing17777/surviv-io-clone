@@ -97,6 +97,8 @@ export interface GunDef extends BaseWeaponDef {
     prismCharge?: number;
     /** fires bulletCount shots evenly all around the shooter instead of a spread */
     ringShot?: boolean;
+    /** bulletCount shots spaced evenly across shotSpread, like a crossbow volley */
+    fanShot?: boolean;
     /** a kit's energy each reload costs; no reload without it */
     reloadEnergy?: number;
 }

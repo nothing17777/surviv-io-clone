@@ -741,6 +741,13 @@ export class Player extends BaseGameObject {
         return this.poisonDuration > 0;
     }
 
+    // Charm (Aphrodite Crossbow): attacks half as fast
+    charmDuration = 0;
+
+    get charmed() {
+        return this.charmDuration > 0;
+    }
+
     get burning() {
         return this.burnDuration > 0;
     }
@@ -1976,6 +1983,17 @@ export class Player extends BaseGameObject {
 
             this.updateKit(dt);
 
+            if (this.charmDuration > 0) {
+                this.charmDuration -= dt;
+                if (this.charmDuration <= 0) this.setDirty();
+            }
+
+            // Power Fists: 10 shield per second while held, up to 200
+            if (this.weapons[this.curWeapIdx]?.type === "pg_power_fists" && this.shield < 200) {
+                this.shield = Math.min(this.shield + 10 * dt, 200);
+                this.shieldDirty = true;
+            }
+
             // Heroic Epee: heal 12 hp per second while holding
             if (this.weapons[this.curWeapIdx]?.type === "pg_heroic_epee") {
                 if (this.health < this.maxHealth) {
@@ -2772,6 +2790,16 @@ export class Player extends BaseGameObject {
             else if (src === "pg_acid_shotgun") this.applyPoison(4, playerSource);
             else if (src === "pg_frozen_dragon") this.applyBurn(2, playerSource);
             else if (src === "pg_photon_sniper_rifle") this.applyBurn(4, playerSource, src);
+            else if (src === "pg_mercenary") this.applyBurn(2, playerSource, src);
+            else if (src === "pg_goo_substance_rifle") this.applyPoison(2, playerSource);
+            else if (src === "pg_aphrodite_crossbow") {
+                if (this.charmDuration <= 0) this.setDirty();
+                this.charmDuration = Math.max(this.charmDuration, 4);
+            }
+            // Engineer Exoskeleton heals its user the damage it deals
+            if (src === "pg_engineer_exoskeleton" && !playerSource.dead) {
+                playerSource.health = Math.min(playerSource.health + finalDamage, playerSource.maxHealth);
+            }
         }
 
         if (this.game.isTeamMode) {

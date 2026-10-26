@@ -363,6 +363,104 @@ export const GunOverrides: Record<string, GunEffect> = {
     },
     // a stream of water
     pg_water_rifle: { gun: { fireMode: "auto", fireDelay: 0.09 } },
+    // Mercenary: bursts of 5 red bullets (10 shots/s on average), 15 dmg, 35 rounds, burns
+    pg_mercenary: {
+        bullet: { damage: 15, tracerColor: "cw_laser", tracerWidth: 0.14 },
+        gun: {
+            fireMode: "burst",
+            burstCount: 5,
+            burstDelay: 0.04,
+            fireDelay: 0.3,
+            maxClip: 35,
+            maxReload: 35,
+            extendedClip: 35,
+            extendedReload: 35,
+            shotSpread: 3,
+            moveSpread: 5,
+        },
+    },
+    // Laser Cycler: a blue laser bolt that bounces off walls, 60 dmg, 1.57 shots/s, 12 rounds
+    pg_laser_cycler: {
+        bullet: {
+            damage: 60,
+            speed: 160,
+            distance: 120,
+            falloff: 1,
+            bounce: true,
+            maxBounces: 3,
+            tracerColor: "cw_plasma",
+            tracerWidth: 0.3,
+            tracerLength: 1.2,
+        },
+        gun: { fireMode: "single", fireDelay: 0.637, maxClip: 12, maxReload: 12, extendedClip: 12, extendedReload: 12 },
+    },
+    // Engineer Exoskeleton: a stream of red lasers through enemies (not walls), 12 dmg, 15 shots/s,
+    // 80 rounds, heals the damage it deals
+    pg_engineer_exoskeleton: {
+        bullet: {
+            damage: 12,
+            beam: true,
+            speed: 300,
+            distance: 45,
+            falloff: 1,
+            playerPierce: true,
+            pierceLoss: 0,
+            tracerColor: "cw_laser",
+            tracerWidth: 0.25,
+        },
+        gun: {
+            fireMode: "auto",
+            fireDelay: 0.0667,
+            maxClip: 80,
+            maxReload: 80,
+            extendedClip: 80,
+            extendedReload: 80,
+            shotSpread: 1,
+            moveSpread: 2,
+        },
+    },
+    // Aphrodite Crossbow: 3 pink arrows in a fixed cone, 80 dmg each, 0.94 shots/s, 10 rounds, charms
+    pg_aphrodite_crossbow: {
+        bullet: { damage: 80, tracerColor: "cw_rainbow", tracerWidth: 0.14 },
+        gun: {
+            fireMode: "single",
+            fireDelay: 1.064,
+            bulletCount: 3,
+            fanShot: true,
+            shotSpread: 14,
+            moveSpread: 0,
+            maxClip: 10,
+            maxReload: 10,
+            extendedClip: 10,
+            extendedReload: 10,
+        },
+    },
+    // Goo Substance Rifle: green goo blobs, 22 dmg + 2 s poison, 8.5 shots/s, 40 rounds
+    pg_goo_substance_rifle: {
+        bullet: {
+            damage: 22,
+            tracerColor: "cw_poison",
+            tracerWidth: 0.2,
+            sprite: "img/custom-weapons/fx/goo_bomb.png",
+            spriteSize: 1.2,
+        },
+        gun: { fireMode: "auto", fireDelay: 0.118, maxClip: 40, maxReload: 40, extendedClip: 40, extendedReload: 40 },
+    },
+    // Minigun Shotgun: 12 pellets x 3 dmg in an Ultimatum-tight spread, 3.33 shots/s, 15 rounds, no windup
+    pg_minigun_shotgun: {
+        bullet: { damage: 3 },
+        gun: {
+            fireMode: "auto",
+            fireDelay: 0.3,
+            bulletCount: 12,
+            shotSpread: 3,
+            moveSpread: 5,
+            maxClip: 15,
+            maxReload: 15,
+            extendedClip: 15,
+            extendedReload: 15,
+        },
+    },
     // Portalium laser: purple, 0.8108 shots/s
     pg_prototype: { bullet: { damage: 200, tracerColor: "cw_magic" }, gun: { fireDelay: 1.233 } },
 };
@@ -383,6 +481,8 @@ export const MeleeEffects: Record<string, DeepPartial<MeleeDef>> = {
     heroic_epee: { damage: 30, speed: { equip: 1.25, attack: 1.05 }, attack: { offset: { x: 2.2, y: 0 }, rad: 2.4, cooldownTime: 0.35 } },
     // Sundered Sky: 40 dmg, heal 40 health on hit
     sundered_sky: { damage: 40, attack: { offset: { x: 2.6, y: 0 }, rad: 2.8, cooldownTime: 0.45 } },
+    // Power Fists: 45 dmg, 1.3 punches/s, 10 shield/s (up to 200) while held
+    power_fists: { damage: 45, cleave: false, attack: { offset: { x: 1.4, y: 0 }, rad: 1.8, cooldownTime: 0.77 } },
     // Eclipse: 60 dmg, gain a 50 hp shield every second hit
     eclipse: { damage: 60, attack: { offset: { x: 2.4, y: 0 }, rad: 2.6, cooldownTime: 0.5 } },
 };

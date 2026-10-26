@@ -95,6 +95,7 @@ export interface ObjectsFullData {
         bleeding: boolean;
         poisoned: boolean;
         burning: boolean;
+        charmed: boolean;
 
         frozen: boolean;
         frozenOri: number;
@@ -231,6 +232,7 @@ export const ObjectSerializeFns: {
             s.writeBoolean(data.bleeding);
             s.writeBoolean(data.poisoned);
             s.writeBoolean(data.burning);
+            s.writeBoolean(data.charmed);
 
             s.writeBoolean(data.frozen);
             if (data.frozen) {
@@ -305,6 +307,7 @@ export const ObjectSerializeFns: {
             data.bleeding = s.readBoolean();
             data.poisoned = s.readBoolean();
             data.burning = s.readBoolean();
+            data.charmed = s.readBoolean();
 
             data.frozen = s.readBoolean();
             data.frozenOri = 0;

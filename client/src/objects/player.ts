@@ -313,6 +313,7 @@ export class Player implements AbstractObject {
         bleeding: boolean;
         poisoned: boolean;
         burning: boolean;
+        charmed: boolean;
         m_frozen: boolean;
         m_frozenOri: number;
         m_frozenType: string;
@@ -482,6 +483,7 @@ export class Player implements AbstractObject {
             bleeding: false,
             poisoned: false,
             burning: false,
+            charmed: false,
             m_frozen: false,
             m_frozenOri: 0,
             m_frozenType: "",
@@ -567,6 +569,7 @@ export class Player implements AbstractObject {
             this.m_netData.bleeding = data.bleeding;
             this.m_netData.poisoned = data.poisoned;
             this.m_netData.burning = data.burning;
+            this.m_netData.charmed = data.charmed;
             this.m_netData.m_frozen = data.frozen;
             this.m_netData.m_frozenOri = data.frozenOri;
             if (this.m_netData.m_frozenType !== data.frozenType) {
@@ -2687,6 +2690,7 @@ export class Player implements AbstractObject {
             if (this.m_netData.bleeding) colors.push(0xe53935);
             if (this.m_netData.poisoned) colors.push(0x43d32f);
             if (this.m_netData.burning) colors.push(0xff8c1a);
+            if (this.m_netData.charmed) colors.push(0xff5fb4);
         }
         if (!colors.length && !this.debuffDots) return;
         if (!this.debuffDots) {

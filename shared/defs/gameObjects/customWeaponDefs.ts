@@ -45,6 +45,12 @@ export const CustomGuns: Array<[string, string, string, string, string]> = [
     ["pg_christmas_ultimatum", "Christmas Ultimatum", "Pixel Gun 3D", "barrett", "christmas_ultimatum"],
     ["pg_judge", "Judge", "Pixel Gun 3D", "barrett", "judge"],
     ["pg_frozen_dragon", "Frozen Dragon", "Pixel Gun 3D", "ak47", "frozen_dragon"],
+    ["pg_mercenary", "Mercenary", "Pixel Gun 3D", "ak47", "plain"],
+    ["pg_laser_cycler", "Laser Cycler", "Pixel Gun 3D", "sv98", "plain"],
+    ["pg_engineer_exoskeleton", "Engineer Exoskeleton", "Pixel Gun 3D", "m249", "plain"],
+    ["pg_aphrodite_crossbow", "Aphrodite Crossbow", "Pixel Gun 3D", "mosin", "arrow"],
+    ["pg_goo_substance_rifle", "Goo Substance Rifle", "Pixel Gun 3D", "ak47", "plain"],
+    ["pg_minigun_shotgun", "Minigun Shotgun", "Pixel Gun 3D", "m870", "plain"],
 ];
 
 /** [id, display name, game, melee effect] */
@@ -58,5 +64,6 @@ export const CustomMelees: Array<[string, string, string, string]> = [
     ["pg_heroic_epee", "Heroic Epee", "Pixel Gun 3D", "heroic_epee"],
     ["lol_sundered_sky", "Sundered Sky", "League of Legends", "sundered_sky"],
     ["lol_eclipse", "Eclipse", "League of Legends", "eclipse"],
+    ["pg_power_fists", "Power Fists", "Pixel Gun 3D", "power_fists"],
 ];
 

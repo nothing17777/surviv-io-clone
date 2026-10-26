@@ -223,6 +223,7 @@ export class EditorDisplay {
             bleeding: false,
             poisoned: false,
             burning: false,
+            charmed: false,
             frozen: false,
             frozenOri: 0,
             frozenType: "",

@@ -425,7 +425,7 @@ export class WeaponManager {
             this.player.cancelAction();
 
             this.player.playAnim(GameConfig.Anim.Melee, attack.cooldownTime);
-            weapon.cooldown = attack.cooldownTime;
+            weapon.cooldown = attack.cooldownTime * (this.player.charmed ? 2 : 1);
             this.meleeAttacks = [...attack.damageTimes];
             this.fireSwingShot();
         }
@@ -744,7 +744,7 @@ export class WeaponManager {
 
         const firstShotAccuracy = weapon.recoilTime <= 0;
 
-        weapon.cooldown = itemDef.fireDelay;
+        weapon.cooldown = itemDef.fireDelay * (this.player.charmed ? 2 : 1);
         // minigun: starts 3x slower and spins up to full rate
         if (itemDef.spinUp) {
             weapon.cooldown *= math.lerp(math.min(this.holdTime / itemDef.spinUp, 1), 3, 1);
@@ -910,6 +910,8 @@ export class WeaponManager {
 
             const deviation = itemDef.ringShot
                 ? (i / bulletCount) * 360
+                : itemDef.fanShot
+                ? (bulletCount > 1 ? i / (bulletCount - 1) - 0.5 : 0) * spread
                 : (empowered45 || firstShotAccuracy)
                 ? 0
                 : util.random(-0.5, 0.5) * (spread || 0);
