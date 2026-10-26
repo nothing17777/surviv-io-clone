@@ -595,6 +595,8 @@ export const SwingShotBullets: Record<string, BulletDef> = {
         speed: 60,
         playerPierce: true,
         pierceLoss: 0.25,
+        // only the Terra Beam image, no green tracer block over it
+        noTracer: true,
         tracerColor: "cw_terra",
         tracerWidth: 1.2,
         // the Terra Beam fitted to the original slice's frame, so it draws the same size
