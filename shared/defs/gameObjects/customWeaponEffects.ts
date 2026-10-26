@@ -521,7 +521,7 @@ export const MeleeOverrides: Record<string, DeepPartial<MeleeDef>> = {
 
 /** the glowing aura drawn around each swing, as in Terraria */
 export const SwingArcs: Record<string, string> = {
-    tr_terra_blade: "img/custom-weapons/fx/terra_beam.png",
+    tr_terra_blade: "img/custom-weapons/fx/arc_terra.png",
     tr_night_s_edge: "img/custom-weapons/fx/arc_purple.png",
     tr_excalibur: "img/custom-weapons/fx/arc_gold.png",
     tr_meowmere: "img/custom-weapons/fx/arc_rainbow.png",
@@ -588,7 +588,8 @@ export const SwingShotBullets: Record<string, BulletDef> = {
         pierceLoss: 0.25,
         tracerColor: "cw_terra",
         tracerWidth: 1.2,
-        sprite: "img/custom-weapons/fx/terra_beam.png",
+        // the Terra Beam fitted to the original slice's frame, so it draws the same size
+        sprite: "img/custom-weapons/fx/terra_beam_proj.png",
         spriteSize: 12,
     }),
     // the rest of the wave's width: hits, but draws nothing (the crescent covers it)
