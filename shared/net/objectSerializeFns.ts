@@ -100,6 +100,8 @@ export interface ObjectsFullData {
         kitAura: number;
         /** inside an enhanced Wizard's circle: a sigil under them */
         wizardMarked: boolean;
+        /** Excalibur: a dim yellow circle under them while it halves their damage taken */
+        excaliburActive: boolean;
 
         frozen: boolean;
         frozenOri: number;
@@ -239,6 +241,7 @@ export const ObjectSerializeFns: {
             s.writeBoolean(data.charmed);
             s.writeBits(data.kitAura, 2);
             s.writeBoolean(data.wizardMarked);
+            s.writeBoolean(data.excaliburActive);
 
             s.writeBoolean(data.frozen);
             if (data.frozen) {
@@ -316,6 +319,7 @@ export const ObjectSerializeFns: {
             data.charmed = s.readBoolean();
             data.kitAura = s.readBits(2);
             data.wizardMarked = s.readBoolean();
+            data.excaliburActive = s.readBoolean();
 
             data.frozen = s.readBoolean();
             data.frozenOri = 0;

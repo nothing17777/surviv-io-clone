@@ -316,6 +316,7 @@ export class Player implements AbstractObject {
         charmed: boolean;
         kitAura: number;
         wizardMarked: boolean;
+        excaliburActive: boolean;
         m_frozen: boolean;
         m_frozenOri: number;
         m_frozenType: string;
@@ -489,6 +490,7 @@ export class Player implements AbstractObject {
             charmed: false,
             kitAura: 0,
             wizardMarked: false,
+            excaliburActive: false,
             m_frozen: false,
             m_frozenOri: 0,
             m_frozenType: "",
@@ -577,6 +579,7 @@ export class Player implements AbstractObject {
             this.m_netData.charmed = data.charmed;
             this.m_netData.kitAura = data.kitAura;
             this.m_netData.wizardMarked = data.wizardMarked;
+            this.m_netData.excaliburActive = data.excaliburActive;
             this.m_netData.m_frozen = data.frozen;
             this.m_netData.m_frozenOri = data.frozenOri;
             if (this.m_netData.m_frozenType !== data.frozenType) {
@@ -2693,6 +2696,7 @@ export class Player implements AbstractObject {
     kitSigil: PIXI.Sprite | null = null;
     kitDaggers: PIXI.Sprite[] = [];
     kitTicker = 0;
+    excaliburRing: PIXI.Graphics | null = null;
 
     /**
      * Kit visuals: the Summoner's blade minions circling the player, the Wizard's circle
@@ -2704,6 +2708,18 @@ export class Player implements AbstractObject {
         this.kitTicker += dt;
         // 16 px per world unit inside the player's containers
         const px = 16;
+        // Excalibur: a dim yellow circle under the user while it's halving their damage taken
+        const excaliburActive = !dead && this.m_netData.excaliburActive;
+        if (excaliburActive || this.excaliburRing) {
+            if (!this.excaliburRing) {
+                this.excaliburRing = new PIXI.Graphics();
+                this.excaliburRing.beginFill(0xffe066, 0.22);
+                this.excaliburRing.drawCircle(0, 0, 2.6 * px);
+                this.excaliburRing.endFill();
+                this.auraContainer.addChildAt(this.excaliburRing, 0);
+            }
+            this.excaliburRing.visible = excaliburActive;
+        }
         if (aura >= 2 || this.kitCircle) {
             if (!this.kitCircle) {
                 this.kitCircle = new PIXI.Sprite();
@@ -2717,7 +2733,8 @@ export class Player implements AbstractObject {
                     aura === 3 ? "img/custom-weapons/fx/kit/lightning_ritual.png" : "img/custom-weapons/fx/kit/armlet_of_ruin.png",
                 );
                 this.kitCircle.texture = tex;
-                const s = (2 * 12 * px) / Math.max(tex.width, 1);
+                // doubled from the original 12-radius circle so it reads clearly on screen
+                const s = (2 * 24 * px) / Math.max(tex.width, 1);
                 this.kitCircle.scale.set(s, s);
                 this.kitCircle.rotation += dt * (aura === 3 ? 1.2 : 0.3);
             }

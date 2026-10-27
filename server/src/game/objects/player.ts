@@ -751,6 +751,8 @@ export class Player extends BaseGameObject {
     /** players this Wizard has marked (inside the enhanced circle) */
     wizardMarks = new Set<Player>();
     wizardMarked = false;
+    /** Excalibur: true while actively firing it, halving damage taken */
+    excaliburActive = false;
 
     get kitAura() {
         return this.dead ? 0 : kitAura(this.kit, this.kitEnhanceTime > 0);
@@ -2030,6 +2032,13 @@ export class Player extends BaseGameObject {
                 this.shieldDirty = true;
             }
 
+            // Excalibur: 50% less damage taken while actively firing it
+            const excaliburActive = this.weapons[this.curWeapIdx]?.type === "pg_excalibur" && this.shootHold;
+            if (excaliburActive !== this.excaliburActive) {
+                this.excaliburActive = excaliburActive;
+                this.setDirty();
+            }
+
             // Heroic Epee: heal 12 hp per second while holding
             if (this.weapons[this.curWeapIdx]?.type === "pg_heroic_epee") {
                 if (this.health < this.maxHealth) {
@@ -2734,6 +2743,9 @@ export class Player extends BaseGameObject {
 
         let finalDamage = params.amount!;
 
+        // Excalibur: 50% less damage taken while actively firing it
+        if (this.excaliburActive) finalDamage *= 0.5;
+
         const reduceDamage = (multi: number) => {
             if (params.armorPenetration !== undefined) {
                 multi *= params.armorPenetration;
@@ -2842,10 +2854,10 @@ export class Player extends BaseGameObject {
             // Iron Man: rockets burn, the repulsor blast bleeds
             else if (src === "kit_ironman_rockets") this.applyBurn(4, playerSource, src);
             else if (src === "kit_ironman_blast") this.applyBleed(4, playerSource);
-            // Ultron's orb lasers: orange burns, red bleeds, purple poisons
-            else if (weap === "bullet_kit_ultron_orb_laser_orange") this.applyBurn(4, playerSource, src);
-            else if (weap === "bullet_kit_ultron_orb_laser_red") this.applyBleed(4, playerSource);
-            else if (weap === "bullet_kit_ultron_orb_laser_purple") this.applyPoison(4, playerSource);
+            // Ultron's orb lasers: orange burns, red bleeds, purple poisons, 3s each
+            else if (weap === "bullet_kit_ultron_orb_laser_orange") this.applyBurn(3, playerSource, src);
+            else if (weap === "bullet_kit_ultron_orb_laser_red") this.applyBleed(3, playerSource);
+            else if (weap === "bullet_kit_ultron_orb_laser_purple") this.applyPoison(3, playerSource);
             else if ((src === "kit_ultron_blast" || src === "kit_wizard_stars") && params.dir && !this.webPull) {
                 // slight knockback, moved like a short slide so walls still stop it
                 this.webPull = { target: v2.add(this.pos, v2.mul(v2.normalizeSafe(params.dir), 1.5)), speed: 20, time: 0.12 };
