@@ -3824,12 +3824,12 @@ for (const [color, tracer] of Object.entries(orbColorTracer)) {
     kitBullet(`bullet_kit_ultron_orb_${color}`, {
         damage: 0,
         speed: 70,
-        distance: 25,
+        distance: 38,
         onHit: "explosion_kit_orb",
         tracerColor: tracer,
         tracerWidth: 0.3,
         sprite: kitAsset(`orb_${color}`),
-        spriteSize: 1.4,
+        spriteSize: 2.2,
     });
     kitBullet(`bullet_kit_ultron_orb_laser_${color}`, {
         damage: 26,
@@ -3894,7 +3894,9 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
     kitGun("kit_ultron_laser", "m249", {
         damage: 1.5,
         speed: 400,
-        distance: 35,
+        // 1.5x range, and it tears through obstacles
+        distance: 52.5,
+        obstacleDamage: 40,
         beam: true,
         playerPierce: true,
         pierceLoss: 0,
@@ -3913,7 +3915,7 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
         extendedClip: 250,
         extendedReload: 250,
     }),
-    // Ultron energy blast: six coloured orbs in a thin cone, 80 energy, 5 s cooldown
+    // Ultron energy blast: six coloured orbs in a wider cone, 80 energy, 5 s cooldown
     kitGun("kit_ultron_blast", "barrett", { damage: 0 }, {
         name: "Energy Blast",
         fireMode: "single",
@@ -3921,7 +3923,7 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
         energyCost: 80,
         bulletCount: 6,
         fanShot: true,
-        shotSpread: 10,
+        shotSpread: 16,
         moveSpread: 0,
         bulletTypes: ["red", "blue", "green", "yellow", "purple", "orange"].map((c) => `bullet_kit_ultron_orb_${c}`),
         maxClip: 250,
@@ -3961,7 +3963,7 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
                     tracerColor: "cw_flame",
                     tracerWidth: 0.2,
                     sprite: kitAsset(img),
-                    spriteSize: 1.8,
+                    spriteSize: 2.8,
                 })
             ),
         ],
@@ -4001,7 +4003,7 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
                 tracerColor: "cw_star",
                 tracerWidth: 0.2,
                 sprite: `img/custom-weapons/fx/${img}.png`,
-                spriteSize: 1.6,
+                spriteSize: 2.6,
             })
         ),
         maxClip: 250,

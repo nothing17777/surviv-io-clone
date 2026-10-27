@@ -226,6 +226,7 @@ export class EditorDisplay {
             charmed: false,
             kitAura: 0,
             wizardMarked: false,
+            excaliburActive: false,
             frozen: false,
             frozenOri: 0,
             frozenType: "",

@@ -324,7 +324,8 @@ export const GunOverrides: Record<string, GunEffect> = {
         bullet: {
             damage: 24,
             sprite: "img/custom-weapons/fx/nebula_orb.png",
-            spriteSize: 2.4,
+            // the orb's own art is small and faint; drawn bigger so it reads against the map
+            spriteSize: 4,
             noTracer: true,
             onHit: "explosion_cw_dmg_splash",
             linger: undefined,
@@ -458,9 +459,9 @@ export const GunOverrides: Record<string, GunEffect> = {
         },
         gun: { fireMode: "auto", fireDelay: 0.118, maxClip: 40, maxReload: 40, extendedClip: 40, extendedReload: 40 },
     },
-    // Minigun Shotgun: 12 pellets x 3 dmg in an Ultimatum-tight spread, 3.33 shots/s, 15 rounds, no windup
+    // Minigun Shotgun: 12 pellets x 6 dmg in an Ultimatum-tight spread, 3.33 shots/s, 15 rounds, no windup
     pg_minigun_shotgun: {
-        bullet: { damage: 3 },
+        bullet: { damage: 6 },
         gun: {
             fireMode: "auto",
             fireDelay: 0.3,
