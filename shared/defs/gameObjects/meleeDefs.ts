@@ -1437,7 +1437,20 @@ const SkinDefs: Record<string, MeleeDef> = {
 const CustomMeleeDefs: Record<string, MeleeDef> = Object.fromEntries(
     CustomMelees.map(([id, name, , effect]) => [
         id,
-        defineMeleeSkin("katana", {
+        // Power Fists are worn, not swung: they punch like bare fists, with no blade drawn in hand
+        id === "pg_power_fists"
+            ? defineMeleeSkin("fists", {
+                ...util.mergeDeep({}, MeleeEffects[effect], MeleeOverrides[id] ?? {}),
+                name,
+                noPotatoSwap: true,
+                lootImg: {
+                    sprite: `img/custom-weapons/loot/${id}.png?v=${CustomWeaponsVersion}`,
+                    scale: 0.3,
+                    mirror: false,
+                    rot: 0,
+                },
+            })
+            : defineMeleeSkin("katana", {
             ...util.mergeDeep({}, MeleeEffects[effect], MeleeOverrides[id] ?? {}),
             name,
             noPotatoSwap: true,

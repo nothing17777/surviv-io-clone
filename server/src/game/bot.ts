@@ -1026,6 +1026,11 @@ export class BotBrain {
                     ? (dist > reach * 0.8 ? dirTo : v2.add(strafe, v2.mul(dirTo, 0.3)))
                     : strafe;
             }
+            // Ultron minions always rush the enemy and never back away
+            if (player.minionOwner) {
+                move = dist > reach * 0.6 ? dirTo : v2.add(dirTo, v2.mul(strafe, 0.3));
+                this._retreat = undefined;
+            }
             // closing in but a wall is in the way (seen through a window or doorway): walk around it
             const closing = gunDef ? approach > 0 : dist > reach * 0.8 && (this.settings.chase || dist < MeleeSwitchDist);
             if (closing && this._wallToTarget) move = this.followPath(target.pos, dt);
@@ -1815,7 +1820,8 @@ export function addBot(game: Game, level: BotLevel, side?: number, minion = fals
     client.player = player;
     // Ultron minions get set up by their summoner instead
     if (minion) {
-        player.botBrain = new BotBrain(player, level, undefined);
+        // minions always hunt their summoner's enemies down
+        player.botBrain = new BotBrain(player, level, { ...defaultBotSettings()[level], chase: true });
         return player;
     }
     const pm = game.config.privateMatch;

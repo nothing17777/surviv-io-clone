@@ -2019,8 +2019,9 @@ export class Player extends BaseGameObject {
             }
 
             // Power Fists: 10 shield per second while held, up to 200
-            if (this.weapons[this.curWeapIdx]?.type === "pg_power_fists" && this.shield < 200) {
-                this.shield = Math.min(this.shield + 10 * dt, 200);
+            const shieldCap = this.maxShield || 200;
+            if (this.weapons[this.curWeapIdx]?.type === "pg_power_fists" && this.shield < shieldCap) {
+                this.shield = Math.min(this.shield + 10 * dt, shieldCap);
                 this.shieldDirty = true;
             }
 
@@ -2831,14 +2832,22 @@ export class Player extends BaseGameObject {
         // Frozen Dragon's slow comes from its explosion's freezeDuration
         if (playerSource && params.source !== this && params.damageType !== GameConfig.DamageType.Bleeding) {
             const src = params.gameSourceType;
+            const weap = params.weaponSourceType ?? "";
             if (src === "pg_nanobots_rifle" || src === "kit_wolverine_claws") this.applyBleed(4, playerSource);
+            // Iron Man: rockets burn, the repulsor blast bleeds
+            else if (src === "kit_ironman_rockets") this.applyBurn(4, playerSource, src);
+            else if (src === "kit_ironman_blast") this.applyBleed(4, playerSource);
+            // Ultron's orb lasers: orange burns, red bleeds, purple poisons
+            else if (weap === "bullet_kit_ultron_orb_laser_orange") this.applyBurn(4, playerSource, src);
+            else if (weap === "bullet_kit_ultron_orb_laser_red") this.applyBleed(4, playerSource);
+            else if (weap === "bullet_kit_ultron_orb_laser_purple") this.applyPoison(4, playerSource);
             else if ((src === "kit_ultron_blast" || src === "kit_wizard_stars") && params.dir && !this.webPull) {
                 // slight knockback, moved like a short slide so walls still stop it
                 this.webPull = { target: v2.add(this.pos, v2.mul(v2.normalizeSafe(params.dir), 1.5)), speed: 20, time: 0.12 };
             } else if (src === "kit_spider_slash") {
                 this.applyBleed(4, playerSource);
                 playerSource.spiderRegenTime = 4;
-                playerSource.shield = math.min(playerSource.shield + 20, 400);
+                playerSource.shield = math.min(playerSource.shield + 20, playerSource.maxShield || 200);
                 playerSource.shieldDirty = true;
             } else if (src === "kit_summoner_whip" && params.weaponSourceType === "kit_summoner_whip" && params.amount! >= 20) {
                 // the whip's lash (not a dagger) sets the minions' target
@@ -4738,6 +4747,8 @@ export class Player extends BaseGameObject {
             this.applyKit(kitId);
             return;
         }
+        // a bot handed the leader's kit first, then the default one, drops that kit's skills
+        if (this.kit !== "default") this.clearKit();
         // kit weapons stay in their kit
         godLoadout = { ...godLoadout };
         for (const slot of ["primary", "secondary", "melee"] as const) {
@@ -5200,7 +5211,33 @@ export class Player extends BaseGameObject {
         this.energy = this.maxEnergy;
         this.energyDirty = true;
         if (kit.fullBoost) this.boost = 100;
+        // kits zoom out like a 15x scope
+        this.invManager.set("15xscope", 1);
+        this.scope = "15xscope";
+        this.zoom = this.scopeZoomRadius[this.scope];
         this.weapsDirty = true;
+        this.setDirty();
+    }
+
+    /** back to a normal player: no kit stats, shield, energy or locked weapons */
+    clearKit() {
+        this.kit = "default";
+        this.lockedKit = false;
+        this.maxHealth = GameConfig.player.health;
+        this.health = this.maxHealth;
+        this.maxShield = 0;
+        this.shield = 0;
+        this.shieldDirty = true;
+        this.maxEnergy = 0;
+        this.energy = 0;
+        this.energyDirty = true;
+        this.kitEnhanceTime = 0;
+        this.outfit = this.loadout.outfit;
+        for (const slot of [GameConfig.WeaponSlot.Primary, GameConfig.WeaponSlot.Secondary, GameConfig.WeaponSlot.Melee]) {
+            if (isKitItem(this.weapons[slot].type)) {
+                this.weaponManager.setWeapon(slot, slot === GameConfig.WeaponSlot.Melee ? "fists" : "", 0);
+            }
+        }
         this.setDirty();
     }
 

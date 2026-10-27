@@ -385,8 +385,8 @@ export const GunOverrides: Record<string, GunEffect> = {
             maxReload: 35,
             extendedClip: 35,
             extendedReload: 35,
-            shotSpread: 3,
-            moveSpread: 5,
+            shotSpread: 1,
+            moveSpread: 2,
         },
     },
     // Laser Cycler: a blue laser bolt that bounces off walls, 60 dmg, 1.57 shots/s, 12 rounds
@@ -411,10 +411,12 @@ export const GunOverrides: Record<string, GunEffect> = {
             damage: 12,
             beam: true,
             speed: 300,
-            distance: 45,
+            distance: 80,
             falloff: 1,
             playerPierce: true,
             pierceLoss: 0,
+            // steel and other reflective walls stop it instead of bouncing it back
+            noReflect: true,
             tracerColor: "cw_laser",
             tracerWidth: 0.25,
         },
@@ -491,8 +493,13 @@ export const MeleeEffects: Record<string, DeepPartial<MeleeDef>> = {
     heroic_epee: { damage: 30, speed: { equip: 1.25, attack: 1.05 }, attack: { offset: { x: 2.2, y: 0 }, rad: 2.4, cooldownTime: 0.35 } },
     // Sundered Sky: 40 dmg, heal 40 health on hit
     sundered_sky: { damage: 40, attack: { offset: { x: 2.6, y: 0 }, rad: 2.8, cooldownTime: 0.45 } },
-    // Power Fists: 45 dmg, 1.3 punches/s, 10 shield/s (up to 200) while held
-    power_fists: { damage: 45, cleave: false, attack: { offset: { x: 1.4, y: 0 }, rad: 1.8, cooldownTime: 0.77 } },
+    // Power Fists: 45 dmg, 1.3 punches/s, 10 shield/s (up to 200) while held; a natural one-two punch
+    power_fists: {
+        damage: 45,
+        cleave: false,
+        attack: { offset: { x: 1.5, y: 0 }, rad: 1.6, damageTimes: [0.1], cooldownTime: 0.77 },
+        anim: { idlePose: "fists", attackAnims: ["fists", "fists"] },
+    },
     // Eclipse: 60 dmg, gain a 50 hp shield every second hit
     eclipse: { damage: 60, attack: { offset: { x: 2.4, y: 0 }, rad: 2.6, cooldownTime: 0.5 } },
 };

@@ -26,10 +26,14 @@ export interface BulletDef {
     homing?: boolean;
     /** with homing: picks the enemy nearest where the shooter aims, wherever the shot is headed */
     homingFromAim?: boolean;
+    /** with homing: flies straight for this long before it starts seeking */
+    homingDelay?: number;
     /** draws the trail (or beam) with this image instead of the plain tracer */
     trailSprite?: string;
     /** bounces off any wall or obstacle, not just metal ones */
     bounce?: boolean;
+    /** never bounces, even off steel and other reflecting walls */
+    noReflect?: boolean;
     /** how many times a bouncing shot bounces (default GameConfig.bullet.maxReflect) */
     maxBounces?: number;
     /** explosion at each bounce, by bounce number (the last repeats) */

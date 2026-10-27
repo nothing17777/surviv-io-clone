@@ -313,7 +313,8 @@ export class BulletBarn {
                     }
                 }
                 // the super hacker's shot curves toward its target, like on the server
-                if (b.homingId) {
+                const homingDelay = GameObjectDefs.typeToDef(b.bulletType, "bullet").homingDelay ?? 0;
+                if (b.homingId && b.traveled >= homingDelay * b.speed) {
                     const target = playerBarn.getPlayerById(b.homingId);
                     // a far target may not have reached this client yet: keep the lock and fly on until it does
                     if (target?.m_netData.m_dead) {
@@ -337,7 +338,7 @@ export class BulletBarn {
                         b.container.rotation = Math.atan2(b.dir.x, b.dir.y) - Math.PI / 2;
                     }
                 }
-                const distLeft = b.boomerang || b.bulletType === "bullet_pg_judge"
+                const distLeft = b.boomerang || b.homingId || b.bulletType === "bullet_pg_judge"
                     ? b.distance - b.traveled
                     : b.distance - v2.length(v2.sub(b.startPos, b.pos));
                 const distTravel = math.min(distLeft, dt * b.speed);
@@ -610,6 +611,12 @@ export class BulletBarn {
                         );
                         hit = col.collidable && !b.pierce;
                     }
+                    // the Judge's rocket is steered on the server, so a hit guessed here may not be
+                    // real: keep flying (and don't snap back to the hit point) until the server's blast
+                    if (hit && b.bulletType === "bullet_pg_judge") {
+                        hit = false;
+                        continue;
+                    }
                     if (hit) {
                         b.pos = col.point;
                         break;
@@ -655,9 +662,6 @@ export class BulletBarn {
                         renderer.addPIXIObj(b.container, b.layer, 20);
                     }
                 }
-                // the Judge's rocket is steered on the server, so a hit guessed here may not be real:
-                // it keeps flying (and the camera on it) until the server's blast ends it
-                if (hit && b.bulletType === "bullet_pg_judge") hit = false;
                 if (hit || math.eqAbs(distLeft, distTravel)) {
                     b.collided = true;
                     b.alive = false;

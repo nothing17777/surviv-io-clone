@@ -3747,7 +3747,7 @@ const kitGun = (id: string, base: string, bullet: Partial<BulletDef>, gun: DeepP
 const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
     // Iron Man repulsor: a wide cyan laser, 50 dmg, 1.4 shots/s, 10 rounds, 1 s reload for 10 energy
     kitGun("kit_ironman_blast", "sv98", {
-        damage: 50,
+        damage: 55,
         beam: true,
         speed: 400,
         distance: 80,
@@ -3771,12 +3771,14 @@ const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
     // Iron Man rockets: 8 strongly homing rockets fired all around, 20 dmg each, 0.8 shots/s, 5 rounds,
     // 2 s reload for 15 energy
     kitGun("kit_ironman_rockets", "barrett", {
-        damage: 20,
+        damage: 30,
         speed: 55,
         distance: 110,
         falloff: 1,
         homing: true,
         homingFromAim: true,
+        // they fly straight out of the suit for a moment before they lock on
+        homingDelay: 0.2,
         tracerColor: "cw_flame",
         tracerWidth: 0.25,
         tracerLength: 0.4,
@@ -3840,12 +3842,16 @@ for (const [color, tracer] of Object.entries(orbColorTracer)) {
 }
 // the Summoner's blade minions
 kitBullet("bullet_kit_dagger", {
-    speed: 90,
-    distance: 18,
+    // a spinning blade minion, not a magic beam: only the dagger sprite is drawn
+    damage: 16,
+    speed: 55,
+    distance: 20,
+    spin: 14,
+    noTracer: true,
     tracerColor: "cw_magic",
     tracerWidth: 0.12,
     sprite: kitAsset("enchanted_dagger"),
-    spriteSize: 1.3,
+    spriteSize: 2.2,
 });
 // the Summoner's whip: a chain that lashes out 10 tiles from the hand
 kitBullet("bullet_kit_whip", {
@@ -3935,7 +3941,7 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
             kitBullet("bullet_kit_wizard_laser", {
                 damage: 50,
                 speed: 400,
-                distance: 20,
+                distance: 45,
                 beam: true,
                 playerPierce: true,
                 pierceLoss: 0,
@@ -3947,9 +3953,11 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
                 kitBullet(`bullet_kit_wizard_bolt_${i}`, {
                     damage: 20,
                     speed: 55,
-                    distance: 20,
+                    distance: 45,
                     homing: true,
                     homingFromAim: true,
+                    homingDelay: 0.2,
+                    noTracer: true,
                     tracerColor: "cw_flame",
                     tracerWidth: 0.2,
                     sprite: kitAsset(img),
@@ -3988,7 +3996,8 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
             kitBullet(`bullet_kit_wizard_star_${i}`, {
                 damage: 25,
                 speed: 55,
-                distance: 25,
+                distance: 50,
+                noTracer: true,
                 tracerColor: "cw_star",
                 tracerWidth: 0.2,
                 sprite: `img/custom-weapons/fx/${img}.png`,

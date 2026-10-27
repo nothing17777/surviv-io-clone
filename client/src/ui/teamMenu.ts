@@ -1074,9 +1074,11 @@ export class TeamMenu {
             ally = allySame ? null : bots;
             enemy = enemySame ? null : bots;
         } else if (this.roomData.privateGodLoadout) {
+            // ticked: your own kit; unticked: the Bots' Kit
             const own = { ...defaultPrivateLoadout, ...loadoutToKit(loadGodLoadout()), ...loadDuelCounts("you") };
-            ally = allySame ? own : null;
-            enemy = enemySame ? own : null;
+            const bots = loadSavedSameKit(botKitKey);
+            ally = allySame ? own : bots;
+            enemy = enemySame ? own : bots;
         }
         if (JSON.stringify(ally) === JSON.stringify(this.roomData.privateBotAllyKit ?? null)
             && JSON.stringify(enemy) === JSON.stringify(this.roomData.privateBotEnemyKit ?? null)) return;
@@ -1370,11 +1372,10 @@ export class TeamMenu {
                 }
 
                 // Same Kit with a bot side unticked: that side's own kit
-                const botKitShown = shared
+                const botKitShown = god
                     && !((this.roomData.privateAllyBotsSameKit ?? true) && (this.roomData.privateEnemyBotsSameKit ?? true));
                 $("#team-bot-kit").toggle(botKitShown);
-                // bot kits only apply when everyone shares one kit
-                $("#team-bot-kits-section").toggle(shared);
+                $("#team-bot-kits-section").toggle(god);
                 if (botKitShown) {
                     const kit = this.isLeader
                         ? loadSavedSameKit(botKitKey)

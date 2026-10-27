@@ -586,6 +586,11 @@
                     </div>
                 </div>
                 <div id="ui-bottom-center-0" class="click-through js-ui-map-hidden js-ui-hud-show">
+                    <!-- kit energy: in the adrenaline bar's place (they're mutually exclusive) -->
+                    <div id="ui-energy-bar" style="position: relative; width: 412px; height: 10px; margin-bottom: 8px; background: rgba(0, 0, 0, 0.45); border-radius: 4px; pointer-events: none; display: none;">
+                        <div id="ui-energy-actual" style="height: 100%; width: 0%; background: linear-gradient(to right, #f59e0b, #fde047); box-shadow: 0 0 6px #fbbf24; border-radius: 4px;"></div>
+                        <div id="ui-energy-text" style="position: absolute; left: 0; right: 0; top: -2px; text-align: center; font-size: 10px; font-weight: bold; color: #fff; text-shadow: 0 0 2px #000;"></div>
+                    </div>
                     <div id="ui-boost-counter">
                         <div class="ui-boost-base" id="ui-boost-counter-0">
                             <div class="ui-bar-inner"></div>
@@ -610,11 +615,6 @@
                             <div id="ui-shield-bar" style="position: absolute; left: 0; right: 0; top: -18px; height: 12px; background: rgba(0, 0, 0, 0.45); border-radius: 4px; pointer-events: none; display: none;">
                                 <div id="ui-shield-actual" style="height: 100%; width: 0%; background: linear-gradient(to right, #3b82f6, #93c5fd); box-shadow: 0 0 8px #60a5fa; border-radius: 4px;"></div>
                                 <div id="ui-shield-text" style="position: absolute; left: 0; right: 0; top: -1px; text-align: center; font-size: 11px; font-weight: bold; color: #fff; text-shadow: 0 0 2px #000;"></div>
-                            </div>
-                            <!-- kit energy (Iron Man): below health -->
-                            <div id="ui-energy-bar" style="position: absolute; left: 0; right: 0; bottom: -16px; height: 10px; background: rgba(0, 0, 0, 0.45); border-radius: 4px; pointer-events: none; display: none;">
-                                <div id="ui-energy-actual" style="height: 100%; width: 0%; background: linear-gradient(to right, #f59e0b, #fde047); box-shadow: 0 0 6px #fbbf24; border-radius: 4px;"></div>
-                                <div id="ui-energy-text" style="position: absolute; left: 0; right: 0; top: -2px; text-align: center; font-size: 10px; font-weight: bold; color: #fff; text-shadow: 0 0 2px #000;"></div>
                             </div>
                         </div>
                     </div>
@@ -1612,7 +1612,7 @@
                                                 </div>
                                                 </details>
                                                 <details name="team-sections" class="team-section" id="team-bot-kits-section"><summary>5 · Bot Kits</summary>
-                                                <div class="team-step-hint">Ticked: bots on that side use everyone's kit. Unticked: they use the Bots' Kit below. Click a bot under Bots to give it its own kit.</div>
+                                                <div class="team-step-hint">Ticked: bots on that side use your kit (everyone's under Same Kit). Unticked: they use the Bots' Kit below. Click a bot under Bots to give it its own kit.</div>
                                                 <label class="god-heal"><span>Teammate bots get this kit</span>
                                                                 <input id="team-kit-ally-bots" type="checkbox" />
                                                             </label>

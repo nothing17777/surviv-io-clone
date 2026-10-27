@@ -761,6 +761,11 @@ export class WeaponManager {
         this.scheduledReload = weapon.ammo <= 1;
 
         if (weapon.ammo <= 0) return;
+        // only one Judge rocket in the air at a time
+        if (this.activeWeapon === "pg_judge") {
+            const live = this.player.activeJudgeRocket;
+            if (live?.alive && live.active && live.player === this.player) return;
+        }
         // abilities pay per use (a burst pays once, when it starts)
         if (itemDef.fireMode !== "burst" && !this.payEnergy(itemDef.energyCost)) return;
 
@@ -784,7 +789,8 @@ export class WeaponManager {
         const direction = this.player.dir;
         const toMouseLen = this.player.toMouseLen;
 
-        this.player.shotSlowdownTimer = itemDef.fireDelay;
+        // kit weapons never slow their owner down
+        this.player.shotSlowdownTimer = this.player.kit === "default" ? itemDef.fireDelay : 0;
 
         this.player.cancelAction();
 
@@ -995,7 +1001,8 @@ export class WeaponManager {
                 bulletType: shotBulletType,
                 gameSourceType: this.activeWeapon,
                 ghost,
-                homingTargetId: ghostTarget?.__id,
+                // only shots that already seek get the marked enemy; a beam keeps flying straight
+                homingTargetId: GameObjectDefs.typeToDef(shotBulletType, "bullet").homing ? ghostTarget?.__id : undefined,
                 damageType: GameConfig.DamageType.Player,
                 pos: shotPos,
                 dir: shotDir,
@@ -1366,7 +1373,7 @@ export class WeaponManager {
                     } else if (this.activeWeapon === "lol_eclipse") {
                         this.player.eclipseHitCount = (this.player.eclipseHitCount ?? 0) + 1;
                         if (this.player.eclipseHitCount % 2 === 0) {
-                            this.player.shield = Math.min((this.player.shield ?? 0) + 50, 150);
+                            this.player.shield = Math.min((this.player.shield ?? 0) + 50, this.player.maxShield || 200);
                             this.player.shieldDirty = true;
                             this.player.setDirty();
                         }

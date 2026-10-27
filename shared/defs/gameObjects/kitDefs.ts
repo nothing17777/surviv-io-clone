@@ -65,7 +65,7 @@ export const KitDefs: Record<string, KitDef> = {
         primary: "kit_ironman_blast",
         secondary: "kit_ironman_rockets",
         melee: "fists",
-        energy: { max: 100, perSecond: 15, heal: 10, healCost: 5, shieldRegen: 15, shieldCost: 3 },
+        energy: { max: 100, perSecond: 15, heal: 10, healCost: 0, shieldRegen: 15, shieldCost: 0 },
     },
     spiderman: {
         name: "Spider-Man",
@@ -89,7 +89,7 @@ export const KitDefs: Record<string, KitDef> = {
         primary: "kit_ultron_laser",
         secondary: "kit_ultron_blast",
         melee: "kit_ultron_minions",
-        energy: { max: 200, perSecond: 20, heal: 0, healCost: 0, shieldRegen: 35, shieldCost: 10 },
+        energy: { max: 200, perSecond: 20, heal: 0, healCost: 0, shieldRegen: 35, shieldCost: 0 },
     },
     summoner: {
         name: "Summoner",
@@ -99,7 +99,7 @@ export const KitDefs: Record<string, KitDef> = {
         outfit: "outfitKitSummoner",
         melee: "kit_summoner_whip",
         regenPulse: { amount: 20, every: 5 },
-        daggers: { count: 4, damage: 10, range: 15, interval: 0.4 },
+        daggers: { count: 4, damage: 16, range: 15, interval: 0.4 },
     },
     wizard: {
         name: "Wizard",

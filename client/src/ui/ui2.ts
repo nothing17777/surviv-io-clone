@@ -722,11 +722,14 @@ export class UiManager2 {
         // the bar is full at the 150 shield cap
         const shield = activePlayer.m_netData.m_dead ? 0 : math.max(activePlayer.m_localData.shield ?? 0, 0);
         this.dom.health.shieldBar.style.display = shield > 0 ? "block" : "none";
-        const maxShield = activePlayer.m_localData.maxShield || 150;
+        const maxShield = activePlayer.m_localData.maxShield || 200;
         this.dom.health.shield.style.width = `${math.min((shield / maxShield) * 100, 100)}%`;
         const maxEnergy = activePlayer.m_netData.m_dead ? 0 : activePlayer.m_localData.maxEnergy ?? 0;
         const energy = activePlayer.m_localData.energy ?? 0;
         this.dom.health.energyBar.style.display = maxEnergy > 0 ? "block" : "none";
+        // energy replaces the adrenaline bar: a kit never uses both
+        const boostCounter = document.getElementById("ui-boost-counter");
+        if (boostCounter) boostCounter.style.display = maxEnergy > 0 ? "none" : "";
         this.dom.health.energy.style.width = `${maxEnergy > 0 ? math.min((energy / maxEnergy) * 100, 100) : 0}%`;
         this.dom.health.energyText.textContent = maxEnergy > 0 ? `${Math.floor(energy)} / ${maxEnergy}` : "";
         // kit abilities: a dark sweep and the seconds left over each slot on cooldown

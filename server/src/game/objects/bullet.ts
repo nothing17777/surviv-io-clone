@@ -84,7 +84,25 @@ export class BulletBarn {
         gameSourceType: string;
     }> = [];
 
+    /** Ultron's orb lasers: fired a moment after the orb bursts */
+    delayedShots: Array<{ delay: number; params: BulletParams; aimAt?: Player }> = [];
+
     update(dt: number): void {
+        for (let i = this.delayedShots.length - 1; i >= 0; i--) {
+            const shot = this.delayedShots[i];
+            shot.delay -= dt;
+            if (shot.delay <= 0) {
+                this.delayedShots.splice(i, 1);
+                // re-aim at where the target is now, so a direct hit still gets its laser
+                if (shot.aimAt && !shot.aimAt.dead) {
+                    shot.params.dir = v2.normalizeSafe(
+                        v2.sub(shot.aimAt.pos, shot.params.pos),
+                        shot.params.dir,
+                    );
+                }
+                this.fireBullet(shot.params);
+            }
+        }
         for (let i = this.lingering.length - 1; i >= 0; i--) {
             const l = this.lingering[i];
             l.duration -= dt;
@@ -449,7 +467,9 @@ export class Bullet {
             }
         }
         // super hacker: bend toward the target's current spot; once it's through them (or they're gone), fly straight
-        if (this.homingId) {
+        // rockets and bolts fly straight for a moment before they start seeking
+        const homingDelay = GameObjectDefs.typeToDef(this.bulletType, "bullet").homingDelay ?? 0;
+        if (this.homingId && this.distanceTraveled >= homingDelay * this.speed) {
             const target = this.bulletManager.game.objectRegister.getById(this.homingId);
             if (
                 !this.devShot
@@ -479,7 +499,9 @@ export class Bullet {
         }
         const posOld = v2.copy(this.pos);
         // a steered rocket counts the path it flew, not the straight line back
-        const distLeft = this.boomerang || this.bulletType === "bullet_pg_judge"
+        // a homing shot that bends round its target barely moves away from where it started, so
+        // measuring the straight line back would keep it alive forever: count the path it flew
+        const distLeft = this.boomerang || this.homingId || this.bulletType === "bullet_pg_judge"
             ? this.distance - this.distanceTraveled
             : this.distance - v2.length(v2.sub(this.startPos, this.pos));
         const moveDist = math.min(distLeft, dt * this.speed);
@@ -752,7 +774,8 @@ export class Bullet {
                     dir: this.dir,
                 });
 
-                if ((mapDef.reflectBullets || (this.bounce && col.collidable)) && !this.pierce) {
+                const noReflect = GameObjectDefs.typeToDef(this.bulletType, "bullet").noReflect;
+                if ((mapDef.reflectBullets || (this.bounce && col.collidable)) && !this.pierce && !noReflect) {
                     this.reflect(col.point, col.normal, col.obj!.__id);
                 }
 
@@ -846,17 +869,25 @@ export class Bullet {
                 }
             }
             if (!target) continue;
-            this.bulletManager.fireBullet({
-                playerId: this.playerId,
-                bulletType: b.bulletType.replace("_orb_", "_orb_laser_"),
-                gameSourceType: this.shotSourceType,
-                damageType: this.damageType,
-                pos: v2.copy(b.pos),
-                dir: v2.normalizeSafe(v2.sub(target.pos, b.pos), b.dir),
-                layer: b.layer,
-                damageMult: 1,
-                reflectCount: 0,
-            } as BulletParams);
+            // the laser comes half a second after the burst, aimed where the target is by then
+            const laserType = b.bulletType.replace("_orb_", "_orb_laser_");
+            this.bulletManager.delayedShots.push({
+                delay: 0.5,
+                params: {
+                    playerId: this.playerId,
+                    bulletType: laserType,
+                    gameSourceType: this.shotSourceType,
+                    // the colour is what tells the debuffs apart
+                    weaponSourceType: laserType,
+                    damageType: this.damageType,
+                    pos: v2.copy(b.pos),
+                    dir: v2.normalizeSafe(v2.sub(target.pos, b.pos), b.dir),
+                    layer: b.layer,
+                    damageMult: 1,
+                    reflectCount: 0,
+                } as BulletParams,
+                aimAt: target,
+            });
         }
     }
 
