@@ -3963,7 +3963,8 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
                     tracerColor: "cw_flame",
                     tracerWidth: 0.2,
                     sprite: kitAsset(img),
-                    spriteSize: 2.8,
+                    // screen px at zoom 1 (the Christmas Ultimatum tree is 80)
+                    spriteSize: 56,
                 })
             ),
         ],
@@ -4003,7 +4004,8 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
                 tracerColor: "cw_star",
                 tracerWidth: 0.2,
                 sprite: `img/custom-weapons/fx/${img}.png`,
-                spriteSize: 2.6,
+                // screen px at zoom 1 (the Christmas Ultimatum tree is 80)
+                spriteSize: 44,
             })
         ),
         maxClip: 250,
