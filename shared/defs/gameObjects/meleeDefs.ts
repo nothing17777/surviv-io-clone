@@ -1511,12 +1511,12 @@ Object.assign(
         // abilities in the melee slot: using it is the "swing"
         kitMelee("kit_ultron_minions", "Minion Spawn", {
             damage: 0,
-            energyCost: 60,
+            energyCost: 45,
             attack: { offset: { x: 0, y: 0 }, rad: 0.1, cooldownTime: 8 },
         }),
         kitMelee("kit_wizard_enhance", "Enhance Circle", {
             damage: 0,
-            energyCost: 120,
+            energyCost: 100,
             attack: { offset: { x: 0, y: 0 }, rad: 0.1, cooldownTime: 16 },
         }),
     ]),
