@@ -45,7 +45,7 @@ export const KitDefs: Record<string, KitDef> = {
     default: { name: "Default", health: 100, helmet: "", chest: "", outfit: "", melee: "" },
     wolverine: {
         name: "Wolverine",
-        health: 250,
+        health: 400,
         helmet: "helmet04",
         chest: "chest04",
         outfit: "outfitKitWolverine",
@@ -57,7 +57,7 @@ export const KitDefs: Record<string, KitDef> = {
     },
     ironman: {
         name: "Iron Man",
-        health: 150,
+        health: 200,
         shield: 100,
         helmet: "helmet04",
         chest: "chest04",
@@ -69,7 +69,7 @@ export const KitDefs: Record<string, KitDef> = {
     },
     spiderman: {
         name: "Spider-Man",
-        health: 175,
+        health: 250,
         helmet: "helmet04",
         chest: "chest04",
         outfit: "outfitKitSpiderman",
@@ -93,7 +93,7 @@ export const KitDefs: Record<string, KitDef> = {
     },
     summoner: {
         name: "Summoner",
-        health: 125,
+        health: 150,
         helmet: "",
         chest: "",
         outfit: "outfitKitSummoner",
