@@ -324,8 +324,8 @@ export const GunOverrides: Record<string, GunEffect> = {
         bullet: {
             damage: 24,
             sprite: "img/custom-weapons/fx/nebula_orb.png",
-            // the orb's own art is small and faint; drawn bigger so it reads against the map
-            spriteSize: 4,
+            // spriteSize is screen px at zoom 1 (the Christmas Ultimatum tree is 80), not world units
+            spriteSize: 64,
             noTracer: true,
             onHit: "explosion_cw_dmg_splash",
             linger: undefined,
