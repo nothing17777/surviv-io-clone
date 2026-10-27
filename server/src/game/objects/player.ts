@@ -728,8 +728,11 @@ export class Player extends BaseGameObject {
     /** kit shield cap; 0 = none */
     maxShield = 0;
     energyDirty = false;
-    /** seconds before energy starts refilling again after an ability or reload spent it */
-    energyRegenDelay = 0;
+    /** seconds into the current 1 s energy interval: energy is gained at 0 and healing/shield cost billed at 0.5 */
+    energyTick = 0;
+    /** seconds Iron Man / Ultron healed or refilled shield since their energy cost was last billed */
+    sustainHealTime = 0;
+    sustainShieldTime = 0;
     /** Wizard: seconds left of the enhanced circle */
     kitEnhanceTime = 0;
     regenPulseTimer = 0;
@@ -5211,6 +5214,9 @@ export class Player extends BaseGameObject {
         this.shieldDirty = true;
         this.maxEnergy = kit.energy?.max ?? 0;
         this.energy = this.maxEnergy;
+        this.energyTick = 0;
+        this.sustainHealTime = 0;
+        this.sustainShieldTime = 0;
         this.energyDirty = true;
         if (kit.fullBoost) this.boost = 100;
         // kits zoom out like a 15x scope
@@ -5232,6 +5238,9 @@ export class Player extends BaseGameObject {
         this.shieldDirty = true;
         this.maxEnergy = 0;
         this.energy = 0;
+        this.energyTick = 0;
+        this.sustainHealTime = 0;
+        this.sustainShieldTime = 0;
         this.energyDirty = true;
         this.kitEnhanceTime = 0;
         this.outfit = this.loadout.outfit;
@@ -5256,22 +5265,32 @@ export class Player extends BaseGameObject {
         const e = kit.energy;
         if (e) {
             const before = Math.round(this.energy);
-            // energy pauses refilling for a moment after it's spent, so the cost shows on the bar
-            if (this.energyRegenDelay > 0) this.energyRegenDelay -= dt;
-            else this.energy = math.min(this.energy + e.perSecond * dt, e.max);
-            if (e.heal > 0 && this.health < this.maxHealth) {
-                const cost = e.healCost * dt;
-                if (this.energy >= cost) {
-                    this.energy -= cost;
+            // healing (or, at full health, shield) runs smoothly while there is energy; the time it ran is
+            // billed in one lump below
+            if (this.energy > 0) {
+                if (e.heal > 0 && this.health < this.maxHealth) {
                     this.health = math.min(this.health + e.heal * dt, this.maxHealth);
-                }
-            } else if (e.shieldRegen > 0 && this.shield < this.maxShield) {
-                const cost = e.shieldCost * dt;
-                if (this.energy >= cost) {
-                    this.energy -= cost;
+                    this.sustainHealTime += dt;
+                } else if (e.shieldRegen > 0 && this.shield < this.maxShield) {
                     this.shield = math.min(this.shield + e.shieldRegen * dt, this.maxShield);
                     this.shieldDirty = true;
+                    this.sustainShieldTime += dt;
                 }
+            }
+            // energy is gained in 1 s steps, and the healing/shield cost is charged half a second after each
+            // one so the bar shows the gain and then the cost instead of the gain hiding it
+            const eps = 1e-6;
+            const prevTick = this.energyTick;
+            this.energyTick += dt;
+            if (prevTick < 0.5 - eps && this.energyTick >= 0.5 - eps) {
+                const bill = e.healCost * this.sustainHealTime + e.shieldCost * this.sustainShieldTime;
+                this.energy = Math.max(0, this.energy - bill);
+                this.sustainHealTime = 0;
+                this.sustainShieldTime = 0;
+            }
+            if (this.energyTick >= 1 - eps) {
+                this.energyTick = Math.max(0, this.energyTick - 1);
+                this.energy = math.min(this.energy + e.perSecond, e.max);
             }
             if (Math.round(this.energy) !== before) this.energyDirty = true;
             // ability kits show their cooldowns, which change every tick

@@ -574,7 +574,6 @@ export class WeaponManager {
         if (reloadEnergy) {
             if (this.player.energy < reloadEnergy) return;
             this.player.energy -= reloadEnergy;
-            this.player.energyRegenDelay = 1;
             this.player.energyDirty = true;
         }
         const weapon = this.weapons[curWeapIdx];
@@ -751,7 +750,6 @@ export class WeaponManager {
         if (!cost) return true;
         if (this.player.energy < cost) return false;
         this.player.energy -= cost;
-        this.player.energyRegenDelay = 1;
         this.player.energyDirty = true;
         return true;
     }
