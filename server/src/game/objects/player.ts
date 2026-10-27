@@ -728,6 +728,8 @@ export class Player extends BaseGameObject {
     /** kit shield cap; 0 = none */
     maxShield = 0;
     energyDirty = false;
+    /** seconds before energy starts refilling again after an ability or reload spent it */
+    energyRegenDelay = 0;
     /** Wizard: seconds left of the enhanced circle */
     kitEnhanceTime = 0;
     regenPulseTimer = 0;
@@ -5254,7 +5256,9 @@ export class Player extends BaseGameObject {
         const e = kit.energy;
         if (e) {
             const before = Math.round(this.energy);
-            this.energy = math.min(this.energy + e.perSecond * dt, e.max);
+            // energy pauses refilling for a moment after it's spent, so the cost shows on the bar
+            if (this.energyRegenDelay > 0) this.energyRegenDelay -= dt;
+            else this.energy = math.min(this.energy + e.perSecond * dt, e.max);
             if (e.heal > 0 && this.health < this.maxHealth) {
                 const cost = e.healCost * dt;
                 if (this.energy >= cost) {
