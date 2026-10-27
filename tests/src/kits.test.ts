@@ -1,4 +1,5 @@
 import { expect, test } from "vitest";
+import { UltronMinion } from "../../shared/defs/gameObjects/kitDefs.ts";
 import { GameConfig, TeamMode } from "../../shared/gameConfig.ts";
 import { v2 } from "../../shared/utils/v2.ts";
 import { createGame } from "./gameTestHelpers.ts";
@@ -50,7 +51,7 @@ test("Ultron: minions, orb blast and laser cost energy and hit", () => {
     const { game, me, enemy } = setup("ultron");
     expect(me.shield).toBe(300);
     use(game, me, Slot.Melee, 1);
-    expect(me.minions.length).toBe(5);
+    expect(me.minions.length).toBe(UltronMinion.count);
     expect(me.minions.every((m) => m.teamId === me.teamId)).toBeTruthy();
 
     me.energy = 200;

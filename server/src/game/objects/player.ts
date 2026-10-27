@@ -2849,8 +2849,8 @@ export class Player extends BaseGameObject {
                 playerSource.spiderRegenTime = 4;
                 playerSource.shield = math.min(playerSource.shield + 20, playerSource.maxShield || 200);
                 playerSource.shieldDirty = true;
-            } else if (src === "kit_summoner_whip" && params.weaponSourceType === "kit_summoner_whip" && params.amount! >= 20) {
-                // the whip's lash (not a dagger) sets the minions' target
+            } else if (src === "kit_summoner_whip" && params.amount! > (KitDefs.summoner.daggers?.damage ?? 10) + 0.01) {
+                // the whip's lash (it hits harder than a dagger) sets the minions' target
                 playerSource.summonerFocusId = this.__id;
             }
             else if (src === "pg_acid_shotgun") this.applyPoison(4, playerSource);
