@@ -730,6 +730,11 @@ export class UiManager2 {
         // energy replaces the adrenaline bar: a kit never uses both
         const boostCounter = document.getElementById("ui-boost-counter");
         if (boostCounter) boostCounter.style.display = maxEnergy > 0 ? "none" : "";
+        // If both shield and energy are active (non-default kit), push the energy bar
+        // up enough that it clears the shield bar sitting at -18px above the health bar.
+        // shield bar is 12px tall + 6px gap = 18px; energy bar default margin-bottom is 8px,
+        // so add an extra 18px → 26px total to lift it above the shield bar.
+        this.dom.health.energyBar.style.marginBottom = maxEnergy > 0 && shield > 0 ? "26px" : "8px";
         this.dom.health.energy.style.width = `${maxEnergy > 0 ? math.min((energy / maxEnergy) * 100, 100) : 0}%`;
         this.dom.health.energyText.textContent = maxEnergy > 0 ? `${Math.floor(energy)} / ${maxEnergy}` : "";
         // kit abilities: a dark sweep and the seconds left over each slot on cooldown
