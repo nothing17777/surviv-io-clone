@@ -1474,7 +1474,7 @@ const KitMeleeDefs: Record<string, MeleeDef> = {
     kit_wolverine_claws: defineMeleeSkin("katana", {
         name: "Adamantium Claws",
         noPotatoSwap: true,
-        damage: 35,
+        damage: 24,
         autoAttack: true,
         attack: { offset: { x: 2, y: 0 }, rad: 2.6, cooldownTime: 0.35 },
         lootImg: { sprite: `img/custom-weapons/loot/kit_wolverine_claws.png?v=${CustomWeaponsVersion}`, scale: 0.3, mirror: false, rot: 0 },
@@ -1498,7 +1498,7 @@ Object.assign(
     Object.fromEntries([
         // Spider-Man: 45 dmg, bleeds, 4x self regen for 4 s and a 20 hp shield on hit
         kitMelee("kit_spider_slash", "Spider Slash", {
-            damage: 45,
+            damage: 30,
             autoAttack: true,
             attack: { offset: { x: 2, y: 0 }, rad: 2.6, cooldownTime: 0.5 },
         }),
@@ -1511,13 +1511,13 @@ Object.assign(
         // abilities in the melee slot: using it is the "swing"
         kitMelee("kit_ultron_minions", "Minion Spawn", {
             damage: 0,
-            energyCost: 45,
-            attack: { offset: { x: 0, y: 0 }, rad: 0.1, cooldownTime: 4 },
+            energyCost: 60,
+            attack: { offset: { x: 0, y: 0 }, rad: 0.1, cooldownTime: 8 },
         }),
         kitMelee("kit_wizard_enhance", "Enhance Circle", {
             damage: 0,
-            energyCost: 100,
-            attack: { offset: { x: 0, y: 0 }, rad: 0.1, cooldownTime: 10 },
+            energyCost: 120,
+            attack: { offset: { x: 0, y: 0 }, rad: 0.1, cooldownTime: 16 },
         }),
     ]),
 );

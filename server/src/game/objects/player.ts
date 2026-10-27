@@ -2021,7 +2021,7 @@ export class Player extends BaseGameObject {
             // Power Fists: 10 shield per second while held, up to 200
             const shieldCap = this.maxShield || 200;
             if (this.weapons[this.curWeapIdx]?.type === "pg_power_fists" && this.shield < shieldCap) {
-                this.shield = Math.min(this.shield + 10 * dt, shieldCap);
+                this.shield = Math.min(this.shield + 5 * dt, shieldCap);
                 this.shieldDirty = true;
             }
 
@@ -2847,7 +2847,7 @@ export class Player extends BaseGameObject {
             } else if (src === "kit_spider_slash") {
                 this.applyBleed(4, playerSource);
                 playerSource.spiderRegenTime = 4;
-                playerSource.shield = math.min(playerSource.shield + 20, playerSource.maxShield || 200);
+                playerSource.shield = math.min(playerSource.shield + 8, playerSource.maxShield || 200);
                 playerSource.shieldDirty = true;
             } else if (src === "kit_summoner_whip" && params.weaponSourceType === "kit_summoner_whip" && params.amount! >= 20) {
                 // the whip's lash (not a dagger) sets the minions' target
@@ -2864,7 +2864,7 @@ export class Player extends BaseGameObject {
             }
             // Engineer Exoskeleton heals its user the damage it deals
             if (src === "pg_engineer_exoskeleton" && !playerSource.dead) {
-                playerSource.health = Math.min(playerSource.health + finalDamage, playerSource.maxHealth);
+                playerSource.health = Math.min(playerSource.health + finalDamage * 0.5, playerSource.maxHealth);
             }
         }
 
@@ -5282,8 +5282,8 @@ export class Player extends BaseGameObject {
         }
         if (this.spiderRegenTime > 0) {
             this.spiderRegenTime -= dt;
-            // Spider Slash: 4x regen (the base 10 hp/s is added above)
-            if (kit.regen) this.health = math.min(this.health + kit.regen * 3 * dt, this.maxHealth);
+            // Spider Slash: 2x regen (the base rate is added above)
+            if (kit.regen) this.health = math.min(this.health + kit.regen * dt, this.maxHealth);
         }
         if (kit.daggers) this.updateDaggers(dt, kit.daggers);
         if (kit.aura) this.updateAura(dt, kit.aura);

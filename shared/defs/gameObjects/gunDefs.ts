@@ -3747,7 +3747,7 @@ const kitGun = (id: string, base: string, bullet: Partial<BulletDef>, gun: DeepP
 const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
     // Iron Man repulsor: a wide cyan laser, 50 dmg, 1.4 shots/s, 10 rounds, 1 s reload for 10 energy
     kitGun("kit_ironman_blast", "sv98", {
-        damage: 55,
+        damage: 36,
         beam: true,
         speed: 400,
         distance: 80,
@@ -3771,7 +3771,7 @@ const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
     // Iron Man rockets: 8 strongly homing rockets fired all around, 20 dmg each, 0.8 shots/s, 5 rounds,
     // 2 s reload for 15 energy
     kitGun("kit_ironman_rockets", "barrett", {
-        damage: 30,
+        damage: 12,
         speed: 55,
         distance: 110,
         falloff: 1,
@@ -3787,7 +3787,7 @@ const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
     }, {
         name: "Micro Rockets",
         fireMode: "single",
-        fireDelay: 1.25,
+        fireDelay: 1.8,
         bulletCount: 8,
         ringShot: true,
         shotSpread: 0,
@@ -3832,7 +3832,7 @@ for (const [color, tracer] of Object.entries(orbColorTracer)) {
         spriteSize: 1.4,
     });
     kitBullet(`bullet_kit_ultron_orb_laser_${color}`, {
-        damage: 40,
+        damage: 26,
         speed: 300,
         distance: 30,
         beam: true,
@@ -3843,7 +3843,7 @@ for (const [color, tracer] of Object.entries(orbColorTracer)) {
 // the Summoner's blade minions
 kitBullet("bullet_kit_dagger", {
     // a spinning blade minion, not a magic beam: only the dagger sprite is drawn
-    damage: 16,
+    damage: 10,
     speed: 55,
     distance: 20,
     spin: 14,
@@ -3855,7 +3855,7 @@ kitBullet("bullet_kit_dagger", {
 });
 // the Summoner's whip: a chain that lashes out 10 tiles from the hand
 kitBullet("bullet_kit_whip", {
-    damage: 20,
+    damage: 14,
     speed: 70,
     distance: 10,
     beam: true,
@@ -3867,7 +3867,7 @@ kitBullet("bullet_kit_whip", {
 const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
     // Spider-Man web: a fast white strand, 30 dmg; whatever it hits swings him there
     kitGun("kit_spider_web", "deagle", {
-        damage: 30,
+        damage: 20,
         speed: 120,
         distance: 20,
         falloff: 1,
@@ -3892,7 +3892,7 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
     // Ultron laser: a lasting purple beam while held, 12 dmg per 0.5 s, through enemies not walls,
     // 25 energy per second
     kitGun("kit_ultron_laser", "m249", {
-        damage: 2.4,
+        damage: 1.5,
         speed: 400,
         distance: 35,
         beam: true,
@@ -3905,7 +3905,7 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
         name: "Ultron Laser",
         fireMode: "auto",
         fireDelay: 0.1,
-        energyCost: 2.5,
+        energyCost: 3,
         shotSpread: 0,
         moveSpread: 0,
         maxClip: 250,
@@ -3917,8 +3917,8 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
     kitGun("kit_ultron_blast", "barrett", { damage: 0 }, {
         name: "Energy Blast",
         fireMode: "single",
-        fireDelay: 5,
-        energyCost: 80,
+        fireDelay: 7,
+        energyCost: 90,
         bulletCount: 6,
         fanShot: true,
         shotSpread: 10,
@@ -3933,13 +3933,13 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
     kitGun("kit_wizard_blast", "famas", { damage: 0 }, {
         name: "Magic Blast",
         fireMode: "single",
-        fireDelay: 1.2,
-        energyCost: 50,
+        fireDelay: 1.6,
+        energyCost: 55,
         bulletCount: 4,
         shotAngles: [0, -15, 0, 15],
         bulletTypes: [
             kitBullet("bullet_kit_wizard_laser", {
-                damage: 50,
+                damage: 30,
                 speed: 400,
                 distance: 45,
                 beam: true,
@@ -3951,7 +3951,7 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
             }),
             ...["star_wrath_proj", "foxparks_fireball", "betsys_fireball"].map((img, i) =>
                 kitBullet(`bullet_kit_wizard_bolt_${i}`, {
-                    damage: 20,
+                    damage: 12,
                     speed: 55,
                     distance: 45,
                     homing: true,
@@ -3977,8 +3977,8 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
         fireMode: "burst",
         burstCount: 9,
         burstDelay: 0.11,
-        fireDelay: 2,
-        energyCost: 100,
+        fireDelay: 3,
+        energyCost: 110,
         converge: 6,
         shotSpread: 0,
         moveSpread: 0,
@@ -3994,7 +3994,7 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
             "kit/amethyst_bolt",
         ].map((img, i) =>
             kitBullet(`bullet_kit_wizard_star_${i}`, {
-                damage: 25,
+                damage: 14,
                 speed: 55,
                 distance: 50,
                 noTracer: true,
