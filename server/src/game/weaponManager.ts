@@ -1373,7 +1373,7 @@ export class WeaponManager {
                     } else if (this.activeWeapon === "lol_eclipse") {
                         this.player.eclipseHitCount = (this.player.eclipseHitCount ?? 0) + 1;
                         if (this.player.eclipseHitCount % 2 === 0) {
-                            this.player.shield = Math.min((this.player.shield ?? 0) + 25, this.player.maxShield || 200);
+                            this.player.shield = Math.min((this.player.shield ?? 0) + 50, this.player.maxShield || 200);
                             this.player.shieldDirty = true;
                             this.player.setDirty();
                         }
