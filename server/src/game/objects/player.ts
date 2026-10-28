@@ -2880,6 +2880,9 @@ export class Player extends BaseGameObject {
         // the super hacker has 10,000 health: kept as 100 (the network only sends 0-100), everything hits it for 1%
         if (this.botBrain?.level === "super_hacker") finalDamage *= GameConfig.player.health / 10000;
 
+        // any hit ends the calm, even one the shield soaks up
+        if (finalDamage > 0) this.calmTime = 0;
+
         // Shield absorbs damage first
         if (this.shield > 0 && finalDamage > 0) {
             if (this.shield >= finalDamage) {
@@ -2929,7 +2932,6 @@ export class Player extends BaseGameObject {
         }
 
         this.health -= finalDamage;
-        if (finalDamage > 0) this.calmTime = 0;
 
         // debuff weapons (the debuff's own ticks are Bleeding damage, so they don't refresh it);
         // Frozen Dragon's slow comes from its explosion's freezeDuration
@@ -5369,9 +5371,11 @@ export class Player extends BaseGameObject {
         if (this.kit === "default" || !kit || this.dead) return;
         if (kit.fullBoost && this.boost < 100) this.boost = 100;
         this.calmTime += dt;
-        if (kit.regen && this.health < this.maxHealth) {
-            let rate = this.health < (kit.lowHealth ?? 0) ? kit.regen * 2 : kit.regen;
-            if (kit.calmRegen && this.calmTime >= kit.calmRegen.after) rate = kit.calmRegen.rate;
+        // out of combat the calm rate replaces the base regen (and Iron Man's energy healing)
+        const calmHealing = !!kit.calmRegen && this.calmTime >= kit.calmRegen.after && this.health < this.maxHealth;
+        if ((kit.regen || calmHealing) && this.health < this.maxHealth) {
+            let rate = this.health < (kit.lowHealth ?? 0) ? (kit.regen ?? 0) * 2 : (kit.regen ?? 0);
+            if (calmHealing) rate = kit.calmRegen!.rate;
             this.health = math.min(this.health + rate * dt, this.maxHealth);
         }
         const e = kit.energy;
@@ -5380,7 +5384,7 @@ export class Player extends BaseGameObject {
             // healing (or, at full health, shield) runs smoothly while there is energy; the time it ran is
             // billed in one lump below
             if (this.energy > 0) {
-                if (e.heal > 0 && this.health < this.maxHealth) {
+                if (e.heal > 0 && this.health < this.maxHealth && !calmHealing) {
                     this.health = math.min(this.health + e.heal * dt, this.maxHealth);
                     this.sustainHealTime += dt;
                 } else if (e.shieldRegen > 0 && this.shield < this.maxShield) {

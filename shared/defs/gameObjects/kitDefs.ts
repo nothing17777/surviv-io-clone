@@ -22,7 +22,7 @@ export interface KitDef {
     /** hp per second, doubled under lowHealth */
     regen?: number;
     lowHealth?: number;
-    /** Spider-Man: regen goes up to `rate` hp/s once he has gone `after` seconds without taking damage */
+    /** hp/s instead of regen (and for free, instead of the energy healing) once `after` seconds have gone by without taking damage */
     calmRegen?: { rate: number; after: number };
     /** Spider-Man: fires `bullet` at the nearest enemy within `range`, `rate` shots/s (`dodgeRate` while dodging) */
     autoFire?: { bullet: string; range: number; rate: number; dodgeRate: number };
@@ -51,7 +51,7 @@ export const KitDefs: Record<string, KitDef> = {
     default: { name: "Default", health: 100, helmet: "", chest: "", outfit: "", melee: "" },
     wolverine: {
         name: "Wolverine",
-        health: 300,
+        health: 200,
         helmet: "helmet04",
         chest: "chest04",
         outfit: "outfitKitWolverine",
@@ -59,8 +59,8 @@ export const KitDefs: Record<string, KitDef> = {
         melee: "kit_wolverine_claws",
         fullBoost: true,
         speedBonus: 2,
-        regen: 15,
-        lowHealth: 100,
+        regen: 5,
+        calmRegen: { rate: 10, after: 5 },
     },
     ironman: {
         name: "Iron Man",
@@ -72,7 +72,8 @@ export const KitDefs: Record<string, KitDef> = {
         primary: "kit_ironman_blast",
         secondary: "kit_ironman_rockets",
         melee: "kit_ironman_fists",
-        energy: { max: 100, perSecond: 10, heal: 8, healCost: 5, shieldRegen: 8, shieldCost: 3 },
+        energy: { max: 100, perSecond: 10, heal: 1, healCost: 5, shieldRegen: 1, shieldCost: 3 },
+        calmRegen: { rate: 5, after: 5 },
     },
     spiderman: {
         name: "Spider-Man",
@@ -84,7 +85,7 @@ export const KitDefs: Record<string, KitDef> = {
         melee: "kit_spider_dodge",
         fullBoost: true,
         speedBonus: 2,
-        regen: 5,
+        regen: 2,
         calmRegen: { rate: 20, after: 5 },
         autoFire: { bullet: "bullet_kit_spider_auto", range: 40, rate: 1, dodgeRate: 3 },
     },
@@ -98,7 +99,8 @@ export const KitDefs: Record<string, KitDef> = {
         primary: "kit_ultron_laser",
         secondary: "kit_ultron_blast",
         melee: "kit_ultron_minions",
-        energy: { max: 200, perSecond: 20, heal: 0, healCost: 0, shieldRegen: 5, shieldCost: 3 },
+        energy: { max: 200, perSecond: 20, heal: 0, healCost: 0, shieldRegen: 2, shieldCost: 3 },
+        calmRegen: { rate: 5, after: 5 },
     },
     summoner: {
         name: "Summoner",
@@ -123,7 +125,7 @@ export const KitDefs: Record<string, KitDef> = {
         melee: "kit_wizard_enhance",
         energy: { max: 300, perSecond: 20, heal: 0, healCost: 0, shieldRegen: 0, shieldCost: 0 },
         // radius is also the drawn circle's radius on the client, so enemies inside it are the ones marked
-        aura: { radius: 32, damage: 10, energy: 10, shield: 15, health: 5, enhanceTime: 6 },
+        aura: { radius: 32, damage: 10, energy: 10, shield: 2, health: 2, enhanceTime: 6 },
     },
 };
 
