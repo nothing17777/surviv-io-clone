@@ -49,8 +49,61 @@ printf 'SURVIV_API_URL=%s\nSURVIV_GAME_ADDRESS=%s\n' "$SURVIV_API_URL" "$SURVIV_
 # never fatal: the game must keep running even if Vercel is unreachable.
 scripts/sync-vercel.sh "$SURVIV_API_URL" "$SURVIV_GAME_ADDRESS" || echo "Vercel sync failed, continuing."
 
-# keep the proxy alive even if it ever exits
-(while true; do node scripts/gameProxy.mjs; sleep 1; done) &
-(cd server && pnpm dev:api) &
-(cd server && pnpm dev:game) &
+RUN="$(mktemp -d)"
+
+# keep each piece alive even if it exits: the game server has died on its own
+# before, which leaves the API answering but every find_game failing.
+# The delay grows up to 30 s so a process that cannot start at all (a port still
+# held by an older run, say) does not spin restarting once a second forever;
+# a run that lasted a while is a crash rather than a failure to start, so the
+# delay resets and the next restart is immediate.
+supervise() {
+    local name=$1 cmd=$2 pidfile=$3 delay=1 started pid
+    while true; do
+        started=$SECONDS
+        bash -c "$cmd" &
+        pid=$!
+        echo "$pid" > "$pidfile"
+        wait "$pid" || true
+        if [ $((SECONDS - started)) -ge 60 ]; then delay=1; fi
+        echo "$name exited, restarting in ${delay}s"
+        sleep "$delay"
+        delay=$((delay * 2 > 30 ? 30 : delay * 2))
+    done
+}
+
+kill_tree() {
+    local pid=$1 child
+    for child in $(pgrep -P "$pid" 2>/dev/null || true); do kill_tree "$child"; done
+    kill -9 "$pid" 2>/dev/null || true
+}
+
+# Exiting is not the only way a piece dies: the dev runners keep their watcher
+# alive after the server under it is gone, so the supervisor above sees nothing
+# while the port stays closed. Poll instead, and kill the whole tree when it
+# stops answering so the supervisor starts a fresh one.
+watchdog() {
+    local name=$1 url=$2 pidfile=$3 fails=0
+    sleep 60
+    while true; do
+        sleep 15
+        if curl -fsS -m 5 -o /dev/null "$url" 2>/dev/null; then
+            fails=0
+            continue
+        fi
+        fails=$((fails + 1))
+        if [ "$fails" -ge 4 ]; then
+            echo "$name failed $fails health checks, restarting it"
+            if [ -s "$pidfile" ]; then kill_tree "$(cat "$pidfile")"; fi
+            fails=0
+            sleep 45
+        fi
+    done
+}
+
+supervise "game proxy" "node scripts/gameProxy.mjs" "$RUN/proxy.pid" &
+supervise "api server" "cd server && pnpm dev:api" "$RUN/api.pid" &
+supervise "game server" "cd server && pnpm dev:game" "$RUN/game.pid" &
+watchdog "api server" "http://127.0.0.1:8000/api/site_info" "$RUN/api.pid" &
+watchdog "game server" "http://127.0.0.1:8001/health" "$RUN/game.pid" &
 wait
