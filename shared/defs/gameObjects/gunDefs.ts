@@ -97,6 +97,13 @@ export interface GunDef extends BaseWeaponDef {
     prismCharge?: number;
     /** fires bulletCount shots evenly all around the shooter instead of a spread */
     ringShot?: boolean;
+    /** every shot flies through walls */
+    ghostShots?: boolean;
+    /**
+     * Iron Man: using it flies the shooter for `duration` seconds (untargetable, through walls, `speedBonus`
+     * faster) and fires the same volley again `waveAt` seconds in, whatever he is holding by then
+     */
+    flight?: { duration: number; waveAt: number; speedBonus: number };
     /** bulletCount shots spaced evenly across shotSpread, like a crossbow volley */
     fanShot?: boolean;
     /** degrees off the aim for each shot, in order (overrides the spread) */
@@ -3767,8 +3774,9 @@ const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
         extendedClip: 250,
         extendedReload: 250,
     }),
-    // Iron Man rockets: 8 strongly homing rockets fired all around, 8 dmg each, 25 energy a volley,
-    // 10 s cooldown
+    // Iron Man flight: 5 s in the air (untargetable, through walls, faster) with two volleys of 8 strongly
+    // homing rockets fired all around, one at the start and one 3 s in, 8 dmg each, 25 energy, 10 s cooldown.
+    // The rockets fly through walls
     kitGun("kit_ironman_rockets", "barrett", {
         damage: 8,
         speed: 55,
@@ -3790,6 +3798,8 @@ const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
         energyCost: 25,
         bulletCount: 8,
         ringShot: true,
+        ghostShots: true,
+        flight: { duration: 5, waveAt: 3, speedBonus: 6 },
         shotSpread: 0,
         moveSpread: 0,
         maxClip: 250,

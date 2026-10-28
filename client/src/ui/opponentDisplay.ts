@@ -302,6 +302,7 @@ export class LoadoutDisplay {
             kitAura: 0,
             wizardMarked: false,
             excaliburActive: false,
+            flying: false,
             frozen: false,
             frozenOri: 0,
             frozenType: "",
