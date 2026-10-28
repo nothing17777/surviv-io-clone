@@ -1,11 +1,11 @@
 import $ from "jquery";
 import { RawGameObjectDefs, WeaponTypeToDefs } from "../../../shared/defs/gameObjectDefs.ts";
-import { GameConfig } from "../../../shared/gameConfig.ts";
 import { BulletDefs } from "../../../shared/defs/gameObjects/bulletDefs.ts";
 import { ExplosionDefs } from "../../../shared/defs/gameObjects/explosionsDefs.ts";
 import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
 import type { MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
 import type { ThrowableDef } from "../../../shared/defs/gameObjects/throwableDefs.ts";
+import { GameConfig } from "../../../shared/gameConfig.ts";
 import { itemImage, itemName, itemText } from "./modePicker.ts";
 
 /**
@@ -96,9 +96,7 @@ const columns: Record<Tab, Column[]> = {
 /** every def of one loot type, e.g. all helmets */
 // biome-ignore lint/suspicious/noExplicitAny: gear and perk defs differ by type
 function defsOf(type: string): Array<[string, any]> {
-    return Object.entries(RawGameObjectDefs as Record<string, { type: string }>).filter(([, def]) =>
-        def.type === type
-    );
+    return Object.entries(RawGameObjectDefs as Record<string, { type: string }>).filter(([, def]) => def.type === type);
 }
 
 function perkRows(): Row[] {
@@ -314,7 +312,11 @@ export function initArmory() {
         );
         for (const col of cols) {
             head.append(
-                $("<th>", { class: `armory-th${col.text ? " armory-text" : ""}`, text: col.label, "data-key": col.key }),
+                $("<th>", {
+                    class: `armory-th${col.text ? " armory-text" : ""}`,
+                    text: col.label,
+                    "data-key": col.key,
+                }),
             );
         }
         head.find(`.armory-th[data-key="${sortKey}"]`).addClass(sortDesc ? "sort-desc" : "sort-asc");

@@ -519,4 +519,3 @@ export const ExplosionDefs: Record<string, ExplosionDef> = {
         decalType: "decal_frag_small_explosion",
     },
 };
-

@@ -497,7 +497,14 @@ export class Bullet {
                 this.active = false;
                 return;
             } else {
-                this.dir = v2.normalizeSafe(v2.sub(target.pos, this.pos), this.dir);
+                const toTarget = v2.normalizeSafe(v2.sub(target.pos, this.pos), this.dir);
+                // the Summoner's swords swoop round in an arc, tightening as they go so they never orbit
+                this.dir = this.bulletType === "bullet_kit_dagger"
+                    ? v2.normalizeSafe(
+                        v2.lerp(math.min(dt * (5 + this.distanceTraveled * 0.4), 1), this.dir, toTarget),
+                        toTarget,
+                    )
+                    : toTarget;
             }
         }
         if (this.bulletType === "bullet_pg_judge") {
@@ -914,7 +921,9 @@ export class Bullet {
         // as far as the shot can fly, so long range shots home too
         let bestDist = Math.max(GameObjectDefs.typeToDef(this.bulletType, "bullet").distance, 70);
         for (const p of this.bulletManager.game.playerBarn.livingPlayers) {
-            if (p.__id === this.playerId || p.untargetable || (this.player && p.teamId === this.player.teamId)) continue;
+            if (p.__id === this.playerId || p.untargetable || (this.player && p.teamId === this.player.teamId)) {
+                continue;
+            }
             if (!util.sameLayer(p.layer, this.layer)) continue;
             const to = v2.sub(p.pos, pos);
             const dist = v2.length(to);

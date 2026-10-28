@@ -109,7 +109,8 @@ export const zFindGamePrivateBody = z.object({
             noKillLoot: z.boolean().optional(),
             emptyInventory: z.boolean().optional(),
             bigMap: z.boolean().optional(),
-            ffa: z.object({ allLevels: z.boolean(), maxPlayers: z.number().optional(), potato: z.boolean().optional() }).optional(),
+            ffa: z.object({ allLevels: z.boolean(), maxPlayers: z.number().optional(), potato: z.boolean().optional() })
+                .optional(),
             allyBotKit: zPrivateLoadout.optional(),
             enemyBotKit: zPrivateLoadout.optional(),
             customMap: zCustomMap.optional(),

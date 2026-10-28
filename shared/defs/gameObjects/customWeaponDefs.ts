@@ -66,4 +66,3 @@ export const CustomMelees: Array<[string, string, string, string]> = [
     ["lol_eclipse", "Eclipse", "League of Legends", "eclipse"],
     ["pg_power_fists", "Power Fists", "Pixel Gun 3D", "power_fists"],
 ];
-

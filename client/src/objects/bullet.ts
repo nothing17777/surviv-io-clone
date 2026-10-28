@@ -328,7 +328,14 @@ export class BulletBarn {
                             b.fxSprite.visible = false;
                         }
                     } else if (target) {
-                        b.dir = v2.normalizeSafe(v2.sub(target.m_pos, b.pos), b.dir);
+                        const toTarget = v2.normalizeSafe(v2.sub(target.m_pos, b.pos), b.dir);
+                        // the Summoner's swords swoop round in an arc, like on the server
+                        b.dir = b.bulletType === "bullet_kit_dagger"
+                            ? v2.normalizeSafe(
+                                v2.lerp(math.min(dt * (5 + b.traveled * 0.4), 1), b.dir, toTarget),
+                                toTarget,
+                            )
+                            : toTarget;
                         const ang = Math.atan2(b.dir.x, b.dir.y);
                         b.container.rotation = ang - Math.PI / 2;
                     }

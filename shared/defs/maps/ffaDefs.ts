@@ -23,21 +23,33 @@ const mapDef: PartialMapDef = {
 export const Ffa = util.mergeDeep({}, Main, mapDef) as MapDef;
 
 /** Free For All where everyone spawns with max gear and the guns they picked */
-export const FfaGod = util.mergeDeep({}, Ffa, {
-    desc: { name: "Free For All (God Kit)" },
-    gameMode: { godLoadout: true },
-} satisfies PartialMapDef) as MapDef;
+export const FfaGod = util.mergeDeep(
+    {},
+    Ffa,
+    {
+        desc: { name: "Free For All (God Kit)" },
+        gameMode: { godLoadout: true },
+    } satisfies PartialMapDef,
+) as MapDef;
 
 /** Zombie Apocalypse: the lobby packed with bots of every level, hackers and scripters included */
-export const Zombie = util.mergeDeep({}, Main, {
-    desc: { name: "Zombie Apocalypse" },
-    gameMode: { ffaMode: true, ffaAllLevels: true },
-    ...FullSize,
-} satisfies PartialMapDef) as MapDef;
+export const Zombie = util.mergeDeep(
+    {},
+    Main,
+    {
+        desc: { name: "Zombie Apocalypse" },
+        gameMode: { ffaMode: true, ffaAllLevels: true },
+        ...FullSize,
+    } satisfies PartialMapDef,
+) as MapDef;
 
 /** Free For All on the potato map */
-export const FfaPotato = util.mergeDeep({}, Potato, {
-    desc: { name: "Free For All (Potato)" },
-    gameMode: { maxPlayers: 100, ffaMode: true },
-    ...FullSize,
-} satisfies PartialMapDef) as MapDef;
+export const FfaPotato = util.mergeDeep(
+    {},
+    Potato,
+    {
+        desc: { name: "Free For All (Potato)" },
+        gameMode: { maxPlayers: 100, ffaMode: true },
+        ...FullSize,
+    } satisfies PartialMapDef,
+) as MapDef;

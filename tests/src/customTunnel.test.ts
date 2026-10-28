@@ -1,10 +1,10 @@
 import { expect, test } from "vitest";
-import { MapObjectDefs } from "../../shared/defs/register.ts";
-import type { StructureDef } from "../../shared/defs/mapObjects/structureDefs.ts";
-import { TeamMode } from "../../shared/gameConfig.ts";
-import { InputMsg } from "../../shared/net/inputMsg.ts";
 import { Config } from "../../server/src/config.ts";
 import { Game } from "../../server/src/game/game.ts";
+import type { StructureDef } from "../../shared/defs/mapObjects/structureDefs.ts";
+import { MapObjectDefs } from "../../shared/defs/register.ts";
+import { TeamMode } from "../../shared/gameConfig.ts";
+import { InputMsg } from "../../shared/net/inputMsg.ts";
 import { type CustomMap, parseCustomMap } from "../../shared/utils/customMap.ts";
 import { v2 } from "../../shared/utils/v2.ts";
 import "./testHelpers.ts";

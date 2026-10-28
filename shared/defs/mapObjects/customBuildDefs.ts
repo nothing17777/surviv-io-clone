@@ -126,7 +126,6 @@ function wallRun(material: CustomWallMaterial, x0: number, y0: number, x1: numbe
     }
 }
 
-
 //
 // Tunnels: the path is rasterized onto a 1 unit grid, so corners, crossings
 // and the stair wells all come out as one clean shape.
@@ -153,7 +152,10 @@ function tileLines(rects: AABB[]): FloorImage[] {
 export function tunnelOrigin(t: CustomTunnel) {
     const xs = t.points.map((p) => p.x);
     const ys = t.points.map((p) => p.y);
-    return v2.create(Math.round((Math.min(...xs) + Math.max(...xs)) / 2), Math.round((Math.min(...ys) + Math.max(...ys)) / 2));
+    return v2.create(
+        Math.round((Math.min(...xs) + Math.max(...xs)) / 2),
+        Math.round((Math.min(...ys) + Math.max(...ys)) / 2),
+    );
 }
 
 export function createCustomTunnelDefs(t: CustomTunnel) {
@@ -172,7 +174,9 @@ export function createCustomTunnelDefs(t: CustomTunnel) {
     for (let i = 0; i + 1 < pts.length; i++) {
         const a = pts[i];
         const b = pts[i + 1];
-        boxes.push(rect(Math.min(a.x, b.x) - hw, Math.min(a.y, b.y) - hw, Math.max(a.x, b.x) + hw, Math.max(a.y, b.y) + hw));
+        boxes.push(
+            rect(Math.min(a.x, b.x) - hw, Math.min(a.y, b.y) - hw, Math.max(a.x, b.x) + hw, Math.max(a.y, b.y) + hw),
+        );
     }
     const wells: AABB[] = [];
     for (const { p, d } of ends) {
@@ -195,10 +199,13 @@ export function createCustomTunnelDefs(t: CustomTunnel) {
     const grid = new Uint8Array(W * H);
     for (const r of all) {
         for (let y = Math.round(r.min.y * G); y < Math.round(r.max.y * G); y++) {
-            for (let x = Math.round(r.min.x * G); x < Math.round(r.max.x * G); x++) grid[(y - minY) * W + (x - minX)] = 1;
+            for (let x = Math.round(r.min.x * G); x < Math.round(r.max.x * G); x++) {
+                grid[(y - minY) * W + (x - minX)] = 1;
+            }
         }
     }
-    const at = (x: number, y: number) => x >= minX && y >= minY && x < maxX && y < maxY && grid[(y - minY) * W + (x - minX)] === 1;
+    const at = (x: number, y: number) =>
+        x >= minX && y >= minY && x < maxX && y < maxY && grid[(y - minY) * W + (x - minX)] === 1;
 
     // floor: row runs merged downward into rectangles
     const floorRects: AABB[] = [];

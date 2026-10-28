@@ -1,6 +1,6 @@
+import { SwingShots } from "../../../shared/defs/gameObjects/customWeaponEffects.ts";
 import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
 import type { MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
-import { SwingShots } from "../../../shared/defs/gameObjects/customWeaponEffects.ts";
 import { PerkProperties } from "../../../shared/defs/gameObjects/perkDefs.ts";
 import { type ThrowableDef, ThrowableDefs } from "../../../shared/defs/gameObjects/throwableDefs.ts";
 import { GameObjectDefs } from "../../../shared/defs/register.ts";
@@ -1014,7 +1014,8 @@ export class WeaponManager {
             let shotPos = itemDef.ringShot
                 ? v2.add(this.player.pos, v2.mul(shotDir, this.player.rad + 0.5))
                 : v2.add(gunPos, v2.mul(toBlt, toBltLen));
-            const shotBulletType = itemDef.bulletTypes?.[itemDef.fireMode === "burst" ? this.burstIndex : i] ?? bulletType;
+            const shotBulletType = itemDef.bulletTypes?.[itemDef.fireMode === "burst" ? this.burstIndex : i]
+                ?? bulletType;
             // Star Blast: shots start side by side and close in on the point at the end of their range
             if (itemDef.converge && itemDef.burstCount) {
                 const t = this.burstIndex / Math.max(itemDef.burstCount - 1, 1) - 0.5;
@@ -1028,7 +1029,10 @@ export class WeaponManager {
             const ghost = wizardGhost || !!itemDef.ghostShots;
             const marked = wizardGhost ? [...this.player.wizardMarks].filter((p) => !p.dead) : [];
             const ghostTarget = marked.length
-                ? marked.reduce((a, b) => (v2.length(v2.sub(a.pos, shotPos)) < v2.length(v2.sub(b.pos, shotPos)) ? a : b))
+                ? marked.reduce((
+                    a,
+                    b,
+                ) => (v2.length(v2.sub(a.pos, shotPos)) < v2.length(v2.sub(b.pos, shotPos)) ? a : b))
                 : undefined;
             let distance = Number.MAX_VALUE;
             if (itemDef.toMouseHit) {
@@ -1041,7 +1045,9 @@ export class WeaponManager {
                 gameSourceType: this.activeWeapon,
                 ghost,
                 // only shots that already seek get the marked enemy; a beam keeps flying straight
-                homingTargetId: GameObjectDefs.typeToDef(shotBulletType, "bullet").homing ? ghostTarget?.__id : undefined,
+                homingTargetId: GameObjectDefs.typeToDef(shotBulletType, "bullet").homing
+                    ? ghostTarget?.__id
+                    : undefined,
                 damageType: GameConfig.DamageType.Player,
                 pos: shotPos,
                 dir: shotDir,
@@ -1074,7 +1080,11 @@ export class WeaponManager {
                 } else {
                     for (let k = 0; k < 6; k++) {
                         const ang = math.deg2rad((k - 2.5) * 8 * (1 - t));
-                        this.player.game.bulletBarn.fireBullet({ ...params, dir: v2.rotate(shotDir, ang), shotFx: k === 0 });
+                        this.player.game.bulletBarn.fireBullet({
+                            ...params,
+                            dir: v2.rotate(shotDir, ang),
+                            shotFx: k === 0,
+                        });
                     }
                     continue;
                 }

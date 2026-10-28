@@ -5,8 +5,8 @@ import * as net from "../../../shared/net/net.ts";
 import {
     type BotArmy,
     type BotLevel,
-    BotLevels,
     botLevelName,
+    BotLevels,
     type BotSettingsByLevel,
     defaultBotSettings,
     defaultPrivateLoadout,
@@ -42,16 +42,16 @@ import {
     fillItemPicker,
     fillMapSelect,
     getModeMaps,
+    kitSlot,
     loadDuelCounts,
     loadGodLoadout,
-    modeLabel,
-    saveDuelCounts,
-    kitSlot,
     loadoutToKit,
+    modeLabel,
     type PickerSlot,
     pickerSlotType,
-    setKitSlot,
+    saveDuelCounts,
     saveGodLoadout,
+    setKitSlot,
     syncGodLoadoutPickers,
 } from "./modePicker.ts";
 
@@ -979,14 +979,18 @@ export class TeamMenu {
         panel.append(head);
         if (this.isLeader) {
             const preset = $("<div/>", { class: "bot-army-preset" });
-            const pick = $("<select/>", { class: "server-select menu-option btn-hollow btn-hollow-selected bot-army-preset-level" });
+            const pick = $("<select/>", {
+                class: "server-select menu-option btn-hollow btn-hollow-selected bot-army-preset-level",
+            });
             for (const level of BotLevels) {
                 pick.append($("<option/>", { value: level, text: botLevelName(level) }));
             }
             pick.val(this.armyPresetLevel);
             preset.append(pick);
             for (const per of [10, 50, 100, MaxBotFill / 2]) {
-                preset.append($("<a/>", { class: "btn-hollow bot-army-step", "data-preset": per, text: `${per} v ${per}` }));
+                preset.append(
+                    $("<a/>", { class: "btn-hollow bot-army-step", "data-preset": per, text: `${per} v ${per}` }),
+                );
             }
             panel.append(preset);
         }
@@ -1009,7 +1013,14 @@ export class TeamMenu {
                     row.append(
                         $("<a/>", { class: "bot-army-cog", title: "Loadout and settings", "data-level": level }),
                         step(-1, "−"),
-                        $("<input/>", { class: "bot-army-count", type: "number", min: 0, max: MaxBotFill, value: count, ...data }),
+                        $("<input/>", {
+                            class: "bot-army-count",
+                            type: "number",
+                            min: 0,
+                            max: MaxBotFill,
+                            value: count,
+                            ...data,
+                        }),
                         step(1, "+"),
                     );
                 } else {
@@ -1052,7 +1063,18 @@ export class TeamMenu {
             allGoodPerks: $(`#${prefix}-all-perks`).is(":checked"),
         };
 
-        for (const slot of ["throwable2", "throwable3", "helmet", "chest", "backpack", "perk1", "perk2", "perk3"] as const) {
+        for (
+            const slot of [
+                "throwable2",
+                "throwable3",
+                "helmet",
+                "chest",
+                "backpack",
+                "perk1",
+                "perk2",
+                "perk3",
+            ] as const
+        ) {
             setKitSlot(loadout, slot, $(`#${prefix}-${slot}`).val() as string);
         }
         return loadout;
@@ -1080,8 +1102,10 @@ export class TeamMenu {
             ally = allySame ? own : bots;
             enemy = enemySame ? own : bots;
         }
-        if (JSON.stringify(ally) === JSON.stringify(this.roomData.privateBotAllyKit ?? null)
-            && JSON.stringify(enemy) === JSON.stringify(this.roomData.privateBotEnemyKit ?? null)) return;
+        if (
+            JSON.stringify(ally) === JSON.stringify(this.roomData.privateBotAllyKit ?? null)
+            && JSON.stringify(enemy) === JSON.stringify(this.roomData.privateBotEnemyKit ?? null)
+        ) return;
         this.roomData.privateBotAllyKit = ally;
         this.roomData.privateBotEnemyKit = enemy;
         this.sendMessage("setRoomProps", this.roomData);
@@ -1373,7 +1397,8 @@ export class TeamMenu {
 
                 // Same Kit with a bot side unticked: that side's own kit
                 const botKitShown = god
-                    && !((this.roomData.privateAllyBotsSameKit ?? true) && (this.roomData.privateEnemyBotsSameKit ?? true));
+                    && !((this.roomData.privateAllyBotsSameKit ?? true)
+                        && (this.roomData.privateEnemyBotsSameKit ?? true));
                 $("#team-bot-kit").toggle(botKitShown);
                 $("#team-bot-kits-section").toggle(god);
                 if (botKitShown) {

@@ -1,25 +1,25 @@
 import $ from "jquery";
 import { MapDefs } from "../../../shared/defs/mapDefs.ts";
 import { RawMapObjectDefs } from "../../../shared/defs/mapObjectDefs.ts";
+import { type AppliedCustomBuilds, CustomBuildLimits } from "../../../shared/defs/mapObjects/customBuildDefs.ts";
 import { MapObjectDefs } from "../../../shared/defs/register.ts";
 import { GameConfig } from "../../../shared/gameConfig.ts";
 import { coldet, type Collider } from "../../../shared/utils/coldet.ts";
 import { collider } from "../../../shared/utils/collider.ts";
 import {
+    applyCustomMapBuilds,
+    customBuildSpec,
     type CustomMap,
     type CustomMapBiome,
     customMapBiomes,
     customMapGrassInset,
     CustomMapLimits,
     customMapShoreInset,
-    applyCustomMapBuilds,
-    customBuildSpec,
     fitInsideMap,
     isCustomBuildType,
     parseCustomMap,
     smoothRiverPoints,
 } from "../../../shared/utils/customMap.ts";
-import { type AppliedCustomBuilds, CustomBuildLimits } from "../../../shared/defs/mapObjects/customBuildDefs.ts";
 import { mapHelpers } from "../../../shared/utils/mapHelpers.ts";
 import { math } from "../../../shared/utils/math.ts";
 import { generateTerrain } from "../../../shared/utils/terrainGen.ts";
@@ -48,7 +48,9 @@ const toolIcons: Record<Tool, string> = {
         `<circle cx="12" cy="12" r="9" fill="#3d8bff" stroke="none"/><text x="12" y="16.5" font-size="12" text-anchor="middle" fill="#fff" stroke="none" font-weight="bold">A</text>`,
     ),
     tunnel: svg(`<path d="M4 20V11a8 8 0 0116 0v9"/><path d="M8 20v-8a4 4 0 018 0v8"/>`),
-    zone: svg(`<circle cx="12" cy="12" r="9" stroke-dasharray="3 2"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/>`),
+    zone: svg(
+        `<circle cx="12" cy="12" r="9" stroke-dasharray="3 2"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/>`,
+    ),
     spawnB: svg(
         `<circle cx="12" cy="12" r="9" fill="#ff4d4d" stroke="none"/><text x="12" y="16.5" font-size="12" text-anchor="middle" fill="#fff" stroke="none" font-weight="bold">B</text>`,
     ),
@@ -72,7 +74,12 @@ const tools: Array<{ id: Tool; label: string; key: string; tip: string }> = [
     { id: "river", label: "River", key: "4", tip: "Click to add points, double-click or Enter to finish." },
     { id: "spawnA", label: "Spawn A", key: "5", tip: "Click to add a Team A start point." },
     { id: "spawnB", label: "Spawn B", key: "6", tip: "Click to add a Team B start point." },
-    { id: "tunnel", label: "Tunnel", key: "8", tip: "Click to add points, double-click or Enter to finish. Stairs go at both ends." },
+    {
+        id: "tunnel",
+        label: "Tunnel",
+        key: "8",
+        tip: "Click to add points, double-click or Enter to finish. Stairs go at both ends.",
+    },
     { id: "zone", label: "Zone", key: "7", tip: "Click where the final zone should close. Clear it in the Map panel." },
 ];
 
@@ -287,9 +294,21 @@ function undergroundContents(sub: Record<string, any>, depth = 0): Shape[] {
             // real size and one muted color: minimap colors and scales make crates huge and odd colored
             const wall = def.isWall || /wall/.test(type);
             const color = wall ? undergroundWallColor : def.door ? 0x7a5a3a : undergroundObjColor;
-            shape = { col: collider.copy(def.collision), color, scale: 1, z: wall ? 3 : 4, label: wall ? undefined : prettyName(type) };
+            shape = {
+                col: collider.copy(def.collision),
+                color,
+                scale: 1,
+                z: wall ? 3 : 4,
+                label: wall ? undefined : prettyName(type),
+            };
         } else if (def.type === "loot_spawner") {
-            shape = { col: collider.createCircle(v2.create(0, 0), 1.2), color: 0xffd34d, scale: 1, z: 5, label: "Loot" };
+            shape = {
+                col: collider.createCircle(v2.create(0, 0), 1.2),
+                color: 0xffd34d,
+                scale: 1,
+                z: 5,
+                label: "Loot",
+            };
         } else if (def.type === "building") {
             // a room inside the room: its floor and contents
             const floors: Shape[] = (def.floor?.surfaces ?? []).flatMap((f: { collision: Collider[] }) =>
@@ -368,7 +387,13 @@ function footprintShapes(type: string, depth = 0): Shape[] {
         }
     }
     if (!out.length) {
-        out.push({ col: collider.copy(mapHelpers.getBoundingCollider(type)), color: 0, scale: 1, z: 0, label: prettyName(type) });
+        out.push({
+            col: collider.copy(mapHelpers.getBoundingCollider(type)),
+            color: 0,
+            scale: 1,
+            z: 0,
+            label: prettyName(type),
+        });
     }
     return out;
 }
@@ -1044,7 +1069,8 @@ class MapMaker {
                         `${
                             customMapBiomes[s.map.biome]
                         } · ${s.map.width}×${s.map.height} · ${s.map.objects.length} objects`
-                        + (s.map.noLoot ? " · no loot" : "") + (s.map.storm ? " · storm" : "") + ` · ${new Date(s.savedAt).toLocaleDateString()}`,
+                        + (s.map.noLoot ? " · no loot" : "") + (s.map.storm ? " · storm" : "")
+                        + ` · ${new Date(s.savedAt).toLocaleDateString()}`,
                 }),
             );
             row.append(info);
@@ -1385,7 +1411,9 @@ class MapMaker {
         this.map.objects = this.map.objects.filter((o) => o.x <= w && o.y <= h);
         for (const o of this.map.objects) this.keepInside(o);
         this.map.spawns = this.map.spawns.filter((s) => s.x <= w && s.y <= h);
-        if (this.map.tunnels) this.map.tunnels = this.map.tunnels.filter((t) => t.points.every((p) => p.x <= w && p.y <= h));
+        if (this.map.tunnels) {
+            this.map.tunnels = this.map.tunnels.filter((t) => t.points.every((p) => p.x <= w && p.y <= h));
+        }
         for (const r of this.map.rivers) {
             for (const p of r.points) {
                 p.x = Math.min(p.x, w);
@@ -1423,7 +1451,13 @@ class MapMaker {
             this.toast("Only objects and loot can go underground. Switch to Surface for buildings.");
             return;
         }
-        const obj = { type: this.placeType, x: p.x, y: p.y, ori: this.placeOri, ...(this.underground ? { layer: 1 as const } : {}) };
+        const obj = {
+            type: this.placeType,
+            x: p.x,
+            y: p.y,
+            ori: this.placeOri,
+            ...(this.underground ? { layer: 1 as const } : {}),
+        };
         this.map.objects.push(this.keepInside(obj));
     }
 
@@ -2261,7 +2295,12 @@ function drawMap(
     for (const obj of placed) {
         // with Insides on, buildings and bunkers show their rooms instead of their roofs
         const inside = insides && !underground ? insideShapes(obj.type) : [];
-        const t = transformShapes(inside.length ? inside : localShapes(obj.type), v2.create(obj.x, obj.y), obj.ori, obj.scale ?? 1);
+        const t = transformShapes(
+            inside.length ? inside : localShapes(obj.type),
+            v2.create(obj.x, obj.y),
+            obj.ori,
+            obj.scale ?? 1,
+        );
         (inside.length ? opened : shapes).push(...t);
     }
     shapes.sort((a, b) => a.z - b.z);
@@ -2280,7 +2319,9 @@ function drawMap(
         ctx.stroke();
         const under: Shape[] = [];
         for (const obj of placed) {
-            under.push(...transformShapes(undergroundShapes(obj.type), v2.create(obj.x, obj.y), obj.ori, obj.scale ?? 1));
+            under.push(
+                ...transformShapes(undergroundShapes(obj.type), v2.create(obj.x, obj.y), obj.ori, obj.scale ?? 1),
+            );
         }
         // the objects placed on this layer, above the rooms they sit in
         for (const obj of map.objects) {
@@ -2303,7 +2344,9 @@ function drawMap(
             if (obj.layer) continue;
             const t = MapObjectDefs.typeToDefSafe(obj.type)?.type;
             if (t !== "building" && t !== "structure") continue;
-            for (const f of transformShapes(footprintShapes(obj.type), v2.create(obj.x, obj.y), obj.ori, obj.scale ?? 1)) {
+            for (
+                const f of transformShapes(footprintShapes(obj.type), v2.create(obj.x, obj.y), obj.ori, obj.scale ?? 1)
+            ) {
                 const b = collider.toAabb(f.col);
                 ctx.strokeRect(b.min.x, b.min.y, b.max.x - b.min.x, b.max.y - b.min.y);
                 ghosts.push({ ...f, col: collider.createAabb(b.min, b.max) });

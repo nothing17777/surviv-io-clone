@@ -570,4 +570,3 @@ export const RoleDefs: Record<string, RoleDef> = {
         },
     },
 };
-

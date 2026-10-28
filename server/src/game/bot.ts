@@ -25,9 +25,9 @@ import { findPath, isBreakable } from "./botPath.ts";
 import { Client } from "./client.ts";
 import type { Game } from "./game.ts";
 import type { Bullet } from "./objects/bullet.ts";
-import { AirStrikePlane } from "./objects/plane.ts";
 import type { Loot } from "./objects/loot.ts";
 import type { Obstacle } from "./objects/obstacle.ts";
+import { AirStrikePlane } from "./objects/plane.ts";
 import type { Player } from "./objects/player.ts";
 import { NoOpSocket } from "./socket.ts";
 
@@ -547,7 +547,9 @@ export class BotBrain {
 
         // empty handed: only brawl up close, otherwise keep looting
         // (a locked melee kit has nothing to loot, so it charges instead)
-        if (this.target && !this.hasGunWithAmmo() && !player.lockedKit && v2.distance(this.target.pos, player.pos) > 12) {
+        if (
+            this.target && !this.hasGunWithAmmo() && !player.lockedKit && v2.distance(this.target.pos, player.pos) > 12
+        ) {
             this.target = undefined;
         }
 
@@ -563,7 +565,9 @@ export class BotBrain {
                 Math.max(v2.length(toTarget) - this.target.rad, 0.5),
             );
             // a teammate down right next to us: pick them up even mid-fight
-            const mate = player.actionType === GameConfig.Action.None ? this.downedMate(GameConfig.player.reviveRange) : undefined;
+            const mate = player.actionType === GameConfig.Action.None
+                ? this.downedMate(GameConfig.player.reviveRange)
+                : undefined;
             if (mate) player.revive(mate);
             // and don't swap weapons or shoot until they're up
             if (player.actionType === GameConfig.Action.Revive) {
@@ -573,7 +577,10 @@ export class BotBrain {
             if (!this._deflecting) this.pickCombatWeapon(v2.distance(this.target.pos, player.pos), this.target);
             // hurt and carrying heals: fall back behind cover (hackers just keep fighting)
             this._retreat = undefined;
-            if (player.health < 35 && this.settings.heal && this.pickHeal() && !isHackerLevel(this.level) && this.level !== "scripter") {
+            if (
+                player.health < 35 && this.settings.heal && this.pickHeal() && !isHackerLevel(this.level)
+                && this.level !== "scripter"
+            ) {
                 this._retreat = this.findCover(this.target.pos);
             }
             return;
@@ -1032,7 +1039,9 @@ export class BotBrain {
                 this._retreat = undefined;
             }
             // closing in but a wall is in the way (seen through a window or doorway): walk around it
-            const closing = gunDef ? approach > 0 : dist > reach * 0.8 && (this.settings.chase || dist < MeleeSwitchDist);
+            const closing = gunDef
+                ? approach > 0
+                : dist > reach * 0.8 && (this.settings.chase || dist < MeleeSwitchDist);
             if (closing && this._wallToTarget) move = this.followPath(target.pos, dt);
             // low on health: back off to cover while still shooting
             if (this._retreat) move = this.followPath(this._retreat, dt);
@@ -1189,7 +1198,9 @@ export class BotBrain {
 
         // step out of the line of incoming bullets
         // (not while catching shots on the pan: that steps into their line instead)
-        const sidestep = !this.phaseDodge && !escape && !player.downed && !this._deflecting ? this.bulletDodge() : undefined;
+        const sidestep = !this.phaseDodge && !escape && !player.downed && !this._deflecting
+            ? this.bulletDodge()
+            : undefined;
         // a scripter also zig-zags whenever a gun is pointed at it
         const juke = !sidestep && !escape && this.skill.wallhack && !player.downed && !this._deflecting
             ? this.aimJuke(dt)
@@ -1450,8 +1461,7 @@ export class BotBrain {
             }
             if (react) threats.push({ pos, rad, dmg });
         };
-        const blast = (type: string) =>
-            ExplosionDefs[type] as { rad?: { max: number }; damage?: number } | undefined;
+        const blast = (type: string) => ExplosionDefs[type] as { rad?: { max: number }; damage?: number } | undefined;
 
         for (const proj of this.game.projectileBarn.projectiles) {
             if (proj.destroyed || !util.sameLayer(proj.layer, player.layer)) continue;
@@ -1601,7 +1611,9 @@ export class BotBrain {
         const player = this.player;
         if (player.curWeapIdx !== WeaponSlot.Throwable) return;
         // back to the gun we had, or anything we're carrying
-        const slot = player.weapons[t.prev]?.type ? t.prev : GunSlots.find((s) => player.weapons[s].type) ?? WeaponSlot.Melee;
+        const slot = player.weapons[t.prev]?.type
+            ? t.prev
+            : GunSlots.find((s) => player.weapons[s].type) ?? WeaponSlot.Melee;
         player.weaponManager.setCurWeapIndex(slot);
     }
 

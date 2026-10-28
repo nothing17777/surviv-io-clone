@@ -1,10 +1,6 @@
 import { z } from "zod";
 import { RawMapObjectDefs } from "../defs/mapObjectDefs.ts";
-import {
-    applyCustomBuilds,
-    type CustomBuildSpec,
-    CustomBuildLimits,
-} from "../defs/mapObjects/customBuildDefs.ts";
+import { applyCustomBuilds, CustomBuildLimits, type CustomBuildSpec } from "../defs/mapObjects/customBuildDefs.ts";
 import { MapObjectDefs } from "../defs/register.ts";
 import { collider } from "./collider.ts";
 import { mapHelpers } from "./mapHelpers.ts";

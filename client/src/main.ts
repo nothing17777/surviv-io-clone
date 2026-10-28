@@ -10,8 +10,8 @@ import type {
     GameWsDisconnectReason,
 } from "../../shared/types/api.ts";
 import { type BotLevel, defaultPrivateLoadout } from "../../shared/types/api.ts";
-import { type CustomMap, parseCustomMap } from "../../shared/utils/customMap.ts";
 import type { RoomData } from "../../shared/types/team.ts";
+import { type CustomMap, parseCustomMap } from "../../shared/utils/customMap.ts";
 import { math } from "../../shared/utils/math.ts";
 import { Account } from "./account.ts";
 import { Ambiance } from "./ambiance.ts";
@@ -211,7 +211,7 @@ export class Application {
             // the crossover icon opens the Armory's Custom Weapons tab
             $(".btn-crossover").on("click", () => {
                 armoryModal.show();
-                $('#armory-tabs .armory-tab[data-tab="custom"]').trigger("click");
+                $("#armory-tabs .armory-tab[data-tab=\"custom\"]").trigger("click");
                 return false;
             });
             $("#btn-map-maker, #btn-team-map-maker").on("click", () => {
@@ -294,8 +294,8 @@ export class Application {
                     const enemy = $("#bot-duel-enemy").val() as BotLevel;
                     const ally = $("#bot-duel-ally").val() as BotLevel;
                     this.tryJoinTeam(true, undefined, {
-                    privateMatch: true,
-                    privateVsBots: true,
+                        privateMatch: true,
+                        privateVsBots: true,
                         privateMapName: $("#bot-duel-map").val() as string,
                         privateTeamSize: Number(btn.attr("data-size")),
                         privateBotEnemy: enemy,
@@ -303,11 +303,23 @@ export class Application {
                         // your picks and counts go out as the match kit; bots get their own side's kit
                         privateGodLoadout: true,
                         privateSharedKit: true,
-                        privateLoadout: { ...defaultPrivateLoadout, ...loadoutToKit(loadGodLoadout()), ...loadDuelCounts("you") },
+                        privateLoadout: {
+                            ...defaultPrivateLoadout,
+                            ...loadoutToKit(loadGodLoadout()),
+                            ...loadDuelCounts("you"),
+                        },
                         privateAllyBotsSameKit: false,
                         privateEnemyBotsSameKit: false,
-                        privateBotEnemyKit: { ...defaultPrivateLoadout, ...loadoutToKit(loadBotDuelKit("bot")), ...loadDuelCounts("bot") },
-                        privateBotAllyKit: { ...defaultPrivateLoadout, ...loadoutToKit(loadBotDuelKit("ally")), ...loadDuelCounts("ally") },
+                        privateBotEnemyKit: {
+                            ...defaultPrivateLoadout,
+                            ...loadoutToKit(loadBotDuelKit("bot")),
+                            ...loadDuelCounts("bot"),
+                        },
+                        privateBotAllyKit: {
+                            ...defaultPrivateLoadout,
+                            ...loadoutToKit(loadBotDuelKit("ally")),
+                            ...loadDuelCounts("ally"),
+                        },
                     }, true);
                 };
                 if ($("#bot-duel-map").val() !== BotDuelCustomMap) {

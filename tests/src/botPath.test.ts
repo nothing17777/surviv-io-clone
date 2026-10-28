@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { findPath } from "../../server/src/game/botPath.ts";
-import { ObjectType } from "../../shared/net/objectSerializeFns.ts";
 import { TeamMode } from "../../shared/gameConfig.ts";
+import { ObjectType } from "../../shared/net/objectSerializeFns.ts";
 import { collider } from "../../shared/utils/collider.ts";
 import { v2 } from "../../shared/utils/v2.ts";
 import { createGame } from "./gameTestHelpers.ts";
@@ -11,7 +11,8 @@ describe("bot pathing", () => {
         const game = createGame(TeamMode.Solo, "main");
         const solid = (p: { x: number; y: number }) =>
             game.grid.intersectCollider(collider.createCircle(p, 1)).some(
-                (o) => o.__type === ObjectType.Obstacle && !o.dead && o.collidable && o.layer === 0
+                (o) =>
+                    o.__type === ObjectType.Obstacle && !o.dead && o.collidable && o.layer === 0
                     && collider.intersectCircle(o.collider, p, 1),
             );
         const toilets = game.objectRegister.objects.filter(
@@ -20,8 +21,10 @@ describe("bot pathing", () => {
         let spots = 0;
         const failed: string[] = [];
         for (const t of toilets) {
-            const starts = Array.from({ length: 8 }, (_, a) =>
-                v2.add(t.pos, v2.create(Math.cos(a) * 20, Math.sin(a) * 20))).filter((p) => !solid(p));
+            const starts = Array.from(
+                { length: 8 },
+                (_, a) => v2.add(t.pos, v2.create(Math.cos(a) * 20, Math.sin(a) * 20)),
+            ).filter((p) => !solid(p));
             for (let dx = -4; dx <= 4; dx += 0.5) {
                 for (let dy = -4; dy <= 4; dy += 0.5) {
                     const spot = v2.add(t.pos, v2.create(dx, dy));

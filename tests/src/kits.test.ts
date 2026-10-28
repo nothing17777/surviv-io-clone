@@ -56,7 +56,7 @@ test("Spider-Man: web swings him to what it hit, slash bleeds and shields", () =
 
 test("Ultron: minions, orb blast and laser cost energy and hit", () => {
     const { game, me, enemy } = setup("ultron");
-    expect(me.shield).toBe(300);
+    expect(me.shield).toBe(200);
     use(game, me, Slot.Melee, 1);
     expect(me.minions.length).toBe(UltronMinion.count);
     expect(me.minions.every((m) => m.teamId === me.teamId)).toBeTruthy();
@@ -137,21 +137,21 @@ test("Wizard: the enhanced circle marks enemies inside its drawn radius and no o
     expect(outside.enemy.wizardMarked).toBeFalsy();
 });
 
-test("Ultron: shield recovery is 12 per second for 3 energy per second", () => {
+test("Ultron: shield recovery is 5 per second for 3 energy per second", () => {
     const { shieldRegen, shieldCost } = KitDefs.ultron.energy!;
-    expect(shieldRegen).toBe(12);
+    expect(shieldRegen).toBe(5);
     expect(shieldCost).toBe(3);
     expect(KitDefs.wizard.shield).toBe(100);
 });
 
-test("Iron Man: the rockets fly him for 5 s, untargetable, with a second wave 3 s in", () => {
+test("Iron Man: the rockets fly him for 1.5 s, untargetable, with a second wave 0.75 s in", () => {
     const { game, me, enemy } = setup("ironman", v2.create(30, 0));
     me.energy = 100;
     const wave = vi.spyOn(me.weaponManager, "fireRingWave");
     expect(me.flying).toBe(false);
     use(game, me, Slot.Secondary, 1);
     expect(me.flying).toBe(true);
-    expect(me.flightTime).toBeCloseTo(5, 5);
+    expect(me.flightTime).toBeCloseTo(1.5, 5);
 
     // nothing hits him in the air, not a bullet's damage and not an explosion's
     const health = me.health;
@@ -173,17 +173,17 @@ test("Iron Man: the rockets fly him for 5 s, untargetable, with a second wave 3 
     expect(me.health).toBe(health);
     expect(me.shield).toBe(shield);
 
-    // the first wave is the shot itself; the second one is due 3 s in, even holding another weapon
+    // the first wave is the shot itself; the second one is due 0.75 s in, even holding another weapon
     me.weaponManager.setCurWeapIndex(Slot.Primary, true);
-    for (let i = 0; i < 55; i++) game.step(0.05);
+    for (let i = 0; i < 4; i++) game.step(0.05);
     expect(wave).not.toHaveBeenCalled();
     for (let i = 0; i < 8; i++) game.step(0.05);
     expect(wave).toHaveBeenCalledTimes(1);
     expect(wave).toHaveBeenCalledWith("kit_ironman_rockets");
     expect(me.flying).toBe(true);
 
-    // landed after 5 s, and he can be hurt again
-    for (let i = 0; i < 40; i++) game.step(0.05);
+    // landed after 1.5 s, and he can be hurt again
+    for (let i = 0; i < 18; i++) game.step(0.05);
     expect(me.flying).toBe(false);
     me.damage({
         amount: 20,
@@ -249,7 +249,7 @@ test("Power Fists: punch for 45 and build shield while held", () => {
     expect(me.shield).toBeGreaterThan(5);
 });
 
-test("Iron Man: untargetable only for the first 1.5 s of flight, and damage over time still ticks", () => {
+test("Iron Man: untargetable for the whole 1.5 s flight, and damage over time still ticks", () => {
     const { game, me } = setup("ironman");
     me.energy = 100;
     use(game, me, Slot.Secondary, 1);
@@ -257,7 +257,10 @@ test("Iron Man: untargetable only for the first 1.5 s of flight, and damage over
     const hp = me.health + me.shield;
     me.damage({ amount: 5, damageType: GameConfig.DamageType.Bleeding, dir: v2.create(1, 0) });
     expect(me.health + me.shield).toBeLessThan(hp);
-    for (let i = 0; i < 30; i++) game.step(0.05);
+    for (let i = 0; i < 5; i++) game.step(0.05);
     expect(me.flying).toBe(true);
+    expect(me.untargetable).toBe(true);
+    for (let i = 0; i < 20; i++) game.step(0.05);
+    expect(me.flying).toBe(false);
     expect(me.untargetable).toBe(false);
 });

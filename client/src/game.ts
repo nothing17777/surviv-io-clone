@@ -1,5 +1,5 @@
-import { applyCustomMapBuilds } from "../../shared/utils/customMap.ts";
 import * as PIXI from "pixi.js-legacy";
+import { applyCustomMapBuilds } from "../../shared/utils/customMap.ts";
 
 import { GameConfig, Input, TeamMode, WeaponSlot } from "../../shared/gameConfig.ts";
 import * as net from "../../shared/net/net.ts";
@@ -179,7 +179,11 @@ export class Game {
                 joinMessage.isMobile = device.mobile || window.mobile!;
                 joinMessage.bot = false;
                 joinMessage.loadout = this.m_config.get("loadout")!;
-                joinMessage.godLoadout = { ...joinMessage.godLoadout, ...loadoutToKit(loadGodLoadout()), ...loadDuelCounts("you") };
+                joinMessage.godLoadout = {
+                    ...joinMessage.godLoadout,
+                    ...loadoutToKit(loadGodLoadout()),
+                    ...loadDuelCounts("you"),
+                };
                 this.m_sendMessage(net.MsgType.Join, joinMessage, 8192);
             };
             this.m_connection.onMessage = (data) => {
@@ -1280,8 +1284,10 @@ export class Game {
             // an Ultron orb burst: its whole volley bursts on the server, so the orbs end here too
             if (e.type === "explosion_kit_orb") {
                 for (const b of this.m_bulletBarn.bullets) {
-                    if (b.alive && b.bulletType.startsWith("bullet_kit_ultron_orb_") && !b.bulletType.includes("laser")
-                        && v2.distance(b.pos, e.pos) < 6) {
+                    if (
+                        b.alive && b.bulletType.startsWith("bullet_kit_ultron_orb_") && !b.bulletType.includes("laser")
+                        && v2.distance(b.pos, e.pos) < 6
+                    ) {
                         b.alive = false;
                         b.collided = true;
                     }

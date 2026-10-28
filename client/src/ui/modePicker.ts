@@ -1,12 +1,12 @@
 import $ from "jquery";
-import en from "../en.json";
-import { KitDefs, isKitItem } from "../../../shared/defs/gameObjects/kitDefs.ts";
-import { HiddenCustomGuns } from "../../../shared/defs/gameObjects/customWeaponEffects.ts";
-import { BulletDefs } from "../../../shared/defs/gameObjects/bulletDefs.ts";
 import { RawGameObjectDefs } from "../../../shared/defs/gameObjectDefs.ts";
+import { BulletDefs } from "../../../shared/defs/gameObjects/bulletDefs.ts";
+import { HiddenCustomGuns } from "../../../shared/defs/gameObjects/customWeaponEffects.ts";
+import { isKitItem, KitDefs } from "../../../shared/defs/gameObjects/kitDefs.ts";
 import { type MapDefKey, MapDefs } from "../../../shared/defs/mapDefs.ts";
 import { GameConfig, type TeamMode } from "../../../shared/gameConfig.ts";
 import { defaultPrivateLoadout, type PrivateLoadout } from "../../../shared/types/api.ts";
+import en from "../en.json";
 
 /**
  * Helpers for the map + team size pickers on the main menu and the party menu,
@@ -251,9 +251,9 @@ export function itemDesc(id: string): string {
         case "gun": {
             const dmg = def.projType ? "explosive shots" : `${BulletDefs[def.bulletType]?.damage ?? "?"} damage`;
             const count = def.bulletCount > 1 && !def.projType ? ` x${def.bulletCount}` : "";
-            stats = `${dmg}${count}, ${(1 / def.fireDelay).toFixed(1)} shots/s, ${def.maxClip} rounds, ${
-                def.reloadTime
-            }s reload`;
+            stats = `${dmg}${count}, ${
+                (1 / def.fireDelay).toFixed(1)
+            } shots/s, ${def.maxClip} rounds, ${def.reloadTime}s reload`;
             break;
         }
         case "melee":
@@ -274,7 +274,6 @@ export function itemImage(id: string) {
     return sprite ? `img/loot/${sprite.replace(/\.img$/, ".svg")}` : "";
 }
 
-
 /**
  * Fills one picker with every item of a type and shows the picked item's loot
  * icon beside it. Options are only rebuilt when they change, so an open
@@ -288,7 +287,20 @@ export function fillItemPicker(prefix: string, slot: string, type: string, value
     const items = type === "kit"
         ? Object.entries(KitDefs).map(([id, kit]) => ({ id, name: `Kit: ${kit.name}` }))
         : defsOfType(type).filter((item) => !HiddenCustomGuns.has(item.id) && !isKitItem(item.id));
-    if (optionalSlots.has(slot)) items.unshift({ id: "", name: `No ${slot.startsWith("perk") ? "perk" : slot === "chest" ? "vest" : slot.startsWith("throwable") ? "throwable" : slot}` });
+    if (optionalSlots.has(slot)) {
+        items.unshift({
+            id: "",
+            name: `No ${
+                slot.startsWith("perk")
+                    ? "perk"
+                    : slot === "chest"
+                    ? "vest"
+                    : slot.startsWith("throwable")
+                    ? "throwable"
+                    : slot
+            }`,
+        });
+    }
     if (sel.find("option").length !== items.length) {
         sel.empty();
         // the Terraria / Pixel Gun 3D / League weapons get their own sections after surviv's own

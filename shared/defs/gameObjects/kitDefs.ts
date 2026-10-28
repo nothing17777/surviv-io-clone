@@ -65,7 +65,7 @@ export const KitDefs: Record<string, KitDef> = {
         primary: "kit_ironman_blast",
         secondary: "kit_ironman_rockets",
         melee: "kit_ironman_fists",
-        energy: { max: 100, perSecond: 12, heal: 10, healCost: 5, shieldRegen: 15, shieldCost: 3 },
+        energy: { max: 100, perSecond: 10, heal: 8, healCost: 5, shieldRegen: 8, shieldCost: 3 },
     },
     spiderman: {
         name: "Spider-Man",
@@ -82,14 +82,14 @@ export const KitDefs: Record<string, KitDef> = {
     ultron: {
         name: "Ultron",
         health: 50,
-        shield: 300,
+        shield: 200,
         helmet: "helmet04",
         chest: "chest04",
         outfit: "outfitKitUltron",
         primary: "kit_ultron_laser",
         secondary: "kit_ultron_blast",
         melee: "kit_ultron_minions",
-        energy: { max: 200, perSecond: 20, heal: 0, healCost: 0, shieldRegen: 12, shieldCost: 3 },
+        energy: { max: 200, perSecond: 20, heal: 0, healCost: 0, shieldRegen: 5, shieldCost: 3 },
     },
     summoner: {
         name: "Summoner",
@@ -99,7 +99,7 @@ export const KitDefs: Record<string, KitDef> = {
         outfit: "outfitKitSummoner",
         melee: "kit_summoner_whip",
         regenPulse: { amount: 20, every: 5 },
-        daggers: { count: 100, damage: 30, range: 13, interval: 0.55 },
+        daggers: { count: 100, damage: 30, range: 13, interval: 30 },
     },
     wizard: {
         name: "Wizard",
@@ -113,12 +113,12 @@ export const KitDefs: Record<string, KitDef> = {
         melee: "kit_wizard_enhance",
         energy: { max: 300, perSecond: 20, heal: 0, healCost: 0, shieldRegen: 0, shieldCost: 0 },
         // radius is also the drawn circle's radius on the client, so enemies inside it are the ones marked
-        aura: { radius: 32, damage: 10, energy: 10, shield: 30, health: 5, enhanceTime: 6 },
+        aura: { radius: 32, damage: 10, energy: 10, shield: 15, health: 5, enhanceTime: 6 },
     },
 };
 
 /** Ultron's minions: bots that fight for their summoner, then blow up */
-export const UltronMinion = { count: 4, health: 35, life: 15, explosion: "explosion_kit_minion" };
+export const UltronMinion = { count: 4, health: 17.5, speedMult: 0.75, life: 15, explosion: "explosion_kit_minion" };
 
 /** Ultron's energy blast orbs, one per colour, and the laser each one's blast fires */
 export const UltronOrbColors = ["red", "blue", "green", "yellow", "purple", "orange"] as const;

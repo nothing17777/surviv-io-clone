@@ -1451,21 +1451,21 @@ const CustomMeleeDefs: Record<string, MeleeDef> = Object.fromEntries(
                 },
             })
             : defineMeleeSkin("katana", {
-            ...util.mergeDeep({}, MeleeEffects[effect], MeleeOverrides[id] ?? {}),
-            name,
-            noPotatoSwap: true,
-            lootImg: {
-                sprite: `img/custom-weapons/loot/${id}.png?v=${CustomWeaponsVersion}`,
-                scale: 0.3,
-                mirror: false,
-                rot: 0,
-            },
-            // held sprite points along the swing like the katana's, 128px vs its 230px
-            worldImg: {
-                sprite: `img/custom-weapons/world/${id}.png?v=${CustomWeaponsVersion}`,
-                scale: { x: 0.63, y: 0.63 },
-            },
-        }),
+                ...util.mergeDeep({}, MeleeEffects[effect], MeleeOverrides[id] ?? {}),
+                name,
+                noPotatoSwap: true,
+                lootImg: {
+                    sprite: `img/custom-weapons/loot/${id}.png?v=${CustomWeaponsVersion}`,
+                    scale: 0.3,
+                    mirror: false,
+                    rot: 0,
+                },
+                // held sprite points along the swing like the katana's, 128px vs its 230px
+                worldImg: {
+                    sprite: `img/custom-weapons/world/${id}.png?v=${CustomWeaponsVersion}`,
+                    scale: { x: 0.63, y: 0.63 },
+                },
+            }),
     ]),
 );
 
@@ -1483,8 +1483,16 @@ const KitMeleeDefs: Record<string, MeleeDef> = {
         damage: 24,
         autoAttack: true,
         attack: { offset: { x: 2, y: 0 }, rad: 2.6, cooldownTime: 0.35 },
-        lootImg: { sprite: `img/custom-weapons/loot/kit_wolverine_claws.png?v=${CustomWeaponsVersion}`, scale: 0.3, mirror: false, rot: 0 },
-        worldImg: { sprite: `img/custom-weapons/world/kit_wolverine_claws.png?v=${CustomWeaponsVersion}`, scale: { x: 0.4, y: 0.4 } },
+        lootImg: {
+            sprite: `img/custom-weapons/loot/kit_wolverine_claws.png?v=${CustomWeaponsVersion}`,
+            scale: 0.3,
+            mirror: false,
+            rot: 0,
+        },
+        worldImg: {
+            sprite: `img/custom-weapons/world/kit_wolverine_claws.png?v=${CustomWeaponsVersion}`,
+            scale: { x: 0.4, y: 0.4 },
+        },
     }),
 };
 
@@ -1494,7 +1502,12 @@ const kitMelee = (id: string, name: string, params: DeepPartial<MeleeDef>): [str
         name,
         noPotatoSwap: true,
         ...params,
-        lootImg: { sprite: `img/custom-weapons/loot/${id}.png?v=${CustomWeaponsVersion}`, scale: 0.3, mirror: false, rot: 0 },
+        lootImg: {
+            sprite: `img/custom-weapons/loot/${id}.png?v=${CustomWeaponsVersion}`,
+            scale: 0.3,
+            mirror: false,
+            rot: 0,
+        },
         worldImg: { sprite: `img/custom-weapons/world/${id}.png?v=${CustomWeaponsVersion}`, scale: { x: 0.4, y: 0.4 } },
     }),
 ];

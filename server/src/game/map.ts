@@ -11,10 +11,10 @@ import { ObjectType } from "../../../shared/net/objectSerializeFns.ts";
 import { type AABB, coldet, type Collider } from "../../../shared/utils/coldet.ts";
 import { collider } from "../../../shared/utils/collider.ts";
 import {
-    customMapGrassInset,
-    customMapShoreInset,
     applyCustomMapBuilds,
     customBuildSpec,
+    customMapGrassInset,
+    customMapShoreInset,
     fitInsideMap,
     smoothRiverPoints,
 } from "../../../shared/utils/customMap.ts";
@@ -298,7 +298,8 @@ export class GameMap {
         }
 
         const bigMap = game.config.privateMatch?.bigMap ?? !!mapDef.gameMode.ffaMode;
-        const scale = (this.scale = game.teamMode > TeamMode.Duo || (game.config.privateMatch && bigMap) ? "large" : "small");
+        const scale =
+            (this.scale = game.teamMode > TeamMode.Duo || (game.config.privateMatch && bigMap) ? "large" : "small");
 
         // Every duel plays on the same small arena, whichever map was picked:
         // a 1v1 spread over a 50v50 sized map is mostly walking. Density

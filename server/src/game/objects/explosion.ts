@@ -247,7 +247,6 @@ export class ExplosionBarn {
                 if (explosion.type === "explosion_potato_lmgshot") {
                     obj.decrementViewDistance();
                 }
-
             }
         }
 

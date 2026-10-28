@@ -117,17 +117,10 @@
                                 class="btn-game-menu btn-darken locked-on-icon"
                                 data-l10n="game-aim-assist"
                             >Aim Assist</a>
-                            <a
-                                id="btn-game-auto-fire"
-                                class="btn-game-menu btn-darken aim-line-off-icon"
-                            >Auto Fire</a>
-                            <a
-                                id="btn-game-auto-melee"
-                                class="btn-game-menu btn-darken aim-line-off-icon"
+                            <a id="btn-game-auto-fire" class="btn-game-menu btn-darken aim-line-off-icon">Auto Fire</a>
+                            <a id="btn-game-auto-melee" class="btn-game-menu btn-darken aim-line-off-icon"
                             >Auto Melee</a>
-                            <a
-                                id="btn-game-auto-doors"
-                                class="btn-game-menu btn-darken aim-line-off-icon"
+                            <a id="btn-game-auto-doors" class="btn-game-menu btn-darken aim-line-off-icon"
                             >Auto Open Doors</a>
                             <a
                                 id="btn-game-sound"
@@ -587,9 +580,18 @@
                 </div>
                 <div id="ui-bottom-center-0" class="click-through js-ui-map-hidden js-ui-hud-show">
                     <!-- kit energy: in the adrenaline bar's place (they're mutually exclusive) -->
-                    <div id="ui-energy-bar" style="position: relative; width: 412px; height: 10px; margin-bottom: 8px; background: rgba(0, 0, 0, 0.45); border-radius: 4px; pointer-events: none; display: none;">
-                        <div id="ui-energy-actual" style="height: 100%; width: 0%; background: linear-gradient(to right, #f59e0b, #fde047); box-shadow: 0 0 6px #fbbf24; border-radius: 4px;"></div>
-                        <div id="ui-energy-text" style="position: absolute; left: 0; right: 0; top: -2px; text-align: center; font-size: 10px; font-weight: bold; color: #fff; text-shadow: 0 0 2px #000;"></div>
+                    <div
+                        id="ui-energy-bar"
+                        style="position: relative; width: 412px; height: 10px; margin-bottom: 8px; background: rgba(0, 0, 0, 0.45); border-radius: 4px; pointer-events: none; display: none"
+                    >
+                        <div
+                            id="ui-energy-actual"
+                            style="height: 100%; width: 0%; background: linear-gradient(to right, #f59e0b, #fde047); box-shadow: 0 0 6px #fbbf24; border-radius: 4px"
+                        ></div>
+                        <div
+                            id="ui-energy-text"
+                            style="position: absolute; left: 0; right: 0; top: -2px; text-align: center; font-size: 10px; font-weight: bold; color: #ffffff; text-shadow: 0 0 2px #000000"
+                        ></div>
                     </div>
                     <div id="ui-boost-counter">
                         <div class="ui-boost-base" id="ui-boost-counter-0">
@@ -612,9 +614,18 @@
                             <div class="ui-bar-inner" id="ui-health-actual"></div>
                             <div class="ui-bar-inner" id="ui-health-depleted"></div>
                             <!-- Eclipse's shield: its own bar above health, emptied before health is -->
-                            <div id="ui-shield-bar" style="position: absolute; left: 0; right: 0; top: -18px; height: 12px; background: rgba(0, 0, 0, 0.45); border-radius: 4px; pointer-events: none; display: none;">
-                                <div id="ui-shield-actual" style="height: 100%; width: 0%; background: linear-gradient(to right, #3b82f6, #93c5fd); box-shadow: 0 0 8px #60a5fa; border-radius: 4px;"></div>
-                                <div id="ui-shield-text" style="position: absolute; left: 0; right: 0; top: -1px; text-align: center; font-size: 11px; font-weight: bold; color: #fff; text-shadow: 0 0 2px #000;"></div>
+                            <div
+                                id="ui-shield-bar"
+                                style="position: absolute; left: 0; right: 0; top: -18px; height: 12px; background: rgba(0, 0, 0, 0.45); border-radius: 4px; pointer-events: none; display: none"
+                            >
+                                <div
+                                    id="ui-shield-actual"
+                                    style="height: 100%; width: 0%; background: linear-gradient(to right, #3b82f6, #93c5fd); box-shadow: 0 0 8px #60a5fa; border-radius: 4px"
+                                ></div>
+                                <div
+                                    id="ui-shield-text"
+                                    style="position: absolute; left: 0; right: 0; top: -1px; text-align: center; font-size: 11px; font-weight: bold; color: #ffffff; text-shadow: 0 0 2px #000000"
+                                ></div>
                             </div>
                         </div>
                     </div>
@@ -1074,19 +1085,58 @@
                                 <div id="menu-loadout">
                                     <div id="god-loadout-picker" style="display: none">
                                         <div class="god-loadout-title">Your Loadout</div>
-                                        <select id="god-kit" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                        <select id="god-primary" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                        <select id="god-secondary" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                        <select id="god-melee" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                        <select id="god-throwable" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                        <select id="god-throwable2" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                        <select id="god-throwable3" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                        <select id="god-helmet" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                        <select id="god-chest" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                        <select id="god-backpack" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                        <select id="god-perk1" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                        <select id="god-perk2" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                        <select id="god-perk3" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
+                                        <select
+                                            id="god-kit"
+                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                        ></select>
+                                        <select
+                                            id="god-primary"
+                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                        ></select>
+                                        <select
+                                            id="god-secondary"
+                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                        ></select>
+                                        <select
+                                            id="god-melee"
+                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                        ></select>
+                                        <select
+                                            id="god-throwable"
+                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                        ></select>
+                                        <select
+                                            id="god-throwable2"
+                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                        ></select>
+                                        <select
+                                            id="god-throwable3"
+                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                        ></select>
+                                        <select
+                                            id="god-helmet"
+                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                        ></select>
+                                        <select
+                                            id="god-chest"
+                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                        ></select>
+                                        <select
+                                            id="god-backpack"
+                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                        ></select>
+                                        <select
+                                            id="god-perk1"
+                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                        ></select>
+                                        <select
+                                            id="god-perk2"
+                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                        ></select>
+                                        <select
+                                            id="god-perk3"
+                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                        ></select>
                                         <div id="you-counts" class="duel-counts" style="display: none"></div>
                                     </div>
                                     <div id="locked-loadout" style="display: none">
@@ -1094,10 +1144,16 @@
                                         <div class="locked-loadout-row">Primary: <span>none</span></div>
                                         <div class="locked-loadout-row">Secondary: <span>none</span></div>
                                         <div class="god-row locked-loadout-row">
-                                            <img class="god-item-img" alt="" src="img/loot/loot-weapon-fists.svg" />Melee: <span>Fists</span>
+                                            <img
+                                                class="god-item-img"
+                                                alt=""
+                                                src="img/loot/loot-weapon-fists.svg"
+                                            />Melee: <span>Fists</span>
                                         </div>
                                         <div class="locked-loadout-row">Throwable: <span>none</span></div>
-                                        <div class="locked-loadout-hint">Locked for this mode: loot weapons in game.</div>
+                                        <div class="locked-loadout-hint">
+                                            Locked for this mode: loot weapons in game.
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1139,7 +1195,11 @@
                                         id="player-name-input-solo"
                                         maxlength="16"
                                     />
-                                    <a class="btn-darken menu-option player-options-btn" id="btn-customize" title="Change your skin">Skins</a>
+                                    <a
+                                        class="btn-darken menu-option player-options-btn"
+                                        id="btn-customize"
+                                        title="Change your skin"
+                                    >Skins</a>
                                 </div>
                                 <select
                                     id="server-select-main"
@@ -1397,231 +1457,257 @@
                                                     id="team-private-map-select"
                                                     class="btn-hollow btn-hollow-selected server-select menu-option"
                                                 ></select>
-                                                <details name="team-sections" class="team-section"><summary>2 · Map &amp; Settings</summary>
-<div id="team-custom-map">
-                                                    <div id="team-custom-map-info">
-                                                        <div id="team-custom-map-name"></div>
-                                                        <div id="team-custom-map-desc"></div>
-                                                    </div>
-                                                    <div class="team-menu-options-buttons">
-                                                        <a
-                                                            class="btn-hollow btn-darken team-menu-option"
-                                                            id="btn-team-map-upload"
-                                                        >Upload Map</a>
-                                                        <a
-                                                            class="btn-hollow btn-darken team-menu-option"
-                                                            id="btn-team-map-clear"
-                                                        >Remove</a>
-                                                        <a
-                                                            class="btn-hollow btn-darken team-menu-option"
-                                                            id="btn-team-map-maker"
-                                                        >Map Maker</a>
-                                                    </div>
-                                                    <input
-                                                        type="file"
-                                                        id="team-map-file"
-                                                        accept=".json, application/json"
-                                                        hidden
-                                                    >
-                                                </div>
-<div class="team-menu-options-buttons" id="team-private-sizes"></div>
-                                                <label class="god-heal" id="team-no-kill-loot-row"><span>No loot from kills</span>
-                                                    <input id="team-no-kill-loot" type="checkbox" />
-                                                </label>
-                                                <label class="god-heal" id="team-big-map-row"><span>Big map (off = small arena)</span>
-                                                    <input id="team-big-map" type="checkbox" />
-                                                </label>
-                                                <label class="god-heal" id="team-empty-inv-row"><span>Spawn with empty inventory</span>
-                                                    <input id="team-empty-inv" type="checkbox" />
-                                                </label>
-                                                </details>
-                                                <details name="team-sections" class="team-section" open><summary>3 · Bots</summary>
-<div id="team-bots">
-                                                    <div class="team-menu-options-buttons">
-                                                        <a
-                                                            class="btn-hollow btn-darken team-menu-option"
-                                                            id="btn-team-bots-custom"
-                                                        >Custom Bots</a>
-                                                        <a
-                                                            class="btn-hollow btn-darken team-menu-option"
-                                                            id="btn-team-bots-vs"
-                                                        >Vs Bots</a>
-                                                    </div>
-                                                    <div id="team-bot-settings" style="display: none"></div>
-                                                    <div id="team-vs-bots">
-                                                    <label class="god-heal team-vs-bot"><span>Opponent bots</span>
-                                                        <select
-                                                            id="team-bot-enemy"
-                                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                                <details name="team-sections" class="team-section">
+                                                    <summary>2 · Map &amp; Settings</summary>
+                                                    <div id="team-custom-map">
+                                                        <div id="team-custom-map-info">
+                                                            <div id="team-custom-map-name"></div>
+                                                            <div id="team-custom-map-desc"></div>
+                                                        </div>
+                                                        <div class="team-menu-options-buttons">
+                                                            <a
+                                                                class="btn-hollow btn-darken team-menu-option"
+                                                                id="btn-team-map-upload"
+                                                            >Upload Map</a>
+                                                            <a
+                                                                class="btn-hollow btn-darken team-menu-option"
+                                                                id="btn-team-map-clear"
+                                                            >Remove</a>
+                                                            <a
+                                                                class="btn-hollow btn-darken team-menu-option"
+                                                                id="btn-team-map-maker"
+                                                            >Map Maker</a>
+                                                        </div>
+                                                        <input
+                                                            type="file"
+                                                            id="team-map-file"
+                                                            accept=".json, application/json"
+                                                            hidden
                                                         >
-                                                            <option value="beginner">Beginner</option>
-                                                            <option value="intermediate">Intermediate</option>
-                                                            <option value="advanced">Advanced</option>
-                                                            <option value="hacker">Hacker</option><option value="scripter">Scripter</option><option value="super_hacker">Super Hacker</option>
-                                                        </select>
+                                                    </div>
+                                                    <div
+                                                        class="team-menu-options-buttons"
+                                                        id="team-private-sizes"
+                                                    ></div>
+                                                    <label class="god-heal" id="team-no-kill-loot-row"><span>No loot
+                                                            from kills</span>
+                                                        <input id="team-no-kill-loot" type="checkbox" />
                                                     </label>
-                                                    <label class="god-heal team-vs-bot"><span>Bot teammates</span>
+                                                    <label class="god-heal" id="team-big-map-row"><span>Big map (off =
+                                                            small arena)</span>
+                                                        <input id="team-big-map" type="checkbox" />
+                                                    </label>
+                                                    <label class="god-heal" id="team-empty-inv-row"><span>Spawn with
+                                                            empty inventory</span>
+                                                        <input id="team-empty-inv" type="checkbox" />
+                                                    </label>
+                                                </details>
+                                                <details name="team-sections" class="team-section" open>
+                                                    <summary>3 · Bots</summary>
+                                                    <div id="team-bots">
+                                                        <div class="team-menu-options-buttons">
+                                                            <a
+                                                                class="btn-hollow btn-darken team-menu-option"
+                                                                id="btn-team-bots-custom"
+                                                            >Custom Bots</a>
+                                                            <a
+                                                                class="btn-hollow btn-darken team-menu-option"
+                                                                id="btn-team-bots-vs"
+                                                            >Vs Bots</a>
+                                                        </div>
+                                                        <div id="team-bot-settings" style="display: none"></div>
+                                                        <div id="team-vs-bots">
+                                                            <label class="god-heal team-vs-bot"><span>Opponent
+                                                                    bots</span>
+                                                                <select
+                                                                    id="team-bot-enemy"
+                                                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                                                >
+                                                                    <option value="beginner">Beginner</option>
+                                                                    <option value="intermediate">Intermediate</option>
+                                                                    <option value="advanced">Advanced</option>
+                                                                    <option value="hacker">Hacker</option>
+                                                                    <option value="scripter">Scripter</option>
+                                                                    <option value="super_hacker">Super Hacker</option>
+                                                                </select>
+                                                            </label>
+                                                            <label class="god-heal team-vs-bot"><span>Bot
+                                                                    teammates</span>
+                                                                <select
+                                                                    id="team-bot-ally"
+                                                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                                                >
+                                                                    <option value="beginner">Beginner</option>
+                                                                    <option value="intermediate">Intermediate</option>
+                                                                    <option value="advanced">Advanced</option>
+                                                                    <option value="hacker">Hacker</option>
+                                                                    <option value="scripter">Scripter</option>
+                                                                    <option value="super_hacker">Super Hacker</option>
+                                                                </select>
+                                                            </label>
+                                                        </div>
+                                                        <div id="team-bot-army" class="bot-army"></div>
+                                                    </div>
+                                                </details>
+                                                <details name="team-sections" class="team-section">
+                                                    <summary>4 · Loadout &amp; Kit</summary>
+                                                    <div class="team-menu-options-buttons" id="team-kit-buttons">
+                                                        <a
+                                                            class="btn-hollow btn-darken team-menu-option"
+                                                            id="btn-team-kit-shared"
+                                                            title="Everyone spawns with the kit below"
+                                                        >Same Kit</a>
+                                                        <a
+                                                            class="btn-hollow btn-darken team-menu-option"
+                                                            id="btn-team-kit-on"
+                                                            title="Each player brings their own kit"
+                                                        >Own Kits</a>
+                                                        <a
+                                                            class="btn-hollow btn-darken team-menu-option"
+                                                            id="btn-team-kit-off"
+                                                            title="No kits: loot what you find"
+                                                        >Loot</a>
+                                                    </div>
+                                                    <div id="team-private-hint">
+                                                        Click a player's A / B tag to switch sides.
+                                                    </div>
+                                                    <div id="team-god-loadout">
+                                                        <div class="god-loadout-title" id="team-god-title"></div>
                                                         <select
-                                                            id="team-bot-ally"
+                                                            id="team-god-kit"
                                                             class="server-select menu-option btn-hollow btn-hollow-selected"
-                                                        >
-                                                            <option value="beginner">Beginner</option>
-                                                            <option value="intermediate">Intermediate</option>
-                                                            <option value="advanced">Advanced</option>
-                                                            <option value="hacker">Hacker</option><option value="scripter">Scripter</option><option value="super_hacker">Super Hacker</option>
-                                                        </select>
+                                                        ></select>
+                                                        <select
+                                                            id="team-god-primary"
+                                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                                        ></select>
+                                                        <select
+                                                            id="team-god-secondary"
+                                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                                        ></select>
+                                                        <select
+                                                            id="team-god-melee"
+                                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                                        ></select>
+                                                        <select
+                                                            id="team-god-throwable"
+                                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                                        ></select>
+                                                        <select
+                                                            id="team-god-throwable2"
+                                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                                        ></select>
+                                                        <select
+                                                            id="team-god-throwable3"
+                                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                                        ></select>
+                                                        <select
+                                                            id="team-god-helmet"
+                                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                                        ></select>
+                                                        <select
+                                                            id="team-god-chest"
+                                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                                        ></select>
+                                                        <select
+                                                            id="team-god-backpack"
+                                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                                        ></select>
+                                                        <select
+                                                            id="team-god-perk1"
+                                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                                        ></select>
+                                                        <select
+                                                            id="team-god-perk2"
+                                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                                        ></select>
+                                                        <select
+                                                            id="team-god-perk3"
+                                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                                        ></select>
+                                                        <div id="team-god-shared-only">
+                                                            <div id="team-god-heals">
+                                                                <label class="god-heal"><span>Throwables</span>
+                                                                    <input
+                                                                        id="team-god-throwable-count"
+                                                                        type="number"
+                                                                        min="0"
+                                                                        max="40"
+                                                                        class="menu-option"
+                                                                    />
+                                                                </label>
+                                                                <label class="god-heal"><span>Unlimited throws</span>
+                                                                    <input
+                                                                        id="team-god-throwable-unlimited"
+                                                                        type="checkbox"
+                                                                    />
+                                                                </label>
+                                                                <label class="god-heal"><span>All good perks</span>
+                                                                    <input id="team-god-all-perks" type="checkbox" />
+                                                                </label>
+                                                                <label class="god-heal"><span>Bandages</span>
+                                                                    <input
+                                                                        id="team-god-bandage"
+                                                                        type="number"
+                                                                        min="0"
+                                                                        max="30"
+                                                                        class="menu-option"
+                                                                    />
+                                                                </label>
+                                                                <label class="god-heal"><span>Med Kits</span>
+                                                                    <input
+                                                                        id="team-god-healthkit"
+                                                                        type="number"
+                                                                        min="0"
+                                                                        max="4"
+                                                                        class="menu-option"
+                                                                    />
+                                                                </label>
+                                                                <label class="god-heal"><span>Sodas</span>
+                                                                    <input
+                                                                        id="team-god-soda"
+                                                                        type="number"
+                                                                        min="0"
+                                                                        max="15"
+                                                                        class="menu-option"
+                                                                    />
+                                                                </label>
+                                                                <label class="god-heal"><span>Pills</span>
+                                                                    <input
+                                                                        id="team-god-painkiller"
+                                                                        type="number"
+                                                                        min="0"
+                                                                        max="4"
+                                                                        class="menu-option"
+                                                                    />
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </details>
+                                                <details
+                                                    name="team-sections"
+                                                    class="team-section"
+                                                    id="team-bot-kits-section"
+                                                >
+                                                    <summary>5 · Bot Kits</summary>
+                                                    <div class="team-step-hint">
+                                                        Ticked: bots on that side use your kit (everyone's under Same
+                                                        Kit). Unticked: they use the Bots' Kit below. Click a bot under
+                                                        Bots to give it its own kit.
+                                                    </div>
+                                                    <label class="god-heal"><span>Teammate bots get this kit</span>
+                                                        <input id="team-kit-ally-bots" type="checkbox" />
                                                     </label>
-                                                    </div>
-                                                    <div id="team-bot-army" class="bot-army"></div>
-                                                </div>
-                                                </details>
-                                                <details name="team-sections" class="team-section"><summary>4 · Loadout &amp; Kit</summary>
-<div class="team-menu-options-buttons" id="team-kit-buttons">
-                                                    <a
-                                                        class="btn-hollow btn-darken team-menu-option"
-                                                        id="btn-team-kit-shared"
-                                                        title="Everyone spawns with the kit below"
-                                                    >Same Kit</a>
-                                                    <a
-                                                        class="btn-hollow btn-darken team-menu-option"
-                                                        id="btn-team-kit-on"
-                                                        title="Each player brings their own kit"
-                                                    >Own Kits</a>
-                                                    <a
-                                                        class="btn-hollow btn-darken team-menu-option"
-                                                        id="btn-team-kit-off"
-                                                        title="No kits: loot what you find"
-                                                    >Loot</a>
-                                                </div>
-                                                                                                <div id="team-private-hint">
-                                                    Click a player's A / B tag to switch sides.
-                                                </div>
-                                                <div id="team-god-loadout">
-                                                    <div class="god-loadout-title" id="team-god-title"></div>
-                                                    <select id="team-god-kit" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                                    <select
-                                                        id="team-god-primary"
-                                                        class="server-select menu-option btn-hollow btn-hollow-selected"
-                                                    ></select>
-                                                    <select
-                                                        id="team-god-secondary"
-                                                        class="server-select menu-option btn-hollow btn-hollow-selected"
-                                                    ></select>
-                                                    <select
-                                                        id="team-god-melee"
-                                                        class="server-select menu-option btn-hollow btn-hollow-selected"
-                                                    ></select>
-                                                    <select
-                                                        id="team-god-throwable"
-                                                        class="server-select menu-option btn-hollow btn-hollow-selected"
-                                                    ></select>
-                                                    <select
-                                                        id="team-god-throwable2"
-                                                        class="server-select menu-option btn-hollow btn-hollow-selected"
-                                                    ></select>
-                                                    <select
-                                                        id="team-god-throwable3"
-                                                        class="server-select menu-option btn-hollow btn-hollow-selected"
-                                                    ></select>
-                                                    <select
-                                                        id="team-god-helmet"
-                                                        class="server-select menu-option btn-hollow btn-hollow-selected"
-                                                    ></select>
-                                                    <select
-                                                        id="team-god-chest"
-                                                        class="server-select menu-option btn-hollow btn-hollow-selected"
-                                                    ></select>
-                                                    <select
-                                                        id="team-god-backpack"
-                                                        class="server-select menu-option btn-hollow btn-hollow-selected"
-                                                    ></select>
-                                                    <select
-                                                        id="team-god-perk1"
-                                                        class="server-select menu-option btn-hollow btn-hollow-selected"
-                                                    ></select>
-                                                    <select
-                                                        id="team-god-perk2"
-                                                        class="server-select menu-option btn-hollow btn-hollow-selected"
-                                                    ></select>
-                                                    <select
-                                                        id="team-god-perk3"
-                                                        class="server-select menu-option btn-hollow btn-hollow-selected"
-                                                    ></select>
-                                                    <div id="team-god-shared-only">
-                                                        <div id="team-god-heals">
-                                                            <label class="god-heal"><span>Throwables</span>
-                                                                <input
-                                                                    id="team-god-throwable-count"
-                                                                    type="number"
-                                                                    min="0"
-                                                                    max="40"
-                                                                    class="menu-option"
-                                                                />
-                                                            </label>
-                                                            <label class="god-heal"><span>Unlimited throws</span>
-                                                                <input
-                                                                    id="team-god-throwable-unlimited"
-                                                                    type="checkbox"
-                                                                />
-                                                            </label>
-                                                            <label class="god-heal"><span>All good perks</span>
-                                                                <input
-                                                                    id="team-god-all-perks"
-                                                                    type="checkbox"
-                                                                />
-                                                            </label>
-                                                            <label class="god-heal"><span>Bandages</span>
-                                                                <input
-                                                                    id="team-god-bandage"
-                                                                    type="number"
-                                                                    min="0"
-                                                                    max="30"
-                                                                    class="menu-option"
-                                                                />
-                                                            </label>
-                                                            <label class="god-heal"><span>Med Kits</span>
-                                                                <input
-                                                                    id="team-god-healthkit"
-                                                                    type="number"
-                                                                    min="0"
-                                                                    max="4"
-                                                                    class="menu-option"
-                                                                />
-                                                            </label>
-                                                            <label class="god-heal"><span>Sodas</span>
-                                                                <input
-                                                                    id="team-god-soda"
-                                                                    type="number"
-                                                                    min="0"
-                                                                    max="15"
-                                                                    class="menu-option"
-                                                                />
-                                                            </label>
-                                                            <label class="god-heal"><span>Pills</span>
-                                                                <input
-                                                                    id="team-god-painkiller"
-                                                                    type="number"
-                                                                    min="0"
-                                                                    max="4"
-                                                                    class="menu-option"
-                                                                />
-                                                            </label>
-                                                                                                                    </div>
-                                                    </div>
-                                                    
-                                                </div>
-                                                </details>
-                                                <details name="team-sections" class="team-section" id="team-bot-kits-section"><summary>5 · Bot Kits</summary>
-                                                <div class="team-step-hint">Ticked: bots on that side use your kit (everyone's under Same Kit). Unticked: they use the Bots' Kit below. Click a bot under Bots to give it its own kit.</div>
-                                                <label class="god-heal"><span>Teammate bots get this kit</span>
-                                                                <input id="team-kit-ally-bots" type="checkbox" />
-                                                            </label>
-                                                            <label class="god-heal"><span>Enemy bots get this kit</span>
-                                                                <input id="team-kit-enemy-bots" type="checkbox" />
-                                                            </label>
-                                                <div id="team-bot-kit">
+                                                    <label class="god-heal"><span>Enemy bots get this kit</span>
+                                                        <input id="team-kit-enemy-bots" type="checkbox" />
+                                                    </label>
+                                                    <div id="team-bot-kit">
                                                         <div class="god-loadout-title">Bots' Kit</div>
-                                                        <select id="team-botkit-kit" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
+                                                        <select
+                                                            id="team-botkit-kit"
+                                                            class="server-select menu-option btn-hollow btn-hollow-selected"
+                                                        ></select>
                                                         <select
                                                             id="team-botkit-primary"
                                                             class="server-select menu-option btn-hollow btn-hollow-selected"
@@ -1672,31 +1758,63 @@
                                                         ></select>
                                                         <div id="team-botkit-heals">
                                                             <label class="god-heal"><span>Throwables</span>
-                                                                <input id="team-botkit-throwable-count" type="number" min="0" max="40" class="menu-option" />
+                                                                <input
+                                                                    id="team-botkit-throwable-count"
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max="40"
+                                                                    class="menu-option"
+                                                                />
                                                             </label>
                                                             <label class="god-heal"><span>Unlimited throws</span>
-                                                                <input id="team-botkit-throwable-unlimited" type="checkbox" />
+                                                                <input
+                                                                    id="team-botkit-throwable-unlimited"
+                                                                    type="checkbox"
+                                                                />
                                                             </label>
                                                             <label class="god-heal"><span>All good perks</span>
                                                                 <input id="team-botkit-all-perks" type="checkbox" />
                                                             </label>
                                                             <label class="god-heal"><span>Bandages</span>
-                                                                <input id="team-botkit-bandage" type="number" min="0" max="30" class="menu-option" />
+                                                                <input
+                                                                    id="team-botkit-bandage"
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max="30"
+                                                                    class="menu-option"
+                                                                />
                                                             </label>
                                                             <label class="god-heal"><span>Med Kits</span>
-                                                                <input id="team-botkit-healthkit" type="number" min="0" max="4" class="menu-option" />
+                                                                <input
+                                                                    id="team-botkit-healthkit"
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max="4"
+                                                                    class="menu-option"
+                                                                />
                                                             </label>
                                                             <label class="god-heal"><span>Sodas</span>
-                                                                <input id="team-botkit-soda" type="number" min="0" max="15" class="menu-option" />
+                                                                <input
+                                                                    id="team-botkit-soda"
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max="15"
+                                                                    class="menu-option"
+                                                                />
                                                             </label>
                                                             <label class="god-heal"><span>Pills</span>
-                                                                <input id="team-botkit-painkiller" type="number" min="0" max="4" class="menu-option" />
+                                                                <input
+                                                                    id="team-botkit-painkiller"
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max="4"
+                                                                    class="menu-option"
+                                                                />
                                                             </label>
                                                         </div>
                                                     </div>
                                                 </details>
                                             </div>
-
                                         </div>
                                     </div>
                                 </div>
@@ -1734,34 +1852,112 @@
                         <div id="bot-loadout-column" class="menu-column menu-block" style="display: none">
                             <div id="bot-loadout-picker">
                                 <div class="god-loadout-title">Opponent Bot Loadout</div>
-                                <select id="bot-kit" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                <select id="bot-primary" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                <select id="bot-secondary" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                <select id="bot-melee" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                <select id="bot-throwable" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                <select id="bot-throwable2" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                <select id="bot-throwable3" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                <select id="bot-helmet" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                <select id="bot-chest" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                <select id="bot-backpack" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                <select id="bot-perk1" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                <select id="bot-perk2" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                <select id="bot-perk3" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
+                                <select
+                                    id="bot-kit"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
+                                <select
+                                    id="bot-primary"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
+                                <select
+                                    id="bot-secondary"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
+                                <select
+                                    id="bot-melee"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
+                                <select
+                                    id="bot-throwable"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
+                                <select
+                                    id="bot-throwable2"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
+                                <select
+                                    id="bot-throwable3"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
+                                <select
+                                    id="bot-helmet"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
+                                <select
+                                    id="bot-chest"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
+                                <select
+                                    id="bot-backpack"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
+                                <select
+                                    id="bot-perk1"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
+                                <select
+                                    id="bot-perk2"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
+                                <select
+                                    id="bot-perk3"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
                                 <div id="bot-counts" class="duel-counts"></div>
                                 <div class="god-loadout-title">Teammate Bot Loadout</div>
-                                <select id="ally-kit" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                <select id="ally-primary" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                <select id="ally-secondary" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                <select id="ally-melee" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                <select id="ally-throwable" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                <select id="ally-throwable2" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                <select id="ally-throwable3" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                <select id="ally-helmet" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                <select id="ally-chest" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                <select id="ally-backpack" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                <select id="ally-perk1" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                <select id="ally-perk2" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
-                                <select id="ally-perk3" class="server-select menu-option btn-hollow btn-hollow-selected"></select>
+                                <select
+                                    id="ally-kit"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
+                                <select
+                                    id="ally-primary"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
+                                <select
+                                    id="ally-secondary"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
+                                <select
+                                    id="ally-melee"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
+                                <select
+                                    id="ally-throwable"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
+                                <select
+                                    id="ally-throwable2"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
+                                <select
+                                    id="ally-throwable3"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
+                                <select
+                                    id="ally-helmet"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
+                                <select
+                                    id="ally-chest"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
+                                <select
+                                    id="ally-backpack"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
+                                <select
+                                    id="ally-perk1"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
+                                <select
+                                    id="ally-perk2"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
+                                <select
+                                    id="ally-perk3"
+                                    class="server-select menu-option btn-hollow btn-hollow-selected"
+                                ></select>
                                 <div id="ally-counts" class="duel-counts"></div>
                             </div>
                         </div>
@@ -1931,7 +2127,10 @@
                             <select class="language-select"></select>
                         </div>
                         <div class="btn-armory menu-option btn-darken btn-start-option" title="Armory"></div>
-                        <div class="btn-crossover menu-option btn-darken btn-start-option" title="Crossover weapons: Terraria, Pixel Gun 3D and League of Legends"></div>
+                        <div
+                            class="btn-crossover menu-option btn-darken btn-start-option"
+                            title="Crossover weapons: Terraria, Pixel Gun 3D and League of Legends"
+                        ></div>
                         <div class="btn-settings menu-option btn-darken btn-start-option"></div>
                         <div class="btn-keybind menu-option btn-darken btn-start-option"></div>
                         <div
@@ -2264,23 +2463,17 @@
                             </p>
                         </div>
                         <div class="modal-settings-item">
-                            <input id="autoFireAll" type="checkbox"><p
-                                class="modal-settings-checkbox-text"
-                            >
+                            <input id="autoFireAll" type="checkbox"><p class="modal-settings-checkbox-text">
                                 Make all guns automatic
                             </p>
                         </div>
                         <div class="modal-settings-item">
-                            <input id="autoMelee" type="checkbox"><p
-                                class="modal-settings-checkbox-text"
-                            >
+                            <input id="autoMelee" type="checkbox"><p class="modal-settings-checkbox-text">
                                 Auto melee (hold to keep swinging)
                             </p>
                         </div>
                         <div class="modal-settings-item">
-                            <input id="autoOpenDoors" type="checkbox"><p
-                                class="modal-settings-checkbox-text"
-                            >
+                            <input id="autoOpenDoors" type="checkbox"><p class="modal-settings-checkbox-text">
                                 Automatically open doors
                             </p>
                         </div>

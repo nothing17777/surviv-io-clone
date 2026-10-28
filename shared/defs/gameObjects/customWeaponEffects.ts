@@ -58,8 +58,24 @@ export const GunEffects: Record<string, GunEffect> = {
     },
     // Last Prism: six rainbow beams that close into one 3x beam over 3 seconds of firing
     prism: {
-        bullet: { pierce: true, beam: true, speed: 400, distance: 70, falloff: 1, tracerColor: "cw_rainbow", tracerWidth: 0.25 },
-        gun: { prismCharge: 3, fireMode: "auto", fireDelay: 0.1, shotSpread: 0, moveSpread: 0, maxClip: 200, maxReload: 200 },
+        bullet: {
+            pierce: true,
+            beam: true,
+            speed: 400,
+            distance: 70,
+            falloff: 1,
+            tracerColor: "cw_rainbow",
+            tracerWidth: 0.25,
+        },
+        gun: {
+            prismCharge: 3,
+            fireMode: "auto",
+            fireDelay: 0.1,
+            shotSpread: 0,
+            moveSpread: 0,
+            maxClip: 200,
+            maxReload: 200,
+        },
     },
     // Pixel Gun 3D Excalibur: a minigun that spins up over about 1.5 s to 10 shots/s
     minigun: {
@@ -95,7 +111,11 @@ export const GunEffects: Record<string, GunEffect> = {
             tracerWidth: 0.35,
             tracerLength: 0.4,
             flame: true,
-            sprites: ["img/custom-weapons/fx/flame_1.png", "img/custom-weapons/fx/flame_2.png", "img/custom-weapons/fx/flame_3.png"],
+            sprites: [
+                "img/custom-weapons/fx/flame_1.png",
+                "img/custom-weapons/fx/flame_2.png",
+                "img/custom-weapons/fx/flame_3.png",
+            ],
             spriteSize: 2.6,
         },
         damageMult: 0.6,
@@ -312,7 +332,16 @@ export const GunOverrides: Record<string, GunEffect> = {
             tracerWidth: 0.1,
             tracerLength: 0.8,
         },
-        gun: { fireMode: "auto", fireDelay: 0.118, maxClip: 35, maxReload: 35, extendedClip: 35, extendedReload: 35, shotSpread: 3, moveSpread: 5 },
+        gun: {
+            fireMode: "auto",
+            fireDelay: 0.118,
+            maxClip: 35,
+            maxReload: 35,
+            extendedClip: 35,
+            extendedReload: 35,
+            shotSpread: 3,
+            moveSpread: 5,
+        },
     },
     // 1.2 shots/s, pellets spread a bit wider
     pg_acid_shotgun: { gun: { fireDelay: 0.833, shotSpread: 12 } },
@@ -351,7 +380,15 @@ export const GunOverrides: Record<string, GunEffect> = {
     // Ultimatum: a sniper-like shotgun whose 12 pellets go through walls and enemies; never reloads
     pg_ultimatum: {
         // 12 x 30: a near one-shot even if some pellets miss
-        bullet: { damage: 30, pierce: true, speed: 200, distance: 55, falloff: 0.8, tracerColor: "cw_plasma", tracerWidth: 0.14 },
+        bullet: {
+            damage: 30,
+            pierce: true,
+            speed: 200,
+            distance: 55,
+            falloff: 0.8,
+            tracerColor: "cw_plasma",
+            tracerWidth: 0.14,
+        },
         gun: {
             bulletCount: 12,
             shotSpread: 3,
@@ -367,7 +404,10 @@ export const GunOverrides: Record<string, GunEffect> = {
         },
     },
     // two barrels: two big blasts, then reload
-    pg_double_barreled_shotgun: { gun: { maxClip: 2, maxReload: 2, extendedClip: 2, extendedReload: 2, fireDelay: 0.25 }, damageMult: 1.3 },
+    pg_double_barreled_shotgun: {
+        gun: { maxClip: 2, maxReload: 2, extendedClip: 2, extendedReload: 2, fireDelay: 0.25 },
+        damageMult: 1.3,
+    },
     // napalm: the blast leaves fire burning on the ground for a few seconds
     pg_napalmcannon: {
         bullet: { linger: { explosion: "explosion_cw_fire", duration: 3, interval: 0.4 }, tracerColor: "cw_flame" },
@@ -491,7 +531,11 @@ export const MeleeEffects: Record<string, DeepPartial<MeleeDef>> = {
     // terra blade, starfury, zenith...: shoot or summon something with each swing, so they hit far and hard
     legendary: { damage: 55, armorPiercing: true, attack: { offset: { x: 3, y: 0 }, rad: 3, cooldownTime: 0.4 } },
     // Heroic Epee: 30 dmg, fast mobility, 12 hp/s heal while holding
-    heroic_epee: { damage: 30, speed: { equip: 1.25, attack: 1.05 }, attack: { offset: { x: 2.2, y: 0 }, rad: 2.4, cooldownTime: 0.35 } },
+    heroic_epee: {
+        damage: 30,
+        speed: { equip: 1.25, attack: 1.05 },
+        attack: { offset: { x: 2.2, y: 0 }, rad: 2.4, cooldownTime: 0.35 },
+    },
     // Sundered Sky: 40 dmg, heal 40 health on hit
     sundered_sky: { damage: 40, attack: { offset: { x: 2.6, y: 0 }, rad: 2.8, cooldownTime: 0.45 } },
     // Power Fists: 45 dmg, 1.3 punches/s, 10 shield/s (up to 200) while held; a natural one-two punch
@@ -527,7 +571,11 @@ export const MeleeOverrides: Record<string, DeepPartial<MeleeDef>> = {
     // everything in it. Swing time is the wiki's use time / 60 s; damage scales with its wiki damage.
     tr_terra_blade: { damage: 38, autoAttack: true, attack: { offset: { x: 1.4, y: 0 }, rad: 3, cooldownTime: 0.3 } },
     // a purple aura past the blade, and a second one toward the cursor: no flying projectile
-    tr_night_s_edge: { damage: 34, autoAttack: true, attack: { offset: { x: 1.8, y: 0 }, rad: 3.2, cooldownTime: 0.42 } },
+    tr_night_s_edge: {
+        damage: 34,
+        autoAttack: true,
+        attack: { offset: { x: 1.8, y: 0 }, rad: 3.2, cooldownTime: 0.42 },
+    },
     // a big yellow aura reaching about twice the blade's length
     tr_excalibur: { damage: 42, autoAttack: true, attack: { offset: { x: 2.2, y: 0 }, rad: 3.6, cooldownTime: 0.33 } },
     tr_meowmere: { damage: 46, autoAttack: true, attack: { offset: { x: 1.4, y: 0 }, rad: 3, cooldownTime: 0.23 } },
@@ -629,7 +677,12 @@ export const SwingShotBullets: Record<string, BulletDef> = {
         playerPierce: true,
         bounce: true,
         maxBounces: 4,
-        bounceExplosions: ["explosion_cw_rainbow_1", "explosion_cw_rainbow_2", "explosion_cw_rainbow_3", "explosion_cw_rainbow_4"],
+        bounceExplosions: [
+            "explosion_cw_rainbow_1",
+            "explosion_cw_rainbow_2",
+            "explosion_cw_rainbow_3",
+            "explosion_cw_rainbow_4",
+        ],
         tracerColor: "cw_rainbow",
         tracerWidth: 0.45,
         sprite: "img/custom-weapons/fx/cat.png",

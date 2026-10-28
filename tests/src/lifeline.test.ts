@@ -13,7 +13,12 @@ test("Leadership doesn't refill what Indomitable Spirit spends", () => {
     playerB.boost = 100;
 
     const hit = () =>
-        playerB.damage({ amount: playerB.health + 10, damageType: GameConfig.DamageType.Player, dir: v2.randomUnit(), source: playerA });
+        playerB.damage({
+            amount: playerB.health + 10,
+            damageType: GameConfig.DamageType.Player,
+            dir: v2.randomUnit(),
+            source: playerA,
+        });
 
     // first lethal hits are saved by adrenaline, then it runs out instead of refilling
     for (let i = 0; i < 20 && !playerB.dead; i++) {

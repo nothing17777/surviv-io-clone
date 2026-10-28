@@ -2,11 +2,11 @@ import $ from "jquery";
 import { type MapDefKey, MapDefs } from "../../shared/defs/mapDefs.ts";
 import { GameConfig } from "../../shared/gameConfig.ts";
 import type { SiteInfoRes } from "../../shared/types/api.ts";
+import { type BotLevel, botLevelName, BotLevels } from "../../shared/types/api.ts";
 import { api } from "./api.ts";
 import type { ConfigManager } from "./config.ts";
 import { device } from "./device.ts";
 import type { Localization } from "./ui/localization.ts";
-import { type BotLevel, BotLevels, botLevelName } from "../../shared/types/api.ts";
 import { fillMapSelect, getModeMaps, isDuelMap, isGodLoadoutMap, modeLabel } from "./ui/modePicker.ts";
 
 /** value of the "Duel (Bots)" entry in the main menu map dropdown */
@@ -86,7 +86,6 @@ export class SiteInfo {
             } catch {}
             this.selectedMap = maps.includes(saved) ? saved : maps[0] || "main";
         }
-
 
         const select = $("#mode-map-select");
         fillMapSelect(select, maps, this.selectedMap);

@@ -3,11 +3,11 @@
 import { z } from "zod";
 import type { CustomMapSummary } from "../utils/customMap.ts";
 import {
+    type BotArmy,
     type BotLevel,
     BotLevels,
     type BotSettingsByLevel,
     type FindGameMatchData,
-    type BotArmy,
     type PrivateBot,
     type PrivateLoadout,
     zBotArmy,

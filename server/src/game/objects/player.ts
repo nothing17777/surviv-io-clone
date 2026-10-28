@@ -5412,7 +5412,8 @@ export class Player extends BaseGameObject {
             ?? near.reduce((a, b) => (v2.length(v2.sub(a.pos, this.pos)) < v2.length(v2.sub(b.pos, this.pos)) ? a : b));
         // each dagger leaves from its spot on the circle round the player (the client draws them there)
         const ang = ((this.daggerIndex++ % d.count) / d.count) * Math.PI * 2 + this.game.now * 0.002;
-        const from = v2.add(this.pos, v2.create(Math.cos(ang) * 2.2, Math.sin(ang) * 2.2));
+        const out = v2.create(Math.cos(ang), Math.sin(ang));
+        const from = v2.add(this.pos, v2.mul(out, 2.2));
         this.game.bulletBarn.fireBullet(
             {
                 playerId: this.__id,
@@ -5420,7 +5421,8 @@ export class Player extends BaseGameObject {
                 gameSourceType: "kit_summoner_whip",
                 damageType: GameConfig.DamageType.Player,
                 pos: from,
-                dir: v2.normalizeSafe(v2.sub(target.pos, from), this.dir),
+                // it leaves outward from its spot and swoops round onto them (the bullet turns gradually)
+                dir: v2.normalizeSafe(v2.add(out, v2.mul(v2.normalizeSafe(v2.sub(target.pos, from), out), 0.4)), out),
                 // locks on: it turns to follow them until it lands
                 homingTargetId: target.__id,
                 layer: this.layer,
@@ -5604,6 +5606,7 @@ export class Player extends BaseGameObject {
         else if (this.botBrain?.level === "scripter") this.speed *= 1.3;
 
         this.speed += KitDefs[this.kit]?.speedBonus ?? 0;
+        if (this.minionOwner) this.speed *= UltronMinion.speedMult;
         if (this.flying) this.speed += this.flightSpeedBonus;
         this.speed = math.clamp(this.speed, 1, 10000);
     }

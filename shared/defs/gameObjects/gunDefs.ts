@@ -3767,7 +3767,7 @@ const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
         name: "Repulsor Blast",
         fireMode: "single",
         fireDelay: 0.714,
-        energyCost: 5,
+        energyCost: 10,
         shotSpread: 0,
         moveSpread: 0,
         maxClip: 250,
@@ -3775,11 +3775,11 @@ const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
         extendedClip: 250,
         extendedReload: 250,
     }),
-    // Iron Man flight: 5 s in the air (untargetable for the first 1.5 s, through walls, faster) with two volleys of 8 strongly
-    // homing rockets fired all around, one at the start and one 3 s in, 8 dmg each, 25 energy, 10 s cooldown.
+    // Iron Man flight: 1.5 s in the air (untargetable, through walls, faster) with two volleys of 8 strongly
+    // homing rockets fired all around, one at the start and one 0.75 s in, 6 dmg each, 25 energy, 10 s cooldown.
     // The rockets fly through walls
     kitGun("kit_ironman_rockets", "barrett", {
-        damage: 8,
+        damage: 6,
         speed: 55,
         distance: 110,
         falloff: 1,
@@ -3800,7 +3800,7 @@ const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
         bulletCount: 8,
         ringShot: true,
         ghostShots: true,
-        flight: { duration: 5, untargetable: 1.5, waveAt: 3, speedBonus: 6 },
+        flight: { duration: 1.5, untargetable: 1.5, waveAt: 0.75, speedBonus: 6 },
         shotSpread: 0,
         moveSpread: 0,
         maxClip: 250,
@@ -3961,7 +3961,7 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
         shotAngles: [0, -15, 0, 15],
         bulletTypes: [
             kitBullet("bullet_kit_wizard_laser", {
-                damage: 30,
+                damage: 15,
                 speed: 400,
                 distance: 45,
                 beam: true,
@@ -3973,7 +3973,7 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
             }),
             ...["star_wrath_proj", "foxparks_fireball", "betsys_fireball"].map((img, i) =>
                 kitBullet(`bullet_kit_wizard_bolt_${i}`, {
-                    damage: 12,
+                    damage: 6,
                     speed: 55,
                     distance: 45,
                     homing: true,
@@ -3994,7 +3994,7 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
         extendedReload: 250,
     }),
     // Wizard star blast: 9 bolts one after another within a second, starting spread out and closing
-    // in at max range, 25 dmg each, 100 energy, 3 s cooldown
+    // in, then homing, 7 dmg each, 100 energy, 3 s cooldown
     kitGun("kit_wizard_stars", "famas", { damage: 0 }, {
         name: "Star Blast",
         fireMode: "burst",
@@ -4017,9 +4017,13 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
             "kit/amethyst_bolt",
         ].map((img, i) =>
             kitBullet(`bullet_kit_wizard_star_${i}`, {
-                damage: 14,
+                damage: 7,
                 speed: 55,
                 distance: 50,
+                // they close in for a moment, then lock on to the one the Wizard aimed at
+                homing: true,
+                homingFromAim: true,
+                homingDelay: 0.3,
                 noTracer: true,
                 tracerColor: "cw_star",
                 tracerWidth: 0.2,

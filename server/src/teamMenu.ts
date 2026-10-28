@@ -322,7 +322,7 @@ class Room {
         const def = MapDefs[this.data.privateMapName as MapDefKey];
         if (!customMap && !def?.gameMode.factionMode) return [];
         return this.data.privateBotArmy.flatMap((counts, team) =>
-            counts.flatMap((count, i) => Array.from({ length: count }, () => ({ level: BotLevels[i], team }))),
+            counts.flatMap((count, i) => Array.from({ length: count }, () => ({ level: BotLevels[i], team })))
         );
     }
 
@@ -397,7 +397,8 @@ class Room {
             mapName: customMap ? customMap.biome : this.data.privateMatch ? this.data.privateMapName : mode.mapName,
             // picked sides: everyone on a side is one squad and sees their teammates' names
             teamMode: this.data.privateMatch
-                ? (this.data.privateVsBots || ffa || customMap || MapDefs[this.data.privateMapName as MapDefKey]?.gameMode.factionMode
+                ? (this.data.privateVsBots || ffa || customMap
+                        || MapDefs[this.data.privateMapName as MapDefKey]?.gameMode.factionMode
                     ? this.data.privateTeamSize
                     : TeamMode.Squad)
                 : mode.teamMode,
@@ -414,11 +415,19 @@ class Room {
                     emptyInventory: !!this.data.privateEmptyInventory,
                     bigMap: this.data.privateBigMap ?? ffa,
                     // a custom map takes the picked free for all rules
-                    ffa: ffa ? { allLevels: !!ffaDef?.ffaAllLevels, maxPlayers: ffaDef?.maxPlayers, potato: !!ffaDef?.potatoMode } : undefined,
+                    ffa: ffa
+                        ? {
+                            allLevels: !!ffaDef?.ffaAllLevels,
+                            maxPlayers: ffaDef?.maxPlayers,
+                            potato: !!ffaDef?.potatoMode,
+                        }
+                        : undefined,
                     allyBotKit: this.data.privateBotAllyKit ?? undefined,
                     enemyBotKit: this.data.privateBotEnemyKit ?? undefined,
                     customMap: customMap ?? undefined,
-                    bots: this.data.privateVsBots || ffa ? undefined : [...this.data.privateBots, ...this.botFill(customMap)],
+                    bots: this.data.privateVsBots || ffa
+                        ? undefined
+                        : [...this.data.privateBots, ...this.botFill(customMap)],
                     botSettings: this.data.privateBotSettings,
                     vsBots: this.data.privateVsBots && !ffa
                         ? {
