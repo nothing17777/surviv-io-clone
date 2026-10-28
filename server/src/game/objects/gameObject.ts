@@ -31,6 +31,8 @@ export type GameObject =
 
 export interface DamageParams {
     amount?: number;
+    /** gets through Iron Man's flight (the Wizard's circle) */
+    hitsFlying?: boolean;
     damageType: DamageType;
     dir: Vec2;
     gameSourceType?: string;

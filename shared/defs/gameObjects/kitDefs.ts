@@ -26,8 +26,8 @@ export interface KitDef {
     regenPulse?: { amount: number; every: number };
     /** Summoner: orbiting blade minions that attack enemies within `range` of the player */
     daggers?: { count: number; damage: number; range: number; interval: number };
-    /** Wizard: a circle around the player; per enemy inside, per second: energy, shield, hp */
-    aura?: { radius: number; energy: number; shield: number; health: number; enhanceTime: number };
+    /** Wizard: a circle around the player that burns enemies inside for `damage`/s; per enemy inside, per second: energy, shield, hp */
+    aura?: { radius: number; damage: number; energy: number; shield: number; health: number; enhanceTime: number };
     /** Iron Man: energy pays for reloads, healing and shield */
     energy?: {
         max: number;
@@ -113,7 +113,7 @@ export const KitDefs: Record<string, KitDef> = {
         melee: "kit_wizard_enhance",
         energy: { max: 300, perSecond: 20, heal: 0, healCost: 0, shieldRegen: 0, shieldCost: 0 },
         // radius is also the drawn circle's radius on the client, so enemies inside it are the ones marked
-        aura: { radius: 24, energy: 10, shield: 30, health: 5, enhanceTime: 6 },
+        aura: { radius: 32, damage: 10, energy: 10, shield: 30, health: 5, enhanceTime: 6 },
     },
 };
 

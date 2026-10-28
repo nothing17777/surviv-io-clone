@@ -217,6 +217,10 @@ test("Iron Man: in flight he is faster, walks through walls, and the Wizard's ci
     use(wizard.game, wizard.me, Slot.Melee, 1);
     wizard.game.step(0.05);
     expect(wizard.enemy.wizardMarked).toBeFalsy();
+    // but the circle still burns him
+    const hp = wizard.enemy.health + wizard.enemy.shield;
+    for (let i = 0; i < 10; i++) wizard.game.step(0.05);
+    expect(wizard.enemy.health + wizard.enemy.shield).toBeLessThan(hp);
 });
 
 test("Iron Man: the gauntlets punch for 35 and cost no energy", () => {

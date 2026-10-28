@@ -2748,8 +2748,8 @@ export class Player extends BaseGameObject {
         if (this.debug.godMode) return;
         if (this._health < 0) this._health = 0;
         if (this.dead) return;
-        // Iron Man in flight can't be hit by anything; only the gas still gets through
-        if (this.flying && params.damageType !== GameConfig.DamageType.Gas) return;
+        // Iron Man in flight can't be hit by anything; only the gas and the Wizard's circle still get through
+        if (this.flying && params.damageType !== GameConfig.DamageType.Gas && !params.hitsFlying) return;
         if (this.downed && this.downedDamageTicker > 0) return;
         // cobalt players on role picker menu
         if (this.game.map.perkMode && !this.role) return;
@@ -5421,6 +5421,21 @@ export class Player extends BaseGameObject {
 
     /** Wizard: each enemy in the circle feeds energy, shield and health; enhanced, it marks them */
     updateAura(dt: number, a: NonNullable<(typeof KitDefs)[string]["aura"]>) {
+        // it burns everyone inside, Iron Man in flight too
+        for (const p of this.game.playerBarn.livingPlayers) {
+            if (
+                p === this || p.dead || p.teamId === this.teamId || !util.sameLayer(p.layer, this.layer)
+                || v2.length(v2.sub(p.pos, this.pos)) > a.radius
+            ) continue;
+            p.damage({
+                amount: a.damage * dt,
+                damageType: GameConfig.DamageType.Player,
+                gameSourceType: "kit_wizard_enhance",
+                source: this,
+                dir: v2.normalizeSafe(v2.sub(p.pos, this.pos)),
+                hitsFlying: true,
+            });
+        }
         const inside = this.enemiesWithin(a.radius);
         if (inside.length) {
             const n = inside.length;
