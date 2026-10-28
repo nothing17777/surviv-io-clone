@@ -3868,11 +3868,11 @@ kitBullet("bullet_kit_dagger", {
     sprite: kitAsset("enchanted_dagger"),
     spriteSize: 2.2,
 });
-// the Summoner's whip: a chain that lashes out 18 tiles from the hand
+// the Summoner's whip: a chain that lashes out 36 tiles from the hand
 kitBullet("bullet_kit_whip", {
     damage: 14,
     speed: 70,
-    distance: 18,
+    distance: 36,
     beam: true,
     tracerColor: "cw_white",
     // a rainbow lash that arcs onto the target with sparkles, as tall as its image needs

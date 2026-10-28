@@ -14,6 +14,7 @@ function setup(kit: string, enemyOffset = v2.create(8, 0)) {
     me.applyKit(kit);
     enemy.pos = v2.add(me.pos, enemyOffset);
     enemy.layer = me.layer;
+    game.grid.updateObject(enemy);
     me.dir = v2.normalize(enemyOffset);
     me.dirNew = v2.copy(me.dir);
     return { game, me, enemy };
@@ -91,6 +92,7 @@ test("Summoner: daggers attack nearby enemies, the whip sets their focus", () =>
     const whip = setup("summoner", v2.create(20, 0));
     // the whip pulls focus once in reach
     whip.enemy.pos = v2.add(whip.me.pos, v2.create(8, 0));
+    whip.game.grid.updateObject(whip.enemy);
     // the daggers would kill them before the whip lands
     whip.enemy.maxHealth = 1e6;
     whip.enemy.health = 1e6;
