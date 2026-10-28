@@ -1,10 +1,10 @@
 import * as PIXI from "pixi.js-legacy";
 
 import type { LootDef } from "../../../shared/defs/gameObjectDefs.ts";
+import { SwingArcs } from "../../../shared/defs/gameObjects/customWeaponEffects.ts";
 import type { BoostDef, HealDef } from "./../../../shared/defs/gameObjects/gearDefs.ts";
 import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
 import { KitDefs } from "../../../shared/defs/gameObjects/kitDefs.ts";
-import { SwingArcs } from "../../../shared/defs/gameObjects/customWeaponEffects.ts";
 import { type MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
 import type { CookImg, ThrowableDef, ThrowableHandImgKey } from "../../../shared/defs/gameObjects/throwableDefs.ts";
 import type { ObstacleDef } from "../../../shared/defs/mapObjects/obstacles/obstacleDefs.ts";
@@ -2755,7 +2755,9 @@ export class Player implements AbstractObject {
             this.kitCircle.visible = aura >= 2;
             if (aura >= 2) {
                 const tex = PIXI.Texture.from(
-                    aura === 3 ? "img/custom-weapons/fx/kit/lightning_ritual.png" : "img/custom-weapons/fx/kit/armlet_of_ruin.png",
+                    aura === 3
+                        ? "img/custom-weapons/fx/kit/lightning_ritual.png"
+                        : "img/custom-weapons/fx/kit/armlet_of_ruin.png",
                 );
                 this.kitCircle.texture = tex;
                 // drawn at the server's aura radius, so whoever is inside it is the one marked
@@ -2776,7 +2778,7 @@ export class Player implements AbstractObject {
             this.kitSigil.scale.set(s, s);
             this.kitSigil.rotation -= dt * 0.8;
         }
-        const daggers = aura === 1 ? 4 : 0;
+        const daggers = aura === 1 ? KitDefs.summoner.daggers!.count : 0;
         while (this.kitDaggers.length < daggers) {
             const d = PIXI.Sprite.from("img/custom-weapons/fx/kit/enchanted_dagger.png");
             d.anchor.set(0.5, 0.5);

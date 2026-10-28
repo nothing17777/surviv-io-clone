@@ -99,7 +99,7 @@ export const KitDefs: Record<string, KitDef> = {
         outfit: "outfitKitSummoner",
         melee: "kit_summoner_whip",
         regenPulse: { amount: 20, every: 5 },
-        daggers: { count: 4, damage: 10, range: 13, interval: 0.55 },
+        daggers: { count: 100, damage: 30, range: 13, interval: 0.55 },
     },
     wizard: {
         name: "Wizard",

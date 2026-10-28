@@ -3826,7 +3826,14 @@ const kitBullet = (id: string, b: Partial<BulletDef>) => {
     } as BulletDef;
     return id;
 };
-const orbColorTracer: Record<string, BulletDef["tracerColor"]> = { red: "cw_laser", blue: "cw_bubble", green: "cw_poison", yellow: "cw_holy", purple: "cw_magic", orange: "cw_flame" };
+const orbColorTracer: Record<string, BulletDef["tracerColor"]> = {
+    red: "cw_laser",
+    blue: "cw_bubble",
+    green: "cw_poison",
+    yellow: "cw_holy",
+    purple: "cw_magic",
+    orange: "cw_flame",
+};
 for (const [color, tracer] of Object.entries(orbColorTracer)) {
     // a coloured orb that bursts on contact or at the end of its range, then fires a laser at the nearest enemy
     kitBullet(`bullet_kit_ultron_orb_${color}`, {
@@ -3851,9 +3858,9 @@ for (const [color, tracer] of Object.entries(orbColorTracer)) {
 // the Summoner's blade minions
 kitBullet("bullet_kit_dagger", {
     // a spinning blade minion, not a magic beam: only the dagger sprite is drawn
-    damage: 10,
+    damage: 30,
     speed: 55,
-    distance: 20,
+    distance: 80,
     spin: 14,
     noTracer: true,
     tracerColor: "cw_magic",
@@ -3861,14 +3868,15 @@ kitBullet("bullet_kit_dagger", {
     sprite: kitAsset("enchanted_dagger"),
     spriteSize: 2.2,
 });
-// the Summoner's whip: a chain that lashes out 10 tiles from the hand
+// the Summoner's whip: a chain that lashes out 18 tiles from the hand
 kitBullet("bullet_kit_whip", {
     damage: 14,
     speed: 70,
-    distance: 10,
+    distance: 18,
     beam: true,
     tracerColor: "cw_white",
-    tracerWidth: 0.6,
+    // a rainbow lash that arcs onto the target with sparkles, as tall as its image needs
+    tracerWidth: 1.6,
     trailSprite: kitAsset("spinal_tap_proj"),
 });
 
@@ -4023,4 +4031,10 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
     }),
 ]);
 
-export const GunDefs: Record<string, GunDef> = { ...BaseDefs, ...SkinDefs, ...CustomGunDefs, ...IronManGunDefs, ...KitGunDefs };
+export const GunDefs: Record<string, GunDef> = {
+    ...BaseDefs,
+    ...SkinDefs,
+    ...CustomGunDefs,
+    ...IronManGunDefs,
+    ...KitGunDefs,
+};

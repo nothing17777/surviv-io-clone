@@ -1,4 +1,3 @@
-import { KitDefs, UltronMinion, isKitItem, kitAura } from "../../../../shared/defs/gameObjects/kitDefs.ts";
 import { type GameObjectDef, type LootDef, WeaponTypeToDefs } from "../../../../shared/defs/gameObjectDefs.ts";
 import { EmotesDefs } from "../../../../shared/defs/gameObjects/emoteDefs.ts";
 import {
@@ -11,6 +10,7 @@ import {
     SCOPE_LEVELS,
 } from "../../../../shared/defs/gameObjects/gearDefs.ts";
 import type { GunDef } from "../../../../shared/defs/gameObjects/gunDefs.ts";
+import { isKitItem, kitAura, KitDefs, UltronMinion } from "../../../../shared/defs/gameObjects/kitDefs.ts";
 import type { MeleeDef } from "../../../../shared/defs/gameObjects/meleeDefs.ts";
 import { PerkProperties } from "../../../../shared/defs/gameObjects/perkDefs.ts";
 import type { RoleDef } from "../../../../shared/defs/gameObjects/roleDefs.ts";
@@ -795,7 +795,8 @@ export class Player extends BaseGameObject {
     /** seconds left on each ability slot (primary, secondary, melee) */
     get abilityCooldowns() {
         return [0, 1, 2].map((i) => {
-            const slot = [GameConfig.WeaponSlot.Primary, GameConfig.WeaponSlot.Secondary, GameConfig.WeaponSlot.Melee][i];
+            const slot =
+                [GameConfig.WeaponSlot.Primary, GameConfig.WeaponSlot.Secondary, GameConfig.WeaponSlot.Melee][i];
             return Math.max(this.weapons[slot]?.cooldown ?? 0, 0);
         });
     }
@@ -2081,8 +2082,6 @@ export class Player extends BaseGameObject {
                     this.setDirty();
                 }
             }
-
-
         } else {
             this.activeJudgeRocket = undefined;
         }
@@ -2257,7 +2256,10 @@ export class Player extends BaseGameObject {
 
         // Judge: you stand still while steering its rocket
         const rocket = this.activeJudgeRocket;
-        if (rocket && !(rocket.active && rocket.alive && rocket.bulletType === "bullet_pg_judge" && rocket.player === this)) {
+        if (
+            rocket
+            && !(rocket.active && rocket.alive && rocket.bulletType === "bullet_pg_judge" && rocket.player === this)
+        ) {
             this.activeJudgeRocket = undefined;
         }
         if (this.activeJudgeRocket) v2.set(movement, v2.create(0, 0));
@@ -2268,7 +2270,8 @@ export class Player extends BaseGameObject {
             const dist = v2.length(to);
             this.webPull.time -= dt;
             // the hit point is on a wall's surface, so stop once the body reaches it (or a wall stops it)
-            const stuck = this.webPull.lastDist !== undefined && this.webPull.lastDist - dist < this.webPull.speed * dt * 0.25;
+            const stuck = this.webPull.lastDist !== undefined
+                && this.webPull.lastDist - dist < this.webPull.speed * dt * 0.25;
             if (dist < this.rad + 0.5 || stuck || this.webPull.time <= 0 || this.dead) this.webPull = undefined;
             else {
                 this.webPull.lastDist = dist;
@@ -2897,17 +2900,22 @@ export class Player extends BaseGameObject {
             else if (weap === "bullet_kit_ultron_orb_laser_purple") this.applyPoison(3, playerSource);
             else if ((src === "kit_ultron_blast" || src === "kit_wizard_stars") && params.dir && !this.webPull) {
                 // slight knockback, moved like a short slide so walls still stop it
-                this.webPull = { target: v2.add(this.pos, v2.mul(v2.normalizeSafe(params.dir), 1.5)), speed: 20, time: 0.12 };
+                this.webPull = {
+                    target: v2.add(this.pos, v2.mul(v2.normalizeSafe(params.dir), 1.5)),
+                    speed: 20,
+                    time: 0.12,
+                };
             } else if (src === "kit_spider_slash") {
                 this.applyBleed(4, playerSource);
                 playerSource.spiderRegenTime = 4;
                 playerSource.shield = math.min(playerSource.shield + 20, playerSource.maxShield || 200);
                 playerSource.shieldDirty = true;
-            } else if (src === "kit_summoner_whip" && params.amount! > (KitDefs.summoner.daggers?.damage ?? 10) + 0.01) {
-                // the whip's lash (it hits harder than a dagger) sets the minions' target
+            } else if (
+                src === "kit_summoner_whip" && params.amount! < (KitDefs.summoner.daggers?.damage ?? 30) - 0.01
+            ) {
+                // the whip's lash (it hits softer than a dagger) sets the minions' target
                 playerSource.summonerFocusId = this.__id;
-            }
-            else if (src === "pg_acid_shotgun") this.applyPoison(4, playerSource);
+            } else if (src === "pg_acid_shotgun") this.applyPoison(4, playerSource);
             else if (src === "pg_frozen_dragon") this.applyBurn(2, playerSource);
             else if (src === "pg_photon_sniper_rifle") this.applyBurn(4, playerSource, src);
             else if (src === "pg_mercenary") this.applyBurn(2, playerSource, src);
@@ -4795,7 +4803,9 @@ export class Player extends BaseGameObject {
     }
 
     applyGodLoadout(
-        godLoadout: Pick<net.JoinMsg["godLoadout"], "primary" | "secondary" | "throwable" | "melee"> & Partial<PrivateLoadout>,
+        godLoadout:
+            & Pick<net.JoinMsg["godLoadout"], "primary" | "secondary" | "throwable" | "melee">
+            & Partial<PrivateLoadout>,
     ) {
         const kitId = godLoadout.kit;
         if (kitId && kitId !== "default" && KitDefs[kitId]) {
@@ -5258,7 +5268,10 @@ export class Player extends BaseGameObject {
             const type = this.weapons[slot].type;
             if (type) this.weapons[slot].ammo = GameObjectDefs.typeToDef(type, "gun").maxClip;
         }
-        this.weaponManager.setCurWeapIndex(kit.primary ? GameConfig.WeaponSlot.Primary : GameConfig.WeaponSlot.Melee, true);
+        this.weaponManager.setCurWeapIndex(
+            kit.primary ? GameConfig.WeaponSlot.Primary : GameConfig.WeaponSlot.Melee,
+            true,
+        );
         this.maxShield = kit.shield ?? 0;
         this.shield = this.maxShield;
         this.shieldDirty = true;
@@ -5294,7 +5307,9 @@ export class Player extends BaseGameObject {
         this.energyDirty = true;
         this.kitEnhanceTime = 0;
         this.outfit = this.loadout.outfit;
-        for (const slot of [GameConfig.WeaponSlot.Primary, GameConfig.WeaponSlot.Secondary, GameConfig.WeaponSlot.Melee]) {
+        for (
+            const slot of [GameConfig.WeaponSlot.Primary, GameConfig.WeaponSlot.Secondary, GameConfig.WeaponSlot.Melee]
+        ) {
             if (isKitItem(this.weapons[slot].type)) {
                 this.weaponManager.setWeapon(slot, slot === GameConfig.WeaponSlot.Melee ? "fists" : "", 0);
             }
@@ -5376,27 +5391,31 @@ export class Player extends BaseGameObject {
         if (this.daggerTimer > 0) return;
         const near = this.enemiesWithin(d.range);
         if (!near.length) return;
-        this.daggerTimer = d.interval / d.count;
+        // at most one every 0.05 s: a big swarm firing every tick would flood clients with bullets
+        this.daggerTimer = Math.max(d.interval / d.count, 0.05);
         const focus = near.find((p) => p.__id === this.summonerFocusId);
         const target = focus
             ?? near.reduce((a, b) => (v2.length(v2.sub(a.pos, this.pos)) < v2.length(v2.sub(b.pos, this.pos)) ? a : b));
         // each dagger leaves from its spot on the circle round the player (the client draws them there)
         const ang = ((this.daggerIndex++ % d.count) / d.count) * Math.PI * 2 + this.game.now * 0.002;
         const from = v2.add(this.pos, v2.create(Math.cos(ang) * 2.2, Math.sin(ang) * 2.2));
-        this.game.bulletBarn.fireBullet({
-            playerId: this.__id,
-            bulletType: "bullet_kit_dagger",
-            gameSourceType: "kit_summoner_whip",
-            damageType: GameConfig.DamageType.Player,
-            pos: from,
-            dir: v2.normalizeSafe(v2.sub(target.pos, from), this.dir),
-            layer: this.layer,
-            damageMult: 1,
-            distance: Math.min(v2.length(v2.sub(target.pos, from)) + 2, d.range + 4),
-            clipDistance: true,
-            shotFx: false,
-            reflectCount: 0,
-        } as Parameters<typeof this.game.bulletBarn.fireBullet>[0]);
+        this.game.bulletBarn.fireBullet(
+            {
+                playerId: this.__id,
+                bulletType: "bullet_kit_dagger",
+                gameSourceType: "kit_summoner_whip",
+                damageType: GameConfig.DamageType.Player,
+                pos: from,
+                dir: v2.normalizeSafe(v2.sub(target.pos, from), this.dir),
+                // locks on: it turns to follow them until it lands
+                homingTargetId: target.__id,
+                layer: this.layer,
+                damageMult: 1,
+                distance: d.range * 2,
+                shotFx: false,
+                reflectCount: 0,
+            } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
+        );
     }
 
     /** Wizard: each enemy in the circle feeds energy, shield and health; enhanced, it marks them */

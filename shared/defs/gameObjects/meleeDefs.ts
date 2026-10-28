@@ -1508,7 +1508,7 @@ Object.assign(
             autoAttack: true,
             attack: { offset: { x: 2, y: 0 }, rad: 2.6, cooldownTime: 0.5 },
         }),
-        // Summoner whip: lashes 10 tiles (the lash does the damage); the hit enemy becomes the minions' target
+        // Summoner whip: lashes 18 tiles (the lash does the damage); the hit enemy becomes the minions' target
         kitMelee("kit_summoner_whip", "Spinal Tap", {
             damage: 0,
             autoAttack: true,

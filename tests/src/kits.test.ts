@@ -19,7 +19,13 @@ function setup(kit: string, enemyOffset = v2.create(8, 0)) {
     return { game, me, enemy };
 }
 
-function use(game: ReturnType<typeof createGame>, me: ReturnType<typeof setup>["me"], slot: number, ticks = 1, hold = false) {
+function use(
+    game: ReturnType<typeof createGame>,
+    me: ReturnType<typeof setup>["me"],
+    slot: number,
+    ticks = 1,
+    hold = false,
+) {
     me.weaponManager.setCurWeapIndex(slot, true);
     for (let i = 0; i < 5; i++) game.step(0.05);
     for (let i = 0; i < ticks; i++) {
@@ -80,6 +86,9 @@ test("Summoner: daggers attack nearby enemies, the whip sets their focus", () =>
     const whip = setup("summoner", v2.create(20, 0));
     // out of dagger range, then the whip pulls focus once in reach
     whip.enemy.pos = v2.add(whip.me.pos, v2.create(8, 0));
+    // the daggers would kill them before the whip lands
+    whip.enemy.maxHealth = 1e6;
+    whip.enemy.health = 1e6;
     use(whip.game, whip.me, Slot.Melee, 10, true);
     expect(whip.me.summonerFocusId).toBe(whip.enemy.__id);
 });
@@ -140,8 +149,20 @@ test("Iron Man: the rockets fly him for 5 s, untargetable, with a second wave 3 
     // nothing hits him in the air, not a bullet's damage and not an explosion's
     const health = me.health;
     const shield = me.shield;
-    me.damage({ amount: 50, damageType: GameConfig.DamageType.Player, dir: v2.create(1, 0), source: enemy, gameSourceType: "ak47" });
-    me.damage({ amount: 50, damageType: GameConfig.DamageType.Player, dir: v2.create(1, 0), source: enemy, isExplosion: true });
+    me.damage({
+        amount: 50,
+        damageType: GameConfig.DamageType.Player,
+        dir: v2.create(1, 0),
+        source: enemy,
+        gameSourceType: "ak47",
+    });
+    me.damage({
+        amount: 50,
+        damageType: GameConfig.DamageType.Player,
+        dir: v2.create(1, 0),
+        source: enemy,
+        isExplosion: true,
+    });
     expect(me.health).toBe(health);
     expect(me.shield).toBe(shield);
 
@@ -157,7 +178,13 @@ test("Iron Man: the rockets fly him for 5 s, untargetable, with a second wave 3 
     // landed after 5 s, and he can be hurt again
     for (let i = 0; i < 40; i++) game.step(0.05);
     expect(me.flying).toBe(false);
-    me.damage({ amount: 20, damageType: GameConfig.DamageType.Player, dir: v2.create(1, 0), source: enemy, gameSourceType: "ak47" });
+    me.damage({
+        amount: 20,
+        damageType: GameConfig.DamageType.Player,
+        dir: v2.create(1, 0),
+        source: enemy,
+        gameSourceType: "ak47",
+    });
     expect(me.health + me.shield).toBeLessThan(health + shield);
     expect(wave).toHaveBeenCalledTimes(1);
 });
