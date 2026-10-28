@@ -53,14 +53,27 @@ RUN="$(mktemp -d)"
 
 # keep each piece alive even if it exits: the game server has died on its own
 # before, which leaves the API answering but every find_game failing.
-# The delay grows up to 30 s so a process that cannot start at all (a port still
-# held by an older run, say) does not spin restarting once a second forever;
-# a run that lasted a while is a crash rather than a failure to start, so the
-# delay resets and the next restart is immediate.
+# The delay grows up to 30 s so a process that cannot start at all does not spin
+# restarting once a second forever; a run that lasted a while is a crash rather
+# than a failure to start, so the delay resets and the next restart is immediate.
+
+# A process left over from an earlier run can still hold a port, and a restart
+# never recovers from that on its own: the new one just fails to bind, forever.
+# Take the port back first. Only ever called between runs of the piece that owns
+# the port, so the only thing it can find is a leftover.
+claim_port() {
+    local port=$1 pid
+    for pid in $(lsof -ti ":$port" -sTCP:LISTEN 2>/dev/null || true); do
+        echo "port $port still held by pid $pid from an earlier run, killing it"
+        kill -9 "$pid" 2>/dev/null || true
+    done
+}
+
 supervise() {
-    local name=$1 cmd=$2 pidfile=$3 delay=1 started pid
+    local name=$1 cmd=$2 pidfile=$3 port=$4 delay=1 started pid
     while true; do
         started=$SECONDS
+        claim_port "$port"
         bash -c "$cmd" &
         pid=$!
         echo "$pid" > "$pidfile"
@@ -101,9 +114,9 @@ watchdog() {
     done
 }
 
-supervise "game proxy" "node scripts/gameProxy.mjs" "$RUN/proxy.pid" &
-supervise "api server" "cd server && pnpm dev:api" "$RUN/api.pid" &
-supervise "game server" "cd server && pnpm dev:game" "$RUN/game.pid" &
+supervise "game proxy" "exec node scripts/gameProxy.mjs" "$RUN/proxy.pid" 8002 &
+supervise "api server" "cd server && pnpm dev:api" "$RUN/api.pid" 8000 &
+supervise "game server" "cd server && pnpm dev:game" "$RUN/game.pid" 8001 &
 watchdog "api server" "http://127.0.0.1:8000/api/site_info" "$RUN/api.pid" &
 watchdog "game server" "http://127.0.0.1:8001/health" "$RUN/game.pid" &
 wait
