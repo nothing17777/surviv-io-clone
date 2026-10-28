@@ -83,7 +83,7 @@ test("Spider-Man: 5 hp/s regen, 20 hp/s after 5 s without damage", () => {
 
 test("Wolverine: dashes 16 tiles through an enemy for 50 dmg and a bleed", () => {
     const { game, me, enemy } = setup("wolverine", v2.create(4, 0));
-    expect(me.maxHealth).toBe(300);
+    expect(me.maxHealth).toBe(200);
     const start = v2.copy(me.pos);
     use(game, me, Slot.Secondary, 1);
     for (let i = 0; i < 10; i++) game.step(0.05);
@@ -340,4 +340,46 @@ test("Wolverine shows his dash cooldown, not his claw swings", () => {
     game.step(0.1);
     me.weaponManager.setCurWeapIndex(Slot.Secondary);
     expect(me.abilityCooldowns[1]).toBeGreaterThan(5);
+});
+
+test("kit regen: slow base rates, then the out of combat rate after 5 s without being hit", () => {
+    const rates = {
+        spiderman: { base: 2, calm: 20 },
+        wolverine: { base: 5, calm: 10 },
+        ironman: { base: 0, calm: 5 },
+        ultron: { base: 0, calm: 5 },
+    };
+    for (const [kit, r] of Object.entries(rates)) {
+        const { game, me } = setup(kit, v2.create(60, 0));
+        me.energy = 0;
+        me.health = 20;
+        me.calmTime = 0;
+        const before = me.health;
+        for (let i = 0; i < 20; i++) game.step(0.05);
+        // the first second is still "in combat": only the base rate (0 for kits without one)
+        expect(me.health - before).toBeCloseTo(r.base, 0);
+
+        me.calmTime = 5;
+        const calm = me.health;
+        for (let i = 0; i < 20; i++) game.step(0.05);
+        expect(me.health - calm).toBeCloseTo(r.calm, 0);
+    }
+    expect(KitDefs.wolverine.lowHealth).toBeUndefined();
+});
+
+test("kit regen: a hit the shield soaks up still ends the calm", () => {
+    const { game, me, enemy } = setup("ultron", v2.create(60, 0));
+    me.calmTime = 10;
+    me.damage({ amount: 10, damageType: GameConfig.DamageType.Player, dir: v2.create(1, 0), source: enemy, gameSourceType: "ak47" });
+    expect(me.shield).toBeLessThan(200);
+    expect(me.health).toBe(me.maxHealth);
+    expect(me.calmTime).toBe(0);
+    game.step(0.05);
+});
+
+test("kit shield and health sustain numbers", () => {
+    expect(KitDefs.ironman.energy).toMatchObject({ heal: 1, shieldRegen: 1 });
+    expect(KitDefs.ultron.energy).toMatchObject({ shieldRegen: 2 });
+    expect(KitDefs.wolverine.health).toBe(200);
+    expect(KitDefs.wizard.aura).toMatchObject({ shield: 2, health: 2 });
 });
