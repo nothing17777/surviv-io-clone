@@ -1,3 +1,4 @@
+import { KitDefs } from "../../../../shared/defs/gameObjects/kitDefs.ts";
 import { PerkProperties } from "../../../../shared/defs/gameObjects/perkDefs.ts";
 import { GameObjectDefs, MapObjectDefs } from "../../../../shared/defs/register.ts";
 import { type DamageType, GameConfig } from "../../../../shared/gameConfig.ts";
@@ -471,11 +472,14 @@ export class Bullet {
         const homingDelay = GameObjectDefs.typeToDef(this.bulletType, "bullet").homingDelay ?? 0;
         if (this.homingId && this.distanceTraveled >= homingDelay * this.speed) {
             const target = this.bulletManager.game.objectRegister.getById(this.homingId);
-            // the Summoner's swords chase forever, so once the target is gone they end instead of flying on
+            // the Summoner's swords chase forever, so once the target is gone, or they stray past their
+            // leash from the Summoner, they end instead of flying on
             if (
                 this.bulletType === "bullet_kit_dagger"
                 && (target?.__type !== ObjectType.Player || target.dead || target.untargetable
-                    || this.damagedObjIds.has(this.homingId))
+                    || this.damagedObjIds.has(this.homingId)
+                    || !this.player
+                    || v2.length(v2.sub(this.pos, this.player.pos)) > KitDefs.summoner.daggers!.leash)
             ) {
                 this.alive = false;
                 this.active = false;

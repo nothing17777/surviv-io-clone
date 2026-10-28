@@ -1,5 +1,6 @@
 import * as PIXI from "pixi.js-legacy";
 
+import { KitDefs } from "../../../shared/defs/gameObjects/kitDefs.ts";
 import { GameObjectDefs, MapObjectDefs } from "../../../shared/defs/register.ts";
 import { GameConfig } from "../../../shared/gameConfig.ts";
 import type { Bullet } from "../../../shared/net/updateMsg.ts";
@@ -313,6 +314,14 @@ export class BulletBarn {
                         }
                         b.dir = v2.normalizeSafe(v2.sub(owner.m_pos, b.pos), b.dir);
                         b.container.rotation = Math.atan2(b.dir.x, b.dir.y) - Math.PI / 2;
+                    }
+                }
+                // the Summoner's swords end once they stray past their leash from him, like on the server
+                if (b.bulletType === "bullet_kit_dagger") {
+                    const owner = playerBarn.getPlayerById(b.playerId);
+                    if (owner && v2.length(v2.sub(b.pos, owner.m_pos)) > KitDefs.summoner.daggers!.leash) {
+                        b.alive = false;
+                        b.fxSprite.visible = false;
                     }
                 }
                 // the super hacker's shot curves toward its target, like on the server

@@ -25,7 +25,7 @@ export interface KitDef {
     /** Summoner: this much hp every `every` seconds */
     regenPulse?: { amount: number; every: number };
     /** Summoner: orbiting blade minions that attack enemies within `range` of the player */
-    daggers?: { count: number; damage: number; range: number; interval: number };
+    daggers?: { count: number; damage: number; range: number; interval: number; leash: number };
     /** Wizard: a circle around the player that burns enemies inside for `damage`/s; per enemy inside, per second: energy, shield, hp */
     aura?: { radius: number; damage: number; energy: number; shield: number; health: number; enhanceTime: number };
     /** Iron Man: energy pays for reloads, healing and shield */
@@ -99,7 +99,7 @@ export const KitDefs: Record<string, KitDef> = {
         outfit: "outfitKitSummoner",
         melee: "kit_summoner_whip",
         regenPulse: { amount: 20, every: 5 },
-        daggers: { count: 4, damage: 30, range: 13, interval: 1.2 },
+        daggers: { count: 4, damage: 30, range: 13, interval: 1.2, leash: 50 },
     },
     wizard: {
         name: "Wizard",
