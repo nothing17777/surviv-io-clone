@@ -3745,9 +3745,9 @@ const kitGun = (id: string, base: string, bullet: Partial<BulletDef>, gun: DeepP
 };
 
 const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
-    // Iron Man repulsor: a wide cyan laser, 50 dmg, 1.4 shots/s, 10 rounds, 1 s reload for 10 energy
+    // Iron Man repulsor: a wide cyan laser, 40 dmg, 1.4 shots/s, 5 energy a shot, no extra cooldown
     kitGun("kit_ironman_blast", "sv98", {
-        damage: 36,
+        damage: 40,
         beam: true,
         speed: 400,
         distance: 80,
@@ -3759,19 +3759,18 @@ const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
         name: "Repulsor Blast",
         fireMode: "single",
         fireDelay: 0.714,
+        energyCost: 5,
         shotSpread: 0,
         moveSpread: 0,
-        maxClip: 10,
-        maxReload: 10,
-        extendedClip: 10,
-        extendedReload: 10,
-        reloadTime: 1,
-        reloadEnergy: 10,
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
     }),
-    // Iron Man rockets: 8 strongly homing rockets fired all around, 20 dmg each, 0.8 shots/s, 5 rounds,
-    // 2 s reload for 15 energy
+    // Iron Man rockets: 8 strongly homing rockets fired all around, 8 dmg each, 25 energy a volley,
+    // 10 s cooldown
     kitGun("kit_ironman_rockets", "barrett", {
-        damage: 12,
+        damage: 8,
         speed: 55,
         distance: 110,
         falloff: 1,
@@ -3787,17 +3786,16 @@ const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
     }, {
         name: "Micro Rockets",
         fireMode: "single",
-        fireDelay: 1.8,
+        fireDelay: 10,
+        energyCost: 25,
         bulletCount: 8,
         ringShot: true,
         shotSpread: 0,
         moveSpread: 0,
-        maxClip: 5,
-        maxReload: 5,
-        extendedClip: 5,
-        extendedReload: 5,
-        reloadTime: 2,
-        reloadEnergy: 15,
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
     }),
 ]);
 
