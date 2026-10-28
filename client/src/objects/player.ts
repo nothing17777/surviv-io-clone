@@ -2818,7 +2818,7 @@ export class Player implements AbstractObject {
             const ang = (i / daggers) * Math.PI * 2 + this.kitTicker * 2;
             d.position.set(Math.cos(ang) * 4 * px, Math.sin(ang) * 4 * px);
             d.rotation = ang + Math.PI / 2;
-            // half the size of the flying sword (bullet_kit_dagger's spriteSize)
+            // the same size as the flying sword (bullet_kit_dagger's spriteSize)
             const s = 55 / Math.max(d.texture.width, 1);
             d.scale.set(s, s);
         });

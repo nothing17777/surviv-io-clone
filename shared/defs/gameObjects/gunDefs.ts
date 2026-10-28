@@ -3868,9 +3868,8 @@ kitBullet("bullet_kit_dagger", {
     tracerColor: "cw_magic",
     tracerWidth: 0.12,
     sprite: kitAsset("enchanted_dagger"),
-    // screen px across at zoom 1; the sword is long and thin, so it needs more width than the
-    // Christmas Ultimatum tree (80) to look about as big
-    spriteSize: 110,
+    // screen px across at zoom 1 (the Christmas Ultimatum tree is 80); the same size as the circle's swords
+    spriteSize: 55,
 });
 // the Summoner's whip: a chain that lashes out 36 tiles from the hand
 kitBullet("bullet_kit_whip", {
