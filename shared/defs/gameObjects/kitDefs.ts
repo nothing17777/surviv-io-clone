@@ -89,7 +89,7 @@ export const KitDefs: Record<string, KitDef> = {
         primary: "kit_ultron_laser",
         secondary: "kit_ultron_blast",
         melee: "kit_ultron_minions",
-        energy: { max: 200, perSecond: 20, heal: 0, healCost: 0, shieldRegen: 35, shieldCost: 10 },
+        energy: { max: 200, perSecond: 20, heal: 0, healCost: 0, shieldRegen: 12, shieldCost: 3 },
     },
     summoner: {
         name: "Summoner",
@@ -104,7 +104,7 @@ export const KitDefs: Record<string, KitDef> = {
     wizard: {
         name: "Wizard",
         health: 100,
-        shield: 300,
+        shield: 100,
         helmet: "helmet04",
         chest: "chest04",
         outfit: "outfitKitWizard",
@@ -112,7 +112,8 @@ export const KitDefs: Record<string, KitDef> = {
         secondary: "kit_wizard_stars",
         melee: "kit_wizard_enhance",
         energy: { max: 300, perSecond: 20, heal: 0, healCost: 0, shieldRegen: 0, shieldCost: 0 },
-        aura: { radius: 10, energy: 10, shield: 30, health: 5, enhanceTime: 6 },
+        // radius is also the drawn circle's radius on the client, so enemies inside it are the ones marked
+        aura: { radius: 24, energy: 10, shield: 30, health: 5, enhanceTime: 6 },
     },
 };
 
