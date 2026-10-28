@@ -184,3 +184,29 @@ test("Iron Man: in flight he is faster, walks through walls, and the Wizard's ci
     wizard.game.step(0.05);
     expect(wizard.enemy.wizardMarked).toBeFalsy();
 });
+
+test("Iron Man: the gauntlets punch for 35 and cost no energy", () => {
+    const { game, me, enemy } = setup("ironman", v2.create(2, 0));
+    me.energy = 0;
+    const health = enemy.health + enemy.shield;
+    use(game, me, Slot.Melee, 1);
+    for (let i = 0; i < 10; i++) game.step(0.05);
+    expect(enemy.health + enemy.shield).toBeCloseTo(health - 35, 5);
+});
+
+test("Power Fists: punch for 45 and build shield while held", () => {
+    const game = createGame(TeamMode.Solo, "test_normal");
+    const me = game.playerBarn.addTestPlayer({});
+    const enemy = game.playerBarn.addTestPlayer({});
+    enemy.pos = v2.add(me.pos, v2.create(2, 0));
+    enemy.layer = me.layer;
+    me.dir = v2.create(1, 0);
+    me.dirNew = v2.copy(me.dir);
+    me.weaponManager.setWeapon(Slot.Melee, "pg_power_fists", 0);
+    const health = enemy.health + enemy.shield;
+    use(game, me, Slot.Melee, 1);
+    for (let i = 0; i < 20; i++) game.step(0.05);
+    expect(enemy.health + enemy.shield).toBeCloseTo(health - 45, 5);
+    // 10 shield per second while they are the held weapon
+    expect(me.shield).toBeGreaterThan(5);
+});

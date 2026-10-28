@@ -4,6 +4,7 @@ import "./testHelpers.ts";
 import { BulletDefs } from "../../shared/defs/gameObjects/bulletDefs.ts";
 import { ExplosionDefs } from "../../shared/defs/gameObjects/explosionsDefs.ts";
 import { GunDefs } from "../../shared/defs/gameObjects/gunDefs.ts";
+import { MeleeDefs } from "../../shared/defs/gameObjects/meleeDefs.ts";
 import { PassDefs } from "../../shared/defs/gameObjects/passDefs.ts";
 import { QuestDefs } from "../../shared/defs/gameObjects/questDefs.ts";
 import { RoleDefs } from "../../shared/defs/gameObjects/roleDefs.ts";
@@ -247,4 +248,33 @@ describe.for(Object.entries(PassDefs))("Pass $0", ([, def]) => {
     test.for(def.items)("Item $0", (item) => {
         expect(item.item).toBeValidGameObj(["outfit", "melee", "emote", "heal_effect", "boost_effect"]);
     });
+});
+
+// the client draws a melee in hand only when the def has a worldImg: fists-based melees
+// (bare fists, Power Fists, Repulsor Gauntlets) are worn, so they have none and must not be
+// singled out by id
+describe.for(Object.entries(MeleeDefs))("Melee $0", ([, def]) => {
+    if (def.worldImg) {
+        test("World image", () => {
+            // every field the client reads off worldImg while posing the held sprite
+            expect(typeof def.worldImg!.sprite).toBe("string");
+            expect(def.worldImg!.pos).toEqual({ x: expect.any(Number), y: expect.any(Number) });
+            expect(def.worldImg!.scale).toEqual({ x: expect.any(Number), y: expect.any(Number) });
+            expect(typeof def.worldImg!.rot).toBe("number");
+            expect(typeof def.worldImg!.tint).toBe("number");
+        });
+    } else {
+        test("Nothing in hand", () => {
+            expect(def.anim.idlePose).toBe("fists");
+        });
+    }
+});
+
+test("fists-based melees carry no world image", () => {
+    const barehanded = Object.entries(MeleeDefs)
+        .filter(([, def]) => !def.worldImg)
+        .map(([type]) => type);
+    expect(barehanded).toContain("fists");
+    expect(barehanded).toContain("pg_power_fists");
+    expect(barehanded).toContain("kit_ironman_fists");
 });

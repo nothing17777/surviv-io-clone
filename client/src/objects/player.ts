@@ -1762,8 +1762,9 @@ export class Player implements AbstractObject {
                 this.bodyContainer.addChildAt(this.handRContainer, bodyEffectIdx);
             }
         }
-        if (activeWeapDef.type == "melee" && this.m_netData.m_activeWeapon != "fists") {
-            const imgDef = activeWeapDef.worldImg!;
+        // fists-based melees (bare fists, Power Fists, Repulsor Gauntlets) draw nothing in hand
+        if (activeWeapDef.type == "melee" && activeWeapDef.worldImg) {
+            const imgDef = activeWeapDef.worldImg;
             this.meleeSprite.texture = PIXI.Texture.from(imgDef.sprite);
 
             this.meleeSprite.rotation = imgDef.rot;
@@ -1937,7 +1938,7 @@ export class Player implements AbstractObject {
         if (activeWeapDef.type === "melee" && activeWeapDef.worldImg) {
             const meleeBone = this.bones[Bones.MeleeR];
 
-            const imgDef = activeWeapDef.worldImg!;
+            const imgDef = activeWeapDef.worldImg;
             const pos = v2.add(meleeBone.pos, imgDef.pos);
             this.meleeSprite.pivot.set(-pos.x, -pos.y);
 
