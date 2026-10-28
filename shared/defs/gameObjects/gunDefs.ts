@@ -3896,12 +3896,12 @@ kitBullet("bullet_kit_spider_auto", {
 });
 
 const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
-    // Wolverine dash: 8 tiles forward, 50 dmg and a bleed to whoever he slashes through, 8 s cooldown.
+    // Wolverine dash: 16 tiles forward, 50 dmg and a bleed to whoever he slashes through, 8 s cooldown.
     // The streak flies alongside him and does the damage
     kitGun("kit_wolverine_dash", "barrett", {
         damage: 50,
         speed: 40,
-        distance: 8,
+        distance: 16,
         falloff: 1,
         playerPierce: true,
         pierceLoss: 0,

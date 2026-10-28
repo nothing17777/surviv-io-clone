@@ -81,13 +81,13 @@ test("Spider-Man: 5 hp/s regen, 20 hp/s after 5 s without damage", () => {
     expect(me.health - hp - hurt).toBeCloseTo(15, 0);
 });
 
-test("Wolverine: dashes 8 tiles through an enemy for 50 dmg and a bleed", () => {
+test("Wolverine: dashes 16 tiles through an enemy for 50 dmg and a bleed", () => {
     const { game, me, enemy } = setup("wolverine", v2.create(4, 0));
     expect(me.maxHealth).toBe(300);
     const start = v2.copy(me.pos);
     use(game, me, Slot.Secondary, 1);
     for (let i = 0; i < 10; i++) game.step(0.05);
-    expect(v2.length(v2.sub(me.pos, start))).toBeGreaterThan(6);
+    expect(v2.length(v2.sub(me.pos, start))).toBeGreaterThan(12);
     expect(enemy.health).toBeLessThanOrEqual(50);
     expect(enemy.bleeding).toBeTruthy();
 });
@@ -334,5 +334,10 @@ test("Wolverine shows his dash cooldown, not his claw swings", () => {
     use(game, me, Slot.Melee, 1);
     expect(me.abilityCooldowns[2]).toBe(0);
     use(game, me, Slot.Secondary, 1);
+    expect(me.abilityCooldowns[1]).toBeGreaterThan(5);
+    // swapping away and back keeps it
+    me.weaponManager.setCurWeapIndex(Slot.Melee);
+    game.step(0.1);
+    me.weaponManager.setCurWeapIndex(Slot.Secondary);
     expect(me.abilityCooldowns[1]).toBeGreaterThan(5);
 });

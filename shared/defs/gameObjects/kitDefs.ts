@@ -132,7 +132,7 @@ export const KitDefs: Record<string, KitDef> = {
 export const SpiderDodgeTime = 2;
 
 /** Wolverine's dash: how far he goes */
-export const WolverineDashDistance = 8;
+export const WolverineDashDistance = 16;
 
 export const UltronMinion = { count: 4, health: 17.5, speedMult: 0.75, life: 15, explosion: "explosion_kit_minion" };
 

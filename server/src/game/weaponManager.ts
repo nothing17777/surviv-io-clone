@@ -1,6 +1,6 @@
 import { SwingShots } from "../../../shared/defs/gameObjects/customWeaponEffects.ts";
 import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
-import { SpiderDodgeTime, WolverineDashDistance } from "../../../shared/defs/gameObjects/kitDefs.ts";
+import { isKitItem, SpiderDodgeTime, WolverineDashDistance } from "../../../shared/defs/gameObjects/kitDefs.ts";
 import type { MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
 import { PerkProperties } from "../../../shared/defs/gameObjects/perkDefs.ts";
 import { type ThrowableDef, ThrowableDefs } from "../../../shared/defs/gameObjects/throwableDefs.ts";
@@ -174,7 +174,10 @@ export class WeaponManager {
                 );
             }
 
-            nextWeapon.cooldown = effectiveSwitchDelay;
+            // kit abilities keep their cooldown through a swap (normal guns keep the quickswitch)
+            nextWeapon.cooldown = isKitItem(nextWeapon.type)
+                ? math.max(nextWeapon.cooldown, effectiveSwitchDelay)
+                : effectiveSwitchDelay;
         }
 
         this.lastWeaponIdx = this._curWeapIdx;
@@ -841,7 +844,7 @@ export class WeaponManager {
         this.player.weapsDirty = true;
         // Iron Man's rockets take him into the air for a while
         if (itemDef.flight) this.player.startFlight(itemDef.flight, this.activeWeapon);
-        // Wolverine's dash: he slides 8 tiles alongside his streak (walls still stop him)
+        // Wolverine's dash: he slides 16 tiles alongside his streak (walls still stop him)
         if (this.activeWeapon === "kit_wolverine_dash") {
             const bullet = GameObjectDefs.typeToDef(itemDef.bulletType, "bullet");
             this.player.webPull = {
