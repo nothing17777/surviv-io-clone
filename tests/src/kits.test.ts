@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { UltronMinion } from "../../shared/defs/gameObjects/kitDefs.ts";
+import { KitDefs, UltronMinion } from "../../shared/defs/gameObjects/kitDefs.ts";
 import { GameConfig, TeamMode } from "../../shared/gameConfig.ts";
 import { v2 } from "../../shared/utils/v2.ts";
 import { createGame } from "./gameTestHelpers.ts";
@@ -104,4 +104,26 @@ test("Wizard: circle feeds energy, enhance marks enemies, spells fire", () => {
     stars.me.energy = 300;
     use(stars.game, stars.me, Slot.Secondary, 30, true);
     expect(stars.enemy.health).toBeLessThan(100);
+});
+
+test("Wizard: the enhanced circle marks enemies inside its drawn radius and no one outside", () => {
+    const radius = KitDefs.wizard.aura!.radius;
+    const inside = setup("wizard", v2.create(radius - 4, 0));
+    inside.me.energy = 300;
+    use(inside.game, inside.me, Slot.Melee, 1);
+    inside.game.step(0.05);
+    expect(inside.enemy.wizardMarked).toBeTruthy();
+
+    const outside = setup("wizard", v2.create(radius + 6, 0));
+    outside.me.energy = 300;
+    use(outside.game, outside.me, Slot.Melee, 1);
+    outside.game.step(0.05);
+    expect(outside.enemy.wizardMarked).toBeFalsy();
+});
+
+test("Ultron: shield recovery is 12 per second for 3 energy per second", () => {
+    const { shieldRegen, shieldCost } = KitDefs.ultron.energy!;
+    expect(shieldRegen).toBe(12);
+    expect(shieldCost).toBe(3);
+    expect(KitDefs.wizard.shield).toBe(100);
 });

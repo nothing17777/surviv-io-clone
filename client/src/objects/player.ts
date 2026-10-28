@@ -3,6 +3,7 @@ import * as PIXI from "pixi.js-legacy";
 import type { LootDef } from "../../../shared/defs/gameObjectDefs.ts";
 import type { BoostDef, HealDef } from "./../../../shared/defs/gameObjects/gearDefs.ts";
 import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
+import { KitDefs } from "../../../shared/defs/gameObjects/kitDefs.ts";
 import { SwingArcs } from "../../../shared/defs/gameObjects/customWeaponEffects.ts";
 import { type MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
 import type { CookImg, ThrowableDef, ThrowableHandImgKey } from "../../../shared/defs/gameObjects/throwableDefs.ts";
@@ -2733,8 +2734,8 @@ export class Player implements AbstractObject {
                     aura === 3 ? "img/custom-weapons/fx/kit/lightning_ritual.png" : "img/custom-weapons/fx/kit/armlet_of_ruin.png",
                 );
                 this.kitCircle.texture = tex;
-                // doubled from the original 12-radius circle so it reads clearly on screen
-                const s = (2 * 24 * px) / Math.max(tex.width, 1);
+                // drawn at the server's aura radius, so whoever is inside it is the one marked
+                const s = (2 * KitDefs.wizard.aura!.radius * px) / Math.max(tex.width, 1);
                 this.kitCircle.scale.set(s, s);
                 this.kitCircle.rotation += dt * (aura === 3 ? 1.2 : 0.3);
             }
