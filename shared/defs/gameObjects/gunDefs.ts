@@ -3809,7 +3809,7 @@ const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
     }),
 ]);
 
-const kitAsset = (name: string) => `img/custom-weapons/fx/kit/${name}.png`;
+const kitAsset = (name: string) => `img/custom-weapons/fx/kit/${name}.png?v=${CustomWeaponsVersion}`;
 const kitBullet = (id: string, b: Partial<BulletDef>) => {
     BulletDefs[id] = {
         ...BulletDefs.bullet_ak47,
@@ -3866,7 +3866,7 @@ kitBullet("bullet_kit_dagger", {
     tracerColor: "cw_magic",
     tracerWidth: 0.12,
     sprite: kitAsset("enchanted_dagger"),
-    spriteSize: 2.2,
+    spriteSize: 3.2,
 });
 // the Summoner's whip: a chain that lashes out 36 tiles from the hand
 kitBullet("bullet_kit_whip", {

@@ -1,6 +1,7 @@
 import * as PIXI from "pixi.js-legacy";
 
 import type { LootDef } from "../../../shared/defs/gameObjectDefs.ts";
+import { CustomWeaponsVersion } from "../../../shared/defs/gameObjects/customWeaponDefs.ts";
 import { SwingArcs } from "../../../shared/defs/gameObjects/customWeaponEffects.ts";
 import type { BoostDef, HealDef } from "./../../../shared/defs/gameObjects/gearDefs.ts";
 import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
@@ -2780,7 +2781,7 @@ export class Player implements AbstractObject {
         }
         const daggers = aura === 1 ? KitDefs.summoner.daggers!.count : 0;
         while (this.kitDaggers.length < daggers) {
-            const d = PIXI.Sprite.from("img/custom-weapons/fx/kit/enchanted_dagger.png");
+            const d = PIXI.Sprite.from(`img/custom-weapons/fx/kit/enchanted_dagger.png?v=${CustomWeaponsVersion}`);
             d.anchor.set(0.5, 0.5);
             this.container.addChild(d);
             this.kitDaggers.push(d);
