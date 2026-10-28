@@ -1471,6 +1471,12 @@ const CustomMeleeDefs: Record<string, MeleeDef> = Object.fromEntries(
 
 // Wolverine's claws: kit only, 35 dmg and a 4 s bleed
 const KitMeleeDefs: Record<string, MeleeDef> = {
+    // Iron Man's suit punch: same fists moveset, kit-locked, 35 dmg
+    kit_ironman_fists: defineMeleeSkin("fists", {
+        name: "Repulsor Gauntlets",
+        noPotatoSwap: true,
+        damage: 35,
+    }),
     kit_wolverine_claws: defineMeleeSkin("katana", {
         name: "Adamantium Claws",
         noPotatoSwap: true,
