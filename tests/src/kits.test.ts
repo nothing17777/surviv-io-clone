@@ -328,3 +328,11 @@ test("Iron Man: untargetable for the whole 1.5 s flight, and damage over time st
     expect(me.flying).toBe(false);
     expect(me.untargetable).toBe(false);
 });
+
+test("Wolverine shows his dash cooldown, not his claw swings", () => {
+    const { game, me } = setup("wolverine");
+    use(game, me, Slot.Melee, 1);
+    expect(me.abilityCooldowns[2]).toBe(0);
+    use(game, me, Slot.Secondary, 1);
+    expect(me.abilityCooldowns[1]).toBeGreaterThan(5);
+});

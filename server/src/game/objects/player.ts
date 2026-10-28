@@ -747,6 +747,7 @@ export class Player extends BaseGameObject {
     /** Spider-Man: seconds since he last took damage, and until his next auto web */
     calmTime = 0;
     autoFireTimer = 0;
+    private wasCooling = false;
     /** Ultron minion: who summoned it and how long it has left */
     minionOwner?: Player;
     minionLife = 0;
@@ -805,10 +806,18 @@ export class Player extends BaseGameObject {
 
     /** seconds left on each ability slot (primary, secondary, melee) */
     get abilityCooldowns() {
+        const energyKit = !!KitDefs[this.kit]?.energy;
         return [0, 1, 2].map((i) => {
             const slot =
                 [GameConfig.WeaponSlot.Primary, GameConfig.WeaponSlot.Secondary, GameConfig.WeaponSlot.Melee][i];
-            return Math.max(this.weapons[slot]?.cooldown ?? 0, 0);
+            if (this.kit === "default") return 0;
+            const left = Math.max(this.weapons[slot]?.cooldown ?? 0, 0);
+            // kits without energy only show their long abilities (Wolverine's dash, Spider-Man's dodge),
+            // not every claw swing or web shot
+            const type = this.weapons[slot]?.type ?? "";
+            const def = type ? (GameObjectDefs.typeToDef(type) as GunDef | MeleeDef) : undefined;
+            const full = def?.type === "gun" ? def.fireDelay : def?.type === "melee" ? def.attack.cooldownTime : 0;
+            return energyKit || full >= 2 ? left : 0;
         });
     }
     eclipseHitCount = 0;
@@ -5396,9 +5405,11 @@ export class Player extends BaseGameObject {
                 this.energy = math.min(this.energy + e.perSecond, e.max);
             }
             if (Math.round(this.energy) !== before) this.energyDirty = true;
-            // ability kits show their cooldowns, which change every tick
-            if (this.abilityCooldowns.some((c) => c > 0)) this.energyDirty = true;
         }
+        // ability kits show their cooldowns, which change every tick (and once more when they hit 0)
+        const cooling = this.abilityCooldowns.some((c) => c > 0);
+        if (cooling || this.wasCooling) this.energyDirty = true;
+        this.wasCooling = cooling;
         if (kit.regenPulse) {
             this.regenPulseTimer += dt;
             if (this.regenPulseTimer >= kit.regenPulse.every) {

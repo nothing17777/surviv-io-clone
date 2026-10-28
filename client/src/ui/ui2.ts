@@ -738,7 +738,7 @@ export class UiManager2 {
         this.dom.health.energy.style.width = `${maxEnergy > 0 ? math.min((energy / maxEnergy) * 100, 100) : 0}%`;
         this.dom.health.energyText.textContent = maxEnergy > 0 ? `${Math.floor(energy)} / ${maxEnergy}` : "";
         // kit abilities: a dark sweep and the seconds left over each slot on cooldown
-        const cooldowns = maxEnergy > 0 ? activePlayer.m_localData.abilityCooldowns ?? [] : [];
+        const cooldowns = activePlayer.m_netData.m_dead ? [] : activePlayer.m_localData.abilityCooldowns ?? [];
         for (let i = 0; i < 3; i++) {
             const slot = this.dom.weapons[i]?.div;
             if (!slot) continue;
