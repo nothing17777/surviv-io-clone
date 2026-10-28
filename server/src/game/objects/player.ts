@@ -5413,7 +5413,7 @@ export class Player extends BaseGameObject {
         // each dagger leaves from its spot on the circle round the player (the client draws them there)
         const ang = ((this.daggerIndex++ % d.count) / d.count) * Math.PI * 2 + this.game.now * 0.002;
         const out = v2.create(Math.cos(ang), Math.sin(ang));
-        const from = v2.add(this.pos, v2.mul(out, 2.2));
+        const from = v2.add(this.pos, v2.mul(out, 4));
         this.game.bulletBarn.fireBullet(
             {
                 playerId: this.__id,
