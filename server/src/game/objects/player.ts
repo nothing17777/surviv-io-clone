@@ -760,13 +760,21 @@ export class Player extends BaseGameObject {
     /** the gun that volley comes from (empty once it has gone, or if there is none) */
     private flightWaveGun = "";
     private flightSpeedBonus = 0;
+    /** flight seconds left when he can be hit again */
+    private flightHittableAt = 0;
 
     get flying() {
         return this.flightTime > 0 && !this.dead;
     }
 
-    startFlight(flight: { duration: number; waveAt: number; speedBonus: number }, gun: string) {
+    /** the start of Iron Man's flight, when nothing can hit or target him */
+    get untargetable() {
+        return this.flying && this.flightTime > this.flightHittableAt;
+    }
+
+    startFlight(flight: { duration: number; untargetable: number; waveAt: number; speedBonus: number }, gun: string) {
         this.flightTime = flight.duration;
+        this.flightHittableAt = flight.duration - flight.untargetable;
         this.flightWaveAt = flight.duration - flight.waveAt;
         this.flightWaveGun = gun;
         this.flightSpeedBonus = flight.speedBonus;
@@ -2748,8 +2756,12 @@ export class Player extends BaseGameObject {
         if (this.debug.godMode) return;
         if (this._health < 0) this._health = 0;
         if (this.dead) return;
-        // Iron Man in flight can't be hit by anything; only the gas and the Wizard's circle still get through
-        if (this.flying && params.damageType !== GameConfig.DamageType.Gas && !params.hitsFlying) return;
+        // at the start of his flight Iron Man can't be hit; the gas, damage over time and the Wizard's circle
+        // still get through
+        if (
+            this.untargetable && params.damageType !== GameConfig.DamageType.Gas
+            && params.damageType !== GameConfig.DamageType.Bleeding && !params.hitsFlying
+        ) return;
         if (this.downed && this.downedDamageTicker > 0) return;
         // cobalt players on role picker menu
         if (this.game.map.perkMode && !this.role) return;
@@ -5380,7 +5392,8 @@ export class Player extends BaseGameObject {
     enemiesWithin(rad: number): Player[] {
         return this.game.playerBarn.livingPlayers.filter(
             (p) =>
-                p !== this && !p.dead && !p.flying && p.teamId !== this.teamId && util.sameLayer(p.layer, this.layer)
+                p !== this && !p.dead && !p.untargetable && p.teamId !== this.teamId
+                && util.sameLayer(p.layer, this.layer)
                 && v2.length(v2.sub(p.pos, this.pos)) <= rad,
         );
     }

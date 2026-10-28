@@ -60,7 +60,7 @@ export class ExplosionBarn {
             if (!util.sameLayer(obj.layer, explosion.layer)) return false;
             if ((obj as { dead?: boolean }).dead) return false;
             // Iron Man in flight is out of reach
-            if (obj.__type === ObjectType.Player && (obj as Player).flying) return false;
+            if (obj.__type === ObjectType.Player && (obj as Player).untargetable) return false;
             if (
                 !(
                     obj.__type === ObjectType.Player

@@ -335,7 +335,7 @@ export class Projectile extends BaseGameObject {
                 obj.__type === ObjectType.Player
                 && def.playerCollision
                 && !obj.dead
-                && !obj.flying
+                && !obj.untargetable
                 && util.sameLayer(this.layer, obj.layer)
                 && obj.__id !== this.playerId
             ) {

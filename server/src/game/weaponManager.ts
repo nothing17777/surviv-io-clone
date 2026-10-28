@@ -1324,7 +1324,7 @@ export class WeaponManager {
         for (let i = 0; i < objs.length; i++) {
             const playerCol = objs[i];
             if (playerCol.__type !== ObjectType.Player) continue;
-            if (playerCol.__id === this.player.__id || playerCol.dead || playerCol.flying) continue;
+            if (playerCol.__id === this.player.__id || playerCol.dead || playerCol.untargetable) continue;
             if (!util.sameLayer(playerCol.layer, this.player.layer)) continue;
 
             const res = coldet.intersectCircleCircle(

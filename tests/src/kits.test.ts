@@ -248,3 +248,16 @@ test("Power Fists: punch for 45 and build shield while held", () => {
     // 10 shield per second while they are the held weapon
     expect(me.shield).toBeGreaterThan(5);
 });
+
+test("Iron Man: untargetable only for the first 1.5 s of flight, and damage over time still ticks", () => {
+    const { game, me } = setup("ironman");
+    me.energy = 100;
+    use(game, me, Slot.Secondary, 1);
+    expect(me.untargetable).toBe(true);
+    const hp = me.health + me.shield;
+    me.damage({ amount: 5, damageType: GameConfig.DamageType.Bleeding, dir: v2.create(1, 0) });
+    expect(me.health + me.shield).toBeLessThan(hp);
+    for (let i = 0; i < 30; i++) game.step(0.05);
+    expect(me.flying).toBe(true);
+    expect(me.untargetable).toBe(false);
+});

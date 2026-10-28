@@ -474,7 +474,7 @@ export class Bullet {
             // the Summoner's swords chase forever, so once the target is gone they end instead of flying on
             if (
                 this.bulletType === "bullet_kit_dagger"
-                && (target?.__type !== ObjectType.Player || target.dead || target.flying
+                && (target?.__type !== ObjectType.Player || target.dead || target.untargetable
                     || this.damagedObjIds.has(this.homingId))
             ) {
                 this.alive = false;
@@ -482,13 +482,13 @@ export class Bullet {
                 return;
             } else if (
                 !this.devShot
-                && (target?.__type !== ObjectType.Player || target.dead || target.flying
+                && (target?.__type !== ObjectType.Player || target.dead || target.untargetable
                     || this.damagedObjIds.has(this.homingId))
             ) {
                 // magic shots lose their target and fly straight on
                 this.homingId = 0;
             } else if (
-                target?.__type !== ObjectType.Player || target.dead || target.flying
+                target?.__type !== ObjectType.Player || target.dead || target.untargetable
                 || this.damagedObjIds.has(this.homingId)
             ) {
                 // done with it: end here instead of flying on across the map (hundreds of these lag clients)
@@ -625,7 +625,7 @@ export class Bullet {
                     !(
                         !obj.dead
                         // Iron Man in flight can't be hit: shots fly straight through him
-                        && !obj.flying
+                        && !obj.untargetable
                         // the super hacker's shots reach into bunkers and up from them too
                         && (util.sameLayer(obj.layer, this.layer) || 2 & obj.layer || this.devShot)
                         && (obj.__id !== this.playerId || this.damageSelf)
@@ -878,7 +878,7 @@ export class Bullet {
             let target: Player | undefined;
             let best = 30;
             for (const p of game.playerBarn.livingPlayers) {
-                if (p === this.player || p.flying || (this.player && p.teamId === this.player.teamId)) continue;
+                if (p === this.player || p.untargetable || (this.player && p.teamId === this.player.teamId)) continue;
                 const d = v2.length(v2.sub(p.pos, b.pos));
                 if (d < best) {
                     best = d;
@@ -914,7 +914,7 @@ export class Bullet {
         // as far as the shot can fly, so long range shots home too
         let bestDist = Math.max(GameObjectDefs.typeToDef(this.bulletType, "bullet").distance, 70);
         for (const p of this.bulletManager.game.playerBarn.livingPlayers) {
-            if (p.__id === this.playerId || p.flying || (this.player && p.teamId === this.player.teamId)) continue;
+            if (p.__id === this.playerId || p.untargetable || (this.player && p.teamId === this.player.teamId)) continue;
             if (!util.sameLayer(p.layer, this.layer)) continue;
             const to = v2.sub(p.pos, pos);
             const dist = v2.length(to);
