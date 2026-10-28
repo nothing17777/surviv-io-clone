@@ -83,8 +83,13 @@ test("Summoner: daggers attack nearby enemies, the whip sets their focus", () =>
     for (let i = 0; i < 20; i++) game.step(0.05);
     expect(enemy.health).toBeLessThan(100);
 
+    // anyone on screen, not just close by
+    const far = setup("summoner", v2.create(22, 0));
+    for (let i = 0; i < 20; i++) far.game.step(0.05);
+    expect(far.enemy.health).toBeLessThan(100);
+
     const whip = setup("summoner", v2.create(20, 0));
-    // out of dagger range, then the whip pulls focus once in reach
+    // the whip pulls focus once in reach
     whip.enemy.pos = v2.add(whip.me.pos, v2.create(8, 0));
     // the daggers would kill them before the whip lands
     whip.enemy.maxHealth = 1e6;

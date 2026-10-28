@@ -5385,11 +5385,12 @@ export class Player extends BaseGameObject {
         );
     }
 
-    /** Summoner: the blade minions take turns flying at the focused enemy, else the nearest one in range */
+    /** Summoner: the blade minions take turns flying at the focused enemy, else the nearest one on screen */
     updateDaggers(dt: number, d: NonNullable<(typeof KitDefs)[string]["daggers"]>) {
         this.daggerTimer -= dt;
         if (this.daggerTimer > 0) return;
-        const near = this.enemiesWithin(d.range);
+        // anyone the Summoner can see: the view reaches about `zoom` from him (28 at 1x)
+        const near = this.enemiesWithin(Math.max(d.range, this.zoom));
         if (!near.length) return;
         // at most one every 0.05 s: a big swarm firing every tick would flood clients with bullets
         this.daggerTimer = Math.max(d.interval / d.count, 0.05);
@@ -5411,7 +5412,7 @@ export class Player extends BaseGameObject {
                 homingTargetId: target.__id,
                 layer: this.layer,
                 damageMult: 1,
-                distance: d.range * 2,
+                distance: Math.max(d.range, this.zoom) * 2,
                 shotFx: false,
                 reflectCount: 0,
             } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
