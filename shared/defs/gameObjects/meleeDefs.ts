@@ -1477,6 +1477,13 @@ const KitMeleeDefs: Record<string, MeleeDef> = {
         noPotatoSwap: true,
         damage: 35,
     }),
+    // Spider-Man's Sudden Dodge: untargetable for 2 s and faster auto webs, 8 s cooldown
+    kit_spider_dodge: defineMeleeSkin("fists", {
+        name: "Sudden Dodge",
+        noPotatoSwap: true,
+        damage: 0,
+        attack: { offset: { x: 0, y: 0 }, rad: 0.1, cooldownTime: 8 },
+    }),
     kit_wolverine_claws: defineMeleeSkin("katana", {
         name: "Adamantium Claws",
         noPotatoSwap: true,
@@ -1515,12 +1522,6 @@ const kitMelee = (id: string, name: string, params: DeepPartial<MeleeDef>): [str
 Object.assign(
     KitMeleeDefs,
     Object.fromEntries([
-        // Spider-Man: 45 dmg, bleeds, 4x self regen for 4 s and a 20 hp shield on hit
-        kitMelee("kit_spider_slash", "Spider Slash", {
-            damage: 30,
-            autoAttack: true,
-            attack: { offset: { x: 2, y: 0 }, rad: 2.6, cooldownTime: 0.5 },
-        }),
         // Summoner whip: lashes 36 tiles (the lash does the damage); the hit enemy becomes the minions' target
         kitMelee("kit_summoner_whip", "Spinal Tap", {
             damage: 0,

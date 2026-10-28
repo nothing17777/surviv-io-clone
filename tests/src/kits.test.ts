@@ -38,7 +38,7 @@ function use(
     me.shootHold = false;
 }
 
-test("Spider-Man: web swings him to what it hit, slash bleeds and shields", () => {
+test("Spider-Man: web swings him to what it hit", () => {
     const { game, me, enemy } = setup("spiderman");
     expect(me.maxHealth).toBe(250);
     const start = v2.copy(me.pos);
@@ -46,12 +46,50 @@ test("Spider-Man: web swings him to what it hit, slash bleeds and shields", () =
     for (let i = 0; i < 10; i++) game.step(0.05);
     expect(v2.length(v2.sub(me.pos, start))).toBeGreaterThan(3);
     expect(enemy.health).toBeLessThan(100);
+});
 
-    enemy.pos = v2.add(me.pos, v2.mul(me.dir, 2.5));
-    const shield = me.shield;
-    use(game, me, Slot.Melee, 10, true);
+test("Spider-Man: auto webs the nearest enemy, 3x as often while dodging", () => {
+    const { game, me, enemy } = setup("spiderman", v2.create(20, 0));
+    enemy.maxHealth = 10000;
+    enemy.health = 10000;
+    // the web shooter isn't fired: only the passive hits
+    me.weaponManager.setCurWeapIndex(Slot.Melee, true);
+    // game.step runs whole 0.1 s ticks: 30 of them is 3 s
+    for (let i = 0; i < 30; i++) game.step(0.1);
+    const calm = 10000 - enemy.health;
+    expect(calm).toBeGreaterThanOrEqual(60);
+    expect(calm).toBeLessThanOrEqual(120);
+
+    use(game, me, Slot.Melee, 1);
+    expect(me.untargetable).toBe(true);
+    const before = enemy.health;
+    for (let i = 0; i < 20; i++) game.step(0.1);
+    expect(me.untargetable).toBe(false);
+    expect(before - enemy.health).toBeGreaterThanOrEqual(150);
+});
+
+test("Spider-Man: 5 hp/s regen, 20 hp/s after 5 s without damage", () => {
+    const { game, me } = setup("spiderman", v2.create(200, 0));
+    me.damage({ amount: 240, damageType: GameConfig.DamageType.Bleeding, dir: v2.create(1, 0) });
+    // adrenaline heals on top, the same in both seconds
+    let hp = me.health;
+    for (let i = 0; i < 10; i++) game.step(0.1);
+    const hurt = me.health - hp;
+    for (let i = 0; i < 50; i++) game.step(0.1);
+    hp = me.health;
+    for (let i = 0; i < 10; i++) game.step(0.1);
+    expect(me.health - hp - hurt).toBeCloseTo(15, 0);
+});
+
+test("Wolverine: dashes 8 tiles through an enemy for 50 dmg and a bleed", () => {
+    const { game, me, enemy } = setup("wolverine", v2.create(4, 0));
+    expect(me.maxHealth).toBe(300);
+    const start = v2.copy(me.pos);
+    use(game, me, Slot.Secondary, 1);
+    for (let i = 0; i < 10; i++) game.step(0.05);
+    expect(v2.length(v2.sub(me.pos, start))).toBeGreaterThan(6);
+    expect(enemy.health).toBeLessThanOrEqual(50);
     expect(enemy.bleeding).toBeTruthy();
-    expect(me.shield).toBeGreaterThan(shield);
 });
 
 test("Ultron: minions, orb blast and laser cost energy and hit", () => {

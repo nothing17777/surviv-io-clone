@@ -742,8 +742,11 @@ export class Player extends BaseGameObject {
     summonerFocusId = 0;
     /** Spider-Man: swinging to where the web hit */
     webPull?: { target: Vec2; speed: number; time: number; lastDist?: number };
-    /** Spider-Man: seconds left of 4x regen after a slash */
-    spiderRegenTime = 0;
+    /** Spider-Man: seconds left of Sudden Dodge (untargetable, faster auto webs) */
+    dodgeTime = 0;
+    /** Spider-Man: seconds since he last took damage, and until his next auto web */
+    calmTime = 0;
+    autoFireTimer = 0;
     /** Ultron minion: who summoned it and how long it has left */
     minionOwner?: Player;
     minionLife = 0;
@@ -767,9 +770,9 @@ export class Player extends BaseGameObject {
         return this.flightTime > 0 && !this.dead;
     }
 
-    /** the start of Iron Man's flight, when nothing can hit or target him */
+    /** the start of Iron Man's flight (or Spider-Man's dodge), when nothing can hit or target him */
     get untargetable() {
-        return this.flying && this.flightTime > this.flightHittableAt;
+        return (this.flying && this.flightTime > this.flightHittableAt) || (this.dodgeTime > 0 && !this.dead);
     }
 
     startFlight(flight: { duration: number; untargetable: number; waveAt: number; speedBonus: number }, gun: string) {
@@ -2917,14 +2920,16 @@ export class Player extends BaseGameObject {
         }
 
         this.health -= finalDamage;
+        if (finalDamage > 0) this.calmTime = 0;
 
         // debuff weapons (the debuff's own ticks are Bleeding damage, so they don't refresh it);
         // Frozen Dragon's slow comes from its explosion's freezeDuration
         if (playerSource && params.source !== this && params.damageType !== GameConfig.DamageType.Bleeding) {
             const src = params.gameSourceType;
             const weap = params.weaponSourceType ?? "";
-            if (src === "pg_nanobots_rifle" || src === "kit_wolverine_claws") this.applyBleed(4, playerSource);
-            // Iron Man: rockets burn, the repulsor blast bleeds
+            if (src === "pg_nanobots_rifle" || src === "kit_wolverine_claws" || src === "kit_wolverine_dash") {
+                this.applyBleed(4, playerSource);
+            } // Iron Man: rockets burn, the repulsor blast bleeds
             else if (src === "kit_ironman_rockets") this.applyBurn(4, playerSource, src);
             else if (src === "kit_ironman_blast") this.applyBleed(4, playerSource);
             // Ultron's orb lasers: orange burns, red bleeds, purple poisons, 3s each
@@ -2938,11 +2943,6 @@ export class Player extends BaseGameObject {
                     speed: 20,
                     time: 0.12,
                 };
-            } else if (src === "kit_spider_slash") {
-                this.applyBleed(4, playerSource);
-                playerSource.spiderRegenTime = 4;
-                playerSource.shield = math.min(playerSource.shield + 20, playerSource.maxShield || 200);
-                playerSource.shieldDirty = true;
             } else if (
                 src === "kit_summoner_whip" && params.amount! < (KitDefs.summoner.daggers?.damage ?? 30) - 0.01
             ) {
@@ -3094,6 +3094,7 @@ export class Player extends BaseGameObject {
         }
         this.wizardMarks.clear();
         this.flightTime = 0;
+        this.dodgeTime = 0;
         if (this.downed) this.downed = false;
         this.dead = true;
         this.killedIndex = this.game.playerBarn.nextKilledNumber++;
@@ -5358,8 +5359,10 @@ export class Player extends BaseGameObject {
         if (this.minionOwner) this.updateMinion(dt);
         if (this.kit === "default" || !kit || this.dead) return;
         if (kit.fullBoost && this.boost < 100) this.boost = 100;
+        this.calmTime += dt;
         if (kit.regen && this.health < this.maxHealth) {
-            const rate = this.health < (kit.lowHealth ?? 0) ? kit.regen * 2 : kit.regen;
+            let rate = this.health < (kit.lowHealth ?? 0) ? kit.regen * 2 : kit.regen;
+            if (kit.calmRegen && this.calmTime >= kit.calmRegen.after) rate = kit.calmRegen.rate;
             this.health = math.min(this.health + rate * dt, this.maxHealth);
         }
         const e = kit.energy;
@@ -5403,13 +5406,40 @@ export class Player extends BaseGameObject {
                 this.health = math.min(this.health + kit.regenPulse.amount, this.maxHealth);
             }
         }
-        if (this.spiderRegenTime > 0) {
-            this.spiderRegenTime -= dt;
-            // Spider Slash: 4x regen (the base 10 hp/s is added above)
-            if (kit.regen) this.health = math.min(this.health + kit.regen * 3 * dt, this.maxHealth);
+        if (this.dodgeTime > 0) {
+            this.dodgeTime = Math.max(0, this.dodgeTime - dt);
+            if (this.dodgeTime === 0) this.setDirty();
         }
+        if (kit.autoFire) this.updateAutoFire(dt, kit.autoFire);
         if (kit.daggers) this.updateDaggers(dt, kit.daggers);
         if (kit.aura) this.updateAura(dt, kit.aura);
+    }
+
+    /** Spider-Man: a web ball at the nearest enemy in range, every 1/rate seconds */
+    updateAutoFire(dt: number, a: NonNullable<(typeof KitDefs)[string]["autoFire"]>) {
+        this.autoFireTimer -= dt;
+        if (this.autoFireTimer > 0) return;
+        const near = this.enemiesWithin(a.range);
+        if (!near.length) return;
+        // carry the leftover so the rate holds at the 0.1 s test tick too
+        this.autoFireTimer = Math.max(this.autoFireTimer + 1 / (this.dodgeTime > 0 ? a.dodgeRate : a.rate), 0);
+        const target = near.reduce((x, y) =>
+            v2.length(v2.sub(x.pos, this.pos)) < v2.length(v2.sub(y.pos, this.pos)) ? x : y
+        );
+        this.game.bulletBarn.fireBullet(
+            {
+                playerId: this.__id,
+                bulletType: a.bullet,
+                gameSourceType: "kit_spider_web",
+                damageType: GameConfig.DamageType.Player,
+                pos: v2.copy(this.pos),
+                dir: v2.normalizeSafe(v2.sub(target.pos, this.pos), this.dir),
+                layer: this.layer,
+                damageMult: 1,
+                shotFx: false,
+                reflectCount: 0,
+            } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
+        );
     }
 
     enemiesWithin(rad: number): Player[] {

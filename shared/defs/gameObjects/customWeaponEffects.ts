@@ -593,7 +593,6 @@ export const SwingArcs: Record<string, string> = {
     tr_star_wrath: "img/custom-weapons/fx/arc_pink.png",
     tr_zenith: "img/custom-weapons/fx/arc_rainbow.png",
     kit_wolverine_claws: "img/custom-weapons/fx/arc_claws.png",
-    kit_spider_slash: "img/custom-weapons/fx/arc_spider.png",
 };
 
 /** what a sword fires with each swing in its own game */

@@ -1,5 +1,6 @@
 import { SwingShots } from "../../../shared/defs/gameObjects/customWeaponEffects.ts";
 import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
+import { SpiderDodgeTime, WolverineDashDistance } from "../../../shared/defs/gameObjects/kitDefs.ts";
 import type { MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
 import { PerkProperties } from "../../../shared/defs/gameObjects/perkDefs.ts";
 import { type ThrowableDef, ThrowableDefs } from "../../../shared/defs/gameObjects/throwableDefs.ts";
@@ -427,6 +428,12 @@ export class WeaponManager {
             this.player.cancelAction();
             // abilities in the melee slot
             if (this.activeWeapon === "kit_ultron_minions") this.player.spawnMinions();
+            if (this.activeWeapon === "kit_spider_dodge") {
+                this.player.dodgeTime = SpiderDodgeTime;
+                // the faster webs start straight away
+                this.player.autoFireTimer = 0;
+                this.player.setDirty();
+            }
             if (this.activeWeapon === "kit_wizard_enhance") {
                 this.player.kitEnhanceTime = 9;
                 this.player.setDirty();
@@ -834,6 +841,15 @@ export class WeaponManager {
         this.player.weapsDirty = true;
         // Iron Man's rockets take him into the air for a while
         if (itemDef.flight) this.player.startFlight(itemDef.flight, this.activeWeapon);
+        // Wolverine's dash: he slides 8 tiles alongside his streak (walls still stop him)
+        if (this.activeWeapon === "kit_wolverine_dash") {
+            const bullet = GameObjectDefs.typeToDef(itemDef.bulletType, "bullet");
+            this.player.webPull = {
+                target: v2.add(this.player.pos, v2.mul(this.player.dir, WolverineDashDistance)),
+                speed: bullet.speed,
+                time: WolverineDashDistance / bullet.speed + 0.1,
+            };
+        }
 
         const collisionLayer = util.toGroundLayer(this.player.layer);
         const bulletLayer = this.player.aimLayer;

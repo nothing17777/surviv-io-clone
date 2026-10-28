@@ -22,6 +22,10 @@ export interface KitDef {
     /** hp per second, doubled under lowHealth */
     regen?: number;
     lowHealth?: number;
+    /** Spider-Man: regen goes up to `rate` hp/s once he has gone `after` seconds without taking damage */
+    calmRegen?: { rate: number; after: number };
+    /** Spider-Man: fires `bullet` at the nearest enemy within `range`, `rate` shots/s (`dodgeRate` while dodging) */
+    autoFire?: { bullet: string; range: number; rate: number; dodgeRate: number };
     /** Summoner: this much hp every `every` seconds */
     regenPulse?: { amount: number; every: number };
     /** Summoner: orbiting blade minions that attack enemies within `range` of the player */
@@ -47,14 +51,15 @@ export const KitDefs: Record<string, KitDef> = {
     default: { name: "Default", health: 100, helmet: "", chest: "", outfit: "", melee: "" },
     wolverine: {
         name: "Wolverine",
-        health: 400,
+        health: 300,
         helmet: "helmet04",
         chest: "chest04",
         outfit: "outfitKitWolverine",
+        secondary: "kit_wolverine_dash",
         melee: "kit_wolverine_claws",
         fullBoost: true,
         speedBonus: 2,
-        regen: 30,
+        regen: 15,
         lowHealth: 100,
     },
     ironman: {
@@ -76,10 +81,12 @@ export const KitDefs: Record<string, KitDef> = {
         chest: "chest04",
         outfit: "outfitKitSpiderman",
         primary: "kit_spider_web",
-        melee: "kit_spider_slash",
+        melee: "kit_spider_dodge",
         fullBoost: true,
         speedBonus: 2,
-        regen: 10,
+        regen: 5,
+        calmRegen: { rate: 20, after: 5 },
+        autoFire: { bullet: "bullet_kit_spider_auto", range: 40, rate: 1, dodgeRate: 3 },
     },
     ultron: {
         name: "Ultron",
@@ -121,6 +128,12 @@ export const KitDefs: Record<string, KitDef> = {
 };
 
 /** Ultron's minions: bots that fight for their summoner, then blow up */
+/** Spider-Man's Sudden Dodge: seconds untargetable */
+export const SpiderDodgeTime = 2;
+
+/** Wolverine's dash: how far he goes */
+export const WolverineDashDistance = 8;
+
 export const UltronMinion = { count: 4, health: 17.5, speedMult: 0.75, life: 15, explosion: "explosion_kit_minion" };
 
 /** Ultron's energy blast orbs, one per colour, and the laser each one's blast fires */

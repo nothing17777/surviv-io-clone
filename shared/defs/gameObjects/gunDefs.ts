@@ -3884,12 +3884,51 @@ kitBullet("bullet_kit_whip", {
     trailSprite: kitAsset("spinal_tap_proj"),
 });
 
+// Spider-Man's passive: a white web ball at the nearest enemy, as far and fast as the web shooter, no swing
+kitBullet("bullet_kit_spider_auto", {
+    damage: 30,
+    speed: 120,
+    distance: 40,
+    tracerColor: "cw_white",
+    tracerWidth: 0.3,
+    tracerLength: 1.2,
+    sprite: kitAsset("web_ball"),
+    spriteSize: 0.8,
+});
+
 const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
+    // Wolverine dash: 8 tiles forward, 50 dmg and a bleed to whoever he slashes through, 8 s cooldown.
+    // The streak flies alongside him and does the damage
+    kitGun("kit_wolverine_dash", "barrett", {
+        damage: 50,
+        speed: 40,
+        distance: 8,
+        falloff: 1,
+        playerPierce: true,
+        pierceLoss: 0,
+        noTracer: true,
+        tracerColor: "cw_white",
+        tracerWidth: 0.3,
+        sprite: kitAsset("flint_shot"),
+        // screen px at zoom 1, sized like the Christmas Ultimatum tree (80) so it reads at 15x zoom
+        spriteSize: 120,
+    }, {
+        name: "Adamantium Dash",
+        fireMode: "single",
+        fireDelay: 8,
+        energyCost: 0,
+        shotSpread: 0,
+        moveSpread: 0,
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
     // Spider-Man web: a fast white strand, 30 dmg; whatever it hits swings him there
     kitGun("kit_spider_web", "deagle", {
         damage: 20,
         speed: 120,
-        distance: 20,
+        distance: 40,
         falloff: 1,
         tracerColor: "cw_white",
         tracerWidth: 0.3,
