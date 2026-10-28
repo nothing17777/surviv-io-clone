@@ -100,6 +100,32 @@ test("Summoner: daggers attack nearby enemies, the whip sets their focus", () =>
     expect(whip.me.summonerFocusId).toBe(whip.enemy.__id);
 });
 
+test("Summoner: the whip leaves its target vulnerable, taking 10 more from each minion hit for 4 s", () => {
+    const { game, me, enemy } = setup("summoner", v2.create(60, 0));
+    enemy.maxHealth = 1e6;
+    enemy.health = 1e6;
+    const hit = (amount: number) => {
+        const before = enemy.health;
+        enemy.damage({
+            amount,
+            damageType: GameConfig.DamageType.Player,
+            dir: v2.create(1, 0),
+            source: me,
+            gameSourceType: "kit_summoner_whip",
+        });
+        return before - enemy.health;
+    };
+    const dagger = hit(30);
+    expect(enemy.vulnerable).toBe(false);
+    // a lash, softer than a dagger
+    hit(14);
+    expect(enemy.vulnerable).toBe(true);
+    expect(hit(30)).toBeCloseTo(dagger + 10, 5);
+    for (let i = 0; i < 81; i++) game.step(0.05);
+    expect(enemy.vulnerable).toBe(false);
+    expect(hit(30)).toBeCloseTo(dagger, 5);
+});
+
 test("Wizard: circle feeds energy, enhance marks enemies, spells fire", () => {
     const { game, me, enemy } = setup("wizard", v2.create(8, 0));
     me.energy = 0;

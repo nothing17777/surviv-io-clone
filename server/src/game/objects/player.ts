@@ -824,6 +824,13 @@ export class Player extends BaseGameObject {
     // Charm (Aphrodite Crossbow): attacks half as fast
     charmDuration = 0;
 
+    /** Summoner's whip: seconds left taking extra damage from each minion hit */
+    vulnerableTime = 0;
+
+    get vulnerable() {
+        return this.vulnerableTime > 0;
+    }
+
     get charmed() {
         return this.charmDuration > 0;
     }
@@ -2069,6 +2076,11 @@ export class Player extends BaseGameObject {
                 if (this.charmDuration <= 0) this.setDirty();
             }
 
+            if (this.vulnerableTime > 0) {
+                this.vulnerableTime -= dt;
+                if (this.vulnerableTime <= 0) this.setDirty();
+            }
+
             // Power Fists: 10 shield per second while held, up to 200
             const shieldCap = this.maxShield || 200;
             if (this.weapons[this.curWeapIdx]?.type === "pg_power_fists" && this.shield < shieldCap) {
@@ -2795,6 +2807,15 @@ export class Player extends BaseGameObject {
 
         let finalDamage = params.amount!;
 
+        // vulnerable to the Summoner: each minion hit (a dagger hits as hard as its damage, the whip softer) lands harder
+        const daggerDamage = KitDefs.summoner.daggers!.damage;
+        if (
+            this.vulnerable && params.gameSourceType === "kit_summoner_whip"
+            && finalDamage >= daggerDamage - 0.01
+        ) {
+            finalDamage += KitDefs.summoner.vulnerable!.extraDamage;
+        }
+
         // Excalibur: 50% less damage taken while actively firing it
         if (this.excaliburActive) finalDamage *= 0.5;
 
@@ -2925,8 +2946,10 @@ export class Player extends BaseGameObject {
             } else if (
                 src === "kit_summoner_whip" && params.amount! < (KitDefs.summoner.daggers?.damage ?? 30) - 0.01
             ) {
-                // the whip's lash (it hits softer than a dagger) sets the minions' target
+                // the whip's lash (it hits softer than a dagger) sets the minions' target and leaves them vulnerable
                 playerSource.summonerFocusId = this.__id;
+                if (!this.vulnerable) this.setDirty();
+                this.vulnerableTime = KitDefs.summoner.vulnerable!.duration;
             } else if (src === "pg_acid_shotgun") this.applyPoison(4, playerSource);
             else if (src === "pg_frozen_dragon") this.applyBurn(2, playerSource);
             else if (src === "pg_photon_sniper_rifle") this.applyBurn(4, playerSource, src);

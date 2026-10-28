@@ -100,6 +100,8 @@ export interface ObjectsFullData {
         kitAura: number;
         /** inside an enhanced Wizard's circle: a sigil under them */
         wizardMarked: boolean;
+        /** hit by the Summoner's whip: a rainbow circle under them while minion hits land harder */
+        vulnerable: boolean;
         /** Excalibur: a dim yellow circle under them while it halves their damage taken */
         excaliburActive: boolean;
         /** Iron Man's flight: untargetable and through walls */
@@ -243,6 +245,7 @@ export const ObjectSerializeFns: {
             s.writeBoolean(data.charmed);
             s.writeBits(data.kitAura, 2);
             s.writeBoolean(data.wizardMarked);
+            s.writeBoolean(data.vulnerable);
             s.writeBoolean(data.excaliburActive);
             s.writeBoolean(data.flying);
 
@@ -322,6 +325,7 @@ export const ObjectSerializeFns: {
             data.charmed = s.readBoolean();
             data.kitAura = s.readBits(2);
             data.wizardMarked = s.readBoolean();
+            data.vulnerable = s.readBoolean();
             data.excaliburActive = s.readBoolean();
             data.flying = s.readBoolean();
 

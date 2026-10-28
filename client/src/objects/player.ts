@@ -318,6 +318,7 @@ export class Player implements AbstractObject {
         charmed: boolean;
         kitAura: number;
         wizardMarked: boolean;
+        vulnerable: boolean;
         excaliburActive: boolean;
         flying: boolean;
         m_frozen: boolean;
@@ -493,6 +494,7 @@ export class Player implements AbstractObject {
             charmed: false,
             kitAura: 0,
             wizardMarked: false,
+            vulnerable: false,
             excaliburActive: false,
             flying: false,
             m_frozen: false,
@@ -583,6 +585,7 @@ export class Player implements AbstractObject {
             this.m_netData.charmed = data.charmed;
             this.m_netData.kitAura = data.kitAura;
             this.m_netData.wizardMarked = data.wizardMarked;
+            this.m_netData.vulnerable = data.vulnerable;
             this.m_netData.excaliburActive = data.excaliburActive;
             this.m_netData.flying = data.flying;
             this.m_netData.m_frozen = data.frozen;
@@ -2700,6 +2703,7 @@ export class Player implements AbstractObject {
 
     kitCircle: PIXI.Sprite | null = null;
     kitSigil: PIXI.Sprite | null = null;
+    vulnerableRing: PIXI.Graphics | null = null;
     kitDaggers: PIXI.Sprite[] = [];
     kitTicker = 0;
     excaliburRing: PIXI.Graphics | null = null;
@@ -2778,6 +2782,28 @@ export class Player implements AbstractObject {
             const s = (3.2 * px) / Math.max(tex.width, 1);
             this.kitSigil.scale.set(s, s);
             this.kitSigil.rotation -= dt * 0.8;
+        }
+        if (this.m_netData.vulnerable || this.vulnerableRing) {
+            if (!this.vulnerableRing) {
+                this.vulnerableRing = new PIXI.Graphics();
+                this.auraContainer.addChild(this.vulnerableRing);
+            }
+            const ring = this.vulnerableRing;
+            ring.visible = this.m_netData.vulnerable && !dead;
+            if (ring.visible) {
+                // a spinning rainbow ring round their feet
+                ring.clear();
+                const segs = 24;
+                const r = 2.4 * px;
+                for (let i = 0; i < segs; i++) {
+                    const a0 = (i / segs) * Math.PI * 2;
+                    const a1 = ((i + 1) / segs) * Math.PI * 2;
+                    ring.lineStyle(0.3 * px, hueColor(i / segs + this.kitTicker * 0.5), 0.85);
+                    ring.moveTo(Math.cos(a0) * r, Math.sin(a0) * r);
+                    ring.arc(0, 0, r, a0, a1);
+                }
+                ring.rotation += dt * 2;
+            }
         }
         const daggers = aura === 1 ? KitDefs.summoner.daggers!.count : 0;
         while (this.kitDaggers.length < daggers) {
@@ -3284,4 +3310,13 @@ export class PlayerBarn {
             }
         }
     }
+}
+
+/** a fully saturated colour round the colour wheel, `h` in turns */
+function hueColor(h: number) {
+    const f = (n: number) => {
+        const k = (n + (((h % 1) + 1) % 1) * 6) % 6;
+        return Math.round(255 * (1 - Math.max(0, Math.min(k, 4 - k, 1))));
+    };
+    return (f(5) << 16) | (f(3) << 8) | f(1);
 }
