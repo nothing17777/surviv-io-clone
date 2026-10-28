@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { KitDefs, UltronMinion } from "../../shared/defs/gameObjects/kitDefs.ts";
 import { GameConfig, TeamMode } from "../../shared/gameConfig.ts";
 import { v2 } from "../../shared/utils/v2.ts";
@@ -126,4 +126,61 @@ test("Ultron: shield recovery is 12 per second for 3 energy per second", () => {
     expect(shieldRegen).toBe(12);
     expect(shieldCost).toBe(3);
     expect(KitDefs.wizard.shield).toBe(100);
+});
+
+test("Iron Man: the rockets fly him for 5 s, untargetable, with a second wave 3 s in", () => {
+    const { game, me, enemy } = setup("ironman", v2.create(30, 0));
+    me.energy = 100;
+    const wave = vi.spyOn(me.weaponManager, "fireRingWave");
+    expect(me.flying).toBe(false);
+    use(game, me, Slot.Secondary, 1);
+    expect(me.flying).toBe(true);
+    expect(me.flightTime).toBeCloseTo(5, 5);
+
+    // nothing hits him in the air, not a bullet's damage and not an explosion's
+    const health = me.health;
+    const shield = me.shield;
+    me.damage({ amount: 50, damageType: GameConfig.DamageType.Player, dir: v2.create(1, 0), source: enemy, gameSourceType: "ak47" });
+    me.damage({ amount: 50, damageType: GameConfig.DamageType.Player, dir: v2.create(1, 0), source: enemy, isExplosion: true });
+    expect(me.health).toBe(health);
+    expect(me.shield).toBe(shield);
+
+    // the first wave is the shot itself; the second one is due 3 s in, even holding another weapon
+    me.weaponManager.setCurWeapIndex(Slot.Primary, true);
+    for (let i = 0; i < 55; i++) game.step(0.05);
+    expect(wave).not.toHaveBeenCalled();
+    for (let i = 0; i < 8; i++) game.step(0.05);
+    expect(wave).toHaveBeenCalledTimes(1);
+    expect(wave).toHaveBeenCalledWith("kit_ironman_rockets");
+    expect(me.flying).toBe(true);
+
+    // landed after 5 s, and he can be hurt again
+    for (let i = 0; i < 40; i++) game.step(0.05);
+    expect(me.flying).toBe(false);
+    me.damage({ amount: 20, damageType: GameConfig.DamageType.Player, dir: v2.create(1, 0), source: enemy, gameSourceType: "ak47" });
+    expect(me.health + me.shield).toBeLessThan(health + shield);
+    expect(wave).toHaveBeenCalledTimes(1);
+});
+
+test("Iron Man: in flight he is faster, walks through walls, and the Wizard's circle can't mark him", () => {
+    const grounded = setup("ironman");
+    const flier = setup("ironman");
+    flier.me.energy = 100;
+    use(flier.game, flier.me, Slot.Secondary, 1);
+    expect(flier.me.flying).toBe(true);
+    for (const t of [grounded, flier]) {
+        t.me.moveLeft = false;
+        t.me.moveRight = true;
+        t.me.moveUp = false;
+        t.me.moveDown = false;
+        for (let i = 0; i < 5; i++) t.game.step(0.05);
+    }
+    expect(flier.me.speed).toBeGreaterThan(grounded.me.speed);
+
+    const wizard = setup("wizard", v2.create(8, 0));
+    wizard.enemy.flightTime = 5;
+    wizard.me.energy = 300;
+    use(wizard.game, wizard.me, Slot.Melee, 1);
+    wizard.game.step(0.05);
+    expect(wizard.enemy.wizardMarked).toBeFalsy();
 });

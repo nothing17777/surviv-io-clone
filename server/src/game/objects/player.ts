@@ -753,6 +753,40 @@ export class Player extends BaseGameObject {
     wizardMarked = false;
     /** Excalibur: true while actively firing it, halving damage taken */
     excaliburActive = false;
+    /** Iron Man's flight: seconds left in the air, untargetable and through walls */
+    flightTime = 0;
+    /** the second rocket volley goes off when the flight is down to this many seconds */
+    private flightWaveAt = 0;
+    /** the gun that volley comes from (empty once it has gone, or if there is none) */
+    private flightWaveGun = "";
+    private flightSpeedBonus = 0;
+
+    get flying() {
+        return this.flightTime > 0 && !this.dead;
+    }
+
+    startFlight(flight: { duration: number; waveAt: number; speedBonus: number }, gun: string) {
+        this.flightTime = flight.duration;
+        this.flightWaveAt = flight.duration - flight.waveAt;
+        this.flightWaveGun = gun;
+        this.flightSpeedBonus = flight.speedBonus;
+        this.setDirty();
+    }
+
+    updateFlight(dt: number) {
+        if (this.flightTime <= 0) return;
+        this.flightTime -= dt;
+        // the second volley fires even if he has swapped to another weapon by then
+        if (this.flightWaveGun && this.flightTime <= this.flightWaveAt) {
+            const gun = this.flightWaveGun;
+            this.flightWaveGun = "";
+            this.weaponManager.fireRingWave(gun);
+        }
+        if (this.flightTime <= 0) {
+            this.flightTime = 0;
+            this.setDirty();
+        }
+    }
 
     get kitAura() {
         return this.dead ? 0 : kitAura(this.kit, this.kitEnhanceTime > 0);
@@ -2019,6 +2053,7 @@ export class Player extends BaseGameObject {
             }
 
             this.updateKit(dt);
+            this.updateFlight(dt);
 
             if (this.charmDuration > 0) {
                 this.charmDuration -= dt;
@@ -2273,7 +2308,7 @@ export class Player extends BaseGameObject {
         for (let i = 0; i < steps; i++) {
             v2.set(this.pos, v2.add(this.pos, v2.mul(movement, speedToAdd)));
 
-            for (let j = 0; j < objs.length && !this.debug.noClip; j++) {
+            for (let j = 0; j < objs.length && !this.debug.noClip && !this.flying; j++) {
                 const obj = objs[j];
                 if (obj.__type !== ObjectType.Obstacle) continue;
                 if (!obj.collidable) continue;
@@ -2710,6 +2745,8 @@ export class Player extends BaseGameObject {
         if (this.debug.godMode) return;
         if (this._health < 0) this._health = 0;
         if (this.dead) return;
+        // Iron Man in flight can't be hit by anything; only the gas still gets through
+        if (this.flying && params.damageType !== GameConfig.DamageType.Gas) return;
         if (this.downed && this.downedDamageTicker > 0) return;
         // cobalt players on role picker menu
         if (this.game.map.perkMode && !this.role) return;
@@ -3013,6 +3050,7 @@ export class Player extends BaseGameObject {
             p.setDirty();
         }
         this.wizardMarks.clear();
+        this.flightTime = 0;
         if (this.downed) this.downed = false;
         this.dead = true;
         this.killedIndex = this.game.playerBarn.nextKilledNumber++;
@@ -5327,7 +5365,7 @@ export class Player extends BaseGameObject {
     enemiesWithin(rad: number): Player[] {
         return this.game.playerBarn.livingPlayers.filter(
             (p) =>
-                p !== this && !p.dead && p.teamId !== this.teamId && util.sameLayer(p.layer, this.layer)
+                p !== this && !p.dead && !p.flying && p.teamId !== this.teamId && util.sameLayer(p.layer, this.layer)
                 && v2.length(v2.sub(p.pos, this.pos)) <= rad,
         );
     }
@@ -5518,6 +5556,7 @@ export class Player extends BaseGameObject {
         else if (this.botBrain?.level === "scripter") this.speed *= 1.3;
 
         this.speed += KitDefs[this.kit]?.speedBonus ?? 0;
+        if (this.flying) this.speed += this.flightSpeedBonus;
         this.speed = math.clamp(this.speed, 1, 10000);
     }
 }

@@ -318,6 +318,7 @@ export class Player implements AbstractObject {
         kitAura: number;
         wizardMarked: boolean;
         excaliburActive: boolean;
+        flying: boolean;
         m_frozen: boolean;
         m_frozenOri: number;
         m_frozenType: string;
@@ -492,6 +493,7 @@ export class Player implements AbstractObject {
             kitAura: 0,
             wizardMarked: false,
             excaliburActive: false,
+            flying: false,
             m_frozen: false,
             m_frozenOri: 0,
             m_frozenType: "",
@@ -581,6 +583,7 @@ export class Player implements AbstractObject {
             this.m_netData.kitAura = data.kitAura;
             this.m_netData.wizardMarked = data.wizardMarked;
             this.m_netData.excaliburActive = data.excaliburActive;
+            this.m_netData.flying = data.flying;
             this.m_netData.m_frozen = data.frozen;
             this.m_netData.m_frozenOri = data.frozenOri;
             if (this.m_netData.m_frozenType !== data.frozenType) {
@@ -2698,6 +2701,7 @@ export class Player implements AbstractObject {
     kitDaggers: PIXI.Sprite[] = [];
     kitTicker = 0;
     excaliburRing: PIXI.Graphics | null = null;
+    flightGlow: PIXI.Graphics | null = null;
 
     /**
      * Kit visuals: the Summoner's blade minions circling the player, the Wizard's circle
@@ -2720,6 +2724,25 @@ export class Player implements AbstractObject {
                 this.auraContainer.addChildAt(this.excaliburRing, 0);
             }
             this.excaliburRing.visible = excaliburActive;
+        }
+        // Iron Man's flight: a pulsing cyan thruster glow under him, so everyone can see he is in the air
+        const flying = !dead && this.m_netData.flying;
+        if (flying || this.flightGlow) {
+            if (!this.flightGlow) {
+                this.flightGlow = new PIXI.Graphics();
+                this.auraContainer.addChildAt(this.flightGlow, 0);
+            }
+            this.flightGlow.visible = flying;
+            if (flying) {
+                const pulse = 1 + 0.12 * Math.sin(this.kitTicker * 10);
+                this.flightGlow.clear();
+                this.flightGlow.beginFill(0x4fd8ff, 0.18);
+                this.flightGlow.drawCircle(0, 0, 3.2 * px * pulse);
+                this.flightGlow.endFill();
+                this.flightGlow.beginFill(0xbdf1ff, 0.3);
+                this.flightGlow.drawCircle(0, 0, 1.8 * px * pulse);
+                this.flightGlow.endFill();
+            }
         }
         if (aura >= 2 || this.kitCircle) {
             if (!this.kitCircle) {

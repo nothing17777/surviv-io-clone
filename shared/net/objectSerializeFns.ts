@@ -102,6 +102,8 @@ export interface ObjectsFullData {
         wizardMarked: boolean;
         /** Excalibur: a dim yellow circle under them while it halves their damage taken */
         excaliburActive: boolean;
+        /** Iron Man's flight: untargetable and through walls */
+        flying: boolean;
 
         frozen: boolean;
         frozenOri: number;
@@ -242,6 +244,7 @@ export const ObjectSerializeFns: {
             s.writeBits(data.kitAura, 2);
             s.writeBoolean(data.wizardMarked);
             s.writeBoolean(data.excaliburActive);
+            s.writeBoolean(data.flying);
 
             s.writeBoolean(data.frozen);
             if (data.frozen) {
@@ -320,6 +323,7 @@ export const ObjectSerializeFns: {
             data.kitAura = s.readBits(2);
             data.wizardMarked = s.readBoolean();
             data.excaliburActive = s.readBoolean();
+            data.flying = s.readBoolean();
 
             data.frozen = s.readBoolean();
             data.frozenOri = 0;

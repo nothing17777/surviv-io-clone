@@ -59,6 +59,8 @@ export class ExplosionBarn {
         const objects = this.game.grid.intersectCollider(coll).filter((obj) => {
             if (!util.sameLayer(obj.layer, explosion.layer)) return false;
             if ((obj as { dead?: boolean }).dead) return false;
+            // Iron Man in flight is out of reach
+            if (obj.__type === ObjectType.Player && (obj as Player).flying) return false;
             if (
                 !(
                     obj.__type === ObjectType.Player

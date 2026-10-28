@@ -747,7 +747,7 @@ export class BotBrain {
             // anyone, anywhere; ones it can shoot right now come first
             // nearest first, so line of sight is only checked until nobody further can win
             const foes = this.game.playerBarn.livingPlayers
-                .filter((obj) => obj !== player && obj.teamId !== player.teamId)
+                .filter((obj) => obj !== player && !obj.flying && obj.teamId !== player.teamId)
                 .map((obj) => ({ obj, dist: v2.distance(obj.pos, player.pos) }))
                 .sort((a, b) => a.dist - b.dist);
             let best: Player | undefined;
@@ -768,7 +768,7 @@ export class BotBrain {
         const foes: Array<{ obj: Player; d: number }> = [];
         for (const obj of this.game.grid.intersectCollider(collider.createCircle(player.pos, range))) {
             if (obj.__type !== ObjectType.Player) continue;
-            if (obj === player || obj.dead || obj.teamId === player.teamId) continue;
+            if (obj === player || obj.dead || obj.flying || obj.teamId === player.teamId) continue;
             if (!util.sameLayer(obj.layer, player.layer)) continue;
             const dist = v2.distance(obj.pos, player.pos);
             if (dist >= range) continue;

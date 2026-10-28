@@ -754,6 +754,41 @@ export class WeaponManager {
         return true;
     }
 
+    /**
+     * The second volley of Iron Man's flight: the same ring of rockets as the first, from where he is now, aimed
+     * where he is looking now. It costs nothing and doesn't care which weapon he is holding by then.
+     */
+    fireRingWave(gunType: string) {
+        const player = this.player;
+        if (player.dead) return;
+        const def = GameObjectDefs.typeToDef(gunType, "gun");
+        for (let i = 0; i < def.bulletCount; i++) {
+            const dir = v2.rotate(player.dir, math.deg2rad((i / def.bulletCount) * 360));
+            this.player.game.bulletBarn.fireBullet({
+                playerId: player.__id,
+                bulletType: def.bulletType,
+                gameSourceType: gunType,
+                ghost: !!def.ghostShots,
+                damageType: GameConfig.DamageType.Player,
+                pos: v2.add(player.pos, v2.mul(dir, player.rad + 0.5)),
+                dir,
+                layer: player.aimLayer,
+                distance: Number.MAX_VALUE,
+                damageMult: 1,
+                speedMult: 1,
+                distanceMult: 1,
+                shotFx: i === 0,
+                shotOffhand: false,
+                trailSaturated: false,
+                trailSmall: false,
+                trailThick: false,
+                reflectCount: 0,
+                lastShot: false,
+                reflectObjId: player.obstacleOutfit?.__id,
+            });
+        }
+    }
+
     fireWeapon(offHand: boolean, forceFire?: boolean) {
         const itemDef = GameObjectDefs.typeToDef(this.activeWeapon, "gun");
 
@@ -797,6 +832,8 @@ export class WeaponManager {
         // bots never empty their clip, so they never reload
         if (!this.player.botBrain && itemDef.energyCost === undefined) weapon.ammo--;
         this.player.weapsDirty = true;
+        // Iron Man's rockets take him into the air for a while
+        if (itemDef.flight) this.player.startFlight(itemDef.flight, this.activeWeapon);
 
         const collisionLayer = util.toGroundLayer(this.player.layer);
         const bulletLayer = this.player.aimLayer;
@@ -986,8 +1023,10 @@ export class WeaponManager {
                 shotDir = v2.normalizeSafe(v2.sub(v2.add(gunPos, v2.mul(direction, range)), shotPos), direction);
             }
             // an enhanced Wizard's spells go through walls and home in on the marked enemies
-            const ghost = this.player.kit === "wizard" && this.player.kitEnhanceTime > 0;
-            const marked = ghost ? [...this.player.wizardMarks].filter((p) => !p.dead) : [];
+            const wizardGhost = this.player.kit === "wizard" && this.player.kitEnhanceTime > 0;
+            // Iron Man's rockets fly through walls too
+            const ghost = wizardGhost || !!itemDef.ghostShots;
+            const marked = wizardGhost ? [...this.player.wizardMarks].filter((p) => !p.dead) : [];
             const ghostTarget = marked.length
                 ? marked.reduce((a, b) => (v2.length(v2.sub(a.pos, shotPos)) < v2.length(v2.sub(b.pos, shotPos)) ? a : b))
                 : undefined;
@@ -1285,7 +1324,7 @@ export class WeaponManager {
         for (let i = 0; i < objs.length; i++) {
             const playerCol = objs[i];
             if (playerCol.__type !== ObjectType.Player) continue;
-            if (playerCol.__id === this.player.__id || playerCol.dead) continue;
+            if (playerCol.__id === this.player.__id || playerCol.dead || playerCol.flying) continue;
             if (!util.sameLayer(playerCol.layer, this.player.layer)) continue;
 
             const res = coldet.intersectCircleCircle(
