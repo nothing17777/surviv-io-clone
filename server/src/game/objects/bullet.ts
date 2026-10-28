@@ -471,13 +471,26 @@ export class Bullet {
         const homingDelay = GameObjectDefs.typeToDef(this.bulletType, "bullet").homingDelay ?? 0;
         if (this.homingId && this.distanceTraveled >= homingDelay * this.speed) {
             const target = this.bulletManager.game.objectRegister.getById(this.homingId);
+            // the Summoner's swords chase forever, so once the target is gone they end instead of flying on
             if (
+                this.bulletType === "bullet_kit_dagger"
+                && (target?.__type !== ObjectType.Player || target.dead || target.flying
+                    || this.damagedObjIds.has(this.homingId))
+            ) {
+                this.alive = false;
+                this.active = false;
+                return;
+            } else if (
                 !this.devShot
-                && (target?.__type !== ObjectType.Player || target.dead || target.flying || this.damagedObjIds.has(this.homingId))
+                && (target?.__type !== ObjectType.Player || target.dead || target.flying
+                    || this.damagedObjIds.has(this.homingId))
             ) {
                 // magic shots lose their target and fly straight on
                 this.homingId = 0;
-            } else if (target?.__type !== ObjectType.Player || target.dead || target.flying || this.damagedObjIds.has(this.homingId)) {
+            } else if (
+                target?.__type !== ObjectType.Player || target.dead || target.flying
+                || this.damagedObjIds.has(this.homingId)
+            ) {
                 // done with it: end here instead of flying on across the map (hundreds of these lag clients)
                 this.homingId = 0;
                 this.alive = false;
@@ -831,7 +844,9 @@ export class Bullet {
                     this.player.webPull = { target: v2.copy(col.point), speed: this.speed, time: 1.5 };
                 }
                 // custom explosive shots go off on the player they hit, so the blast can't miss them
-                if (col.type == "player" && this.onHitFx?.startsWith("explosion_cw")) this.pos = v2.copy(col.player!.pos);
+                if (col.type == "player" && this.onHitFx?.startsWith("explosion_cw")) {
+                    this.pos = v2.copy(col.player!.pos);
+                }
                 this.alive = false;
                 break;
             }

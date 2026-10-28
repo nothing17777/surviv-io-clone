@@ -287,7 +287,10 @@ export class BulletBarn {
                     }
                     b.orbitT += dt;
                     b.orbitAng += w * dt;
-                    const next = v2.add(b.orbitCenter, v2.mul(v2.create(Math.cos(b.orbitAng), Math.sin(b.orbitAng)), r));
+                    const next = v2.add(
+                        b.orbitCenter,
+                        v2.mul(v2.create(Math.cos(b.orbitAng), Math.sin(b.orbitAng)), r),
+                    );
                     b.dir = v2.normalizeSafe(v2.sub(next, b.pos), b.dir);
                     b.container.rotation = Math.atan2(b.dir.x, b.dir.y) - Math.PI / 2;
                     b.pos = next;
@@ -319,8 +322,8 @@ export class BulletBarn {
                     // a far target may not have reached this client yet: keep the lock and fly on until it does
                     if (target?.m_netData.m_dead) {
                         b.homingId = 0;
-                        // the super hacker's shots end; magic ones fly on straight
-                        if (b.pierce && !b.defPierce) {
+                        // the super hacker's shots and the Summoner's swords end; magic ones fly on straight
+                        if ((b.pierce && !b.defPierce) || b.bulletType === "bullet_kit_dagger") {
                             b.alive = false;
                             b.fxSprite.visible = false;
                         }
@@ -696,7 +699,9 @@ export class BulletBarn {
                 b.container.position.set(screenPos.x, screenPos.y);
                 const screenScale = camera.m_pixels(1);
                 // a beam reaches back to where it was fired; Zenith's turning swords keep a short trail
-                const trailLength = b.beam ? dist / 2 : math.min(b.tracerLength * 15, (b.boomerang ? b.traveled : dist) / 2);
+                const trailLength = b.beam
+                    ? dist / 2
+                    : math.min(b.tracerLength * 15, (b.boomerang ? b.traveled : dist) / 2);
                 // a flame's trail is a short wide glow under its puff, growing as it burns out
                 const flameT = b.flame ? math.clamp(dist / Math.max(b.distance, 1), 0, 1) : 0;
                 b.container.scale.set(
@@ -723,4 +728,3 @@ export class BulletBarn {
         }
     }
 }
-

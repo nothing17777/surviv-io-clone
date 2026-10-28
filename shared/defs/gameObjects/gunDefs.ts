@@ -3860,7 +3860,8 @@ kitBullet("bullet_kit_dagger", {
     // a spinning blade minion, not a magic beam: only the dagger sprite is drawn
     damage: 30,
     speed: 55,
-    distance: 80,
+    // chases its target until it lands (it ends if they die or leave)
+    distance: 1000,
     spin: 14,
     noTracer: true,
     tracerColor: "cw_magic",
