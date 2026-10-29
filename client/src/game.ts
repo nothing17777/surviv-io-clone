@@ -622,6 +622,8 @@ export class Game {
                 Input.EquipPrevScope,
                 Input.EquipNextScope,
                 Input.StowWeapons,
+                // League champions' item active
+                Input.EquipFragGrenade,
             ];
             for (let i = 0; i < checkInputs.length; i++) {
                 const input = checkInputs[i];

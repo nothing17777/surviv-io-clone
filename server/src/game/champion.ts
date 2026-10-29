@@ -13,6 +13,8 @@ import type { DamageParams } from "./objects/gameObject.ts";
 import type { Player } from "./objects/player.ts";
 
 export const AbilityKeys: AbilityKey[] = ["q", "w", "e", "r"];
+/** Jinx's chompers fly at bullet_champ_jinx_e's speed */
+const ChomperSpeed = 50;
 /** what a cast sends to clients (for its sound and flash): 0-3 Q-R, 4 item active, 5 passive */
 export const CastItem = 4;
 export const CastPassive = 5;
@@ -245,7 +247,12 @@ export class Champion {
         });
     }
 
-    shoot(bullet: string, key: AbilityKey, dir = this.aim, opts: { homing?: Player; from?: Vec2; mult?: number } = {}) {
+    shoot(
+        bullet: string,
+        key: AbilityKey,
+        dir = this.aim,
+        opts: { homing?: Player; from?: Vec2; mult?: number; distance?: number } = {},
+    ) {
         const p = this.player;
         p.game.bulletBarn.fireBullet(
             {
@@ -260,6 +267,7 @@ export class Champion {
                 shotFx: false,
                 reflectCount: 0,
                 homingTargetId: opts.homing?.__id,
+                distance: opts.distance,
             } as Parameters<typeof p.game.bulletBarn.fireBullet>[0],
         );
     }
@@ -303,13 +311,17 @@ export class Champion {
                 p.weapsDirty = true;
             },
             w: () => this.later(0.4, () => this.shoot("jinx_w", "w")),
+            // Flame Chompers!: three chompers lobbed into a line across where she aims; each arms 0.5 s
+            // after it lands and lasts 5 s
             e: () => {
                 const c = this.cursor(30);
                 const side = v2.perp(this.aim);
-                for (const o of [-2.5, 0, 2.5]) {
+                for (const o of [-2.6, 0, 2.6]) {
                     const pos = v2.add(c, v2.mul(side, o));
-                    this.shoot("jinx_e", "e", v2.sub(pos, this.player.pos));
-                    this.traps.push({ pos, arm: 0.6, life: 5, kind: "chomper" });
+                    const to = v2.sub(pos, this.player.pos);
+                    const flight = v2.length(to) / ChomperSpeed;
+                    this.shoot("jinx_e", "e", to, { distance: v2.length(to) });
+                    this.traps.push({ pos, arm: flight + 0.5, life: flight + 5, kind: "chomper" });
                 }
             },
             r: () => this.shoot("jinx_r", "r"),
@@ -805,12 +817,27 @@ export class Champion {
             if (t.arm > 0) continue;
             const victim = this.enemies(1.8, t.pos)[0];
             if (!victim) continue;
-            this.traps.splice(i, 1);
-            victim.debuffs.root = Math.max(victim.debuffs.root, 1.5);
             if (t.kind === "chomper") {
-                this.hit(victim, 40, "e");
-                victim.applyBurn(1.5, p, this.sourceOf("e"));
+                // the one stepped on snaps shut, and the rest of the set close by go off with it
+                const set = this.traps.filter(
+                    (o) => o.kind === "chomper" && o.arm <= 0 && v2.distance(o.pos, t.pos) <= 6,
+                );
+                const hit = new Set<Player>();
+                for (const o of set) {
+                    this.traps.splice(this.traps.indexOf(o), 1);
+                    // a tiny shot where it was, so every client plays the snap and clears the chomper
+                    this.shoot("jinx_e_pop", "e", this.aim, { from: o.pos, distance: 0.1 });
+                    for (const e of this.enemies(2.2, o.pos)) hit.add(e);
+                }
+                for (const e of hit) {
+                    e.debuffs.root = Math.max(e.debuffs.root, 1.5);
+                    this.hit(e, 40, "e");
+                    e.applyBurn(1.5, p, this.sourceOf("e"));
+                }
+                i = this.traps.length;
             } else {
+                this.traps.splice(i, 1);
+                victim.debuffs.root = Math.max(victim.debuffs.root, 1.5);
                 this.hit(victim, 30, "w");
             }
         }

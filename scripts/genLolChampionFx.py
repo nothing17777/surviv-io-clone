@@ -45,11 +45,14 @@ USED_TEXTURES = {
     for f in ("shared/defs/gameObjects/gunDefs.ts", "client/src/championFx.ts")
     for t in re.findall(r'"((?:%s)/[a-z0-9_\-]+)"' % "|".join(CHAMPIONS), open(os.path.join(ROOT, f)).read())
 }
-# 3D missiles rendered from above as sprites: champion -> (mesh, texture, mesh axes drawn right / down / toward the camera)
+# 3D models rendered as sprites: champion -> (mesh, texture, mesh axes drawn right / down / toward the camera,
+# or ("tilt", degrees) for League's camera tilted from straight down toward the model's front)
 MESHES = {
     "jinx": [("jinx_r_mis", "jinx_r_mis", (1, 0, 2))],
     "ashe": [("ashe_base_aa_arrow", "ashe_base_aa_arrowtext", (2, 0, 1)), ("ashe_base_r_arrow", "ashe_base_aa_arrowtext", (2, 0, 1))],
     "caitlyn": [("caitlyn_net_02", "caitlyn_hex_net", (2, 0, 1))],
+    # Flame Chompers! (the JinxMine minion, painted with Jinx's own texture)
+    "jinx_mine": [("jinxmine", "jinx_base_tx_cm", ("tilt", 35))],
 }
 USED_SOUNDS = set(re.findall(r'"([a-z0-9_]+)"', open(os.path.join(ROOT, "shared/defs/gameObjects/championDefs.ts")).read().split("export const ChampionSounds")[1].split("};")[0]))
 # emotes, recall and the like aren't abilities
@@ -202,18 +205,19 @@ def textures(champ, folder):
         base = "/skins/base" in dirpath.lower() or "/skins/" not in dirpath.lower()
         for f in files:
             key = f.lower()
-            if (key.endswith(".tex") or key.endswith(".scb")) and (key not in found or base):
+            if key.endswith((".tex", ".scb", ".skn")) and (key not in found or base):
                 found[key] = os.path.join(dirpath, f)
     n = 0
     for used in USED_TEXTURES:
         c, name = used.split("/")
         if c == champ and name + ".tex" in found:
             n += tex_to_png(found[name + ".tex"], os.path.join(out, name + ".png"))
-    for mesh, tex, axes in MESHES.get(champ, []):
+    for mesh, tex, axes in MESHES.get(champ, []) + MESHES.get(champ + "_mine", []):
         with tempfile.TemporaryDirectory() as tmp:
             tex_png = os.path.join(tmp, "t.png")
             tex_to_png(found[tex + ".tex"], tex_png)
-            render_mesh(found[mesh + ".scb"], tex_png, axes).save(os.path.join(out, mesh + "_mesh.png"))
+            path = found.get(mesh + ".scb") or found[mesh + ".skn"]
+            render_mesh(path, tex_png, axes).save(os.path.join(out, mesh + "_mesh.png"))
             n += 1
     print(champ, "textures:", n)
 
@@ -239,9 +243,35 @@ def read_scb(path):
     return pos, faces, uvs
 
 
+def read_skn(path):
+    """skinned mesh in its bind pose: positions, faces and per-face uvs"""
+    d = open(path, "rb").read()
+    major = struct.unpack_from("<H", d, 4)[0]
+    subs = struct.unpack_from("<I", d, 8)[0]
+    i = 12 + subs * 80 + (4 if major >= 4 else 0)
+    ic, vc = struct.unpack_from("<II", d, i)
+    i += 8
+    vsize, vtype = 52, 0
+    if major >= 4:
+        vsize, vtype = struct.unpack_from("<II", d, i)
+        i += 8 + 40
+    idx = np.frombuffer(d, "<u2", ic, i)
+    i += ic * 2
+    verts = np.frombuffer(d, np.uint8, vc * vsize, i).reshape(vc, vsize)
+    pos = verts[:, 0:12].copy().view("<f4").reshape(vc, 3)
+    uv = verts[:, 44:52].copy().view("<f4").reshape(vc, 2)
+    faces = [tuple(int(j) for j in idx[k : k + 3]) for k in range(0, ic, 3)]
+    return pos, faces, [tuple(tuple(uv[j]) for j in f) for f in faces]
+
+
 def render_mesh(path, tex_path, axes, size=256):
     """orthographic, nearest surface wins, nose pointing right"""
-    pos, faces, uvs = read_scb(path)
+    pos, faces, uvs = (read_skn if path.endswith(".skn") else read_scb)(path)
+    if axes[0] == "tilt":
+        a = np.radians(axes[1])
+        down = -pos[:, 1] * np.cos(a) + pos[:, 2] * np.sin(a)
+        depth = pos[:, 1] * np.sin(a) + pos[:, 2] * np.cos(a)
+        pos, axes = np.stack([pos[:, 0], down, depth], 1), (0, 1, 2)
     tex = np.asarray(Image.open(tex_path).convert("RGBA")).astype(np.float32)
     th, tw = tex.shape[:2]
     X, Y, Z = pos[:, axes[0]], pos[:, axes[1]], pos[:, axes[2]]

@@ -3902,6 +3902,14 @@ export class Player extends BaseGameObject {
         for (let i = 0; i < msg.inputs.length; i++) {
             const input = msg.inputs[i];
             if (!this.shouldAcceptInput(input)) continue;
+            // champions keep their one basic attack in hand: no scrolling or swapping to other slots
+            if (
+                this.champ && (
+                    input === GameConfig.Input.EquipNextWeap || input === GameConfig.Input.EquipPrevWeap
+                    || input === GameConfig.Input.EquipLastWeap || input === GameConfig.Input.EquipOtherGun
+                    || input === GameConfig.Input.StowWeapons || input === GameConfig.Input.SwapWeapSlots
+                )
+            ) continue;
             switch (input) {
                 case GameConfig.Input.EquipFragGrenade:
                     this.champ?.useItem();

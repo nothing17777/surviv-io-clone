@@ -48,6 +48,10 @@ interface Layer {
     onCaster?: boolean;
     /** turned across the direction (walls) */
     perp?: boolean;
+    /** lobbed: grows toward the middle of its flight, like it's high up */
+    arc?: boolean;
+    /** lets a later hit remove it (a chomper that went off) */
+    tag?: string;
 }
 
 interface ProjectileFx {
@@ -57,6 +61,8 @@ interface ProjectileFx {
     trail?: { every: number; layers: Layer[] };
     /** where it lands */
     hit?: Layer[];
+    /** what it removes where it lands: tagged effects within radius */
+    clear?: { tag: string; radius: number };
 }
 
 /** a layer: texture (champion/file), size in world units, life in seconds (0 = as long as its shot) */
@@ -85,7 +91,7 @@ const ProjectileFxDefs: Record<string, ProjectileFx> = {
         head: [L("jinx/jinx_basic_bullet", 0.5, 0, { stretch: 5 })],
         hit: [burst("jinx/jinx_muzzle_flash", 1.6, 0.15)],
     },
-    bullet_champ_fishbones: {
+    bullet_kit_jinx_fishbones: {
         head: [
             L("jinx/jinx_muzzle_flash", 1.8, 0, { back: 1.3, flicker: true }),
             L("jinx/jinx_base_e_tar_firering", 2.2, 0),
@@ -117,12 +123,31 @@ const ProjectileFxDefs: Record<string, ProjectileFx> = {
             sparks("jinx/jinx_base_w_tar_sparks", 1),
         ],
     },
+    // Flame Chompers!: lobbed grenades (Jinx_Base_E_Mis) that land as chompers (the JinxMine model) and snap
+    // shut in Jinx_Base_E_Mine_Set's burst
     bullet_champ_jinx_e: {
-        head: [L("jinx/jinx_base_e_mis_grenade", 1.6, 0, { normal: true, spin: 2 })],
+        head: [
+            L("jinx/jinx_base_e_mis_grenade", 1.6, 0, { normal: true, spin: 2, arc: true }),
+            L("jinx/jinx_base_e_mis_trail", 1.2, 0, { back: 0.8, stretch: 2, arc: true }),
+        ],
+        trail: { every: 0.04, layers: [smoke("jinx/jinx_explosion_smoke", 0.8, 0.4)] },
         hit: [
-            L("jinx/jinx_base_e_tar_firering", 3.5, 5, { ground: true, alpha: [0.9, 0.4] }),
-            L("jinx/jinx_base_e_mis_grenade", 1.6, 5, { normal: true }),
-            burst("jinx/jinx_base_e_tar_flash", 3, 0.3),
+            smoke("jinx/jinx_explosion_smoke", 2.2, 0.5),
+            L("jinx/jinx_base_e_tar_firering", 2.4, 5, { ground: true, alpha: [0.7, 0.3], tag: "jinx_chomper" }),
+            L("jinx/jinxmine_mesh", 2.6, 5, { normal: true, tag: "jinx_chomper" }),
+        ],
+    },
+    bullet_champ_jinx_e_pop: {
+        clear: { tag: "jinx_chomper", radius: 1.5 },
+        hit: [
+            L("jinx/jinx_base_e_splat_01", 4, 1.5, { ground: true, normal: true, ...fade, randomRot: true }),
+            L("jinx/jinx_base_e_splats_02", 5, 1.2, { ground: true, ...fade, randomRot: true }),
+            burst("jinx/jinx_base_e_tar_flash", 4, 0.25),
+            burst("jinx/jinx_base_e_tar_firering", 5, 0.5),
+            L("jinx/jinx_base_e_tar_circlefire", 3.5, 1.5, { spin: 0.4, alpha: [1, 0] }),
+            smoke("jinx/jinx_base_e_tar_firecloud", 4, 0.9),
+            smoke("jinx/jinx_explosion_smoke", 3.5, 0.8),
+            sparks("jinx/jinx_base_e_tar_sparks", 0.8, 10),
         ],
     },
     bullet_champ_jinx_r: {
@@ -479,7 +504,7 @@ interface Caster {
 }
 
 interface TrackedShot {
-    shot: { alive: boolean; pos: Vec2; dir: Vec2; layer: number };
+    shot: { alive: boolean; pos: Vec2; dir: Vec2; layer: number; startPos: Vec2; distance: number };
     fx: ProjectileFx;
     trailTicker: number;
     pos: Vec2;
@@ -568,6 +593,12 @@ class ChampionFxBarn {
             if (s.done) continue;
             if (!s.shot.alive) {
                 s.done = true;
+                const clear = s.fx.clear;
+                if (clear) {
+                    for (const p of this.particles) {
+                        if (p.layer.tag === clear.tag && v2.distance(p.pos, s.pos) <= clear.radius) p.t = p.layer.life;
+                    }
+                }
                 for (const l of s.fx.hit ?? []) this.spawnAll(l, s.pos, s.shot.dir, s.shot.layer);
                 continue;
             }
@@ -615,7 +646,16 @@ class ChampionFxBarn {
             if (p.delay > 0) continue;
             const l = p.layer;
             const k = l.life > 0 ? math.clamp(p.t / l.life, 0, 1) : 0;
-            const scale = l.scale ? math.lerp(k, l.scale[0], l.scale[1]) : 1;
+            let scale = l.scale ? math.lerp(k, l.scale[0], l.scale[1]) : 1;
+            if (l.arc && p.follow) {
+                const shot = p.follow.shot;
+                const flown = math.clamp(
+                    v2.distance(p.follow.pos, shot.startPos) / Math.max(shot.distance, 0.01),
+                    0,
+                    1,
+                );
+                scale *= 1 + 0.8 * Math.sin(Math.PI * flown);
+            }
             const alpha = l.alpha ? math.lerp(k, l.alpha[0], l.alpha[1]) : 1;
             const tex = p.sprite.texture;
             const screen = camera.m_pointToScreen(p.pos);

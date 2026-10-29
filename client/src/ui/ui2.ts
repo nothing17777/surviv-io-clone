@@ -623,6 +623,9 @@ export class UiManager2 {
         const champ = ChampionIds[index - 1];
         if (index !== this.championBarIndex) {
             this.championBarIndex = index;
+            // keys 1-4 are the abilities, so surviv's numbered weapon slots go away
+            const weaponSlots = document.getElementById("ui-weapon-container");
+            if (weaponSlots) weaponSlots.style.display = champ ? "none" : "";
             this.championBar?.remove();
             this.championBar = undefined;
             if (!champ) return;

@@ -4124,11 +4124,14 @@ champShot("jinx_w", { damage: 50, speed: 160, distance: 90, tracerColor: "cw_pla
 champShot("jinx_e", {
     damage: 0,
     speed: 50,
+    distance: 30,
     sprite: champFx("jinx/jinx_base_e_mis_grenade"),
     spriteSize: 40,
     noTracer: true,
     spin: 3,
 });
+// a chomper snapping shut: no damage of its own, it's only there for the clients' effect
+champShot("jinx_e_pop", { damage: 0, speed: 1, distance: 0.1, noTracer: true });
 champShot("jinx_r", {
     damage: 80,
     speed: 70,
@@ -4138,15 +4141,6 @@ champShot("jinx_r", {
     tracerWidth: 0.5,
     sprite: champFx("jinx/jinx_base_e_tar_firering"),
     spriteSize: 64,
-});
-champShot("fishbones", {
-    damage: 30,
-    speed: 75,
-    distance: 110,
-    onHit: "explosion_cw_rocket",
-    tracerColor: "cw_flame",
-    sprite: champFx("jinx/jinx_base_e_tar_firering"),
-    spriteSize: 36,
 });
 champShot("caitlyn_q", {
     damage: 60,
@@ -4343,7 +4337,15 @@ champShot("runaan", { damage: 10, speed: 110, distance: 40, homing: true, tracer
 
 // Jinx's Fishbones: rockets that splash, drawn as her basic weapon
 const ChampionAbilityDefs: Record<string, GunDef> = Object.fromEntries([(() => {
-    const [defId, def] = kitGun("kit_jinx_fishbones", "barrett", { ...BulletDefs.bullet_champ_fishbones }, {
+    const [defId, def] = kitGun("kit_jinx_fishbones", "barrett", {
+        damage: 30,
+        speed: 75,
+        distance: 110,
+        onHit: "explosion_cw_rocket",
+        tracerColor: "cw_flame",
+        sprite: champFx("jinx/jinx_base_e_tar_firering"),
+        spriteSize: 36,
+    }, {
         name: "Fishbones",
         sound: { shoot: championSound("jinx", "rockets") },
         fireMode: "auto",
