@@ -375,7 +375,7 @@ export class BulletBarn {
                         v2.lerp(Math.random(), posOld, b.pos),
                         v2.mul(b.dir, b.speed * 0.15),
                         // puffs scale with the shot's sprite, so a wider flame leaves a wider stream
-                        b.fxSize / 2.6,
+                        b.fxSize / 52,
                     );
                     particle.setColor(b.bulletTrail.tint as number);
                 }

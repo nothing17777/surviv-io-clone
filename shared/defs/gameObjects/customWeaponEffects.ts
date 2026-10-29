@@ -116,7 +116,7 @@ export const GunEffects: Record<string, GunEffect> = {
                 "img/custom-weapons/fx/flame_2.png",
                 "img/custom-weapons/fx/flame_3.png",
             ],
-            spriteSize: 2.6,
+            spriteSize: 52,
         },
         damageMult: 0.6,
         gun: { shotSpread: 10, moveSpread: 12 },
