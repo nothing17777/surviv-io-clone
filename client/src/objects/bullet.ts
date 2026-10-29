@@ -1,4 +1,5 @@
 import * as PIXI from "pixi.js-legacy";
+import { ChampionIds } from "../../../shared/defs/gameObjects/championDefs.ts";
 import { championFx } from "../championFx.ts";
 
 import { KitDefs } from "../../../shared/defs/gameObjects/kitDefs.ts";
@@ -249,7 +250,9 @@ export class BulletBarn {
         if (championFx.hasProjectileFx(bullet.bulletType)) {
             b.container.visible = false;
             b.fxSprite.visible = false;
-            championFx.trackShot(b, bullet.bulletType);
+            const shooter = playerBarn.getPlayerById(bullet.playerId);
+            const champ = ChampionIds[(shooter?.m_netData.championIndex ?? 0) - 1];
+            championFx.trackShot(b, bullet.bulletType, champ);
         }
         renderer.addPIXIObj(b.container, b.layer, 20);
         if (fxImg) renderer.addPIXIObj(b.fxSprite, b.layer, 21);

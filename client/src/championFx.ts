@@ -150,7 +150,7 @@ const ProjectileFxDefs: Record<string, ProjectileFx> = {
         ],
     },
     // a chomper snapping shut: Jinx_Base_E_Mine_Set and _E_Mine_Explosion
-    bullet_champ_jinx_e_pop: {
+    "bullet_champ_mark:jinx": {
         clear: { tag: "jinx_chomper", radius: 1.5 },
         hit: [
             L("jinx/jinx_base_e_tar_scorch", 4, 2, { ground: true, normal: true, ...fade }),
@@ -530,6 +530,57 @@ const ProjectileFxDefs: Record<string, ProjectileFx> = {
             burst("yasuo/yasuo_base_q_wind_hit_flash", 3, 0.3),
         ],
     },
+    // ability hits on a target, from each champion's hit particles (<Champ>_Base_<Spell>_tar)
+    "bullet_champ_mark:caitlyn": {
+        hit: [burst("caitlyn/hit_spark_blue", 3), burst("caitlyn/bolts_crit", 3, 0.25, { randomRot: true })],
+    },
+    "bullet_champ_mark:ashe": {
+        hit: [burst("ashe/flare-rainbow_lightblue", 3), sparks("ashe/ashe_base_q_flying_shards", 0.6, 6)],
+    },
+    "bullet_champ_mark:ezreal": {
+        hit: [burst("ezreal/ezreal_base_z_flare-sun", 3.5), burst("ezreal/ezreal_base_z_solar_tag", 3, 0.3)],
+    },
+    "bullet_champ_mark:lux": {
+        hit: [burst("lux/starfilter", 3.5, 0.3, { spin: 1 }), burst("lux/lux_base_light_sparks", 3)],
+    },
+    "bullet_champ_mark:ahri": {
+        hit: [
+            burst("ahri/common_bigradialhalo", 3),
+            burst("ahri/ahri_base_fireshapes_00", 2.6, 0.3, { randomRot: true }),
+        ],
+    },
+    // Yasuo_Base_Q_hit_tar / _E_dash_hit / _R_impact_tar: a wind slash, the blast and a blood spray
+    "bullet_champ_mark:yasuo": {
+        hit: [
+            burst("yasuo/yasuo_basic_attack_impact_slash", 4.5, 0.3, { randomRot: true }),
+            burst("yasuo/yasuo_q_tornado_blast", 4, 0.35, { spin: 2 }),
+            burst("yasuo/yasuo_base_r_land_exp_ring_af", 4, 0.4),
+            L("yasuo/yasuo_base_blood", 2.6, 0.6, { ...fade, randomRot: true, normal: true }),
+        ],
+    },
+    // Garen_Base_Q_Tar / _E_Tar
+    "bullet_champ_mark:garen": {
+        hit: [
+            burst("garen/garen_base_q_tar_impact", 3.5, 0.3),
+            burst("garen/garen_base_q_hit_flash", 2.6, 0.25),
+            sparks("garen/garen_base_z_slash_sparks", 0.6, 5),
+        ],
+    },
+    // darius_Base_Q_tar / _R_tar
+    "bullet_champ_mark:darius": {
+        hit: [
+            burst("darius/red_flash_01", 3.5, 0.3),
+            burst("darius/darius_shadow_step_08", 3.5, 0.35, { randomRot: true }),
+            L("darius/blurdrops", 2.4, 0.5, { ...fade, randomRot: true }),
+        ],
+    },
+    // MasterYi_Base_Q_Tar
+    "bullet_champ_mark:masteryi": {
+        hit: [
+            burst("masteryi/masteryi_base_x_hit_flare", 3.5, 0.3),
+            burst("masteryi/masteryi_base_q_slash_scroll_tar", 4, 0.35, { randomRot: true }),
+        ],
+    },
     bullet_champ_runaan: {
         head: [L("jinx/jinx_basic_bullet", 0.4, 0, { stretch: 4 })],
     },
@@ -626,9 +677,11 @@ const CastFxDefs: Record<string, Layer[]> = {
         smoke("ahri/ahri_base_w_smoke_2x2", 3, 0.6, { flipbook: 2, count: 3, spread: 1.5, normal: false }),
     ],
     // Yasuo: Steel Tempest's thrust (_EQ_cas blade), Wind Wall, Sweeping Blade (_E_Dash), Last Breath (_R_land_tar)
+    // Steel Tempest: the thrust (Yasuo_Base_EQ_cas's blade and wind) along its 5 tile reach
     yasuo_q: [
-        L("yasuo/yasuo_q_sword", 2, 0.2, { stretch: 3, back: -3, ...fade }),
-        burst("yasuo/yasuo_base_q_wind_hit_flash", 2.5, 0.2, { back: -4 }),
+        L("yasuo/yasuo_q_sword", 2.6, 0.3, { stretch: 2.4, back: -3.2, ...fade }),
+        L("yasuo/color_yasuo_q_wind", 2.4, 0.3, { stretch: 2.6, back: -3, ...fade }),
+        burst("yasuo/yasuo_base_q_wind_hit_flash", 3.5, 0.25, { back: -5 }),
     ],
     yasuo_w: [
         L("yasuo/yasuo_wind_blow_01_redraw", 3, 3, { stretch: 2.8, back: -3, perp: true, alpha: [1, 0.6] }),
@@ -758,12 +811,13 @@ class ChampionFxBarn {
     }
 
     hasProjectileFx(bulletType: string) {
-        return !!ProjectileFxDefs[bulletType];
+        return !!ProjectileFxDefs[bulletType] || bulletType === "bullet_champ_mark";
     }
 
     /** a champion's ability shot just appeared */
-    trackShot(shot: TrackedShot["shot"], bulletType: string) {
-        const fx = ProjectileFxDefs[bulletType];
+    trackShot(shot: TrackedShot["shot"], bulletType: string, champion?: string) {
+        // the shared hit marker plays the shooting champion's own hit effect
+        const fx = ProjectileFxDefs[bulletType === "bullet_champ_mark" ? `${bulletType}:${champion}` : bulletType];
         if (!fx) return;
         const tracked: TrackedShot = { shot, fx, trailTicker: 0, pos: v2.copy(shot.pos), done: false };
         this.shots.push(tracked);

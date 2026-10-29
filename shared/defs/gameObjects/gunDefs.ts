@@ -4130,8 +4130,9 @@ champShot("jinx_e", {
     noTracer: true,
     spin: 3,
 });
-// a chomper snapping shut: no damage of its own, it's only there for the clients' effect
-champShot("jinx_e_pop", { damage: 0, speed: 1, distance: 0.1, noTracer: true });
+// marks where a champion's ability hit (or Jinx's chomper snapped): no damage of its own, it's only there for
+// the clients to play that champion's hit effect
+champShot("mark", { damage: 0, speed: 1, distance: 0.1, noTracer: true });
 champShot("jinx_r", {
     damage: 80,
     speed: 70,

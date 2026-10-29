@@ -96,6 +96,8 @@ export class Champion {
     yasuoDashed = new Map<number, number>();
     ahriCharges = 0;
     markedIds = new Map<number, number>();
+    /** when each enemy's hit effect may show again (ms), so a fast ability doesn't flood them */
+    lastMark = new Map<number, number>();
     traps: Trap[] = [];
     zones: Zone[] = [];
     pending: Array<{ time: number; run: () => void }> = [];
@@ -247,6 +249,15 @@ export class Champion {
             dir: v2.normalizeSafe(v2.sub(target.pos, this.player.pos)),
             armorPenetration: trueDamage ? 0 : undefined,
         });
+        // show the hit on the target (Jinx's only direct hits are her chompers, which mark their own spot)
+        const now = this.player.game.now;
+        if (this.id !== "jinx" && (this.lastMark.get(target.__id) ?? 0) <= now) {
+            this.lastMark.set(target.__id, now + 150);
+            this.shoot("mark", key === "item" ? "q" : key, v2.sub(target.pos, this.player.pos), {
+                from: target.pos,
+                distance: 0.1,
+            });
+        }
     }
 
     shoot(
@@ -829,7 +840,7 @@ export class Champion {
                 for (const o of set) {
                     this.traps.splice(this.traps.indexOf(o), 1);
                     // a tiny shot where it was, so every client plays the snap and clears the chomper
-                    this.shoot("jinx_e_pop", "e", this.aim, { from: o.pos, distance: 0.1 });
+                    this.shoot("mark", "e", this.aim, { from: o.pos, distance: 0.1 });
                     for (const e of this.enemies(2.2, o.pos)) hit.add(e);
                 }
                 for (const e of hit) {
