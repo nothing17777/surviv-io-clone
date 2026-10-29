@@ -14,6 +14,7 @@ import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
 import type { MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
 import type { RoleDef } from "../../../shared/defs/gameObjects/roleDefs.ts";
 import type { ObstacleDef } from "../../../shared/defs/mapObjects/obstacles/obstacleDefs.ts";
+import { leagueControls } from "../leagueControls.ts";
 
 import { GameObjectDefs, MapObjectDefs } from "../../../shared/defs/register.ts";
 import { Action, DamageType, GameConfig, Input, type InventoryItem } from "../../../shared/gameConfig.ts";
@@ -651,6 +652,7 @@ export class UiManager2 {
                 if (slot.icon) el.style.backgroundImage = `url(${slot.icon})`;
                 else el.textContent = slot.title.split(" ").map((w) => w[0]).join("");
                 const key = document.createElement("span");
+                key.className = "champ-key";
                 key.textContent = slot.key;
                 key.style.cssText = "position:absolute;left:2px;bottom:0;text-shadow:0 0 3px #000;";
                 const cd = document.createElement("div");
@@ -664,6 +666,12 @@ export class UiManager2 {
             this.championBar = bar;
         }
         if (!this.championBar) return;
+        // League controls cast with Q W E R instead of 1 2 3 4 (the passive has no key, the item stays on 5)
+        const keys = leagueControls.active ? ["Q", "W", "E", "R"] : ["1", "2", "3", "4"];
+        const labels = this.championBar.querySelectorAll<HTMLElement>(".champ-key");
+        for (let i = 0; i < 4; i++) {
+            if (labels[i + 1] && labels[i + 1].textContent !== keys[i]) labels[i + 1].textContent = keys[i];
+        }
         const overlays = this.championBar.querySelectorAll<HTMLElement>(".champ-cd");
         // overlays[0] is the passive
         for (let i = 1; i < overlays.length; i++) {
