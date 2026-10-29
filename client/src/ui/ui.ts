@@ -163,6 +163,8 @@ export class UiManager {
     autoFireButton = $("#btn-game-auto-fire");
     autoMeleeButton = $("#btn-game-auto-melee");
     autoDoorsButton = $("#btn-game-auto-doors");
+    /** League champions: right-click to move, Q W E R to cast */
+    leagueControlsButton = $("#btn-game-league-controls");
     aimAssistButton = $("#btn-game-aim-assist");
     aimStyleButton = $("#btn-game-aim-style");
 
@@ -356,6 +358,16 @@ export class UiManager {
         this.autoDoorsButton.on("click", () => {
             this.game.m_config.set("autoOpenDoors", !this.game.m_config.get("autoOpenDoors"));
             syncAutoDoors();
+        });
+        const syncLeagueControls = () => {
+            const on = !!this.game.m_config.get("leagueControls");
+            this.leagueControlsButton.toggleClass("aim-line-on-icon", on).toggleClass("aim-line-off-icon", !on);
+            $("#leagueControls").prop("checked", on);
+        };
+        syncLeagueControls();
+        this.leagueControlsButton.on("click", () => {
+            this.game.m_config.set("leagueControls", !this.game.m_config.get("leagueControls"));
+            syncLeagueControls();
         });
         this.onTouchScreen = (e: Event) => {
             if ((e.target as HTMLElement)?.id == "cvs") {
@@ -606,6 +618,7 @@ export class UiManager {
         this.autoFireButton.off("click");
         this.autoMeleeButton.off("click");
         this.autoDoorsButton.off("click");
+        this.leagueControlsButton.off("click");
         $(document).off("touchstart", this.onTouchScreen);
         this.bigmapClose.off("touchend");
         this.bigmapClose.off("mousedown");
