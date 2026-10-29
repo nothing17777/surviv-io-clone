@@ -48,3 +48,4 @@ Website on Vercel (`vercel.json`); game servers need a long-running WebSocket ho
 
 - Commit format (`COMMIT_FORMAT.md`): `<type> (<scope>): <subject>` — types chore/deploy/docs/enhance/feat/fix/perf/refactor/style; imperative, lowercase, no trailing period, lines ≤ 100 chars.
 - Formatting is dprint (`dprint.json`); run `pnpm lint` before committing.
+- Custom projectile sprites: `BulletDef.spriteSize` is **screen px at zoom 1**, not world units like a regular bullet's `tracerWidth`. Size against the Christmas Ultimatum tree (80): big projectiles 55-64, orbs/rockets 44-56, small shots 28-40. A single-digit `spriteSize` draws as a few pixels. Stretched `trailSprite`s are sized by `tracerWidth`/`tracerLength` instead.
