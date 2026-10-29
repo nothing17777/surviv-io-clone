@@ -1,4 +1,5 @@
 import * as PIXI from "pixi.js-legacy";
+import { championFx } from "../championFx.ts";
 
 import { KitDefs } from "../../../shared/defs/gameObjects/kitDefs.ts";
 import { GameObjectDefs, MapObjectDefs } from "../../../shared/defs/register.ts";
@@ -244,6 +245,12 @@ export class BulletBarn {
             b.bulletTrail.alpha *= 0.5;
         }
         b.container.visible = !b.flame && !bulletDef.noTracer;
+        // League champions' shots are drawn by their own particle effects instead
+        if (championFx.hasProjectileFx(bullet.bulletType)) {
+            b.container.visible = false;
+            b.fxSprite.visible = false;
+            championFx.trackShot(b, bullet.bulletType);
+        }
         renderer.addPIXIObj(b.container, b.layer, 20);
         if (fxImg) renderer.addPIXIObj(b.fxSprite, b.layer, 21);
     }

@@ -9,6 +9,7 @@ import { v2, type Vec2 } from "../../shared/utils/v2.ts";
 import type { Ambiance } from "./ambiance.ts";
 import type { AudioManager } from "./audioManager.ts";
 import { Camera } from "./camera.ts";
+import { championFx } from "./championFx.ts";
 import type { ConfigManager, DebugRendererOpts } from "./config.ts";
 import { DebugHUD } from "./debug/debugHUD.ts";
 import { debugLines } from "./debug/debugLines.ts";
@@ -233,6 +234,7 @@ export class Game {
         this.m_map = new Map(this.m_decalBarn);
         this.m_playerBarn = new PlayerBarn();
         this.m_bulletBarn = new BulletBarn();
+        championFx.init(this.m_renderer);
         this.m_flareBarn = new FlareBarn();
         this.m_projectileBarn = new ProjectileBarn();
         this.m_explosionBarn = new ExplosionBarn();
@@ -850,6 +852,7 @@ export class Game {
             this.m_particleBarn,
             this.m_audioManager,
         );
+        championFx.m_update(dt);
         this.m_flareBarn.m_update(dt, this.m_map, this.m_activePlayer, this.m_renderer);
         this.m_projectileBarn.m_update(
             dt,
@@ -1076,6 +1079,7 @@ export class Game {
         // Module rendering
         this.m_playerBarn.m_render(this.m_camera, debug);
         this.m_bulletBarn.m_render(this.m_camera);
+        championFx.m_render(this.m_camera);
         this.m_flareBarn.m_render(this.m_camera);
         this.m_decalBarn.m_render(this.m_camera, debug, this.m_activePlayer.layer);
         this.m_map.m_render(this.m_camera);

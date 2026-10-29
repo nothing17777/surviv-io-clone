@@ -29,6 +29,7 @@ import { v2, type Vec2 } from "../../../shared/utils/v2.ts";
 import { Animations, Bones, IdlePoses, Pose } from "../animData.ts";
 import type { AudioManager } from "../audioManager.ts";
 import type { Camera } from "../camera.ts";
+import { championFx } from "../championFx.ts";
 import type { DebugRendererOpts } from "../config.ts";
 import { debugLines } from "../debug/debugLines.ts";
 import { device } from "../device.ts";
@@ -881,6 +882,7 @@ export class Player implements AbstractObject {
         if (!champ || this.m_netData.champCastSeq === this.lastCastSeq) return;
         this.lastCastSeq = this.m_netData.champCastSeq;
         const slot = ["q", "w", "e", "r", "", "p"][this.m_netData.champCastKey];
+        if (slot) championFx.cast(champ, slot, this.m_pos, this.m_netData.m_dir, this.layer);
         if (slot && ChampionSounds[champ]?.[slot as "q"]) audioManager.playSound(championSound(champ, slot), opts);
     }
 

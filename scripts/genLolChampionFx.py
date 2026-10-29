@@ -10,7 +10,7 @@ containers to sounds, whose source ids are .wem files in the audio bank (DIDX/DA
 them, ffmpeg turns them into ogg.
 Textures: .tex is a small header in front of DXT1/DXT5/BGRA data, rewritten as a .dds for Pillow.
 
-Run with: python3 scripts/genLolChampionFx.py <league>/extracted <vgmstream-cli>   (needs pillow, ffmpeg)
+Run with: python3 scripts/genLolChampionFx.py <league>/extracted <vgmstream-cli>   (needs pillow, numpy, ffmpeg)
 """
 
 import os
@@ -20,6 +20,7 @@ import subprocess
 import sys
 import tempfile
 
+import numpy as np
 from PIL import Image, ImageStat
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -39,7 +40,15 @@ CHAMPIONS = {
     "masteryi": "MasterYi",
 }
 # only what the game uses: textures named in gunDefs' champFx("<champ>/<file>"), sounds in ChampionSounds
-USED_TEXTURES = set(re.findall(r'champFx\("([a-z]+/[a-z0-9_]+)"\)', open(os.path.join(ROOT, "shared/defs/gameObjects/gunDefs.ts")).read()))
+USED_TEXTURES = {
+    t
+    for f in ("shared/defs/gameObjects/gunDefs.ts", "client/src/championFx.ts")
+    for t in re.findall(r'champFx\("([a-z]+/[a-z0-9_]+)"\)', open(os.path.join(ROOT, f)).read())
+}
+# 3D missiles rendered from above as sprites: champion -> (mesh, texture, mesh axes drawn right / down / toward the camera)
+MESHES = {
+    "jinx": [("jinx_r_mis", "jinx_r_mis", (1, 0, 2))],
+}
 USED_SOUNDS = set(re.findall(r'"([a-z0-9_]+)"', open(os.path.join(ROOT, "shared/defs/gameObjects/championDefs.ts")).read().split("export const ChampionSounds")[1].split("};")[0]))
 # emotes, recall and the like aren't abilities
 SKIP = re.compile(r"dance|joke|taunt|laugh|recall|homeguard|death|music|respawn|idle|run|move|emote", re.I)
@@ -185,17 +194,84 @@ def tex_to_png(path, dest):
 def textures(champ, folder):
     out = os.path.join(ROOT, "client/public/img/champions/fx", champ)
     os.makedirs(out, exist_ok=True)
-    prefix = folder_name(folder)
+    found = {}
+    for dirpath, _, files in os.walk(os.path.join(folder, "assets")):
+        # the base skin's own textures win over other skins' copies
+        base = "/skins/base" in dirpath.lower() or "/skins/" not in dirpath.lower()
+        for f in files:
+            key = f.lower()
+            if (key.endswith(".tex") or key.endswith(".scb")) and (key not in found or base):
+                found[key] = os.path.join(dirpath, f)
     n = 0
-    for sub in ("assets/particles", "assets/spells/textures", f"assets/characters/{prefix}/skins/base/particles"):
-        d = os.path.join(folder, sub)
-        if not os.path.isdir(d):
-            continue
-        for f in os.listdir(d):
-            # only the champion's own textures, not the shared glows every champion folder repeats
-            if f.endswith(".tex") and f"{champ}/{f[:-4].lower()}" in USED_TEXTURES:
-                n += tex_to_png(os.path.join(d, f), os.path.join(out, f[:-4].lower() + ".png"))
+    for used in USED_TEXTURES:
+        c, name = used.split("/")
+        if c == champ and name + ".tex" in found:
+            n += tex_to_png(found[name + ".tex"], os.path.join(out, name + ".png"))
+    for mesh, tex, axes in MESHES.get(champ, []):
+        with tempfile.TemporaryDirectory() as tmp:
+            tex_png = os.path.join(tmp, "t.png")
+            tex_to_png(found[tex + ".tex"], tex_png)
+            render_mesh(found[mesh + ".scb"], tex_png, axes).save(os.path.join(out, mesh + "_mesh.png"))
+            n += 1
     print(champ, "textures:", n)
+
+
+def read_scb(path):
+    """r3d2Mesh static mesh: positions, faces and per-face uvs"""
+    d = open(path, "rb").read()
+    major, minor = struct.unpack_from("<HH", d, 8)
+    vc, fc = struct.unpack_from("<II", d, 140)
+    i = 152 + 24
+    vtype = 0
+    if (major, minor) >= (3, 2):
+        vtype = struct.unpack_from("<I", d, i)[0]
+        i += 4
+    pos = np.frombuffer(d, "<f4", vc * 3, i).reshape(-1, 3)
+    i += vc * 12 + (vc * 4 if vtype == 1 else 0) + 12
+    faces, uvs = [], []
+    for _ in range(fc):
+        faces.append(struct.unpack_from("<III", d, i))
+        u = struct.unpack_from("<6f", d, i + 76)
+        uvs.append(((u[0], u[3]), (u[1], u[4]), (u[2], u[5])))
+        i += 100
+    return pos, faces, uvs
+
+
+def render_mesh(path, tex_path, axes, size=256):
+    """orthographic, nearest surface wins, nose pointing right"""
+    pos, faces, uvs = read_scb(path)
+    tex = np.asarray(Image.open(tex_path).convert("RGBA")).astype(np.float32)
+    th, tw = tex.shape[:2]
+    X, Y, Z = pos[:, axes[0]], pos[:, axes[1]], pos[:, axes[2]]
+    s = (size - 4) / max(X.max() - X.min(), Y.max() - Y.min())
+    px = (X - (X.max() + X.min()) / 2) * s + size / 2
+    py = (Y - (Y.max() + Y.min()) / 2) * s + size / 2
+    img = np.zeros((size, size, 4), np.float32)
+    depth = np.full((size, size), -1e9, np.float32)
+    for f, uv in zip(faces, uvs):
+        x, y, z = px[list(f)], py[list(f)], Z[list(f)]
+        x0, x1 = int(max(0, np.floor(x.min()))), int(min(size - 1, np.ceil(x.max())))
+        y0, y1 = int(max(0, np.floor(y.min()))), int(min(size - 1, np.ceil(y.max())))
+        den = (y[1] - y[2]) * (x[0] - x[2]) + (x[2] - x[1]) * (y[0] - y[2])
+        if x1 < x0 or y1 < y0 or abs(den) < 1e-9:
+            continue
+        gx, gy = np.meshgrid(np.arange(x0, x1 + 1) + 0.5, np.arange(y0, y1 + 1) + 0.5)
+        w0 = ((y[1] - y[2]) * (gx - x[2]) + (x[2] - x[1]) * (gy - y[2])) / den
+        w1 = ((y[2] - y[0]) * (gx - x[2]) + (x[0] - x[2]) * (gy - y[2])) / den
+        w2 = 1 - w0 - w1
+        zz = w0 * z[0] + w1 * z[1] + w2 * z[2]
+        sub = depth[y0 : y1 + 1, x0 : x1 + 1]
+        m = (w0 >= -1e-4) & (w1 >= -1e-4) & (w2 >= -1e-4) & (zz > sub)
+        if not m.any():
+            continue
+        u = w0 * uv[0][0] + w1 * uv[1][0] + w2 * uv[2][0]
+        v = w0 * uv[0][1] + w1 * uv[1][1] + w2 * uv[2][1]
+        col = tex[np.clip((v % 1) * th, 0, th - 1).astype(int), np.clip((u % 1) * tw, 0, tw - 1).astype(int)]
+        col[..., 3] = 255
+        sub[m] = zz[m]
+        img[y0 : y1 + 1, x0 : x1 + 1][m] = col[m]
+    out = Image.fromarray(img.astype(np.uint8), "RGBA")
+    return out.crop(out.getbbox())
 
 
 def folder_name(folder):
