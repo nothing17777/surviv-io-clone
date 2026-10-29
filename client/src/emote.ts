@@ -1,5 +1,6 @@
 import $ from "jquery";
 import * as PIXI from "pixi.js-legacy";
+import { leagueControls } from "./leagueControls.ts";
 
 import { EmotesDefs } from "../../shared/defs/gameObjects/emoteDefs.ts";
 import type { AmmoDef } from "../../shared/defs/gameObjects/gearDefs.ts";
@@ -848,7 +849,7 @@ export class EmoteBarn {
         if (inputBinds.isBindReleased(Input.TeamPingSingle) && this.pingMouseTriggered) {
             this.triggerPing();
         }
-        if (inputBinds.isBindPressed(Input.EmoteMenu)) {
+        if (inputBinds.isBindPressed(Input.EmoteMenu) && !leagueControls.active) {
             if (
                 !this.pingMouseTriggered
                 && !this.emoteMouseTriggered

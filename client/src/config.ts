@@ -99,6 +99,8 @@ const defaultConfig = {
     autoFireAll: false,
     autoMelee: false,
     autoOpenDoors: true,
+    /** League champions: right-click to move, Q W E R to cast at the cursor */
+    leagueControls: false,
     highResTex: true,
     interpolation: true,
     localRotation: false,

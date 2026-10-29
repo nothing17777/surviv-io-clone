@@ -13,6 +13,7 @@ import { championFx } from "./championFx.ts";
 import type { ConfigManager, DebugRendererOpts } from "./config.ts";
 import { DebugHUD } from "./debug/debugHUD.ts";
 import { debugLines } from "./debug/debugLines.ts";
+import { leagueControls } from "./leagueControls.ts";
 import { loadDuelCounts, loadGodLoadout, loadoutToKit } from "./ui/modePicker.ts";
 
 /* STRIP_FROM_PROD_CLIENT:START */
@@ -29,7 +30,7 @@ import { EmoteBarn } from "./emote.ts";
 import { errorLogManager } from "./errorLogs.ts";
 import { Gas } from "./gas.ts";
 import { helpers } from "./helpers.ts";
-import { type InputHandler, Key } from "./input.ts";
+import { type InputHandler, Key, MouseButton } from "./input.ts";
 import type { InputBinds, InputBindUi } from "./inputBinds.ts";
 import type { SoundHandle } from "./lib/createJS.ts";
 import { Map } from "./map.ts";
@@ -397,6 +398,17 @@ export class Game {
         );
     }
 
+    /** where League controls walk the champion to (the last right-click), until it gets there */
+    moveTarget?: Vec2;
+
+    /** the League controls setting is on and the player is a champion */
+    leagueControlsActive() {
+        const on = !!this.m_config.get("leagueControls") && this.m_activePlayer?.m_netData.championIndex > 0;
+        leagueControls.active = on;
+        if (!on) this.moveTarget = undefined;
+        return on;
+    }
+
     update(dt: number) {
         this.debugHUD.m_update(dt, this);
 
@@ -563,6 +575,21 @@ export class Game {
                     * GameConfig.player.throwableMaxMouseDist;
                 inputMsg.toMouseLen = toTouchLenAdjusted;
                 inputMsg.toMouseDir = aimDir;
+            } else if (this.leagueControlsActive()) {
+                // League controls: right-click sets where to walk, and the champion walks there
+                if (this.m_input.mouseDown(MouseButton.Right)) {
+                    this.moveTarget = v2.copy(mousePos);
+                }
+                const toTarget = this.moveTarget ? v2.sub(this.moveTarget, playerPos) : v2.create(0, 0);
+                if (this.moveTarget && v2.length(toTarget) > 0.4) {
+                    inputMsg.touchMoveActive = true;
+                    inputMsg.touchMoveDir = v2.normalizeSafe(toTarget, v2.create(1, 0));
+                    inputMsg.touchMoveLen = 255;
+                } else {
+                    this.moveTarget = undefined;
+                }
+                inputMsg.toMouseDir = v2.copy(toMouseDir);
+                inputMsg.toMouseLen = toMouseLen;
             } else {
                 // Only use arrow keys if they are unbound
                 inputMsg.moveLeft = this.m_inputBinds.isBindDown(Input.MoveLeft)
@@ -625,10 +652,25 @@ export class Game {
                 // League champions' item active
                 Input.EquipFragGrenade,
             ];
+            const leagueControls = this.leagueControlsActive();
             for (let i = 0; i < checkInputs.length; i++) {
                 const input = checkInputs[i];
+                // Q, E and R are the champion's abilities in League controls, not last weapon / stow / reload
+                if (leagueControls && [Input.Reload, Input.EquipLastWeap, Input.StowWeapons].includes(input)) continue;
                 if (this.m_inputBinds.isBindPressed(input)) {
                     inputMsg.addInput(input);
+                }
+            }
+            if (leagueControls) {
+                const abilityKeys = [Key.Q, Key.W, Key.E, Key.R];
+                const abilityInputs = [
+                    Input.EquipPrimary,
+                    Input.EquipSecondary,
+                    Input.EquipMelee,
+                    Input.EquipThrowable,
+                ];
+                for (let i = 0; i < 4; i++) {
+                    if (this.m_input.keyPressed(abilityKeys[i])) inputMsg.addInput(abilityInputs[i]);
                 }
             }
 
