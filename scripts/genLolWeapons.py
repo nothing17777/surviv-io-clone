@@ -4,6 +4,7 @@ League of Legends weapons and champions, from the client's extracted rcp-be-lol-
   - client/public/img/custom-weapons/world/<id>.png  held sprite (gun: 64x160 muzzle up, melee: 128x64,
                                                      champion basic attack: 128x128)
   - client/public/img/champions/<champ>_<p|q|w|e|r>.png  ability icons for the champion HUD
+  - client/public/img/champions/items/<item>.png  the champions' build items (ItemDefs in championDefs.ts)
   - client/public/audio/champions/<champ>_{choose,ban,sfx}.ogg  champion select voice lines and stinger
 
 The client stores files under xxh64 hashes of their game-data path, so paths are hashed to find them.
@@ -16,6 +17,7 @@ Run with: python3 scripts/genLolWeapons.py "<extracted_assets>/rcp-be-lol-game-d
 import hashlib
 import json
 import os
+import re
 import shutil
 import sys
 
@@ -128,4 +130,13 @@ for champ, (cid, gun, item) in CHAMPIONS.items():
         )
     for kind, field in (("choose", "chooseVoPath"), ("ban", "banVoPath"), ("sfx", "stingerSfxPath")):
         shutil.copy(asset(data[field]), os.path.join(ROOT, f"client/public/audio/champions/{champ}_{kind}.ogg"))
+# every item in the champions' builds, named as in championDefs.ts' ItemDefs
+item_defs = open(os.path.join(ROOT, "shared/defs/gameObjects/championDefs.ts")).read().split("export const ItemDefs")[1]
+build_items = re.findall(r'\n    ([a-z_]+): \{ name: "([^"]+)"|\n    ([a-z_]+): \{\n        name: "([^"]+)"', item_defs.split("\n};")[0])
+os.makedirs(os.path.join(IMG, "champions/items"), exist_ok=True)
+for a, b, c, d in build_items:
+    item_id, name = a or c, b or d
+    Image.open(asset(icons[name])).convert("RGB").resize((64, 64), Image.LANCZOS).save(
+        os.path.join(IMG, "champions/items", item_id + ".png")
+    )
 print("wrote", len(GUNS) + len(MELEES), "item weapons and", len(CHAMPIONS), "champions")

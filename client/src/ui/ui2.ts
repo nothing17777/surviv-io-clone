@@ -634,7 +634,8 @@ export class UiManager2 {
             const bar = document.createElement("div");
             bar.style.cssText =
                 "position:absolute;left:50%;bottom:150px;transform:translateX(-50%);display:flex;gap:6px;pointer-events:none;z-index:10;";
-            const active = def.items.map((i) => ItemDefs[i]).find((i) => i.active);
+            const activeId = def.items.find((i) => ItemDefs[i].active);
+            const active = activeId ? ItemDefs[activeId] : undefined;
             const slots = [
                 { icon: `img/champions/${champ}_p.png`, key: "", title: def.passive.name },
                 ...(["q", "w", "e", "r"] as const).map((k, i) => ({
@@ -642,7 +643,7 @@ export class UiManager2 {
                     key: `${i + 1}`,
                     title: def.abilities[k].name,
                 })),
-                ...(active ? [{ icon: "", key: "5", title: active.name }] : []),
+                ...(active ? [{ icon: `img/champions/items/${activeId}.png`, key: "5", title: active.name }] : []),
             ];
             for (const slot of slots) {
                 const el = document.createElement("div");
@@ -662,6 +663,18 @@ export class UiManager2 {
                 el.append(key, cd);
                 bar.appendChild(el);
             }
+            // the build's items above the abilities, named on hover
+            const items = document.createElement("div");
+            items.style.cssText =
+                "position:absolute;left:50%;bottom:58px;transform:translateX(-50%);display:flex;gap:4px;pointer-events:auto;";
+            for (const id of def.items) {
+                const item = document.createElement("div");
+                item.title = ItemDefs[id].name;
+                item.style.cssText =
+                    `width:30px;height:30px;border:1px solid #785a28;border-radius:4px;background:#0a1428 url(img/champions/items/${id}.png) center/cover no-repeat;`;
+                items.appendChild(item);
+            }
+            bar.appendChild(items);
             document.getElementById("ui-game")?.appendChild(bar);
             this.championBar = bar;
         }
