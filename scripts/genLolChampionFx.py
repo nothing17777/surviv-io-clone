@@ -39,15 +39,17 @@ CHAMPIONS = {
     "darius": "Darius",
     "masteryi": "MasterYi",
 }
-# only what the game uses: textures named in gunDefs' champFx("<champ>/<file>"), sounds in ChampionSounds
+# only what the game uses: "<champ>/<file>" textures named in gunDefs and championFx.ts, sounds in ChampionSounds
 USED_TEXTURES = {
     t
     for f in ("shared/defs/gameObjects/gunDefs.ts", "client/src/championFx.ts")
-    for t in re.findall(r'champFx\("([a-z]+/[a-z0-9_]+)"\)', open(os.path.join(ROOT, f)).read())
+    for t in re.findall(r'"((?:%s)/[a-z0-9_\-]+)"' % "|".join(CHAMPIONS), open(os.path.join(ROOT, f)).read())
 }
 # 3D missiles rendered from above as sprites: champion -> (mesh, texture, mesh axes drawn right / down / toward the camera)
 MESHES = {
     "jinx": [("jinx_r_mis", "jinx_r_mis", (1, 0, 2))],
+    "ashe": [("ashe_base_aa_arrow", "ashe_base_aa_arrowtext", (2, 0, 1)), ("ashe_base_r_arrow", "ashe_base_aa_arrowtext", (2, 0, 1))],
+    "caitlyn": [("caitlyn_net_02", "caitlyn_hex_net", (2, 0, 1))],
 }
 USED_SOUNDS = set(re.findall(r'"([a-z0-9_]+)"', open(os.path.join(ROOT, "shared/defs/gameObjects/championDefs.ts")).read().split("export const ChampionSounds")[1].split("};")[0]))
 # emotes, recall and the like aren't abilities
