@@ -3791,7 +3791,7 @@ const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
         tracerWidth: 0.25,
         tracerLength: 0.4,
         sprite: "img/custom-weapons/fx/lava_rocket.png",
-        spriteSize: 1.6,
+        spriteSize: 40,
     }, {
         name: "Micro Rockets",
         fireMode: "single",
@@ -3845,7 +3845,7 @@ for (const [color, tracer] of Object.entries(orbColorTracer)) {
         tracerColor: tracer,
         tracerWidth: 0.3,
         sprite: kitAsset(`orb_${color}`),
-        spriteSize: 2.2,
+        spriteSize: 44,
     });
     kitBullet(`bullet_kit_ultron_orb_laser_${color}`, {
         damage: 26,
@@ -3892,7 +3892,7 @@ kitBullet("bullet_kit_spider_auto", {
     tracerWidth: 0.3,
     tracerLength: 1.2,
     sprite: kitAsset("web_ball"),
-    spriteSize: 0.8,
+    spriteSize: 28,
 });
 
 const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
@@ -3933,7 +3933,7 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
         tracerWidth: 0.3,
         tracerLength: 1.2,
         sprite: kitAsset("web_ball"),
-        spriteSize: 0.8,
+        spriteSize: 28,
     }, {
         name: "Web Shooter",
         fireMode: "single",
