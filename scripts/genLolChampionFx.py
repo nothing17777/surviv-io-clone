@@ -48,9 +48,14 @@ USED_TEXTURES = {
 # 3D models rendered as sprites: champion -> (mesh, texture, mesh axes drawn right / down / toward the camera,
 # or ("tilt", degrees) for League's camera tilted from straight down toward the model's front)
 MESHES = {
-    "jinx": [("jinx_r_mis", "jinx_r_mis", (1, 0, 2))],
+    "jinx": [("jinx_r_mis", "jinx_r_mis", (1, 0, 2)), ("jinx_q_rocket", "jinx_q_rocket", (0, 2, 1))],
     "ashe": [("ashe_base_aa_arrow", "ashe_base_aa_arrowtext", (2, 0, 1)), ("ashe_base_r_arrow", "ashe_base_aa_arrowtext", (2, 0, 1))],
-    "caitlyn": [("caitlyn_net_02", "caitlyn_hex_net", (2, 0, 1))],
+    "caitlyn": [
+        ("caitlyn_base_qvfx_rg", "caitlyn_base_q_tx_cm", (2, 0, 1)),
+        ("caitlyn_base_entrapment_mis_net", "caitlyn_base_entrapment_mis_net", (2, 0, 1)),
+        ("caitlyn_base_mesh_01", "caitlyn_base_mesh_01", (1, 0, 2)),
+    ],
+    "garen": [("garen_base_e_spin", "garen_base_e_spin_edge", (0, 2, 1))],
     # Flame Chompers! (the JinxMine minion, painted with Jinx's own texture)
     "jinx_mine": [("jinxmine", "jinx_base_tx_cm", ("tilt", 35))],
 }

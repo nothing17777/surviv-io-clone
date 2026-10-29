@@ -881,7 +881,7 @@ export class Player implements AbstractObject {
         }
         if (!champ || this.m_netData.champCastSeq === this.lastCastSeq) return;
         this.lastCastSeq = this.m_netData.champCastSeq;
-        const slot = ["q", "w", "e", "r", "", "p"][this.m_netData.champCastKey];
+        const slot = ["q", "w", "e", "r", "", "p", "ba"][this.m_netData.champCastKey];
         if (slot) championFx.cast(champ, slot, this, this.layer);
         if (slot && ChampionSounds[champ]?.[slot as "q"]) audioManager.playSound(championSound(champ, slot), opts);
     }

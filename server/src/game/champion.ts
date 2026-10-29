@@ -18,6 +18,8 @@ const ChomperSpeed = 50;
 /** what a cast sends to clients (for its sound and flash): 0-3 Q-R, 4 item active, 5 passive */
 export const CastItem = 4;
 export const CastPassive = 5;
+/** a melee champion's basic attack landing, for its hit effect */
+export const CastBasicHit = 6;
 
 /** crowd control any player can be under, from a champion's ability */
 export class Debuffs {
@@ -600,6 +602,7 @@ export class Champion {
             if (this.id === "ezreal") this.cooldowns = this.cooldowns.map((c) => Math.max(0, c - 1.5));
         }
         if (isBasic) {
+            if (!this.def.gun) this.announce(CastBasicHit);
             amount *= this.stats.damage;
             if (Math.random() < this.stats.crit) amount *= this.stats.critDamage;
             this.basicHits++;

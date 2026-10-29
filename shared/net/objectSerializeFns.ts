@@ -108,7 +108,7 @@ export interface ObjectsFullData {
         flying: boolean;
         /** League champion kit: 0 none, else 1 + its place in ChampionIds */
         championIndex: number;
-        /** bumps on each cast, so every client plays its sound once; castKey 0-3 Q-R, 4 item, 5 passive */
+        /** bumps on each cast, so every client plays its sound once; castKey 0-3 Q-R, 4 item, 5 passive, 6 melee basic hit */
         champCastSeq: number;
         champCastKey: number;
         /** rooted or knocked up by a champion */
