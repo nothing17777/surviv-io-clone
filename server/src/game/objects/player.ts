@@ -5363,7 +5363,7 @@ export class Player extends BaseGameObject {
         this.health = kit.health;
         this.helmet = kit.helmet;
         this.chest = kit.chest;
-        this.backpack = "backpack00";
+        this.backpack = kit.backpack ?? "backpack00";
         this.outfit = kit.outfit;
         for (const item of Object.keys(this.invManager.items) as InventoryItem[]) this.invManager.set(item, 0);
         this.inventoryDirty = true;

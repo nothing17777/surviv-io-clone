@@ -12,6 +12,8 @@ export interface KitDef {
     shield?: number;
     helmet: string;
     chest: string;
+    /** default: no bag (backpack00) */
+    backpack?: string;
     outfit: string;
     /** weapon per slot: primary, secondary, melee */
     primary?: string;
@@ -134,8 +136,9 @@ export const KitDefs: Record<string, KitDef> = {
         Object.entries(ChampionDefs).map(([id, c]): [string, KitDef] => [id, {
             name: c.name,
             health: c.health + c.items.reduce((sum, item) => sum + (ItemDefs[item].health ?? 0), 0),
-            helmet: "helmet02",
-            chest: "chest02",
+            helmet: "helmet04",
+            chest: "chest04",
+            backpack: "backpack04",
             outfit: `outfitChampion_${id}`,
             primary: c.gun ? `kit_${id}_basic` : undefined,
             melee: c.gun ? "fists" : `kit_${id}_basic`,
