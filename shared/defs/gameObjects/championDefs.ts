@@ -163,7 +163,7 @@ export const ChampionDefs: Record<string, ChampionDef> = {
             e: ab("Flame Chompers!", 20, "Throws three chompers at the cursor that root and burn enemies who step in."),
             r: ab(
                 "Super Mega Death Rocket!",
-                35,
+                10,
                 "A rocket across the map that deals 80 + 25% missing health in a blast.",
             ),
         },
@@ -192,7 +192,7 @@ export const ChampionDefs: Record<string, ChampionDef> = {
             q: ab("Piltover Peacemaker", 8, "A long piercing round, 60 to the first enemy and 40 to the rest."),
             w: ab("Yordle Snap Trap", 10, "Sets a trap at the cursor that roots for 1.5 s and sets up a Headshot."),
             e: ab("90 Caliber Net", 14, "Fires a net that slows and knocks Caitlyn back 6 tiles."),
-            r: ab("Ace in the Hole", 38, "After 1 s, a homing shot at the nearest enemy within 80 tiles for 140."),
+            r: ab("Ace in the Hole", 10, "After 1 s, a homing shot at the nearest enemy within 80 tiles for 140."),
         },
         items: [
             "hexoptics_c44",
@@ -218,7 +218,7 @@ export const ChampionDefs: Record<string, ChampionDef> = {
             e: ab("Hawkshot", 30, "The hawk spirit scouts ahead: Ashe sees much further for 6 s."),
             r: ab(
                 "Enchanted Crystal Arrow",
-                30,
+                10,
                 "A huge arrow across the map that stuns the first enemy hit for up to 3.5 s and deals 100.",
             ),
         },
@@ -255,7 +255,7 @@ export const ChampionDefs: Record<string, ChampionDef> = {
                 22,
                 "Blinks 9 tiles toward the cursor and fires a homing bolt at the nearest enemy for 35.",
             ),
-            r: ab("Trueshot Barrage", 40, "A huge beam across the map, through everything, for 110."),
+            r: ab("Trueshot Barrage", 10, "A huge beam across the map, through everything, for 110."),
         },
         items: ["ionian_boots_of_lucidity", "manamune", "trinity_force"],
         outfit: { base: 0x3a5fb0, hands: 0xd9a441, backpack: 0x6b4a2b },
@@ -275,7 +275,7 @@ export const ChampionDefs: Record<string, ChampionDef> = {
             q: ab("Light Binding", 11, "A light orb that roots the first two enemies hit for 2 s and deals 50."),
             w: ab("Prismatic Barrier", 14, "A 60 shield for 3 s."),
             e: ab("Lucent Singularity", 10, "A zone at the cursor that slows, then bursts for 50."),
-            r: ab("Final Spark", 25, "After 1 s, a giant laser across the map for 130."),
+            r: ab("Final Spark", 10, "After 1 s, a giant laser across the map for 130."),
         },
         items: [
             "ludens_echo",
@@ -305,7 +305,7 @@ export const ChampionDefs: Record<string, ChampionDef> = {
             e: ab("Charm", 12, "A kiss that charms the first enemy for 1.6 s and deals 45."),
             r: ab(
                 "Spirit Rush",
-                40,
+                10,
                 "Dashes toward the cursor, up to 3 times in 10 s, each firing 3 bolts at nearby enemies.",
             ),
         },
@@ -344,7 +344,7 @@ export const ChampionDefs: Record<string, ChampionDef> = {
             ),
             r: ab(
                 "Last Breath",
-                35,
+                10,
                 "Blinks to a knocked-up enemy within 30 tiles, deals 110 and keeps them up 1 s more.",
             ),
         },
@@ -369,7 +369,7 @@ export const ChampionDefs: Record<string, ChampionDef> = {
             e: ab("Judgment", 9, "Spins for 3 s, hitting everyone around him 12 times for 9."),
             r: ab(
                 "Demacian Justice",
-                40,
+                10,
                 "Calls down a sword on the enemy nearest the cursor: 70 + 30% of their missing health, ignoring armor.",
             ),
         },
@@ -394,7 +394,7 @@ export const ChampionDefs: Record<string, ChampionDef> = {
             e: ab("Apprehend", 22, "Pulls enemies in front of him (12 tiles) to him and slows them."),
             r: ab(
                 "Noxian Guillotine",
-                40,
+                10,
                 "Leaps on the nearest enemy within 10 tiles for 75, more if they bleed. A kill resets it.",
             ),
         },
@@ -419,7 +419,7 @@ export const ChampionDefs: Record<string, ChampionDef> = {
             e: ab("Wuju Style", 14, "For 5 s, basic attacks deal 15 true damage more."),
             r: ab(
                 "Highlander",
-                42,
+                10,
                 "For 7 s, much faster attacks and movement, and slows don't hold him. Kills extend it.",
             ),
         },
