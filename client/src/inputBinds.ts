@@ -39,6 +39,8 @@ const BindDefs = {
     [GameInput.EquipSecondary]: def("Equip Secondary", inputKey(Key.Two)),
     [GameInput.EquipMelee]: def("Equip Melee", inputKey(Key.Three)),
     [GameInput.EquipThrowable]: def("Equip Throwable", inputKey(Key.Four)),
+    // League champions' item active (Stridebreaker, Youmuu's, Zhonya's)
+    [GameInput.EquipFragGrenade]: def("Champion Item Active", inputKey(Key.Five)),
     [GameInput.EquipNextWeap]: def("Equip Next Weapon", mouseWheel(MouseWheel.Down)),
     [GameInput.EquipPrevWeap]: def("Equip Previous Weapon", mouseWheel(MouseWheel.Up)),
     [GameInput.EquipLastWeap]: def("Equip Last Weapon", inputKey(Key.Q)),

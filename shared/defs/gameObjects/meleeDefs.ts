@@ -1,6 +1,7 @@
 import { Rarity } from "../../gameConfig.ts";
 import { type DeepPartial, util } from "../../utils/util.ts";
 import type { Vec2 } from "../../utils/v2.ts";
+import { ChampionDefs, championSound } from "./championDefs.ts";
 import { CustomMelees, CustomWeaponsVersion } from "./customWeaponDefs.ts";
 import { MeleeEffects, MeleeOverrides } from "./customWeaponEffects.ts";
 import type { BaseLoadoutItem, BaseWeaponDef } from "./itemTypes.ts";
@@ -1540,6 +1541,21 @@ Object.assign(
             attack: { offset: { x: 0, y: 0 }, rad: 0.1, cooldownTime: 16 },
         }),
     ]),
+);
+
+// League of Legends champions' basic attacks (the abilities are cast with keys 1-4, see champion.ts)
+Object.assign(
+    KitMeleeDefs,
+    Object.fromEntries(
+        Object.entries(ChampionDefs).filter(([, c]) => !c.gun).map(([id, c]) =>
+            kitMelee(`kit_${id}_basic`, c.name, {
+                damage: c.basic.damage,
+                sound: { swing: championSound(id, "basic") },
+                autoAttack: true,
+                attack: { offset: { x: 2.2, y: 0 }, rad: 2.4, cooldownTime: c.basic.cooldown },
+            })
+        ),
+    ),
 );
 
 export const MeleeDefs: Record<string, MeleeDef> = { ...BaseDefs, ...SkinDefs, ...CustomMeleeDefs, ...KitMeleeDefs };

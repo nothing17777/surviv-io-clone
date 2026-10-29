@@ -1,0 +1,208 @@
+"""
+League of Legends champion sounds and particle textures, from the game's extracted WAD files
+(<league>/extracted/champions/<Champion>/...), for the champion kits:
+  - client/public/audio/champions/<champ>/<event>.ogg   base skin ability sounds, by Wwise event name
+  - client/public/img/champions/fx/<champ>/<texture>.png  base skin particle and spell textures
+
+Sounds: the champion's .bin files name every Wwise event (Play_sfx_<Champ>_<Spell>_<Trigger>). An event's
+id is the FNV-1 hash of its lowercased name; the events bank (HIRC) links it through actions and
+containers to sounds, whose source ids are .wem files in the audio bank (DIDX/DATA). vgmstream decodes
+them, ffmpeg turns them into ogg.
+Textures: .tex is a small header in front of DXT1/DXT5/BGRA data, rewritten as a .dds for Pillow.
+
+Run with: python3 scripts/genLolChampionFx.py <league>/extracted <vgmstream-cli>   (needs pillow, ffmpeg)
+"""
+
+import os
+import re
+import struct
+import subprocess
+import sys
+import tempfile
+
+from PIL import Image, ImageStat
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SRC = sys.argv[1]
+VGMSTREAM = sys.argv[2]
+
+CHAMPIONS = {
+    "jinx": "Jinx",
+    "caitlyn": "Caitlyn",
+    "ashe": "Ashe",
+    "ezreal": "Ezreal",
+    "lux": "Lux",
+    "ahri": "Ahri",
+    "yasuo": "Yasuo",
+    "garen": "Garen",
+    "darius": "Darius",
+    "masteryi": "MasterYi",
+}
+# only what the game uses: textures named in gunDefs' champFx("<champ>/<file>"), sounds in ChampionSounds
+USED_TEXTURES = set(re.findall(r'champFx\("([a-z]+/[a-z0-9_]+)"\)', open(os.path.join(ROOT, "shared/defs/gameObjects/gunDefs.ts")).read()))
+USED_SOUNDS = set(re.findall(r'"([a-z0-9_]+)"', open(os.path.join(ROOT, "shared/defs/gameObjects/championDefs.ts")).read().split("export const ChampionSounds")[1].split("};")[0]))
+# emotes, recall and the like aren't abilities
+SKIP = re.compile(r"dance|joke|taunt|laugh|recall|homeguard|death|music|respawn|idle|run|move|emote", re.I)
+
+
+def fnv1(name):
+    h = 2166136261
+    for b in name.lower().encode():
+        h = (h * 16777619) & 0xFFFFFFFF
+        h ^= b
+    return h
+
+
+def sections(path):
+    data = open(path, "rb").read()
+    out, i = {}, 0
+    while i + 8 <= len(data):
+        tag, size = data[i : i + 4].decode("latin1"), struct.unpack_from("<I", data, i + 4)[0]
+        out[tag] = data[i + 8 : i + 8 + size]
+        i += 8 + size
+    return out
+
+
+def hirc(sec):
+    """object id -> (type, payload)"""
+    objs, (count,), i = {}, struct.unpack_from("<I", sec), 4
+    for _ in range(count):
+        kind, size, oid = struct.unpack_from("<BII", sec, i)
+        objs[oid] = (kind, sec[i + 9 : i + 5 + size])
+        i += 5 + size
+    return objs
+
+
+def u32s(payload):
+    """every u32 at every byte offset: ids are found by matching, not by parsing each object version"""
+    return {struct.unpack_from("<I", payload, j)[0] for j in range(len(payload) - 3)}
+
+
+def wems_for(oid, objs, media, seen):
+    """the .wem ids an object leads to: events -> actions -> containers -> sounds -> media"""
+    if oid in seen or oid not in objs:
+        return []
+    seen.add(oid)
+    kind, payload = objs[oid]
+    found = []
+    refs = u32s(payload)
+    if kind == 2:  # sound
+        found += [r for r in refs if r in media]
+    for r in refs:
+        if r != oid and r in objs and objs[r][0] in (2, 3, 5, 6, 7):  # sound, action, containers
+            found += wems_for(r, objs, media, seen)
+    return found
+
+
+def sounds(champ, folder):
+    base = os.path.join(folder, "assets/sounds/wwise2016/sfx/characters", folder_name(folder), "skins/base")
+    prefix = folder_name(folder)
+    events_bnk = os.path.join(base, f"{prefix}_base_sfx_events.bnk")
+    audio_bnk = os.path.join(base, f"{prefix}_base_sfx_audio.bnk")
+    if not os.path.exists(events_bnk):
+        print("no sound banks for", champ)
+        return
+    names = set()
+    for dirpath, _, files in os.walk(os.path.join(folder, "data")):
+        for f in files:
+            if f.endswith(".bin"):
+                text = open(os.path.join(dirpath, f), "rb").read()
+                names |= {m.decode() for m in re.findall(rb"Play_sfx_%s_[A-Za-z0-9_]+" % prefix.encode(), text, re.I)}
+    objs = {}
+    for bnk in (events_bnk, audio_bnk):
+        s = sections(bnk)
+        if "HIRC" in s:
+            objs.update(hirc(s["HIRC"]))
+    audio = sections(audio_bnk)
+    media = {}
+    didx = audio.get("DIDX", b"")
+    for j in range(0, len(didx), 12):
+        wid, off, size = struct.unpack_from("<III", didx, j)
+        media[wid] = audio["DATA"][off : off + size]
+    out = os.path.join(ROOT, "client/public/audio/champions", champ)
+    os.makedirs(out, exist_ok=True)
+    n = 0
+    for name in sorted(names):
+        if SKIP.search(name):
+            continue
+        wems = wems_for(fnv1(name), objs, media, set())
+        if not wems:
+            continue
+        # the first sound is enough: the rest are random variations of it
+        with tempfile.TemporaryDirectory() as tmp:
+            wem, wav = os.path.join(tmp, "a.wem"), os.path.join(tmp, "a.wav")
+            open(wem, "wb").write(media[wems[0]])
+            if subprocess.run([VGMSTREAM, "-o", wav, wem], capture_output=True).returncode:
+                continue
+            event = name[len("Play_sfx_") + len(prefix) + 1 :].lower()
+            if event not in USED_SOUNDS:
+                continue
+            subprocess.run(
+                ["ffmpeg", "-y", "-loglevel", "error", "-i", wav, "-ac", "1", "-c:a", "libvorbis", "-q:a", "3",
+                 os.path.join(out, event + ".ogg")],
+                check=True,
+            )
+            n += 1
+    print(champ, "sounds:", n)
+
+
+DXT = {10: b"DXT1", 12: b"DXT5"}
+
+
+def tex_to_png(path, dest):
+    data = open(path, "rb").read()
+    if data[:4] != b"TEX\0":
+        return False
+    w, h = struct.unpack_from("<HH", data, 4)
+    fmt, mip = data[9], data[11]
+    body = data[12:]
+    if fmt in DXT:
+        block = 8 if fmt == 10 else 16
+        size = max(1, (w + 3) // 4) * max(1, (h + 3) // 4) * block
+        # mipmaps are stored smallest first: the full size image is the last one
+        top = body[len(body) - size :] if mip else body[:size]
+        header = struct.pack(
+            "<4sIIIIIII44sII4sIIIIIIIIII",
+            b"DDS ", 124, 0x1007 | 0x80000, h, w, size, 0, 1, b"\0" * 44,
+            32, 4, DXT[fmt], 0, 0, 0, 0, 0,
+            0x1000, 0, 0, 0, 0,
+        )
+        img = Image.open(__import__("io").BytesIO(header + top))
+    elif fmt == 20:  # BGRA8
+        size = w * h * 4
+        top = body[len(body) - size :] if mip else body[:size]
+        img = Image.frombytes("RGBA", (w, h), top, "raw", "BGRA")
+    else:
+        return False
+    img = img.convert("RGBA")
+    # glows are drawn additively in League, on black: their brightness becomes their alpha here
+    if ImageStat.Stat(img.getchannel("A")).mean[0] > 250:
+        img.putalpha(img.convert("RGB").point(lambda v: min(255, v * 2)).convert("L"))
+    img.save(dest)
+    return True
+
+
+def textures(champ, folder):
+    out = os.path.join(ROOT, "client/public/img/champions/fx", champ)
+    os.makedirs(out, exist_ok=True)
+    prefix = folder_name(folder)
+    n = 0
+    for sub in ("assets/particles", "assets/spells/textures", f"assets/characters/{prefix}/skins/base/particles"):
+        d = os.path.join(folder, sub)
+        if not os.path.isdir(d):
+            continue
+        for f in os.listdir(d):
+            # only the champion's own textures, not the shared glows every champion folder repeats
+            if f.endswith(".tex") and f"{champ}/{f[:-4].lower()}" in USED_TEXTURES:
+                n += tex_to_png(os.path.join(d, f), os.path.join(out, f[:-4].lower() + ".png"))
+    print(champ, "textures:", n)
+
+
+def folder_name(folder):
+    return os.path.basename(folder).lower()
+
+
+for champ, name in CHAMPIONS.items():
+    folder = os.path.join(SRC, "champions", name)
+    sounds(champ, folder)
+    textures(champ, folder)

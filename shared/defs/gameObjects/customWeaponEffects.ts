@@ -314,6 +314,10 @@ export const GunEffects: Record<string, GunEffect> = {
 
 /** tweaks to one weapon on top of its effect, from its wiki page */
 export const GunOverrides: Record<string, GunEffect> = {
+    // Phantom Dancer: attack speed item, fires faster than the vector
+    lol_phantom_dancer: { gun: { fireDelay: 0.06 } },
+    // The Collector: executes, so it hits hard
+    lol_the_collector: { bullet: { damage: 38 } },
     // purple lasers, 5 shots/s
     pg_laser_minigun: {
         bullet: { damage: 22, tracerColor: "cw_magic" },

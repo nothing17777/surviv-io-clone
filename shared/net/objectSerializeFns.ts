@@ -106,6 +106,13 @@ export interface ObjectsFullData {
         excaliburActive: boolean;
         /** Iron Man's flight: untargetable and through walls */
         flying: boolean;
+        /** League champion kit: 0 none, else 1 + its place in ChampionIds */
+        championIndex: number;
+        /** bumps on each cast, so every client plays its sound once; castKey 0-3 Q-R, 4 item, 5 passive */
+        champCastSeq: number;
+        champCastKey: number;
+        /** rooted or knocked up by a champion */
+        champRooted: boolean;
 
         frozen: boolean;
         frozenOri: number;
@@ -248,6 +255,10 @@ export const ObjectSerializeFns: {
             s.writeBoolean(data.vulnerable);
             s.writeBoolean(data.excaliburActive);
             s.writeBoolean(data.flying);
+            s.writeBits(data.championIndex, 4);
+            s.writeBits(data.champCastSeq, 3);
+            s.writeBits(data.champCastKey, 3);
+            s.writeBoolean(data.champRooted);
 
             s.writeBoolean(data.frozen);
             if (data.frozen) {
@@ -328,6 +339,10 @@ export const ObjectSerializeFns: {
             data.vulnerable = s.readBoolean();
             data.excaliburActive = s.readBoolean();
             data.flying = s.readBoolean();
+            data.championIndex = s.readBits(4);
+            data.champCastSeq = s.readBits(3);
+            data.champCastKey = s.readBits(3);
+            data.champRooted = s.readBoolean();
 
             data.frozen = s.readBoolean();
             data.frozenOri = 0;

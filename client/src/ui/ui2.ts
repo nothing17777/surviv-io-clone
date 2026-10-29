@@ -1,4 +1,5 @@
 import type { LootDef } from "../../../shared/defs/gameObjectDefs.ts";
+import { ChampionDefs, ChampionIds, ItemDefs } from "../../../shared/defs/gameObjects/championDefs.ts";
 import {
     type AmmoDef,
     type BackpackDef,
@@ -614,6 +615,61 @@ export class UiManager2 {
         window.removeEventListener("keyup", this.onKeyUp);
     }
 
+    championBar?: HTMLDivElement;
+    championBarIndex = 0;
+
+    /** League champions: passive, Q W E R on keys 1-4, the item active on 5, with their cooldowns */
+    updateChampionBar(index: number, cooldowns: number[]) {
+        const champ = ChampionIds[index - 1];
+        if (index !== this.championBarIndex) {
+            this.championBarIndex = index;
+            this.championBar?.remove();
+            this.championBar = undefined;
+            if (!champ) return;
+            const def = ChampionDefs[champ];
+            const bar = document.createElement("div");
+            bar.style.cssText =
+                "position:absolute;left:50%;bottom:150px;transform:translateX(-50%);display:flex;gap:6px;pointer-events:none;z-index:10;";
+            const active = def.items.map((i) => ItemDefs[i]).find((i) => i.active);
+            const slots = [
+                { icon: `img/champions/${champ}_p.png`, key: "", title: def.passive.name },
+                ...(["q", "w", "e", "r"] as const).map((k, i) => ({
+                    icon: `img/champions/${champ}_${k}.png`,
+                    key: `${i + 1}`,
+                    title: def.abilities[k].name,
+                })),
+                ...(active ? [{ icon: "", key: "5", title: active.name }] : []),
+            ];
+            for (const slot of slots) {
+                const el = document.createElement("div");
+                el.title = slot.title;
+                el.style.cssText =
+                    "position:relative;width:48px;height:48px;border:2px solid #c8aa6e;border-radius:6px;background:#0a1428 center/cover no-repeat;color:#fff;font:bold 12px sans-serif;overflow:hidden;";
+                if (slot.icon) el.style.backgroundImage = `url(${slot.icon})`;
+                else el.textContent = slot.title.split(" ").map((w) => w[0]).join("");
+                const key = document.createElement("span");
+                key.textContent = slot.key;
+                key.style.cssText = "position:absolute;left:2px;bottom:0;text-shadow:0 0 3px #000;";
+                const cd = document.createElement("div");
+                cd.className = "champ-cd";
+                cd.style.cssText =
+                    "position:absolute;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;font-size:15px;";
+                el.append(key, cd);
+                bar.appendChild(el);
+            }
+            document.getElementById("ui-game")?.appendChild(bar);
+            this.championBar = bar;
+        }
+        if (!this.championBar) return;
+        const overlays = this.championBar.querySelectorAll<HTMLElement>(".champ-cd");
+        // overlays[0] is the passive
+        for (let i = 1; i < overlays.length; i++) {
+            const left = cooldowns[i - 1] ?? 0;
+            overlays[i].style.display = left > 0 ? "flex" : "none";
+            overlays[i].textContent = left > 0 ? (left >= 10 ? `${Math.ceil(left)}` : left.toFixed(1)) : "";
+        }
+    }
+
     pushAction(itemAction: { action: string; type: string; data: string }) {
         this.uiEvents.push({
             action: itemAction.action,
@@ -756,6 +812,10 @@ export class UiManager2 {
             cd.style.display = left > 0 ? "flex" : "none";
             cd.textContent = left > 0 ? left.toFixed(1) : "";
         }
+        this.updateChampionBar(
+            activePlayer.m_netData.m_dead ? 0 : activePlayer.m_netData.championIndex,
+            activePlayer.m_localData.champCooldowns ?? [],
+        );
         this.dom.health.shieldText.textContent = shield > 0 ? `${Math.ceil(shield)}` : "";
         state.boost = activePlayer.m_localData.m_boost;
         state.downed = activePlayer.m_netData.m_downed;

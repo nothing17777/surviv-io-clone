@@ -1,3 +1,4 @@
+import { championSound, ChampionSounds } from "../../shared/defs/gameObjects/championDefs.ts";
 export interface SoundDef {
     path: string;
     volume: number;
@@ -22,8 +23,20 @@ export interface ReverbDef {
     echoLowPass?: number;
 }
 
+// League champions: each ability's own sound, and the champion select voice line
+const ChampionSoundDefs: Record<string, SoundDef> = Object.fromEntries(
+    Object.entries(ChampionSounds).flatMap(([champ, slots]) => [
+        ...Object.entries(slots).map(([slot, event]): [string, SoundDef] => [
+            championSound(champ, slot),
+            { path: `audio/champions/${champ}/${event}.ogg`, volume: 1, maxInstances: 3 },
+        ]),
+        [championSound(champ, "choose"), { path: `audio/champions/${champ}_choose.ogg`, volume: 1 }],
+    ]),
+);
+
 const Sounds: Record<string, Record<string, SoundDef>> = {
     players: {
+        ...ChampionSoundDefs,
         m9_01: {
             path: "audio/guns/m9_01.mp3",
             volume: 1,

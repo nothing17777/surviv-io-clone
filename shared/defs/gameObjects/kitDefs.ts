@@ -1,3 +1,5 @@
+import { ChampionDefs, ItemDefs } from "./championDefs.ts";
+
 /**
  * Kits: a whole character picked before a private match or duel. "default" is the normal game
  * (your loadout, pickups, consumables). Every other kit has its own locked weapons and none of the
@@ -127,6 +129,19 @@ export const KitDefs: Record<string, KitDef> = {
         // radius is also the drawn circle's radius on the client, so enemies inside it are the ones marked
         aura: { radius: 32, damage: 10, energy: 10, shield: 2, health: 2, enhanceTime: 6 },
     },
+    // League of Legends champions: keys 1-4 cast their abilities, the build's items are built in
+    ...Object.fromEntries(
+        Object.entries(ChampionDefs).map(([id, c]): [string, KitDef] => [id, {
+            name: c.name,
+            health: c.health + c.items.reduce((sum, item) => sum + (ItemDefs[item].health ?? 0), 0),
+            helmet: "helmet02",
+            chest: "chest02",
+            outfit: `outfitChampion_${id}`,
+            primary: c.gun ? `kit_${id}_basic` : undefined,
+            melee: c.gun ? "fists" : `kit_${id}_basic`,
+            speedBonus: c.speedBonus,
+        }]),
+    ),
 };
 
 /** Ultron's minions: bots that fight for their summoner, then blow up */

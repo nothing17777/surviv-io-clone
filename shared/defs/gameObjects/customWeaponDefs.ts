@@ -51,6 +51,16 @@ export const CustomGuns: Array<[string, string, string, string, string]> = [
     ["pg_aphrodite_crossbow", "Aphrodite Crossbow", "Pixel Gun 3D", "mosin", "arrow"],
     ["pg_goo_substance_rifle", "Goo Substance Rifle", "Pixel Gun 3D", "ak47", "plain"],
     ["pg_minigun_shotgun", "Minigun Shotgun", "Pixel Gun 3D", "m870", "plain"],
+    ["lol_the_collector", "The Collector", "League of Legends", "deagle", "plain"],
+    ["lol_lord_dominiks_regards", "Lord Dominik's Regards", "League of Legends", "sv98", "sniper_pierce"],
+    ["lol_mortal_reminder", "Mortal Reminder", "League of Legends", "sv98", "rail"],
+    ["lol_yun_tal_wildarrows", "Yun Tal Wildarrows", "League of Legends", "mosin", "arrow"],
+    ["lol_kraken_slayer", "Kraken Slayer", "League of Legends", "m249", "plain"],
+    ["lol_statikk_shiv", "Statikk Shiv", "League of Legends", "famas", "shock"],
+    ["lol_hextech_gunblade", "Hextech Gunblade", "League of Legends", "deagle", "laser"],
+    ["lol_stormsurge", "Stormsurge", "League of Legends", "barrett", "shock"],
+    ["lol_rylais_crystal_scepter", "Rylai's Crystal Scepter", "League of Legends", "famas", "frost"],
+    ["lol_phantom_dancer", "Phantom Dancer", "League of Legends", "vector", "plain"],
 ];
 
 /** [id, display name, game, melee effect] */
@@ -65,4 +75,9 @@ export const CustomMelees: Array<[string, string, string, string]> = [
     ["lol_sundered_sky", "Sundered Sky", "League of Legends", "sundered_sky"],
     ["lol_eclipse", "Eclipse", "League of Legends", "eclipse"],
     ["pg_power_fists", "Power Fists", "Pixel Gun 3D", "power_fists"],
+    ["lol_infinity_edge", "Infinity Edge", "League of Legends", "heavy"],
+    ["lol_trinity_force", "Trinity Force", "League of Legends", "sword"],
+    ["lol_guinsoos_rageblade", "Guinsoo's Rageblade", "League of Legends", "quick"],
+    ["lol_wits_end", "Wit's End", "League of Legends", "sword"],
+    ["lol_terminus", "Terminus", "League of Legends", "sword"],
 ];

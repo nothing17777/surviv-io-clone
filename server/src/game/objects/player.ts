@@ -1,4 +1,5 @@
 import { type GameObjectDef, type LootDef, WeaponTypeToDefs } from "../../../../shared/defs/gameObjectDefs.ts";
+import { ChampionDefs } from "../../../../shared/defs/gameObjects/championDefs.ts";
 import { EmotesDefs } from "../../../../shared/defs/gameObjects/emoteDefs.ts";
 import {
     type BackpackDef,
@@ -38,6 +39,7 @@ import { Config } from "../../config.ts";
 import { validateUserName } from "../../utils/badWords.ts";
 import { IDAllocator } from "../../utils/IDAllocator.ts";
 import type { BotBrain } from "../bot.ts";
+import { Champion, Debuffs } from "../champion.ts";
 import { Client } from "../client.ts";
 import type { Game, JoinTokenData } from "../game.ts";
 import { Group, Team } from "../group.ts";
@@ -798,6 +800,28 @@ export class Player extends BaseGameObject {
             this.flightTime = 0;
             this.setDirty();
         }
+    }
+
+    /** League champion kits: abilities on keys 1-4, item passives (champion.ts) */
+    champ?: Champion;
+    /** crowd control from champions' abilities */
+    debuffs = new Debuffs();
+
+    /** synced to every client: which champion, and each cast for its sound */
+    get championIndex() {
+        return this.champ && !this.dead ? this.champ.index : 0;
+    }
+    get champCastSeq() {
+        return this.champ?.castSeq ?? 0;
+    }
+    get champCastKey() {
+        return this.champ?.castKey ?? 0;
+    }
+    get champCooldowns() {
+        return this.champ?.cooldownList ?? [];
+    }
+    get champRooted() {
+        return !this.dead && (this.debuffs.root > 0 || this.debuffs.airborne > 0);
     }
 
     get kitAura() {
@@ -2081,6 +2105,8 @@ export class Player extends BaseGameObject {
             }
 
             this.updateKit(dt);
+            this.debuffs.tick(dt);
+            this.champ?.update(dt);
             this.updateFlight(dt);
 
             if (this.charmDuration > 0) {
@@ -2818,6 +2844,10 @@ export class Player extends BaseGameObject {
         }
 
         let finalDamage = params.amount!;
+        // a champion's items and passives on what it deals (armor pen goes in params)
+        if (playerSource?.champ && playerSource !== this) {
+            finalDamage = playerSource.champ.onDealDamage(this, params, finalDamage);
+        }
 
         // vulnerable to the Summoner: each minion hit (a dagger hits as hard as its damage, the whip softer) lands harder
         const daggerDamage = KitDefs.summoner.daggers!.damage;
@@ -2877,6 +2907,8 @@ export class Player extends BaseGameObject {
             }
         }
 
+        if (this.champ) finalDamage = this.champ.onTakeDamage(params, finalDamage, playerSource);
+
         // the super hacker has 10,000 health: kept as 100 (the network only sends 0-100), everything hits it for 1%
         if (this.botBrain?.level === "super_hacker") finalDamage *= GameConfig.player.health / 10000;
 
@@ -2932,6 +2964,7 @@ export class Player extends BaseGameObject {
         }
 
         this.health -= finalDamage;
+        if (playerSource?.champ && playerSource !== this) playerSource.champ.afterDealDamage(this, finalDamage, params);
 
         // debuff weapons (the debuff's own ticks are Bleeding damage, so they don't refresh it);
         // Frozen Dragon's slow comes from its explosion's freezeDuration
@@ -3164,6 +3197,7 @@ export class Player extends BaseGameObject {
             this.killedBy = killCreditSource;
 
             if (killCreditSource !== this && killCreditSource.teamId !== this.teamId) {
+                killCreditSource.champ?.onKill(this);
                 killCreditSource.killedIds.push(this.matchDataId);
                 killCreditSource.kills++;
 
@@ -3869,18 +3903,37 @@ export class Player extends BaseGameObject {
             const input = msg.inputs[i];
             if (!this.shouldAcceptInput(input)) continue;
             switch (input) {
+                case GameConfig.Input.EquipFragGrenade:
+                    this.champ?.useItem();
+                    break;
                 case GameConfig.Input.StowWeapons:
                 case GameConfig.Input.EquipMelee:
+                    if (this.champ && input === GameConfig.Input.EquipMelee) {
+                        this.champ.cast(2);
+                        break;
+                    }
                     this.weaponManager.playMeleeIdleAnim();
                     this.weaponManager.setCurWeapIndex(GameConfig.WeaponSlot.Melee);
                     break;
                 case GameConfig.Input.EquipPrimary:
+                    if (this.champ) {
+                        this.champ.cast(0);
+                        break;
+                    }
                     this.weaponManager.setCurWeapIndex(GameConfig.WeaponSlot.Primary);
                     break;
                 case GameConfig.Input.EquipSecondary:
+                    if (this.champ) {
+                        this.champ.cast(1);
+                        break;
+                    }
                     this.weaponManager.setCurWeapIndex(GameConfig.WeaponSlot.Secondary);
                     break;
                 case GameConfig.Input.EquipThrowable:
+                    if (this.champ) {
+                        this.champ.cast(3);
+                        break;
+                    }
                     if (this.curWeapIdx === GameConfig.WeaponSlot.Throwable) {
                         this.weaponManager.throwThrowable(true);
                         if (this.animType === GameConfig.Anim.Cook) {
@@ -5329,6 +5382,7 @@ export class Player extends BaseGameObject {
         this.sustainShieldTime = 0;
         this.energyDirty = true;
         if (kit.fullBoost) this.boost = 100;
+        this.champ = ChampionDefs[kitId] ? new Champion(this, kitId) : undefined;
         // kits zoom out like a 15x scope
         this.invManager.set("15xscope", 1);
         this.scope = "15xscope";
@@ -5340,6 +5394,7 @@ export class Player extends BaseGameObject {
     /** back to a normal player: no kit stats, shield, energy or locked weapons */
     clearKit() {
         this.kit = "default";
+        this.champ = undefined;
         this.lockedKit = false;
         this.maxHealth = GameConfig.player.health;
         this.health = this.maxHealth;
@@ -5411,7 +5466,7 @@ export class Player extends BaseGameObject {
             if (Math.round(this.energy) !== before) this.energyDirty = true;
         }
         // ability kits show their cooldowns, which change every tick (and once more when they hit 0)
-        const cooling = this.abilityCooldowns.some((c) => c > 0);
+        const cooling = this.abilityCooldowns.some((c) => c > 0) || this.champCooldowns.some((c) => c > 0);
         if (cooling || this.wasCooling) this.energyDirty = true;
         this.wasCooling = cooling;
         if (kit.regenPulse) {
@@ -5674,6 +5729,8 @@ export class Player extends BaseGameObject {
         else if (this.botBrain?.level === "scripter") this.speed *= 1.3;
 
         this.speed += KitDefs[this.kit]?.speedBonus ?? 0;
+        if (this.champ) this.speed = this.champ.speed(this.speed);
+        this.speed = this.debuffs.speed(this.speed, !!this.champ?.buff("highlander"));
         if (this.minionOwner) this.speed *= UltronMinion.speedMult;
         if (this.flying) this.speed += this.flightSpeedBonus;
         this.speed = math.clamp(this.speed, 1, 10000);

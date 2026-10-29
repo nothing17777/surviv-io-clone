@@ -1,6 +1,7 @@
 import * as PIXI from "pixi.js-legacy";
 
 import type { LootDef } from "../../../shared/defs/gameObjectDefs.ts";
+import { ChampionIds, championSound, ChampionSounds } from "../../../shared/defs/gameObjects/championDefs.ts";
 import { CustomWeaponsVersion } from "../../../shared/defs/gameObjects/customWeaponDefs.ts";
 import { SwingArcs } from "../../../shared/defs/gameObjects/customWeaponEffects.ts";
 import type { BoostDef, HealDef } from "./../../../shared/defs/gameObjects/gearDefs.ts";
@@ -320,6 +321,10 @@ export class Player implements AbstractObject {
         wizardMarked: boolean;
         vulnerable: boolean;
         excaliburActive: boolean;
+        championIndex: number;
+        champCastSeq: number;
+        champCastKey: number;
+        champRooted: boolean;
         flying: boolean;
         m_frozen: boolean;
         m_frozenOri: number;
@@ -352,6 +357,7 @@ export class Player implements AbstractObject {
         maxEnergy?: number;
         maxShield?: number;
         abilityCooldowns?: number[];
+        champCooldowns?: number[];
     };
 
     throwableStatePrev!: string;
@@ -496,6 +502,10 @@ export class Player implements AbstractObject {
             wizardMarked: false,
             vulnerable: false,
             excaliburActive: false,
+            championIndex: 0,
+            champCastSeq: 0,
+            champCastKey: 0,
+            champRooted: false,
             flying: false,
             m_frozen: false,
             m_frozenOri: 0,
@@ -588,6 +598,10 @@ export class Player implements AbstractObject {
             this.m_netData.vulnerable = data.vulnerable;
             this.m_netData.excaliburActive = data.excaliburActive;
             this.m_netData.flying = data.flying;
+            this.m_netData.championIndex = data.championIndex;
+            this.m_netData.champCastSeq = data.champCastSeq;
+            this.m_netData.champCastKey = data.champCastKey;
+            this.m_netData.champRooted = data.champRooted;
             this.m_netData.m_frozen = data.frozen;
             this.m_netData.m_frozenOri = data.frozenOri;
             if (this.m_netData.m_frozenType !== data.frozenType) {
@@ -646,6 +660,7 @@ export class Player implements AbstractObject {
             this.m_localData.maxEnergy = data.maxEnergy ?? 0;
             this.m_localData.maxShield = data.maxShield ?? 0;
             this.m_localData.abilityCooldowns = data.abilityCooldowns;
+            this.m_localData.champCooldowns = data.champCooldowns;
         }
 
         if (data.actionDirty) {
@@ -844,6 +859,31 @@ export class Player implements AbstractObject {
         return this.perkTypes.includes(type);
     }
 
+    lastChampion = 0;
+    lastCastSeq = 0;
+
+    /** League champions: the pick voice line when one spawns, and each cast's own sound */
+    updateChampionSounds(audioManager: AudioManager, isActivePlayer: boolean) {
+        const index = this.m_netData.championIndex;
+        const champ = ChampionIds[index - 1];
+        const opts = {
+            channel: isActivePlayer ? "activePlayer" : "otherPlayers",
+            soundPos: this.m_pos,
+            fallOff: isActivePlayer ? 0 : 1,
+            layer: this.layer,
+        };
+        if (index !== this.lastChampion) {
+            this.lastChampion = index;
+            this.lastCastSeq = this.m_netData.champCastSeq;
+            if (champ && isActivePlayer) audioManager.playSound(championSound(champ, "choose"), opts);
+            return;
+        }
+        if (!champ || this.m_netData.champCastSeq === this.lastCastSeq) return;
+        this.lastCastSeq = this.m_netData.champCastSeq;
+        const slot = ["q", "w", "e", "r", "", "p"][this.m_netData.champCastKey];
+        if (slot && ChampionSounds[champ]?.[slot as "q"]) audioManager.playSound(championSound(champ, slot), opts);
+    }
+
     m_update(
         dt: number,
         playerBarn: PlayerBarn,
@@ -861,6 +901,7 @@ export class Player implements AbstractObject {
     ) {
         const curWeapDef = GameObjectDefs.typeToDef(this.m_netData.m_activeWeapon);
         const isActivePlayer = this.__id == activeId;
+        this.updateChampionSounds(audioManager, isActivePlayer);
         const activePlayer = playerBarn.getPlayerById(activeId)!;
         this.m_posOld = v2.copy(this.m_pos);
         this.m_dirOld = v2.copy(this.m_dir);

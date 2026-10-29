@@ -1,5 +1,6 @@
 import { FactionTeam, Rarity } from "../../gameConfig.ts";
 import { type DeepPartial, util } from "../../utils/util.ts";
+import { ChampionDefs } from "./championDefs.ts";
 import type { BaseLoadoutItem, BaseLootDef } from "./itemTypes.ts";
 
 export interface OutfitDef extends BaseLootDef, BaseLoadoutItem {
@@ -1612,4 +1613,27 @@ const SkinDefs: Record<string, OutfitDef> = {
     }),
 };
 
-export const OutfitDefs = { ...BaseDefs, ...SkinDefs };
+// League of Legends champions, tinted in their colours
+const ChampionOutfitDefs: Record<string, OutfitDef> = Object.fromEntries(
+    Object.entries(ChampionDefs).map(([id, c]) => [
+        `outfitChampion_${id}`,
+        defineOutfitSkin("outfitBase", {
+            name: c.name,
+            noDropOnDeath: true,
+            rarity: Rarity.Common,
+            skinImg: {
+                baseTint: c.outfit.base,
+                baseSprite: "player-base-01.img",
+                handTint: c.outfit.hands,
+                handSprite: "player-hands-01.img",
+                footTint: c.outfit.hands,
+                footSprite: "player-feet-01.img",
+                backpackTint: c.outfit.backpack,
+                backpackSprite: "player-circle-base-01.img",
+            },
+            lootImg: { sprite: "loot-shirt-01.img", tint: c.outfit.base },
+        }),
+    ]),
+);
+
+export const OutfitDefs = { ...BaseDefs, ...SkinDefs, ...ChampionOutfitDefs };

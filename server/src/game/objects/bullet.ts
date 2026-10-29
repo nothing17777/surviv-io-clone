@@ -819,7 +819,10 @@ export class Bullet {
                     this.bulletManager.damages.push({
                         obj: col.player!,
                         gameSourceType: this.shotSourceType,
-                        weaponSourceType: this.shotSourceType,
+                        // League champions' ability shots: which one hit (champion.ts)
+                        weaponSourceType: this.bulletType.startsWith("bullet_champ_")
+                            ? this.bulletType
+                            : this.shotSourceType,
                         mapSourceType: this.mapSourceType,
                         source: this.player,
                         damageType: this.damageType,

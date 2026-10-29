@@ -2,6 +2,7 @@ import { FactionTeam } from "../../gameConfig.ts";
 import { type DeepPartial, util } from "../../utils/util.ts";
 import type { Vec2 } from "../../utils/v2.ts";
 import { type BulletDef, BulletDefs } from "./bulletDefs.ts";
+import { ChampionDefs, championSound } from "./championDefs.ts";
 import { CustomGuns, CustomWeaponsVersion } from "./customWeaponDefs.ts";
 import { BaseGunLengths, GunEffects, GunOverrides, HiddenCustomGuns, SwingShotBullets } from "./customWeaponEffects.ts";
 import type { BaseWeaponDef } from "./itemTypes.ts";
@@ -4077,10 +4078,292 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
     }),
 ]);
 
+const ChampionGunBases: Record<string, string> = {
+    jinx: "m249",
+    caitlyn: "sv98",
+    ashe: "mosin",
+    ezreal: "deagle",
+    lux: "famas",
+    ahri: "famas",
+};
+const ChampionTracers: Record<string, BulletDef["tracerColor"]> = {
+    jinx: "cw_plasma",
+    caitlyn: "cw_white",
+    ashe: "cw_frost",
+    ezreal: "cw_star",
+    lux: "cw_laser",
+};
+
+// League of Legends champions' basic attacks (the abilities are cast with keys 1-4, see champion.ts)
+const ChampionGunDefs: Record<string, GunDef> = Object.fromEntries(
+    Object.entries(ChampionDefs).filter(([, c]) => c.gun).map(([id, c]) =>
+        kitGun(`kit_${id}_basic`, ChampionGunBases[id], {
+            damage: c.basic.damage,
+            distance: c.basic.range ?? 80,
+            tracerColor: ChampionTracers[id] ?? "cw_magic",
+        }, {
+            name: c.name,
+            sound: { shoot: championSound(id, "basic") },
+            fireMode: "auto",
+            fireDelay: c.basic.cooldown,
+            shotSpread: 1,
+            moveSpread: 2,
+            maxClip: 250,
+            maxReload: 250,
+            extendedClip: 250,
+            extendedReload: 250,
+        })
+    ),
+);
+
+// League champions' ability shots, with their own particle textures (scripts/genLolChampionFx.py)
+const champFx = (file: string) => `img/champions/fx/${file}.png`;
+const champShot = (id: string, b: Partial<BulletDef>) =>
+    kitBullet(`bullet_champ_${id}`, { speed: 90, distance: 60, tracerWidth: 0.2, ...b });
+champShot("jinx_w", { damage: 50, speed: 160, distance: 90, tracerColor: "cw_plasma", tracerWidth: 0.35 });
+champShot("jinx_e", {
+    damage: 0,
+    speed: 50,
+    sprite: champFx("jinx/jinx_base_e_mis_grenade"),
+    spriteSize: 40,
+    noTracer: true,
+    spin: 3,
+});
+champShot("jinx_r", {
+    damage: 80,
+    speed: 70,
+    distance: 600,
+    onHit: "explosion_cw_rocket",
+    tracerColor: "cw_flame",
+    tracerWidth: 0.5,
+    sprite: champFx("jinx/jinx_base_e_tar_firering"),
+    spriteSize: 64,
+});
+champShot("fishbones", {
+    damage: 30,
+    speed: 75,
+    distance: 110,
+    onHit: "explosion_cw_rocket",
+    tracerColor: "cw_flame",
+    sprite: champFx("jinx/jinx_base_e_tar_firering"),
+    spriteSize: 36,
+});
+champShot("caitlyn_q", {
+    damage: 60,
+    speed: 220,
+    distance: 150,
+    playerPierce: true,
+    pierceLoss: 0.33,
+    tracerColor: "cw_white",
+    tracerWidth: 0.3,
+    sprite: champFx("caitlyn/caitlyn_base_q2_bullet_head_glow"),
+    spriteSize: 48,
+});
+champShot("caitlyn_w", {
+    damage: 0,
+    speed: 60,
+    sprite: champFx("caitlyn/caitlyn_base_w_trap_gadget"),
+    spriteSize: 40,
+    noTracer: true,
+});
+champShot("caitlyn_e", {
+    damage: 20,
+    speed: 80,
+    distance: 40,
+    sprite: champFx("caitlyn/caitlyn_hex_net"),
+    spriteSize: 56,
+    noTracer: true,
+});
+champShot("caitlyn_r", {
+    damage: 140,
+    speed: 150,
+    distance: 200,
+    homing: true,
+    tracerColor: "cw_white",
+    tracerWidth: 0.25,
+    sprite: champFx("caitlyn/caitlyn_base_proj"),
+    spriteSize: 44,
+});
+champShot("ashe_w", {
+    damage: 25,
+    speed: 90,
+    distance: 60,
+    tracerColor: "cw_frost",
+    sprite: champFx("ashe/ashe_base_q_mis_core"),
+    spriteSize: 36,
+});
+champShot("ashe_flurry", {
+    damage: 14,
+    speed: 100,
+    distance: 70,
+    tracerColor: "cw_frost",
+    sprite: champFx("ashe/ashe_base_q_mis_core"),
+    spriteSize: 30,
+});
+champShot("ashe_e", {
+    damage: 0,
+    speed: 60,
+    distance: 150,
+    sprite: champFx("ashe/ashe_base_q_mis_star"),
+    spriteSize: 30,
+    noTracer: true,
+});
+champShot("ashe_r", {
+    damage: 100,
+    speed: 45,
+    distance: 600,
+    tracerColor: "cw_frost",
+    tracerWidth: 0.6,
+    sprite: champFx("ashe/ashe_base_q_mis_core"),
+    spriteSize: 90,
+});
+champShot("ezreal_q", {
+    damage: 45,
+    speed: 140,
+    distance: 80,
+    tracerColor: "cw_star",
+    sprite: champFx("ezreal/ezreal_base_w_orb"),
+    spriteSize: 32,
+});
+champShot("ezreal_w", {
+    damage: 0,
+    speed: 90,
+    distance: 70,
+    tracerColor: "cw_star",
+    sprite: champFx("ezreal/ezreal_base_w_orb"),
+    spriteSize: 44,
+});
+champShot("ezreal_e", {
+    damage: 35,
+    speed: 100,
+    distance: 60,
+    homing: true,
+    tracerColor: "cw_star",
+    sprite: champFx("ezreal/ezreal_base_w_orb"),
+    spriteSize: 28,
+});
+champShot("ezreal_r", {
+    damage: 110,
+    speed: 120,
+    distance: 600,
+    playerPierce: true,
+    pierceLoss: 0.1,
+    tracerColor: "cw_star",
+    tracerWidth: 1.2,
+    sprite: champFx("ezreal/ezreal_base_r_mis_glow"),
+    spriteSize: 120,
+});
+champShot("lux_q", {
+    damage: 50,
+    speed: 80,
+    distance: 75,
+    playerPierce: true,
+    pierceLoss: 0.5,
+    tracerColor: "cw_holy",
+    sprite: champFx("lux/lux_base_e_flame_ring"),
+    spriteSize: 40,
+});
+champShot("lux_w", {
+    damage: 0,
+    speed: 70,
+    distance: 60,
+    boomerang: true,
+    sprite: champFx("lux/lux_base_w_bw_shield_2d"),
+    spriteSize: 40,
+    noTracer: true,
+});
+champShot("lux_e", {
+    damage: 0,
+    speed: 60,
+    sprite: champFx("lux/lux_base_e_flame_ring"),
+    spriteSize: 64,
+    noTracer: true,
+});
+champShot("lux_r", {
+    damage: 130,
+    beam: true,
+    pierce: true,
+    speed: 500,
+    distance: 120,
+    tracerColor: "cw_holy",
+    tracerWidth: 1.2,
+    trailSprite: champFx("lux/lux_base_r_lazurbeam01"),
+});
+champShot("ahri_q", {
+    damage: 35,
+    speed: 60,
+    distance: 56,
+    boomerang: true,
+    playerPierce: true,
+    pierceLoss: 0,
+    tracerColor: "cw_magic",
+    sprite: champFx("ahri/ahri_base_orb_fox_01"),
+    spriteSize: 48,
+    spin: 2,
+});
+champShot("ahri_w", {
+    damage: 25,
+    speed: 60,
+    distance: 45,
+    homing: true,
+    tracerColor: "cw_magic",
+    sprite: champFx("ahri/ahri_base_q_orbbackground"),
+    spriteSize: 24,
+});
+champShot("ahri_e", {
+    damage: 45,
+    speed: 80,
+    distance: 55,
+    tracerColor: "cw_magic",
+    sprite: champFx("ahri/ahri_e_heart"),
+    spriteSize: 36,
+    noTracer: true,
+});
+champShot("ahri_r", {
+    damage: 25,
+    speed: 90,
+    distance: 40,
+    homing: true,
+    tracerColor: "cw_magic",
+    sprite: champFx("ahri/ahri_base_q_orbbackground"),
+    spriteSize: 24,
+});
+champShot("yasuo_q3", {
+    damage: 40,
+    speed: 60,
+    distance: 40,
+    playerPierce: true,
+    pierceLoss: 0,
+    sprite: champFx("yasuo/yasuo_q_tornado_blast"),
+    spriteSize: 64,
+    spin: 6,
+    noTracer: true,
+});
+champShot("runaan", { damage: 10, speed: 110, distance: 40, homing: true, tracerColor: "cw_arrow" });
+
+// Jinx's Fishbones: rockets that splash, drawn as her basic weapon
+const ChampionAbilityDefs: Record<string, GunDef> = Object.fromEntries([(() => {
+    const [defId, def] = kitGun("kit_jinx_fishbones", "barrett", { ...BulletDefs.bullet_champ_fishbones }, {
+        name: "Fishbones",
+        sound: { shoot: championSound("jinx", "rockets") },
+        fireMode: "auto",
+        fireDelay: 0.9,
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    });
+    def.lootImg.sprite = `img/custom-weapons/loot/kit_jinx_basic.png?v=${CustomWeaponsVersion}`;
+    def.worldImg.sprite = `img/custom-weapons/world/kit_jinx_basic.png?v=${CustomWeaponsVersion}`;
+    return [defId, def];
+})()]);
+
 export const GunDefs: Record<string, GunDef> = {
     ...BaseDefs,
     ...SkinDefs,
     ...CustomGunDefs,
     ...IronManGunDefs,
     ...KitGunDefs,
+    ...ChampionGunDefs,
+    ...ChampionAbilityDefs,
 };

@@ -61,6 +61,8 @@ function serializeActivePlayer(s: BitStream, data: LocalDataWithDirty) {
         s.writeUint16(data.maxShield ?? 0);
         // ability cooldowns (tenths of a second) for primary, secondary, melee
         for (let i = 0; i < 3; i++) s.writeUint8(Math.min(255, Math.ceil((data.abilityCooldowns?.[i] ?? 0) * 10)));
+        // League champions: Q, W, E, R and the item active (tenths of a second)
+        for (let i = 0; i < 5; i++) s.writeUint16(Math.min(65535, Math.ceil((data.champCooldowns?.[i] ?? 0) * 10)));
     }
 
     s.writeAlignToNextByte();
@@ -125,6 +127,7 @@ function deserializeActivePlayer(s: BitStream, data: LocalDataWithDirty) {
         data.maxEnergy = s.readUint16();
         data.maxShield = s.readUint16();
         data.abilityCooldowns = [0, 1, 2].map(() => s.readUint8() / 10);
+        data.champCooldowns = [0, 1, 2, 3, 4].map(() => s.readUint16() / 10);
     }
     s.readAlignToNextByte();
 }
@@ -874,6 +877,8 @@ export interface LocalData {
     maxShield?: number;
     /** kit abilities: seconds left on each slot's cooldown */
     abilityCooldowns?: number[];
+    /** League champions: seconds left on Q, W, E, R and the item active */
+    champCooldowns?: number[];
 }
 
 export interface LocalDataWithDirty extends LocalData {

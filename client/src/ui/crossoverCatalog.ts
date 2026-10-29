@@ -38,6 +38,11 @@ const SwordText: Record<string, string> = {
     pg_heroic_epee: "Swift rapier that regenerates 12 HP per second while holding.",
     lol_sundered_sky: "Heavy strikes that heal 40 HP on hit.",
     lol_eclipse: "Strikes for 60 damage and grants a 50 HP shield every second hit.",
+    lol_infinity_edge: "Slow, heavy crits.",
+    lol_trinity_force: "Balanced sword.",
+    lol_guinsoos_rageblade: "Quick jabs.",
+    lol_wits_end: "Balanced sword.",
+    lol_terminus: "Balanced sword.",
 };
 
 /** per weapon notes from its wiki page, where the effect alone doesn't say it */
