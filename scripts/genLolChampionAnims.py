@@ -25,6 +25,9 @@ SRC = sys.argv[1]
 
 # the animations worth having, and how many frames of each to draw: a walk cycle, and each spell's cast
 ANIMS = {"run": 8, "spell1": 5, "spell2": 5, "spell3": 5, "spell4": 5}
+# seconds of each animation to draw: a run cycle is about this long, and a cast reads from its start.
+# Files that hold several cycles (Ashe's nine-second run) are cut to one.
+WINDOW = {"run": 1.0, "spell1": 1.2, "spell2": 1.2, "spell3": 1.2, "spell4": 1.2}
 # one frame, in the sheet
 FRAME = 96
 
@@ -83,11 +86,13 @@ def pose(pos, bones, weights, joints, influences, anim, frame):
     return out
 
 
-def sheet(champ, name, base, mesh, tex_png, joints, influences, anim, count):
+def sheet(champ, name, base, mesh, tex_png, joints, influences, anim, count, window):
     """one row of frames, each framed the same way so the client can just step along it"""
     pos, bones, weights, uv, faces = read_skinned(os.path.join(base, mesh + ".skn"))
     uvs = [tuple(tuple(uv[j]) for j in f) for f in faces]
-    step = max(1, anim["frames"] // count)
+    # only the frames inside the window, so a long file still gives one cycle
+    within = min(anim["frames"], max(count, round(window / max(anim["duration"], 1e-4))))
+    step = max(1, within // count)
     posed = [pose(pos, bones, weights, joints, influences, anim, n * step) for n in range(count)]
     # one framing for the whole animation, so the champion doesn't swell and shrink frame to frame
     flat = np.concatenate(posed)
@@ -135,8 +140,8 @@ def main():
                     continue
                 path = os.path.join(anims_dir, found)
                 try:
-                    anim = read_anm(path)
-                    sheet(champ, anim_name, base, mesh, tex_png, joints, influences, anim, count)
+                    anim = read_anm(path, window=WINDOW[anim_name])
+                    sheet(champ, anim_name, base, mesh, tex_png, joints, influences, anim, count, WINDOW[anim_name])
                     done.append(anim_name)
                 except Exception as e:
                     print("  ", champ, anim_name, "failed:", e)

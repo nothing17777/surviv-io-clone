@@ -1,6 +1,8 @@
 import * as PIXI from "pixi.js-legacy";
 import { AnimFrameSize, ChampionAnims } from "./championAnims.ts";
 
+export { AnimFrameSize };
+
 /**
  * The champions' own animations, drawn from the sprite sheets scripts/genLolChampionAnims.py poses out
  * of the game's skeletons: a frame of the walk while the champion moves, and of the spell it just cast.
@@ -10,6 +12,8 @@ import { AnimFrameSize, ChampionAnims } from "./championAnims.ts";
 export const AnimFrameTime = 1 / 14;
 /** how long a cast animation plays before the champion goes back to walking */
 export const CastAnimTime = 0.55;
+/** a walk keeps playing this long after the champion last moved */
+export const WalkHoldTime = 0.2;
 /** the sheets are drawn at AnimFrameSize; the standing model is drawn at 256 */
 export const AnimScale = 0.42 * (256 / AnimFrameSize);
 

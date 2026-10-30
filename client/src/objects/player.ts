@@ -34,7 +34,16 @@ import { v2, type Vec2 } from "../../../shared/utils/v2.ts";
 import { Animations, Bones, IdlePoses, Pose } from "../animData.ts";
 import type { AudioManager } from "../audioManager.ts";
 import type { Camera } from "../camera.ts";
-import { animCount, animFrame, AnimFrameTime, AnimScale, CastAnimTime, hasAnims } from "../championAnimPlayer.ts";
+import {
+    animCount,
+    animFrame,
+    AnimFrameSize,
+    AnimFrameTime,
+    AnimScale,
+    CastAnimTime,
+    hasAnims,
+    WalkHoldTime,
+} from "../championAnimPlayer.ts";
 import { championFx } from "../championFx.ts";
 import type { DebugRendererOpts } from "../config.ts";
 import { debugLines } from "../debug/debugLines.ts";
@@ -878,6 +887,8 @@ export class Player implements AbstractObject {
     /** the spell animation playing, and the time left of it */
     castAnim = "";
     castAnimLeft = 0;
+    /** time left of the walk, kept up by moving */
+    walkLeft = 0;
 
     /**
      * Which frame of the champion's own animation to draw: the spell it just cast, else its walk while
@@ -885,13 +896,19 @@ export class Player implements AbstractObject {
      */
     championAnimFrame(dt: number, champion: string) {
         this.castAnimLeft = Math.max(0, this.castAnimLeft - dt);
-        const moved = v2.distance(this.m_pos, this.animPosOld) > 0.0005;
-        this.animPosOld = v2.copy(this.m_pos);
+        // the champion's own position only moves when an update arrives, while this runs every frame:
+        // the drawn position is the one that moves smoothly, and a walk keeps playing for a moment
+        // after it, so a frame that happens to land still doesn't drop out of the animation
+        if (v2.distance(this.m_visualPos, this.animPosOld) > 0.0005) {
+            this.walkLeft = WalkHoldTime;
+        }
+        this.animPosOld = v2.copy(this.m_visualPos);
+        this.walkLeft = Math.max(0, this.walkLeft - dt);
 
         let name = "";
         if (this.castAnimLeft > 0 && animCount(champion, this.castAnim)) {
             name = this.castAnim;
-        } else if (moved && animCount(champion, "run")) {
+        } else if (this.walkLeft > 0 && animCount(champion, "run")) {
             name = "run";
         }
         if (!name) {
@@ -1461,15 +1478,12 @@ export class Player implements AbstractObject {
         if (animChamp) {
             this.bodySprite.tint = Date.now() < this.zhonyaUntil ? 0xffd34d : 0xffffff;
             if (hasAnims(animChamp)) {
-                const frame = this.championAnimFrame(dt, animChamp);
-                if (frame) {
+                const frame = this.championAnimFrame(dt, animChamp)
+                    ?? PIXI.Texture.from(`img/champions/models/${animChamp}.png`);
+                if (this.bodySprite.texture !== frame) {
                     this.bodySprite.texture = frame;
-                    this.bodySprite.scale.set(AnimScale, AnimScale);
-                } else {
-                    this.bodySprite.texture = PIXI.Texture.from(
-                        `img/champions/models/${animChamp}.png`,
-                    );
-                    this.bodySprite.scale.set(0.42, 0.42);
+                    const scale = frame.width === AnimFrameSize ? AnimScale : 0.42;
+                    this.bodySprite.scale.set(scale, scale);
                 }
             }
         }

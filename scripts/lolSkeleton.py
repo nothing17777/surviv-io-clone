@@ -101,12 +101,16 @@ def _unpack_quat(raw):
     return tuple(q)
 
 
-def read_anm(path):
-    """the pose of each animated joint, by joint hash, for every frame"""
+def read_anm(path, window=None):
+    """
+    The pose of each animated joint, by joint hash, for every frame. `window` caps how many seconds
+    to read: some files hold far more than one cycle of the animation (Ashe's run is nine seconds of
+    them), and walking through all of it gives a different pose every frame instead of one loop.
+    """
     d = open(path, "rb").read()
     magic, version = d[:8], struct.unpack_from("<I", d, 8)[0]
     if magic == b"r3d2canm":
-        return _read_anm_compressed(d)
+        return _read_anm_compressed(d, window=window)
     if magic != b"r3d2anmd":
         raise ValueError("%s is %r, a format we don't read" % (path, magic))
     if version == 3:
@@ -170,7 +174,7 @@ def _read_anm_v4(d):
     return {"frames": frames, "duration": duration, "pose": pose}
 
 
-def _read_anm_compressed(d, want_frames=32):
+def _read_anm_compressed(d, want_frames=32, window=None):
     """
     The compressed layout keeps only the frames where a joint actually moved: each 10-byte entry is a
     time, which joint and which of rotation/translation/scale it sets, and the value quantised into
@@ -196,11 +200,12 @@ def _read_anm_compressed(d, want_frames=32):
         keys.append((time / 65535.0 * duration, bits & 0x3FFF, (bits >> 14) & 3, raw))
     keys.sort(key=lambda k: k[0])
 
-    # sample the held values at even times across the animation
+    # sample the held values at even times across one cycle of the animation
+    span = min(duration, window) if window else duration
     pose = {int(h): [] for h in hashes}
     at = 0
     for step in range(want_frames):
-        now = duration * step / want_frames
+        now = span * step / want_frames
         while at < len(keys) and keys[at][0] <= now:
             _t, joint, kind, raw = keys[at]
             if joint < joint_count:
@@ -218,4 +223,4 @@ def _read_anm_compressed(d, want_frames=32):
                 scale if scale is not None else (1, 1, 1),
                 rotation if rotation is not None else (0, 0, 0, 1),
             ))
-    return {"frames": want_frames, "duration": duration / max(want_frames, 1), "pose": pose}
+    return {"frames": want_frames, "duration": span / max(want_frames, 1), "pose": pose}
