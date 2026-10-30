@@ -34,6 +34,7 @@ import { v2, type Vec2 } from "../../../shared/utils/v2.ts";
 import { Animations, Bones, IdlePoses, Pose } from "../animData.ts";
 import type { AudioManager } from "../audioManager.ts";
 import type { Camera } from "../camera.ts";
+import { animCount, animFrame, AnimFrameTime, AnimScale, CastAnimTime, hasAnims } from "../championAnimPlayer.ts";
 import { championFx } from "../championFx.ts";
 import type { DebugRendererOpts } from "../config.ts";
 import { debugLines } from "../debug/debugLines.ts";
@@ -871,6 +872,37 @@ export class Player implements AbstractObject {
     /** while Zhonya's Hourglass holds this champion in stasis, it is drawn in gold */
     zhonyaUntil = 0;
 
+    /** how far into the champion's own walk or cast animation it is */
+    animTime = 0;
+    animPosOld = v2.create(0, 0);
+    /** the spell animation playing, and the time left of it */
+    castAnim = "";
+    castAnimLeft = 0;
+
+    /**
+     * Which frame of the champion's own animation to draw: the spell it just cast, else its walk while
+     * it moves. Nothing while it stands still, so it rests in the model's own pose.
+     */
+    championAnimFrame(dt: number, champion: string) {
+        this.castAnimLeft = Math.max(0, this.castAnimLeft - dt);
+        const moved = v2.distance(this.m_pos, this.animPosOld) > 0.0005;
+        this.animPosOld = v2.copy(this.m_pos);
+
+        let name = "";
+        if (this.castAnimLeft > 0 && animCount(champion, this.castAnim)) {
+            name = this.castAnim;
+        } else if (moved && animCount(champion, "run")) {
+            name = "run";
+        }
+        if (!name) {
+            this.animTime = 0;
+            return undefined;
+        }
+        this.animTime += dt;
+        const count = animCount(champion, name);
+        return animFrame(champion, name, Math.floor(this.animTime / AnimFrameTime) % count);
+    }
+
     /** League champions: the pick voice line when one spawns, and each cast's own sound */
     updateChampionSounds(audioManager: AudioManager, isActivePlayer: boolean) {
         const index = this.m_netData.championIndex;
@@ -890,6 +922,11 @@ export class Player implements AbstractObject {
         if (!champ || this.m_netData.champCastSeq === this.lastCastSeq) return;
         this.lastCastSeq = this.m_netData.champCastSeq;
         const slot = ["q", "w", "e", "r", "", "p", "ba"][this.m_netData.champCastKey];
+        // the champion plays its own animation for the spell it just cast
+        if (this.m_netData.champCastKey < 4) {
+            this.castAnim = `spell${this.m_netData.champCastKey + 1}`;
+            this.castAnimLeft = CastAnimTime;
+        }
         // Zhonya's Hourglass: the champion turns to gold for the 2.5 s it holds them in stasis
         if (
             this.m_netData.champCastKey === 4
@@ -1418,9 +1455,23 @@ export class Player implements AbstractObject {
         }
         this.visualsDirty = false;
 
-        // the gold of Zhonya's stasis comes and goes on its own, so it is set every frame
-        if (this.m_netData.championIndex > 0) {
+        // the champion's own animation and the gold of Zhonya's stasis both change on their own,
+        // so they are set every frame rather than only when the visuals go dirty
+        const animChamp = ChampionIds[this.m_netData.championIndex - 1];
+        if (animChamp) {
             this.bodySprite.tint = Date.now() < this.zhonyaUntil ? 0xffd34d : 0xffffff;
+            if (hasAnims(animChamp)) {
+                const frame = this.championAnimFrame(dt, animChamp);
+                if (frame) {
+                    this.bodySprite.texture = frame;
+                    this.bodySprite.scale.set(AnimScale, AnimScale);
+                } else {
+                    this.bodySprite.texture = PIXI.Texture.from(
+                        `img/champions/models/${animChamp}.png`,
+                    );
+                    this.bodySprite.scale.set(0.42, 0.42);
+                }
+            }
         }
 
         this.updateAura(dt, isActivePlayer, activePlayer);

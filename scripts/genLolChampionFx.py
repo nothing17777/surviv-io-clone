@@ -288,6 +288,15 @@ def read_skn(path):
 def render_mesh(path, tex_path, axes, size=256):
     """orthographic, nearest surface wins, nose pointing right"""
     pos, faces, uvs = (read_skn if path.endswith(".skn") else read_scb)(path)
+    return rasterize(pos, faces, uvs, tex_path, axes, size)
+
+
+def rasterize(pos, faces, uvs, tex_path, axes, size=256, bounds=None, crop=True):
+    """
+    The same, for vertices already posed by an animation. `bounds` is (x0, x1, y0, y1) in the drawn
+    plane: every frame of an animation is given the one set, so the champion keeps its size and place
+    from frame to frame instead of being fitted to each pose on its own.
+    """
     if axes[0] == "tilt":
         a = np.radians(axes[1])
         down = -pos[:, 1] * np.cos(a) + pos[:, 2] * np.sin(a)
@@ -296,9 +305,10 @@ def render_mesh(path, tex_path, axes, size=256):
     tex = np.asarray(Image.open(tex_path).convert("RGBA")).astype(np.float32)
     th, tw = tex.shape[:2]
     X, Y, Z = pos[:, axes[0]], pos[:, axes[1]], pos[:, axes[2]]
-    s = (size - 4) / max(X.max() - X.min(), Y.max() - Y.min())
-    px = (X - (X.max() + X.min()) / 2) * s + size / 2
-    py = (Y - (Y.max() + Y.min()) / 2) * s + size / 2
+    x0, x1, y0, y1 = bounds if bounds else (X.min(), X.max(), Y.min(), Y.max())
+    s = (size - 4) / max(x1 - x0, y1 - y0)
+    px = (X - (x1 + x0) / 2) * s + size / 2
+    py = (Y - (y1 + y0) / 2) * s + size / 2
     img = np.zeros((size, size, 4), np.float32)
     depth = np.full((size, size), -1e9, np.float32)
     for f, uv in zip(faces, uvs):
@@ -324,7 +334,7 @@ def render_mesh(path, tex_path, axes, size=256):
         sub[m] = zz[m]
         img[y0 : y1 + 1, x0 : x1 + 1][m] = col[m]
     out = Image.fromarray(img.astype(np.uint8), "RGBA")
-    return out.crop(out.getbbox())
+    return out.crop(out.getbbox()) if crop else out
 
 
 def models(champ, folder):
