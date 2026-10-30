@@ -228,6 +228,30 @@ export const GunEffects: Record<string, GunEffect> = {
             speed: { equip: 3.5, attack: 1 },
         },
     },
+    // Pixel Gun 3D pistols: the Multitaskers' shot (same speed, range and deathray sprite, no splash) with
+    // each pistol's own damage, fire rate and capacity from GunOverrides
+    pistol_plasma: {
+        bullet: {
+            damage: 32,
+            speed: 120,
+            distance: 70,
+            tracerColor: "cw_plasma",
+            tracerWidth: 0.12,
+            sprite: "img/custom-weapons/fx/deathray.png",
+            spriteSize: 48,
+        },
+        gun: {
+            fireMode: "auto",
+            fireDelay: 0.233,
+            maxClip: 30,
+            maxReload: 30,
+            extendedClip: 30,
+            extendedReload: 30,
+            shotSpread: 3,
+            moveSpread: 4,
+            speed: { equip: 3.5, attack: 1 },
+        },
+    },
     // Christmas Ultimatum: 6 capacity, 150 dmg direct hit, cluster bomb whose frags split again, -20% dmg per split
     christmas_ultimatum: {
         bullet: {
@@ -312,8 +336,33 @@ export const GunEffects: Record<string, GunEffect> = {
     },
 };
 
+/** a pistol_plasma weapon's numbers: damage, shots per second and capacity */
+const pistol = (damage: number, shotsPerSec: number, capacity: number): GunEffect => ({
+    bullet: { damage },
+    gun: {
+        fireDelay: Math.round(1000 / shotsPerSec) / 1000,
+        maxClip: capacity,
+        maxReload: capacity,
+        extendedClip: capacity,
+        extendedReload: capacity,
+    },
+});
+
 /** tweaks to one weapon on top of its effect, from its wiki page */
 export const GunOverrides: Record<string, GunEffect> = {
+    // Pixel Gun 3D pistols (damage, shots/s, capacity)
+    pg_dead_star: pistol(53, 1.57, 5),
+    // also burns for 3 s (see Player.damage)
+    pg_duck_hunter: pistol(53, 1.87, 12),
+    pg_electro_blast_pistol: pistol(95, 1.07, 11),
+    pg_fake_pistol: pistol(114, 1.2, 6),
+    pg_bloody_mercenary: pistol(91, 1.36, 8),
+    pg_adamant_revolver: pistol(46, 2.72, 15),
+    pg_royal_revolver: pistol(68, 1.5, 10),
+    pg_sneaky_pistol: pistol(107, 1.36, 10),
+    pg_galahad: pistol(80, 1.875, 8),
+    pg_godfathers_assistant: pistol(97, 1.2, 8),
+    pg_mayors_trophy_revolver: pistol(65, 1.67, 8),
     // Phantom Dancer: attack speed item, fires faster than the vector
     lol_phantom_dancer: { gun: { fireDelay: 0.06 } },
     // The Collector: executes, so it hits hard
