@@ -3,6 +3,7 @@ import { math } from "../../shared/utils/math.ts";
 import { util } from "../../shared/utils/util.ts";
 import { v2, type Vec2 } from "../../shared/utils/v2.ts";
 import type { Camera } from "./camera.ts";
+import { GeneratedCastFx, GeneratedShotFx } from "./championFxGen.ts";
 import type { Renderer } from "./renderer.ts";
 
 /**
@@ -14,7 +15,11 @@ import type { Renderer } from "./renderer.ts";
 
 const champFx = (file: string) => `img/champions/fx/${file}.png`;
 
-interface Layer {
+/** what scripts/genLolSpellFx.py writes: one layer per emitter of the real particle system */
+export type GeneratedLayer = Pick<Layer, "tex" | "size" | "life" | "ground"> & Partial<Layer>;
+export type GeneratedShot = { head?: GeneratedLayer[]; hit?: GeneratedLayer[] };
+
+export interface Layer {
     tex: string;
     /** world units */
     size: number;
@@ -56,7 +61,7 @@ interface Layer {
     tag?: string;
 }
 
-interface ProjectileFx {
+export interface ProjectileFx {
     /** follow the projectile */
     head?: Layer[];
     /** spawned behind it every `every` seconds */
@@ -811,13 +816,19 @@ class ChampionFxBarn {
     }
 
     hasProjectileFx(bulletType: string) {
-        return !!ProjectileFxDefs[bulletType] || bulletType === "bullet_champ_mark";
+        return !!ProjectileFxDefs[bulletType] || !!GeneratedShotFx[bulletType] || bulletType === "bullet_champ_mark";
     }
 
     /** a champion's ability shot just appeared */
     trackShot(shot: TrackedShot["shot"], bulletType: string, champion?: string) {
         // the shared hit marker plays the shooting champion's own hit effect
-        const fx = ProjectileFxDefs[bulletType === "bullet_champ_mark" ? `${bulletType}:${champion}` : bulletType];
+        const hand = ProjectileFxDefs[bulletType === "bullet_champ_mark" ? `${bulletType}:${champion}` : bulletType];
+        // the spell's own emitters draw the projectile and where it lands; the hand-built trail still
+        // stretches behind it, which a still emitter can't do
+        const real = GeneratedShotFx[bulletType];
+        const fx: ProjectileFx | undefined = real
+            ? { ...hand, head: real.head ?? hand?.head, hit: real.hit ?? hand?.hit }
+            : hand;
         if (!fx) return;
         const tracked: TrackedShot = { shot, fx, trailTicker: 0, pos: v2.copy(shot.pos), done: false };
         this.shots.push(tracked);
@@ -826,7 +837,8 @@ class ChampionFxBarn {
 
     /** the cast effect for champion + key (q, w, e, r) */
     cast(champion: string, key: string, caster: Caster, layer: number) {
-        for (const l of CastFxDefs[`${champion}_${key}`] ?? []) {
+        const cast = GeneratedCastFx[`${champion}_${key}`] ?? CastFxDefs[`${champion}_${key}`] ?? [];
+        for (const l of cast) {
             this.spawnAll(l, caster.m_pos, caster.m_netData.m_dir, layer, l.onCaster ? caster : undefined);
         }
     }

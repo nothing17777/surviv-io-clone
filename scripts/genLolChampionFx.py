@@ -24,8 +24,9 @@ import numpy as np
 from PIL import Image, ImageStat
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SRC = sys.argv[1]
-VGMSTREAM = sys.argv[2]
+# importable by genLolSpellFx.py, which only needs tex_to_png
+SRC = sys.argv[1] if len(sys.argv) > 1 else ""
+VGMSTREAM = sys.argv[2] if len(sys.argv) > 2 else ""
 
 CHAMPIONS = {
     "jinx": "Jinx",
@@ -349,8 +350,9 @@ def folder_name(folder):
     return os.path.basename(folder).lower()
 
 
-for champ, name in CHAMPIONS.items():
-    folder = os.path.join(SRC, "champions", name)
-    sounds(champ, folder)
-    textures(champ, folder)
-    models(champ, folder)
+if __name__ == "__main__":
+    for champ, name in CHAMPIONS.items():
+        folder = os.path.join(SRC, "champions", name)
+        sounds(champ, folder)
+        textures(champ, folder)
+        models(champ, folder)
