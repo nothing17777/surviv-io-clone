@@ -228,17 +228,14 @@ export const GunEffects: Record<string, GunEffect> = {
             speed: { equip: 3.5, attack: 1 },
         },
     },
-    // Pixel Gun 3D pistols: the Multitaskers' shot (same speed, range and deathray sprite, no splash) with
-    // each pistol's own damage, fire rate and capacity from GunOverrides
+    // Pixel Gun 3D pistols: the Multitaskers' speed and range, no splash, and the base pistol's own
+    // bullet look (no sprite or tracer override), with each pistol's damage, fire rate and capacity
+    // from GunOverrides
     pistol_plasma: {
         bullet: {
             damage: 32,
             speed: 120,
             distance: 70,
-            tracerColor: "cw_plasma",
-            tracerWidth: 0.12,
-            sprite: "img/custom-weapons/fx/deathray.png",
-            spriteSize: 48,
         },
         gun: {
             fireMode: "auto",
@@ -348,8 +345,69 @@ const pistol = (damage: number, shotsPerSec: number, capacity: number): GunEffec
     },
 });
 
+/** a shotgun like the Acid Shotgun's: 9 pellets in a 12 degree spread, the base m870's range */
+const shotgun = (damage: number, shotsPerSec: number, capacity: number): GunEffect => ({
+    bullet: { damage },
+    gun: {
+        fireDelay: Math.round(1000 / shotsPerSec) / 1000,
+        bulletCount: 9,
+        shotSpread: 12,
+        maxClip: capacity,
+        maxReload: capacity,
+        extendedClip: capacity,
+        extendedReload: capacity,
+    },
+});
+
+/** a rifle on the base AK's default bullet at the Hellraiser's range (damage, shots/s, capacity) */
+const rifle = (damage: number, shotsPerSec: number, capacity: number, fireMode: "auto" | "single" = "auto"): GunEffect => ({
+    bullet: { damage, distance: 40 },
+    gun: {
+        fireMode,
+        fireDelay: Math.round(1000 / shotsPerSec) / 1000,
+        maxClip: capacity,
+        maxReload: capacity,
+        extendedClip: capacity,
+        extendedReload: capacity,
+    },
+});
+
 /** tweaks to one weapon on top of its effect, from its wiki page */
 export const GunOverrides: Record<string, GunEffect> = {
+    // Pixel Gun 3D rifles (damage, shots/s, capacity)
+    pg_root_piercer: rifle(120, 1.87, 6, "single"),
+    // burns for 2 s (see Player.damage)
+    pg_pyro_1116: rifle(22, 5, 30),
+    // poisons for 2 s
+    pg_poisonous_vine: rifle(30, 4.3, 35),
+    // burns for 2 s
+    pg_plasmatic_digger: rifle(12, 12, 70),
+    pg_pbx_assault_rifle: rifle(20, 7.5, 30),
+    // burns for 2 s
+    pg_liquid_fire: rifle(21, 5, 30),
+    // bleeds for 2 s
+    pg_large_caliber_machine_gun: rifle(16, 5.4, 100),
+    pg_industrial_nailer: rifle(39, 3, 15),
+    pg_hero: rifle(22, 5, 60),
+    pg_golden_friend: rifle(18, 10, 30),
+    // bleeds, burns and poisons for 1 s each
+    pg_glitched_machine_gun: rifle(18, 5.45, 33),
+    pg_future_rifle: rifle(12, 8.5, 35),
+    pg_future_police_rifle: rifle(14, 10, 60),
+    pg_crystal_laser_cannon: rifle(10, 15, 50),
+    pg_secret_forces_rifle: rifle(18, 7.5, 50),
+    // bleeds for 2 s
+    pg_combat_overlords: rifle(16, 10, 50),
+    // poisons for 2 s
+    pg_black_mamba: rifle(19, 8.5, 30),
+    pg_advanced_scout_rifle: rifle(21, 8.5, 40),
+    pg_eliminator_x2: rifle(25, 7.5, 35),
+    // Pixel Gun 3D shotguns: the Acid Shotgun's 9 pellets, spread and range on plain buckshot (damage per
+    // pellet, shots/s, capacity)
+    // burns for 3 s (see Player.damage)
+    pg_devastator: shotgun(12, 1.15, 10),
+    // bleeds for 4 s (see Player.damage)
+    pg_debts_collector: shotgun(10, 1.8, 2),
     // Pixel Gun 3D pistols (damage, shots/s, capacity)
     pg_dead_star: pistol(53, 1.57, 5),
     // also burns for 3 s (see Player.damage)
