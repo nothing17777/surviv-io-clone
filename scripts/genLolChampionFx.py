@@ -59,6 +59,21 @@ MESHES = {
     # Flame Chompers! (the JinxMine minion, painted with Jinx's own texture)
     "jinx_mine": [("jinxmine", "jinx_base_tx_cm", ("tilt", 35))],
 }
+# the champion's own model, rendered straight down (League's camera, looking at the top of the champion)
+# as the player's body sprite: champion -> (mesh, texture) under assets/characters/<champ>/skins/base
+MODEL_SIZE = 256
+MODELS = {
+    "jinx": ("jinx", "jinx_base_tx_cm"),
+    "caitlyn": ("caitlyn_base", "caitlyn_base_tx_cm"),
+    "ashe": ("ashe", "ashe_base_2011_tx_cm"),
+    "ezreal": ("ezreal_base", "ezreal_base_tx_cm"),
+    "lux": ("lux", "lux_base_cm_tx"),
+    "ahri": ("ahri_base", "ahri_base_tx_cm"),
+    "yasuo": ("yasuo", "yasuo_base_tx_cm"),
+    "garen": ("garen", "garen_base_tx_cm"),
+    "darius": ("darius", "darius_base_tx_cm"),
+    "masteryi": ("masteryi", "masteryi_2013_tx_cm"),
+}
 USED_SOUNDS = set(re.findall(r'"([a-z0-9_]+)"', open(os.path.join(ROOT, "shared/defs/gameObjects/championDefs.ts")).read().split("export const ChampionSounds")[1].split("};")[0]))
 # emotes, recall and the like aren't abilities
 SKIP = re.compile(r"dance|joke|taunt|laugh|recall|homeguard|death|music|respawn|idle|run|move|emote", re.I)
@@ -311,6 +326,25 @@ def render_mesh(path, tex_path, axes, size=256):
     return out.crop(out.getbbox())
 
 
+def models(champ, folder):
+    """the champion as the player's body sprite: its model from straight above, facing right"""
+    mesh, tex = MODELS[champ]
+    base = os.path.join(folder, "assets/characters", champ, "skins/base")
+    out = os.path.join(ROOT, "client/public/img/champions/models")
+    os.makedirs(out, exist_ok=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        tex_png = os.path.join(tmp, "t.png")
+        tex_to_png(os.path.join(base, tex + ".tex"), tex_png)
+        img = render_mesh(os.path.join(base, mesh + ".skn"), tex_png, ("tilt", 90), size=MODEL_SIZE - 16)
+        # the model faces down the screen; the player sprite faces right
+        img = img.rotate(90, expand=True)
+        # every champion on the same canvas, so the client draws them all at one scale
+        canvas = Image.new("RGBA", (MODEL_SIZE, MODEL_SIZE), (0, 0, 0, 0))
+        canvas.paste(img, ((MODEL_SIZE - img.width) // 2, (MODEL_SIZE - img.height) // 2))
+        canvas.save(os.path.join(out, champ + ".png"))
+    print(champ, "model")
+
+
 def folder_name(folder):
     return os.path.basename(folder).lower()
 
@@ -319,3 +353,4 @@ for champ, name in CHAMPIONS.items():
     folder = os.path.join(SRC, "champions", name)
     sounds(champ, folder)
     textures(champ, folder)
+    models(champ, folder)

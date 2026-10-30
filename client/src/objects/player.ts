@@ -1582,11 +1582,20 @@ export class Player implements AbstractObject {
         const outfitImg = outfitDef.skinImg;
         const bodyScale = this.m_bodyRad / GameConfig.player.radius;
 
-        this.bodySprite.texture = PIXI.Texture.from(outfitImg.baseSprite);
-        this.bodySprite.tint = outfitDef.ghillie
-            ? map.getMapDef().biome.colors.playerGhillie
-            : outfitImg.baseTint;
-        this.bodySprite.scale.set(0.25, 0.25);
+        // League champions are drawn as their own model, seen from above, instead of an outfit
+        const champion = ChampionIds[this.m_netData.championIndex - 1];
+
+        if (champion) {
+            this.bodySprite.texture = PIXI.Texture.from(`img/champions/models/${champion}.png`);
+            this.bodySprite.tint = 0xffffff;
+            this.bodySprite.scale.set(0.28, 0.28);
+        } else {
+            this.bodySprite.texture = PIXI.Texture.from(outfitImg.baseSprite);
+            this.bodySprite.tint = outfitDef.ghillie
+                ? map.getMapDef().biome.colors.playerGhillie
+                : outfitImg.baseTint;
+            this.bodySprite.scale.set(0.25, 0.25);
+        }
         this.bodySprite.visible = true;
 
         if (
@@ -1649,6 +1658,8 @@ export class Player implements AbstractObject {
         const hSprite = outfitImg.handSprite;
         setHandSprite(this.handLSprite, typeof hSprite === "string" ? hSprite : hSprite.left, handTint);
         setHandSprite(this.handRSprite, typeof hSprite === "string" ? hSprite : hSprite.right, handTint);
+        this.handLSprite.visible = !champion;
+        this.handRSprite.visible = !champion;
 
         // Feet
         const setFootSprite = function(
@@ -1682,7 +1693,7 @@ export class Player implements AbstractObject {
         }
 
         // Chest
-        if (this.m_netData.m_chest == "" || outfitDef.ghillie) {
+        if (this.m_netData.m_chest == "" || outfitDef.ghillie || champion) {
             this.chestSprite.visible = false;
         } else {
             const chestDef = GameObjectDefs.typeToDef(this.m_netData.m_chest, "chest");
@@ -1705,7 +1716,7 @@ export class Player implements AbstractObject {
         }
 
         // Helmet
-        if (this.m_netData.m_helmet == "" || outfitDef.ghillie) {
+        if (this.m_netData.m_helmet == "" || outfitDef.ghillie || champion) {
             this.helmetSprite.visible = false;
         } else {
             const helmetDef = GameObjectDefs.typeToDef(this.m_netData.m_helmet, "helmet");
@@ -1732,7 +1743,7 @@ export class Player implements AbstractObject {
         }
 
         // Backpack
-        if (this.m_getBagLevel() > 0 && !outfitDef.ghillie && !this.downed) {
+        if (this.m_getBagLevel() > 0 && !outfitDef.ghillie && !this.downed && !champion) {
             const bagOffsets = [10.25, 11.5, 12.75];
             const bagLevel = this.m_getBagLevel();
             const bagOffset = bagOffsets[math.min(bagLevel - 1, bagOffsets.length - 1)];
@@ -1770,8 +1781,9 @@ export class Player implements AbstractObject {
             | ThrowableDef;
         if (activeWeapDef.type == "gun") {
             this.gunRSprites.setType(this.m_netData.m_activeWeapon, bodyScale);
-            this.gunRSprites.setVisible(true);
-            if (activeWeapDef.isDual) {
+            // a champion attacks with its own weapon, already part of its model: no gun drawn in its hands
+            this.gunRSprites.setVisible(!champion);
+            if (activeWeapDef.isDual && !champion) {
                 this.gunLSprites.setType(this.m_netData.m_activeWeapon, bodyScale);
                 this.gunLSprites.setVisible(true);
             } else {

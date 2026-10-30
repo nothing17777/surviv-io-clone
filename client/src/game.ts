@@ -1,6 +1,7 @@
 import * as PIXI from "pixi.js-legacy";
 import { applyCustomMapBuilds } from "../../shared/utils/customMap.ts";
 
+import { ChampionIds } from "../../shared/defs/gameObjects/championDefs.ts";
 import { GameConfig, Input, TeamMode, WeaponSlot } from "../../shared/gameConfig.ts";
 import * as net from "../../shared/net/net.ts";
 import { ObjectType } from "../../shared/net/objectSerializeFns.ts";
@@ -14,6 +15,7 @@ import type { ConfigManager, DebugRendererOpts } from "./config.ts";
 import { DebugHUD } from "./debug/debugHUD.ts";
 import { debugLines } from "./debug/debugLines.ts";
 import { leagueControls } from "./leagueControls.ts";
+import { leagueIndicator } from "./leagueIndicator.ts";
 import { loadDuelCounts, loadGodLoadout, loadoutToKit } from "./ui/modePicker.ts";
 
 /* STRIP_FROM_PROD_CLIENT:START */
@@ -236,6 +238,7 @@ export class Game {
         this.m_playerBarn = new PlayerBarn();
         this.m_bulletBarn = new BulletBarn();
         championFx.init(this.m_renderer);
+        leagueIndicator.init(this.m_renderer);
         this.m_flareBarn = new FlareBarn();
         this.m_projectileBarn = new ProjectileBarn();
         this.m_explosionBarn = new ExplosionBarn();
@@ -398,6 +401,11 @@ export class Game {
         );
     }
 
+    /** the ability key the player is holding, whose range the indicator draws */
+    heldAbility?: "q" | "w" | "e" | "r";
+    /** where the cursor is in the world, for the range indicator */
+    cursorPos = v2.create(0, 0);
+
     /** where League controls walk the champion to (the last right-click), until it gets there */
     moveTarget?: Vec2;
 
@@ -514,6 +522,7 @@ export class Game {
                     / this.m_camera.m_z(),
         );
         // const mousePos = this.m_camera.m_screenToPoint(this.m_input.mousePos);
+        this.cursorPos = mousePos;
         const toMousePos = v2.sub(mousePos, playerPos);
         let toMouseLen = v2.length(toMousePos);
         let toMouseDir = toMouseLen > 0.00001 ? v2.div(toMousePos, toMouseLen) : v2.create(1, 0);
@@ -663,6 +672,9 @@ export class Game {
             }
             if (leagueControls) {
                 const abilityKeys = [Key.Q, Key.W, Key.E, Key.R];
+                // League shows an ability's range while its key is held
+                const heldKeys = ["q", "w", "e", "r"] as const;
+                this.heldAbility = heldKeys.find((_, i) => this.m_input.keyDown(abilityKeys[i]));
                 const abilityInputs = [
                     Input.EquipPrimary,
                     Input.EquipSecondary,
@@ -1124,6 +1136,16 @@ export class Game {
         this.m_playerBarn.m_render(this.m_camera, debug);
         this.m_bulletBarn.m_render(this.m_camera);
         championFx.m_render(this.m_camera);
+        leagueIndicator.m_render(
+            this.m_camera,
+            this.leagueControlsActive()
+                ? ChampionIds[this.m_activePlayer.m_netData.championIndex - 1]
+                : undefined,
+            this.heldAbility,
+            this.m_activePlayer.m_pos,
+            this.m_activePlayer.m_netData.m_dir,
+            this.cursorPos,
+        );
         this.m_flareBarn.m_render(this.m_camera);
         this.m_decalBarn.m_render(this.m_camera, debug, this.m_activePlayer.layer);
         this.m_map.m_render(this.m_camera);

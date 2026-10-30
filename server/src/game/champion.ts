@@ -1,5 +1,6 @@
 import {
     type AbilityKey,
+    AbilityRanges,
     ChampionDefs,
     championIndex,
     type ItemDef,
@@ -88,6 +89,11 @@ export class Champion {
 
     // per champion state
     basicHits = 0;
+    /** Guinsoo's Rageblade stacks, and who Sundered Sky has already struck */
+    rageStacks = 0;
+    struck = new Set<number>();
+    /** Death's Dance: damage put off, still to be taken */
+    deferredDamage = 0;
     buffs: Record<string, number> = {};
     stacks = 0;
     jinxRockets = false;
@@ -214,6 +220,16 @@ export class Champion {
         return v2.normalizeSafe(this.player.dir, v2.create(1, 0));
     }
 
+    /** how far an ability reaches, in units: League's own range (see AbilityRanges) */
+    reach(key: AbilityKey): number {
+        return AbilityRanges[this.id]?.[key].range ?? 30;
+    }
+
+    /** where the ability lands: the cursor, pulled back to the edge of its range */
+    at(key: AbilityKey): Vec2 {
+        return this.cursor(this.reach(key));
+    }
+
     cursor(maxRange: number): Vec2 {
         const p = this.player;
         return v2.add(p.pos, v2.mul(this.aim, math.clamp(p.toMouseLen, 1, maxRange)));
@@ -327,7 +343,7 @@ export class Champion {
             // Flame Chompers!: three chompers lobbed into a line across where she aims; each arms 0.5 s
             // after it lands and lasts 5 s
             e: () => {
-                const c = this.cursor(30);
+                const c = this.at("e");
                 const side = v2.perp(this.aim);
                 for (const o of [-2.6, 0, 2.6]) {
                     const pos = v2.add(c, v2.mul(side, o));
@@ -342,7 +358,7 @@ export class Champion {
         caitlyn: {
             q: () => this.later(0.6, () => this.shoot("caitlyn_q", "q")),
             w: () => {
-                const pos = this.cursor(30);
+                const pos = this.at("w");
                 this.shoot("caitlyn_w", "w", v2.sub(pos, this.player.pos));
                 this.traps.push({ pos, arm: 0.5, life: 30, kind: "snap" });
                 // only 3 traps out at once
@@ -354,7 +370,7 @@ export class Champion {
                 this.dash(v2.sub(this.player.pos, v2.mul(this.aim, 6)), 60);
             },
             r: () => {
-                const target = this.nearest(80);
+                const target = this.nearest(this.reach("r"));
                 if (!target) return false;
                 this.later(1, () => {
                     if (!target.dead) {
@@ -380,7 +396,7 @@ export class Champion {
             q: () => this.shoot("ezreal_q", "q"),
             w: () => this.shoot("ezreal_w", "w"),
             e: () => {
-                const to = this.cursor(9);
+                const to = this.at("e");
                 this.dash(to, 120);
                 this.later(0.15, () => {
                     const target = this.nearest(25);
@@ -397,7 +413,7 @@ export class Champion {
                 this.buffs.lux_w = 3;
             },
             e: () => {
-                const pos = this.cursor(35);
+                const pos = this.at("e");
                 this.shoot("lux_e", "e", v2.sub(pos, this.player.pos));
                 this.zones.push({ pos, time: 3, kind: "singularity", dir: this.aim });
             },
@@ -408,7 +424,7 @@ export class Champion {
             q: () => this.shoot("ahri_q", "q"),
             w: () => {
                 this.buffs.ahri_w = 1.5;
-                const targets = this.enemies(25).sort((a, b) =>
+                const targets = this.enemies(this.reach("w")).sort((a, b) =>
                     v2.distance(a.pos, this.player.pos) - v2.distance(b.pos, this.player.pos)
                 );
                 for (let i = 0; i < 3; i++) {
@@ -446,7 +462,7 @@ export class Champion {
             },
             e: () => {
                 const now = this.player.game.now;
-                const target = this.enemies(8).find((e) => (this.yasuoDashed.get(e.__id) ?? 0) <= now);
+                const target = this.enemies(this.reach("e")).find((e) => (this.yasuoDashed.get(e.__id) ?? 0) <= now);
                 if (!target) return false;
                 this.yasuoDashed.set(target.__id, now + 6000);
                 const dir = v2.normalizeSafe(v2.sub(target.pos, this.player.pos));
@@ -454,7 +470,7 @@ export class Champion {
                 this.hit(target, 30, "e");
             },
             r: () => {
-                const target = this.enemies(30).find((e) => e.debuffs.airborne > 0);
+                const target = this.enemies(this.reach("r")).find((e) => e.debuffs.airborne > 0);
                 if (!target) return false;
                 this.dash(v2.sub(target.pos, v2.mul(v2.normalizeSafe(v2.sub(target.pos, this.player.pos)), 1.5)), 200);
                 target.debuffs.airborne += 1;
@@ -476,7 +492,7 @@ export class Champion {
                 this.stacks = 0;
             },
             r: () => {
-                const target = this.nearest(8, this.cursor(14)) ?? this.nearest(10);
+                const target = this.nearest(8, this.at("r")) ?? this.nearest(this.reach("r"));
                 if (!target) return false;
                 this.later(0.4, () => {
                     if (!target.dead) this.hit(target, 70 + (target.maxHealth - target.health) * 0.3, "r", true);
@@ -487,9 +503,9 @@ export class Champion {
             q: () => {
                 this.later(0.75, () => {
                     let healed = 0;
-                    for (const e of this.enemies(6)) {
+                    for (const e of this.enemies(this.reach("q"))) {
                         // the blade (outer edge) hits full, the handle less
-                        const blade = v2.distance(e.pos, this.player.pos) > 3;
+                        const blade = v2.distance(e.pos, this.player.pos) > this.reach("q") * 0.47;
                         this.hit(e, blade ? 50 : 18, "q");
                         if (blade) healed++;
                     }
@@ -501,7 +517,7 @@ export class Champion {
                 this.nextAttackSlow = true;
             },
             e: () => {
-                for (const e of this.enemies(12)) {
+                for (const e of this.enemies(this.reach("e"))) {
                     const to = v2.normalizeSafe(v2.sub(e.pos, this.player.pos));
                     if (v2.dot(to, this.aim) < Math.cos(Math.PI / 4)) continue;
                     e.webPull = { target: v2.add(this.player.pos, v2.mul(to, 2)), speed: 40, time: 0.4 };
@@ -509,7 +525,7 @@ export class Champion {
                 }
             },
             r: () => {
-                const target = this.nearest(10);
+                const target = this.nearest(this.reach("r"));
                 if (!target) return false;
                 this.dash(target.pos, 80);
                 this.later(0.25, () => {
@@ -522,7 +538,7 @@ export class Champion {
         },
         masteryi: {
             q: () => {
-                const targets = this.enemies(10).slice(0, 4);
+                const targets = this.enemies(this.reach("q")).slice(0, 4);
                 if (!targets.length) return false;
                 this.player.dodgeTime = 0.6;
                 for (const t of targets) this.hit(t, 50, "q");
@@ -541,7 +557,7 @@ export class Champion {
     };
 
     ahriDash() {
-        this.dash(this.cursor(7), 80);
+        this.dash(this.at("r"), 80);
         this.later(0.15, () => {
             const targets = this.enemies(15).slice(0, 3);
             for (const t of targets) this.shoot("ahri_r", "r", v2.sub(t.pos, this.player.pos), { homing: t });
@@ -563,6 +579,7 @@ export class Champion {
     /** basic attack cooldown multiplier */
     attackCooldownMult() {
         let speed = this.stats.attackSpeed + this.stacks * (this.id === "ezreal" ? 0.1 : 0);
+        speed += this.rageStacks * 0.08;
         if (this.buff("excited")) speed += 1;
         if (this.buff("ashe_q")) speed += 1;
         if (this.buff("highlander")) speed += 0.8;
@@ -644,6 +661,17 @@ export class Champion {
             if (this.id === "lux" && this.markedIds.has(-target.__id)) {
                 this.markedIds.delete(-target.__id);
                 amount += 30;
+            }
+            if (this.passives.has("guinsoo") && this.basicHits % 2 === 0) {
+                this.rageStacks = Math.min(this.rageStacks + 1, 6);
+            }
+            if (this.passives.has("sundered_sky") && !this.struck.has(target.__id)) {
+                this.struck.add(target.__id);
+                amount *= this.stats.critDamage;
+                this.heal(30);
+            }
+            if (this.passives.has("navori")) {
+                for (let i = 0; i < this.cooldowns.length; i++) this.cooldowns[i] *= 0.85;
             }
             if (this.passives.has("dead_mans_plate") && this.stacks >= 2) {
                 this.stacks = 0;
@@ -737,6 +765,10 @@ export class Champion {
         if (this.buff("zhonya")) return 0;
         if (from && from !== p) {
             amount *= 1 - this.stats.damageReduction;
+            if (this.passives.has("deaths_dance")) {
+                this.deferredDamage += amount * 0.3;
+                amount *= 0.7;
+            }
             if (this.buff("garen_w")) amount *= 0.7;
             if (this.buff("meditate")) amount *= 0.4;
             // Yasuo's Flow shield
@@ -776,6 +808,14 @@ export class Champion {
     // ---- per tick
 
     update(dt: number) {
+        // Death's Dance pays out what it put off, over 3 s
+        if (this.deferredDamage > 0) {
+            const bite = Math.min(this.deferredDamage, (this.deferredDamage / 3) * dt + 0.01);
+            this.deferredDamage -= bite;
+            this.player.health = Math.max(1, this.player.health - bite);
+            this.player.setDirty();
+        }
+
         const p = this.player;
         for (let i = 0; i < 4; i++) this.cooldowns[i] = Math.max(0, this.cooldowns[i] - dt);
         this.itemCooldown = Math.max(0, this.itemCooldown - dt);
@@ -816,7 +856,7 @@ export class Champion {
             this.stacks += dt;
             while (this.stacks >= 0.25) {
                 this.stacks -= 0.25;
-                for (const e of this.enemies(4)) this.hit(e, 9, "e");
+                for (const e of this.enemies(this.reach("e"))) this.hit(e, 9, "e");
             }
         }
 

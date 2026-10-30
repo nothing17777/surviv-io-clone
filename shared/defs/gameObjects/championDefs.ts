@@ -68,7 +68,11 @@ export interface ItemDef {
         | "luden" // the first ability hit every 10 s deals 25 more
         | "malignance" // R recharges 20% faster
         | "bloodthirster" // lifesteal past full health becomes a shield up to 50
-        | "dead_mans_plate"; // move speed builds while walking, the next melee hit knocks back
+        | "dead_mans_plate" // move speed builds while walking, the next melee hit knocks back
+        | "navori" // basic hits cut ability cooldowns by 15%
+        | "guinsoo" // every other basic hit stacks 8% attack speed, up to 6
+        | "sundered_sky" // the first hit on an enemy crits and heals 30
+        | "deaths_dance"; // 30% of the damage taken is spread over 3 s instead
     /** item active, used with key 5 */
     active?: { kind: "stridebreaker" | "youmuu" | "zhonya"; cooldown: number };
 }
@@ -124,7 +128,109 @@ export const ItemDefs: Record<string, ItemDef> = {
     zhonyas_hourglass: { name: "Zhonya's Hourglass", abilityPower: 0.15, active: { kind: "zhonya", cooldown: 120 } },
     spellslingers_shoes: { name: "Spellslinger's Shoes", armorPen: 0.12, moveSpeed: 0.5 },
     malignance: { name: "Malignance", abilityPower: 0.2, abilityHaste: 0.1, passive: "malignance" },
+    essence_reaver: {
+        name: "Essence Reaver",
+        damage: 0.12,
+        crit: 0.25,
+        abilityHaste: 0.1,
+        passive: "spellblade",
+    },
+    navori_flickerblade: { name: "Navori Flickerblade", attackSpeed: 0.4, crit: 0.25, passive: "navori" },
+    seryldas_grudge: { name: "Serylda's Grudge", damage: 0.1, abilityHaste: 0.1, armorPen: 0.3 },
+    deaths_dance: { name: "Death's Dance", damage: 0.12, health: 30, passive: "deaths_dance" },
+    steraks_gage: { name: "Sterak's Gage", damage: 0.1, health: 50, passive: "shieldbow" },
+    sundered_sky: { name: "Sundered Sky", damage: 0.1, health: 35, passive: "sundered_sky" },
+    guinsoos_rageblade: { name: "Guinsoo's Rageblade", attackSpeed: 0.25, passive: "guinsoo" },
+    wits_end: { name: "Wit's End", attackSpeed: 0.5, damage: 0.08, damageReduction: 0.1 },
     lich_bane: { name: "Lich Bane", abilityPower: 0.15, moveSpeed: 0.3, passive: "lich_bane" },
+};
+
+/**
+ * How each ability reaches, drawn on the ground while its key is held, like League's own indicators.
+ * `range` is League's cast range at 30 League units per surviv unit (the 1x scope shows about as much
+ * of the world as League's camera does), from Data Dragon 16.21.1 champion data; `radius` is the area
+ * it covers. 200 is League's "global" (25000), which crosses the whole screen and then some.
+ */
+export type Indicator =
+    /** a skillshot down the aim line */
+    | "line"
+    /** a cone from the champion */
+    | "cone"
+    /** an area dropped at the cursor, inside `range` */
+    | "circle"
+    /** an area around the champion */
+    | "self"
+    /** a wall across the aim line, at `range` */
+    | "wall";
+
+export interface AbilityRange {
+    range: number;
+    indicator: Indicator;
+    /** units: the area's radius, or a wall's half width */
+    radius?: number;
+}
+
+export const AbilityRanges: Record<string, Record<AbilityKey, AbilityRange>> = {
+    jinx: {
+        q: { range: 20, indicator: "self" }, // Fishbones' 600 attack range
+        w: { range: 48, indicator: "line" }, // 1450
+        e: { range: 31, indicator: "circle", radius: 4 }, // 925
+        r: { range: 200, indicator: "line", radius: 4.3 }, // global
+    },
+    caitlyn: {
+        q: { range: 42, indicator: "line" }, // 1250
+        w: { range: 27, indicator: "circle", radius: 1.5 }, // 800
+        e: { range: 25, indicator: "line" }, // 750
+        r: { range: 117, indicator: "self" }, // 3500, at the nearest enemy
+    },
+    ashe: {
+        q: { range: 0, indicator: "self" }, // self-cast
+        w: { range: 40, indicator: "cone", radius: 0.5 }, // 1200
+        e: { range: 200, indicator: "self" }, // global scouting
+        r: { range: 200, indicator: "line", radius: 4.3 }, // global
+    },
+    ezreal: {
+        q: { range: 38, indicator: "line" }, // 1150
+        w: { range: 38, indicator: "line" }, // 1150
+        e: { range: 16, indicator: "circle", radius: 1 }, // 475, the blink
+        r: { range: 200, indicator: "line", radius: 5.3 }, // global
+    },
+    lux: {
+        q: { range: 39, indicator: "line" }, // 1175
+        w: { range: 38, indicator: "self" }, // 1150, the shield travels through her
+        e: { range: 37, indicator: "circle", radius: 10.6 }, // 1100, 320 area
+        r: { range: 111, indicator: "line", radius: 3.5 }, // 3340
+    },
+    ahri: {
+        q: { range: 32, indicator: "line" }, // 970
+        w: { range: 23, indicator: "self" }, // 700, the fox-fires seek inside it
+        e: { range: 33, indicator: "line" }, // 975
+        r: { range: 15, indicator: "circle", radius: 1 }, // 450, each dash
+    },
+    yasuo: {
+        q: { range: 16, indicator: "line" }, // 475
+        w: { range: 13, indicator: "wall", radius: 5.3 }, // 400, 320 wide
+        e: { range: 16, indicator: "self" }, // 475, dashes through an enemy in range
+        r: { range: 47, indicator: "self" }, // 1400, to a knocked-up enemy
+    },
+    garen: {
+        q: { range: 10, indicator: "self" }, // 300, his next attack
+        w: { range: 0, indicator: "self" }, // self-cast
+        e: { range: 11, indicator: "self", radius: 11 }, // 325 spin
+        r: { range: 13, indicator: "circle", radius: 1.5 }, // 400
+    },
+    darius: {
+        q: { range: 14, indicator: "self", radius: 14 }, // 425 blade radius
+        w: { range: 10, indicator: "self" }, // 300, his next attack
+        e: { range: 18, indicator: "cone", radius: 0.35 }, // 535
+        r: { range: 15, indicator: "self" }, // 460, onto the nearest enemy
+    },
+    masteryi: {
+        q: { range: 20, indicator: "self", radius: 20 }, // 600
+        w: { range: 0, indicator: "self" }, // self-cast
+        e: { range: 0, indicator: "self" }, // self-cast
+        r: { range: 0, indicator: "self" }, // self-cast
+    },
 };
 
 /** item id -> loot/world image id, for the HUD */
@@ -257,7 +363,14 @@ export const ChampionDefs: Record<string, ChampionDef> = {
             ),
             r: ab("Trueshot Barrage", 10, "A huge beam across the map, through everything, for 110."),
         },
-        items: ["ionian_boots_of_lucidity", "manamune", "trinity_force"],
+        items: [
+            "ionian_boots_of_lucidity",
+            "manamune",
+            "trinity_force",
+            "essence_reaver",
+            "navori_flickerblade",
+            "seryldas_grudge",
+        ],
         outfit: { base: 0x3a5fb0, hands: 0xd9a441, backpack: 0x6b4a2b },
     },
     lux: {
@@ -348,7 +461,14 @@ export const ChampionDefs: Record<string, ChampionDef> = {
                 "Blinks to a knocked-up enemy within 30 tiles, deals 110 and keeps them up 1 s more.",
             ),
         },
-        items: ["berserkers_greaves", "immortal_shieldbow", "infinity_edge"],
+        items: [
+            "berserkers_greaves",
+            "immortal_shieldbow",
+            "infinity_edge",
+            "bloodthirster",
+            "deaths_dance",
+            "guardian_angel",
+        ],
         outfit: { base: 0x2f5d8a, hands: 0xc9b27a, backpack: 0x1f3e5c },
     },
     garen: {
@@ -373,7 +493,14 @@ export const ChampionDefs: Record<string, ChampionDef> = {
                 "Calls down a sword on the enemy nearest the cursor: 70 + 30% of their missing health, ignoring armor.",
             ),
         },
-        items: ["berserkers_greaves", "stridebreaker", "phantom_dancer"],
+        items: [
+            "berserkers_greaves",
+            "stridebreaker",
+            "phantom_dancer",
+            "dead_mans_plate",
+            "steraks_gage",
+            "deaths_dance",
+        ],
         outfit: { base: 0x2f56c9, hands: 0xd8b44a, backpack: 0x8c96a8 },
     },
     darius: {
@@ -398,7 +525,14 @@ export const ChampionDefs: Record<string, ChampionDef> = {
                 "Leaps on the nearest enemy within 10 tiles for 75, more if they bleed. A kill resets it.",
             ),
         },
-        items: ["youmuus_ghostblade", "plated_steelcaps", "dead_mans_plate"],
+        items: [
+            "youmuus_ghostblade",
+            "plated_steelcaps",
+            "dead_mans_plate",
+            "steraks_gage",
+            "sundered_sky",
+            "deaths_dance",
+        ],
         outfit: { base: 0x7a1f1f, hands: 0x2b2b2b, backpack: 0x4a4a4a },
     },
     masteryi: {
@@ -423,7 +557,14 @@ export const ChampionDefs: Record<string, ChampionDef> = {
                 "For 7 s, much faster attacks and movement, and slows don't hold him. Kills extend it.",
             ),
         },
-        items: ["kraken_slayer", "berserkers_greaves", "blade_of_the_ruined_king"],
+        items: [
+            "kraken_slayer",
+            "berserkers_greaves",
+            "blade_of_the_ruined_king",
+            "guinsoos_rageblade",
+            "wits_end",
+            "deaths_dance",
+        ],
         outfit: { base: 0x3f7a3a, hands: 0xd4b23a, backpack: 0x2a2a2a },
     },
 };
