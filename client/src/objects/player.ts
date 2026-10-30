@@ -1588,7 +1588,7 @@ export class Player implements AbstractObject {
         if (champion) {
             this.bodySprite.texture = PIXI.Texture.from(`img/champions/models/${champion}.png`);
             this.bodySprite.tint = 0xffffff;
-            this.bodySprite.scale.set(0.28, 0.28);
+            this.bodySprite.scale.set(0.42, 0.42);
         } else {
             this.bodySprite.texture = PIXI.Texture.from(outfitImg.baseSprite);
             this.bodySprite.tint = outfitDef.ghillie
