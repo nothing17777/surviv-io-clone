@@ -390,6 +390,18 @@ export const GunOverrides: Record<string, GunEffect> = {
     pg_industrial_nailer: rifle(39, 3, 15),
     pg_hero: rifle(22, 5, 60),
     pg_golden_friend: rifle(18, 10, 30),
+    // bleeds, burns and poisons for 1 s each
+    pg_glitched_machine_gun: rifle(18, 5.45, 33),
+    pg_future_rifle: rifle(12, 8.5, 35),
+    pg_future_police_rifle: rifle(14, 10, 60),
+    pg_crystal_laser_cannon: rifle(10, 15, 50),
+    pg_secret_forces_rifle: rifle(18, 7.5, 50),
+    // bleeds for 2 s
+    pg_combat_overlords: rifle(16, 10, 50),
+    // poisons for 2 s
+    pg_black_mamba: rifle(19, 8.5, 30),
+    pg_advanced_scout_rifle: rifle(21, 8.5, 40),
+    pg_eliminator_x2: rifle(25, 7.5, 35),
     // Pixel Gun 3D shotguns: the Acid Shotgun's 9 pellets, spread and range on plain buckshot (damage per
     // pellet, shots/s, capacity)
     // burns for 3 s (see Player.damage)
