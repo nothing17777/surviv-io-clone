@@ -5345,7 +5345,8 @@ export class Player extends BaseGameObject {
     }
 
     recalculateMinBoost() {
-        this.minBoost = 0;
+        // a League champion always runs on full adrenaline, like having mana to spend
+        this.minBoost = this.champ ? 100 : 0;
         for (let i = 0; i < this.perks.length; i++) {
             const perk = this.perks[i].type;
             const perkProps = PerkProperties[perk as keyof typeof PerkProperties];
@@ -5392,6 +5393,9 @@ export class Player extends BaseGameObject {
         this.energyDirty = true;
         if (kit.fullBoost) this.boost = 100;
         this.champ = ChampionDefs[kitId] ? new Champion(this, kitId) : undefined;
+        // a champion's adrenaline is pinned full, so recheck the floor now it is one
+        this.recalculateMinBoost();
+        if (this.champ) this.boost = 100;
         // kits zoom out like a 15x scope
         this.invManager.set("15xscope", 1);
         this.scope = "15xscope";
@@ -5404,6 +5408,7 @@ export class Player extends BaseGameObject {
     clearKit() {
         this.kit = "default";
         this.champ = undefined;
+        this.recalculateMinBoost();
         this.lockedKit = false;
         this.maxHealth = GameConfig.player.health;
         this.health = this.maxHealth;
