@@ -359,8 +359,37 @@ const shotgun = (damage: number, shotsPerSec: number, capacity: number): GunEffe
     },
 });
 
+/** a rifle on the base AK's default bullet at the Hellraiser's range (damage, shots/s, capacity) */
+const rifle = (damage: number, shotsPerSec: number, capacity: number, fireMode: "auto" | "single" = "auto"): GunEffect => ({
+    bullet: { damage, distance: 40 },
+    gun: {
+        fireMode,
+        fireDelay: Math.round(1000 / shotsPerSec) / 1000,
+        maxClip: capacity,
+        maxReload: capacity,
+        extendedClip: capacity,
+        extendedReload: capacity,
+    },
+});
+
 /** tweaks to one weapon on top of its effect, from its wiki page */
 export const GunOverrides: Record<string, GunEffect> = {
+    // Pixel Gun 3D rifles (damage, shots/s, capacity)
+    pg_root_piercer: rifle(120, 1.87, 6, "single"),
+    // burns for 2 s (see Player.damage)
+    pg_pyro_1116: rifle(22, 5, 30),
+    // poisons for 2 s
+    pg_poisonous_vine: rifle(30, 4.3, 35),
+    // burns for 2 s
+    pg_plasmatic_digger: rifle(12, 12, 70),
+    pg_pbx_assault_rifle: rifle(20, 7.5, 30),
+    // burns for 2 s
+    pg_liquid_fire: rifle(21, 5, 30),
+    // bleeds for 2 s
+    pg_large_caliber_machine_gun: rifle(16, 5.4, 100),
+    pg_industrial_nailer: rifle(39, 3, 15),
+    pg_hero: rifle(22, 5, 60),
+    pg_golden_friend: rifle(18, 10, 30),
     // Pixel Gun 3D shotguns: the Acid Shotgun's 9 pellets, spread and range on plain buckshot (damage per
     // pellet, shots/s, capacity)
     // burns for 3 s (see Player.damage)
