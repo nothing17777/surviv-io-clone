@@ -228,17 +228,14 @@ export const GunEffects: Record<string, GunEffect> = {
             speed: { equip: 3.5, attack: 1 },
         },
     },
-    // Pixel Gun 3D pistols: the Multitaskers' shot (same speed, range and deathray sprite, no splash) with
-    // each pistol's own damage, fire rate and capacity from GunOverrides
+    // Pixel Gun 3D pistols: the Multitaskers' speed and range, no splash, and the base pistol's own
+    // bullet look (no sprite or tracer override), with each pistol's damage, fire rate and capacity
+    // from GunOverrides
     pistol_plasma: {
         bullet: {
             damage: 32,
             speed: 120,
             distance: 70,
-            tracerColor: "cw_plasma",
-            tracerWidth: 0.12,
-            sprite: "img/custom-weapons/fx/deathray.png",
-            spriteSize: 48,
         },
         gun: {
             fireMode: "auto",
