@@ -813,6 +813,11 @@ class ChampionFxBarn {
 
     init(renderer: Renderer) {
         this.renderer = renderer;
+        // quitting a game destroys every sprite on the stage, so none of the last game's effects can
+        // be drawn or pooled again
+        this.particles = [];
+        this.shots = [];
+        this.pool = [];
     }
 
     hasProjectileFx(bulletType: string) {

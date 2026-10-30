@@ -18,12 +18,12 @@ const EdgeAlpha = 0.75;
 const LineWidth = 0.6;
 
 class LeagueIndicator {
-    gfx = new PIXI.Graphics();
-    added = false;
+    /** made fresh for each game: quitting one destroys everything on the stage, this with it */
+    gfx?: PIXI.Graphics;
 
     init(renderer: Renderer) {
+        this.gfx = new PIXI.Graphics();
         renderer.addPIXIObj(this.gfx, 0, 11);
-        this.added = true;
     }
 
     /** held is the ability key the player is holding, if any */
@@ -36,6 +36,7 @@ class LeagueIndicator {
         cursor: Vec2,
     ) {
         const gfx = this.gfx;
+        if (!gfx || !gfx.transform) return;
         gfx.clear();
         const def: AbilityRange | undefined = champion && held
             ? AbilityRanges[champion]?.[held]

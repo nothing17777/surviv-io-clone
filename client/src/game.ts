@@ -1138,7 +1138,7 @@ export class Game {
         championFx.m_render(this.m_camera);
         leagueIndicator.m_render(
             this.m_camera,
-            this.leagueControlsActive()
+            this.leagueControlsActive() && this.m_activePlayer
                 ? ChampionIds[this.m_activePlayer.m_netData.championIndex - 1]
                 : undefined,
             this.heldAbility,
