@@ -594,7 +594,9 @@ export class Champion {
         if (this.buff("youmuu")) speed += 3;
         if (this.buff("highlander")) speed += 3;
         if (this.passives.has("dead_mans_plate")) speed += Math.min(this.stacks, 2);
-        if (this.buff("meditate") || this.buff("zhonya")) return 1;
+        // stasis: Zhonya's holds the champion completely still
+        if (this.buff("zhonya")) return 0;
+        if (this.buff("meditate")) return 1;
         return speed;
     }
 

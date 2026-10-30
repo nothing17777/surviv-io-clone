@@ -1,7 +1,12 @@
 import * as PIXI from "pixi.js-legacy";
 
 import type { LootDef } from "../../../shared/defs/gameObjectDefs.ts";
-import { ChampionIds, championSound, ChampionSounds } from "../../../shared/defs/gameObjects/championDefs.ts";
+import {
+    ChampionDefs,
+    ChampionIds,
+    championSound,
+    ChampionSounds,
+} from "../../../shared/defs/gameObjects/championDefs.ts";
 import { CustomWeaponsVersion } from "../../../shared/defs/gameObjects/customWeaponDefs.ts";
 import { SwingArcs } from "../../../shared/defs/gameObjects/customWeaponEffects.ts";
 import type { BoostDef, HealDef } from "./../../../shared/defs/gameObjects/gearDefs.ts";
@@ -863,6 +868,9 @@ export class Player implements AbstractObject {
     lastChampion = 0;
     lastCastSeq = 0;
 
+    /** while Zhonya's Hourglass holds this champion in stasis, it is drawn in gold */
+    zhonyaUntil = 0;
+
     /** League champions: the pick voice line when one spawns, and each cast's own sound */
     updateChampionSounds(audioManager: AudioManager, isActivePlayer: boolean) {
         const index = this.m_netData.championIndex;
@@ -882,6 +890,13 @@ export class Player implements AbstractObject {
         if (!champ || this.m_netData.champCastSeq === this.lastCastSeq) return;
         this.lastCastSeq = this.m_netData.champCastSeq;
         const slot = ["q", "w", "e", "r", "", "p", "ba"][this.m_netData.champCastKey];
+        // Zhonya's Hourglass: the champion turns to gold for the 2.5 s it holds them in stasis
+        if (
+            this.m_netData.champCastKey === 4
+            && ChampionDefs[champ]?.items.includes("zhonyas_hourglass")
+        ) {
+            this.zhonyaUntil = Date.now() + 2500;
+        }
         if (slot) championFx.cast(champ, slot, this, this.layer);
         if (slot && ChampionSounds[champ]?.[slot as "q"]) audioManager.playSound(championSound(champ, slot), opts);
     }
@@ -1403,6 +1418,11 @@ export class Player implements AbstractObject {
         }
         this.visualsDirty = false;
 
+        // the gold of Zhonya's stasis comes and goes on its own, so it is set every frame
+        if (this.m_netData.championIndex > 0) {
+            this.bodySprite.tint = Date.now() < this.zhonyaUntil ? 0xffd34d : 0xffffff;
+        }
+
         this.updateAura(dt, isActivePlayer, activePlayer);
 
         this.updateRotation(
@@ -1587,7 +1607,7 @@ export class Player implements AbstractObject {
 
         if (champion) {
             this.bodySprite.texture = PIXI.Texture.from(`img/champions/models/${champion}.png`);
-            this.bodySprite.tint = 0xffffff;
+            this.bodySprite.tint = Date.now() < this.zhonyaUntil ? 0xffd34d : 0xffffff;
             this.bodySprite.scale.set(0.42, 0.42);
         } else {
             this.bodySprite.texture = PIXI.Texture.from(outfitImg.baseSprite);
