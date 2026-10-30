@@ -250,7 +250,7 @@ export const ObjectSerializeFns: {
             s.writeBoolean(data.poisoned);
             s.writeBoolean(data.burning);
             s.writeBoolean(data.charmed);
-            s.writeBits(data.kitAura, 2);
+            s.writeBits(data.kitAura, 3);
             s.writeBoolean(data.wizardMarked);
             s.writeBoolean(data.vulnerable);
             s.writeBoolean(data.excaliburActive);
@@ -334,7 +334,7 @@ export const ObjectSerializeFns: {
             data.poisoned = s.readBoolean();
             data.burning = s.readBoolean();
             data.charmed = s.readBoolean();
-            data.kitAura = s.readBits(2);
+            data.kitAura = s.readBits(3);
             data.wizardMarked = s.readBoolean();
             data.vulnerable = s.readBoolean();
             data.excaliburActive = s.readBoolean();

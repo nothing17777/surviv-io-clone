@@ -2845,6 +2845,8 @@ export class Player implements AbstractObject {
     kitSigil: PIXI.Sprite | null = null;
     vulnerableRing: PIXI.Graphics | null = null;
     kitDaggers: PIXI.Sprite[] = [];
+    /** War Machine's right and left shoulder mounts */
+    kitMounts: (PIXI.Graphics | undefined)[] = [];
     kitTicker = 0;
     excaliburRing: PIXI.Graphics | null = null;
     flightGlow: PIXI.Graphics | null = null;
@@ -2890,15 +2892,39 @@ export class Player implements AbstractObject {
                 this.flightGlow.endFill();
             }
         }
-        if (aura >= 2 || this.kitCircle) {
+        // War Machine's shoulder mounts (aura 4: the right one, 5: both), turning with the player's aim
+        const mounts = aura === 4 ? 1 : aura === 5 ? 2 : 0;
+        for (let i = 0; i < 2; i++) {
+            let g = this.kitMounts[i];
+            if (!g && !mounts) continue;
+            if (!g) {
+                g = new PIXI.Graphics();
+                // the gun body, then its barrel pointing the way he aims
+                g.beginFill(0x8c8e94);
+                g.drawRoundedRect(-0.45 * px, -0.35 * px, 0.9 * px, 0.7 * px, 0.15 * px);
+                g.endFill();
+                g.beginFill(0x4a4c52);
+                g.drawRect(0.35 * px, -0.12 * px, 0.85 * px, 0.24 * px);
+                g.endFill();
+                const bodyIdx = this.bodyContainer.getChildIndex(this.bodySprite);
+                this.bodyContainer.addChildAt(g, bodyIdx + 1);
+                this.kitMounts[i] = g;
+            }
+            g.visible = !dead && i < mounts;
+            const m = KitDefs.warmachine.mounts!;
+            // bodyContainer's +x is where he aims and +y his right hand
+            g.position.set(-m.back * px, (i === 0 ? m.side : -m.side) * px);
+        }
+        const wizardAura = aura === 2 || aura === 3;
+        if (wizardAura || this.kitCircle) {
             if (!this.kitCircle) {
                 this.kitCircle = new PIXI.Sprite();
                 this.kitCircle.anchor.set(0.5, 0.5);
                 this.kitCircle.alpha = 0.55;
                 this.auraContainer.addChildAt(this.kitCircle, 0);
             }
-            this.kitCircle.visible = aura >= 2;
-            if (aura >= 2) {
+            this.kitCircle.visible = wizardAura;
+            if (wizardAura) {
                 const tex = PIXI.Texture.from(
                     aura === 3
                         ? "img/custom-weapons/fx/kit/lightning_ritual.png"

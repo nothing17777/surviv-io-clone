@@ -146,7 +146,7 @@ export class ShotBarn {
                         filter: "muffled",
                         fallOff: weaponDef.sound.fallOff ? weaponDef.sound.fallOff : 0,
                         detune,
-                        volumeScale: shot.splinter ? 0.75 : 1,
+                        volumeScale: (shot.splinter ? 0.75 : 1) * (weaponDef.shotVolume ?? 1),
                     });
 
                     if (shot.splinter) {
@@ -199,7 +199,8 @@ export class ShotBarn {
                         });
                     }
 
-                    if (player) {
+                    // a body-mounted gun (War Machine) doesn't kick the shooter's hands
+                    if (player && !weaponDef.mounted) {
                         // If it's our shot, play a cycling or pull sound if needed
                         if (
                             player.__id == activePlayerId

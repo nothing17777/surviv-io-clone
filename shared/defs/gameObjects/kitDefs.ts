@@ -38,6 +38,14 @@ export interface KitDef {
     vulnerable?: { extraDamage: number; duration: number };
     /** Wizard: a circle around the player that burns enemies inside for `damage`/s; per enemy inside, per second: energy, shield, hp */
     aura?: { radius: number; damage: number; energy: number; shield: number; health: number; enhanceTime: number };
+    /** War Machine: the shield refills for free, `rate`/s, or `calmRate`/s once `after` s have gone by unhurt */
+    armorRegen?: { rate: number; calmRate: number; after: number };
+    /**
+     * War Machine: shoulder-mounted guns that fire `bullet` (shot sound and source `gun`) at the nearest enemy
+     * within `range`, `rate` shots/s each. The right mount is always on; the left one runs for `secondDuration`
+     * seconds after the skill. `back` and `side` place a mount behind and to the right (or left) of the player
+     */
+    mounts?: { gun: string; bullet: string; range: number; rate: number; back: number; side: number; secondDuration: number };
     /** Iron Man: energy pays for reloads, healing and shield */
     energy?: {
         max: number;
@@ -106,6 +114,26 @@ export const KitDefs: Record<string, KitDef> = {
         energy: { max: 200, perSecond: 20, heal: 0, healCost: 0, shieldRegen: 2, shieldCost: 3 },
         calmRegen: { rate: 5, after: 5 },
     },
+    warmachine: {
+        name: "War Machine",
+        health: 50,
+        shield: 150,
+        helmet: "helmet04",
+        chest: "chest04",
+        outfit: "outfitKitWarmachine",
+        // the only skill is Second Fire, in the melee slot like Spider-Man's dodge: left click to use it
+        melee: "kit_warmachine_secondfire",
+        armorRegen: { rate: 2, calmRate: 8, after: 5 },
+        mounts: {
+            gun: "kit_warmachine_mount",
+            bullet: "bullet_kit_warmachine_mount",
+            range: 30,
+            rate: 5,
+            back: 0.6,
+            side: 1,
+            secondDuration: 10,
+        },
+    },
     summoner: {
         name: "Summoner",
         health: 150,
@@ -159,10 +187,14 @@ export const UltronMinion = { count: 4, health: 17.5, speedMult: 0.75, life: 15,
 /** Ultron's energy blast orbs, one per colour, and the laser each one's blast fires */
 export const UltronOrbColors = ["red", "blue", "green", "yellow", "purple", "orange"] as const;
 
-/** the kit's player aura id sent to clients: 0 none, 1 summoner daggers, 2 wizard circle, 3 enhanced */
+/**
+ * the kit's player aura id sent to clients: 0 none, 1 summoner daggers, 2 wizard circle, 3 enhanced,
+ * 4 War Machine's right shoulder mount, 5 both mounts
+ */
 export function kitAura(kit: string, enhanced: boolean) {
     if (kit === "summoner") return 1;
     if (kit === "wizard") return enhanced ? 3 : 2;
+    if (kit === "warmachine") return enhanced ? 5 : 4;
     return 0;
 }
 

@@ -1,6 +1,6 @@
 import { SwingShots } from "../../../shared/defs/gameObjects/customWeaponEffects.ts";
 import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
-import { isKitItem, SpiderDodgeTime, WolverineDashDistance } from "../../../shared/defs/gameObjects/kitDefs.ts";
+import { isKitItem, KitDefs, SpiderDodgeTime, WolverineDashDistance } from "../../../shared/defs/gameObjects/kitDefs.ts";
 import type { MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
 import { PerkProperties } from "../../../shared/defs/gameObjects/perkDefs.ts";
 import { type ThrowableDef, ThrowableDefs } from "../../../shared/defs/gameObjects/throwableDefs.ts";
@@ -435,6 +435,11 @@ export class WeaponManager {
                 this.player.dodgeTime = SpiderDodgeTime;
                 // the faster webs start straight away
                 this.player.autoFireTimer = 0;
+                this.player.setDirty();
+            }
+            if (this.activeWeapon === "kit_warmachine_secondfire") {
+                // the left shoulder mount switches on for its duration
+                this.player.kitEnhanceTime = KitDefs.warmachine.mounts!.secondDuration;
                 this.player.setDirty();
             }
             if (this.activeWeapon === "kit_wizard_enhance") {

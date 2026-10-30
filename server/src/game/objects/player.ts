@@ -749,6 +749,8 @@ export class Player extends BaseGameObject {
     /** Spider-Man: seconds since he last took damage, and until his next auto web */
     calmTime = 0;
     autoFireTimer = 0;
+    /** War Machine: seconds until the right and left shoulder mounts fire next (the left runs on kitEnhanceTime) */
+    mountTimers = [0, 0];
     private wasCooling = false;
     /** Ultron minion: who summoned it and how long it has left */
     minionOwner?: Player;
@@ -5460,6 +5462,12 @@ export class Player extends BaseGameObject {
             if (calmHealing) rate = kit.calmRegen!.rate;
             this.health = math.min(this.health + rate * dt, this.maxHealth);
         }
+        // War Machine: the shield refills on its own, four times as fast once he has been left alone
+        if (kit.armorRegen && this.shield < this.maxShield) {
+            const rate = this.calmTime >= kit.armorRegen.after ? kit.armorRegen.calmRate : kit.armorRegen.rate;
+            this.shield = math.min(this.shield + rate * dt, this.maxShield);
+            this.shieldDirty = true;
+        }
         const e = kit.energy;
         if (e) {
             const before = Math.round(this.energy);
@@ -5508,6 +5516,7 @@ export class Player extends BaseGameObject {
             if (this.dodgeTime === 0) this.setDirty();
         }
         if (kit.autoFire) this.updateAutoFire(dt, kit.autoFire);
+        if (kit.mounts) this.updateMounts(dt, kit.mounts);
         if (kit.daggers) this.updateDaggers(dt, kit.daggers);
         if (kit.aura) this.updateAura(dt, kit.aura);
     }
@@ -5537,6 +5546,63 @@ export class Player extends BaseGameObject {
                 reflectCount: 0,
             } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
         );
+    }
+
+    /** where a War Machine shoulder mount sits: a little behind the player and to the right (or left) of his back */
+    mountPos(m: NonNullable<(typeof KitDefs)[string]["mounts"]>, left: boolean) {
+        // world y points up, so the player's right hand is (dir.y, -dir.x)
+        const right = v2.create(this.dir.y, -this.dir.x);
+        return v2.add(v2.sub(this.pos, v2.mul(this.dir, m.back)), v2.mul(right, left ? -m.side : m.side));
+    }
+
+    /**
+     * War Machine: each running shoulder mount shoots the nearest enemy in range, `rate` times a second. The
+     * right mount is always on, the left one only while Second Fire is up (kitEnhanceTime)
+     */
+    updateMounts(dt: number, m: NonNullable<(typeof KitDefs)[string]["mounts"]>) {
+        const second = this.kitEnhanceTime > 0;
+        for (let i = 0; i < 2; i++) {
+            if (i === 1 && !second) {
+                // idle: when it starts up again it fires half a beat after the right one
+                this.mountTimers[1] = 0.5 / m.rate;
+                continue;
+            }
+            this.mountTimers[i] -= dt;
+            if (this.mountTimers[i] > 0) continue;
+            const near = this.enemiesWithin(m.range);
+            if (!near.length) {
+                this.mountTimers[i] = 0;
+                continue;
+            }
+            // carry the leftover so the rate holds whatever the tick length
+            this.mountTimers[i] = Math.max(this.mountTimers[i] + 1 / m.rate, 0);
+            const target = near.reduce((x, y) =>
+                v2.length(v2.sub(x.pos, this.pos)) < v2.length(v2.sub(y.pos, this.pos)) ? x : y
+            );
+            const pos = this.mountPos(m, i === 1);
+            this.game.bulletBarn.fireBullet(
+                {
+                    playerId: this.__id,
+                    bulletType: m.bullet,
+                    gameSourceType: m.gun,
+                    damageType: GameConfig.DamageType.Player,
+                    pos,
+                    dir: v2.normalizeSafe(v2.sub(target.pos, pos), this.dir),
+                    layer: this.layer,
+                    damageMult: 1,
+                    // the shot is heard (quietly) but never kicks the shooter's hands
+                    shotFx: true,
+                    shotOffhand: false,
+                    lastShot: false,
+                    reflectCount: 0,
+                } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
+            );
+        }
+        if (second) {
+            this.kitEnhanceTime = Math.max(0, this.kitEnhanceTime - dt);
+            // the aura id (one mount or two) changes when it runs out
+            if (this.kitEnhanceTime === 0) this.setDirty();
+        }
     }
 
     enemiesWithin(rad: number): Player[] {

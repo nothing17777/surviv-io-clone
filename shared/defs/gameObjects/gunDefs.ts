@@ -118,6 +118,10 @@ export interface GunDef extends BaseWeaponDef {
     energyCost?: number;
     /** a kit's energy each reload costs; no reload without it */
     reloadEnergy?: number;
+    /** fired from a body-mounted gun (War Machine): no hand recoil or fire delay for the shooter */
+    mounted?: boolean;
+    /** multiplies the volume of this gun's shot sound (default 1) */
+    shotVolume?: number;
 }
 
 function defineGunSkin(baseType: string, params: DeepPartial<GunDef>): GunDef {
@@ -3811,6 +3815,28 @@ const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
     }),
 ]);
 
+// War Machine's shoulder mounts: a plain bullet, 6 dmg (30 dps a mount at 5 shots/s), 30 range. The gun def is
+// never held, it is only the source of the mounts' shots, so the client knows the (quiet) sound to play
+BulletDefs.bullet_kit_warmachine_mount = {
+    ...BulletDefs.bullet_ak47,
+    damage: 6,
+    distance: 30,
+    falloff: 1,
+    variance: 0,
+    shrapnel: false,
+};
+const WarMachineGunDefs: Record<string, GunDef> = {
+    kit_warmachine_mount: defineGunSkin("mac10", {
+        name: "Shoulder Mount",
+        noPotatoSwap: true,
+        bulletType: "bullet_kit_warmachine_mount",
+        ammoInfinite: true,
+        mounted: true,
+        shotVolume: 0.3,
+        fireDelay: 0.2,
+    }),
+};
+
 const kitAsset = (name: string) => `img/custom-weapons/fx/kit/${name}.png?v=${CustomWeaponsVersion}`;
 const kitBullet = (id: string, b: Partial<BulletDef>) => {
     BulletDefs[id] = {
@@ -4366,6 +4392,7 @@ export const GunDefs: Record<string, GunDef> = {
     ...SkinDefs,
     ...CustomGunDefs,
     ...IronManGunDefs,
+    ...WarMachineGunDefs,
     ...KitGunDefs,
     ...ChampionGunDefs,
     ...ChampionAbilityDefs,
