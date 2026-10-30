@@ -108,5 +108,7 @@ class DefinitionRegister<T extends { type: string }> {
     }
 }
 
-export const GameObjectDefs = new DefinitionRegister("Game", RawGameObjectDefs, 10);
+/** bits a game object type id takes on the wire (2 ** bits types); net.ts reads and writes with it */
+export const GameTypeBits = 11;
+export const GameObjectDefs = new DefinitionRegister("Game", RawGameObjectDefs, GameTypeBits);
 export const MapObjectDefs = new DefinitionRegister("Map", RawMapObjectDefs, 12);
