@@ -1,4 +1,6 @@
 import { expect, test, vi } from "vitest";
+import { BulletDefs } from "../../shared/defs/gameObjects/bulletDefs.ts";
+import { GameObjectDefs } from "../../shared/defs/register.ts";
 import { KitDefs, UltronMinion } from "../../shared/defs/gameObjects/kitDefs.ts";
 import { GameConfig, TeamMode } from "../../shared/gameConfig.ts";
 import { v2 } from "../../shared/utils/v2.ts";
@@ -382,4 +384,112 @@ test("kit shield and health sustain numbers", () => {
     expect(KitDefs.ultron.energy).toMatchObject({ shieldRegen: 2 });
     expect(KitDefs.wolverine.health).toBe(200);
     expect(KitDefs.wizard.aura).toMatchObject({ shield: 2, health: 2 });
+});
+
+test("War Machine: 50 hp, 150 armor, and Second Fire is the only skill", () => {
+    const { me } = setup("warmachine", v2.create(200, 0));
+    expect(me.maxHealth).toBe(50);
+    expect(me.health).toBe(50);
+    expect(me.maxShield).toBe(150);
+    expect(me.shield).toBe(150);
+    expect(me.weapons[Slot.Primary].type).toBe("");
+    expect(me.weapons[Slot.Secondary].type).toBe("");
+    expect(me.weapons[Slot.Melee].type).toBe("kit_warmachine_secondfire");
+    expect(me.outfit).toBe("outfitKitWarmachine");
+});
+
+test("War Machine: the right shoulder mount fires 5 shots/s at the nearest enemy within 30", () => {
+    const { game, me, enemy } = setup("warmachine", v2.create(20, 0));
+    enemy.maxHealth = 10000;
+    enemy.health = 10000;
+    const fire = vi.spyOn(game.bulletBarn, "fireBullet");
+    // the skill isn't used: only the passive hits (6 dmg a shot, so about 90 in 3 s)
+    for (let i = 0; i < 30; i++) game.step(0.1);
+    const dealt = 10000 - enemy.health;
+    expect(dealt).toBeGreaterThanOrEqual(60);
+    expect(dealt).toBeLessThanOrEqual(120);
+    // quiet, and the shot comes from the mount's gun def
+    const first = fire.mock.calls[0][0];
+    expect(first.gameSourceType).toBe("kit_warmachine_mount");
+    expect(first.shotFx).toBe(true);
+    // out of range nothing fires
+    enemy.pos = v2.add(me.pos, v2.create(40, 0));
+    game.grid.updateObject(enemy);
+    const hp = enemy.health;
+    for (let i = 0; i < 20; i++) game.step(0.1);
+    expect(enemy.health).toBe(hp);
+});
+
+test("War Machine: the mount sits behind his right shoulder, the second one behind the left", () => {
+    const { me } = setup("warmachine", v2.create(200, 0));
+    const m = KitDefs.warmachine.mounts!;
+    me.dir = v2.create(1, 0);
+    const right = me.mountPos(m, false);
+    const left = me.mountPos(m, true);
+    // facing +x with y up: his right hand is -y, and his back is -x
+    expect(right.x).toBeCloseTo(me.pos.x - m.back);
+    expect(right.y).toBeCloseTo(me.pos.y - m.side);
+    expect(left.x).toBeCloseTo(me.pos.x - m.back);
+    expect(left.y).toBeCloseTo(me.pos.y + m.side);
+    me.dir = v2.create(0, 1);
+    const turned = me.mountPos(m, false);
+    expect(turned.x).toBeCloseTo(me.pos.x + m.side);
+    expect(turned.y).toBeCloseTo(me.pos.y - m.back);
+});
+
+test("War Machine: Second Fire adds a left mount for 10 s, then waits out a 12 s cooldown", () => {
+    const { game, me, enemy } = setup("warmachine", v2.create(20, 0));
+    enemy.maxHealth = 100000;
+    enemy.health = 100000;
+    expect(me.kitAura).toBe(4);
+    for (let i = 0; i < 30; i++) game.step(0.1);
+    const single = 100000 - enemy.health;
+
+    use(game, me, Slot.Melee, 1);
+    expect(me.kitAura).toBe(5);
+    expect(me.kitEnhanceTime).toBeGreaterThan(9);
+    expect(me.abilityCooldowns[2]).toBeGreaterThan(10);
+    const before = enemy.health;
+    for (let i = 0; i < 30; i++) game.step(0.1);
+    const double = before - enemy.health;
+    expect(double).toBeGreaterThanOrEqual(single * 1.6);
+
+    // 10 s after the skill the left mount shuts off again
+    for (let i = 0; i < 80; i++) game.step(0.1);
+    expect(me.kitEnhanceTime).toBe(0);
+    expect(me.kitAura).toBe(4);
+    const after = enemy.health;
+    for (let i = 0; i < 30; i++) game.step(0.1);
+    expect(after - enemy.health).toBeLessThanOrEqual(single * 1.3);
+    // the cooldown is still running until 12 s, then the skill is ready again
+    expect(me.abilityCooldowns[2]).toBe(0);
+});
+
+test("War Machine: armor regens 2/s, 8/s after 5 s without being hit", () => {
+    const { game, me } = setup("warmachine", v2.create(200, 0));
+    // game.step runs whole 0.1 s ticks: 10 of them is 1 s
+    me.shield = 10;
+    me.calmTime = 0;
+    for (let i = 0; i < 10; i++) game.step(0.1);
+    // the first second is still in combat
+    expect(me.shield - 10).toBeCloseTo(2, 0);
+    me.shield = 10;
+    me.calmTime = 5;
+    for (let i = 0; i < 10; i++) game.step(0.1);
+    expect(me.shield - 10).toBeCloseTo(8, 0);
+    me.shield = 149;
+    for (let i = 0; i < 10; i++) game.step(0.1);
+    expect(me.shield).toBe(150);
+});
+
+test("War Machine: a hit ends the calm, and the shoulder mount's shots are quiet and don't kick his hands", () => {
+    const { me, enemy } = setup("warmachine", v2.create(200, 0));
+    me.calmTime = 10;
+    me.damage({ amount: 10, damageType: GameConfig.DamageType.Player, dir: v2.create(1, 0), source: enemy, gameSourceType: "ak47" });
+    expect(me.calmTime).toBe(0);
+    const gun = GameObjectDefs.typeToDef("kit_warmachine_mount", "gun");
+    expect(gun.mounted).toBe(true);
+    expect(gun.shotVolume).toBeLessThan(0.5);
+    expect(BulletDefs[gun.bulletType].damage).toBe(6);
+    expect(BulletDefs[gun.bulletType].distance).toBe(KitDefs.warmachine.mounts!.range);
 });
