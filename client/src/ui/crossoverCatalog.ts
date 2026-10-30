@@ -53,6 +53,8 @@ const Notes: Record<string, string> = {
     pg_napalmcannon: "Rocket that leaves fire burning for 3 s.",
     tr_sdmg: "Insanely fast, glowing shots.",
     pg_duck_hunter: "Sets whoever it hits on fire for 3 s.",
+    pg_devastator: "Nine pellets that set whoever they hit on fire for 3 s.",
+    pg_debts_collector: "Nine pellets that make whoever they hit bleed for 4 s. Two shells, then reload.",
 };
 
 type Tab = "gun" | "melee";

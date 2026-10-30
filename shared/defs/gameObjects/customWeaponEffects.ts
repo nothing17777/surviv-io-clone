@@ -345,8 +345,28 @@ const pistol = (damage: number, shotsPerSec: number, capacity: number): GunEffec
     },
 });
 
+/** a shotgun like the Acid Shotgun's: 9 pellets in a 12 degree spread, the base m870's range */
+const shotgun = (damage: number, shotsPerSec: number, capacity: number): GunEffect => ({
+    bullet: { damage },
+    gun: {
+        fireDelay: Math.round(1000 / shotsPerSec) / 1000,
+        bulletCount: 9,
+        shotSpread: 12,
+        maxClip: capacity,
+        maxReload: capacity,
+        extendedClip: capacity,
+        extendedReload: capacity,
+    },
+});
+
 /** tweaks to one weapon on top of its effect, from its wiki page */
 export const GunOverrides: Record<string, GunEffect> = {
+    // Pixel Gun 3D shotguns: the Acid Shotgun's 9 pellets, spread and range on plain buckshot (damage per
+    // pellet, shots/s, capacity)
+    // burns for 3 s (see Player.damage)
+    pg_devastator: shotgun(12, 1.15, 10),
+    // bleeds for 4 s (see Player.damage)
+    pg_debts_collector: shotgun(10, 1.8, 2),
     // Pixel Gun 3D pistols (damage, shots/s, capacity)
     pg_dead_star: pistol(53, 1.57, 5),
     // also burns for 3 s (see Player.damage)

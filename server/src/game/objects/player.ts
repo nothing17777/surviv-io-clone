@@ -2999,6 +2999,8 @@ export class Player extends BaseGameObject {
             else if (src === "pg_photon_sniper_rifle") this.applyBurn(4, playerSource, src);
             else if (src === "pg_mercenary") this.applyBurn(2, playerSource, src);
             else if (src === "pg_duck_hunter") this.applyBurn(3, playerSource, src);
+            else if (src === "pg_devastator") this.applyBurn(3, playerSource, src);
+            else if (src === "pg_debts_collector") this.applyBleed(4, playerSource);
             else if (src === "pg_goo_substance_rifle") this.applyPoison(2, playerSource);
             else if (src === "pg_aphrodite_crossbow") {
                 if (this.charmDuration <= 0) this.setDirty();
