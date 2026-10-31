@@ -92,6 +92,8 @@ test("pg_fake_pistol fires 12 pellets of 15, 1.2 shots/s, 8 rounds, and bleeds f
     expect(bullet.speed).toBe(200);
     expect(bullet.falloff).toBe(0.85);
     expect(bullet.pierce).toBeFalsy();
+    // purple pellets, the same colour as the Laser Minigun's
+    expect(bullet.tracerColor).toBe("cw_magic");
 
     const game = createGame(TeamMode.Solo, "test_normal");
     const shooter = game.playerBarn.addTestPlayer({});
