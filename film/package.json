@@ -4,7 +4,7 @@
   "scripts": {
     "record": "tsx record.ts",
     "edit": "tsx edit.ts",
-        "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "hjson": "^3.2.2",

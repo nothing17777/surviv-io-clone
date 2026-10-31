@@ -2,6 +2,27 @@
   "version": "0.0.1",
   "configurations": [
     { "name": "surviv", "runtimeExecutable": "pnpm", "runtimeArgs": ["dev"], "port": 3000 },
-    { "name": "film-studio", "runtimeExecutable": "python3", "runtimeArgs": ["-m", "streamlit", "run", "film/upload_app.py", "--server.port", "8501", "--server.headless", "true"], "port": 8501 }
+    {
+      "name": "menu-prototype",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "4321"],
+      "port": 4321,
+      "url": "http://localhost:4321"
+    },
+    {
+      "name": "film-studio",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "streamlit",
+        "run",
+        "film/upload_app.py",
+        "--server.port",
+        "8501",
+        "--server.headless",
+        "true"
+      ],
+      "port": 8501
+    }
   ]
 }

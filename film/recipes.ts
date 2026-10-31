@@ -62,9 +62,21 @@ export const recipes: Record<string, Recipe> = {
     // ---- hacker vs hacker
     "hacker-vs-hacker": { title: "HACKER vs HACKER", focus: hacker, sides: [{ hacker: 1 }, { hacker: 1 }] },
     "hacker-vs-scripter": { title: "HACKER vs SCRIPTER", focus: hacker, sides: [{ hacker: 1 }, { scripter: 1 }] },
-    "hacker-vs-5-scripters": { title: "1 HACKER vs 5 SCRIPTERS", focus: hacker, sides: [{ hacker: 1 }, { scripter: 5 }] },
-    "hacker-squad-vs-hacker-squad": { title: "4 HACKERS vs 4 HACKERS", focus: hacker, sides: [{ hacker: 4 }, { hacker: 4 }] },
-    "5-hackers-vs-300-noobs": { title: "5 HACKERS vs 300 NOOBS", focus: hacker, sides: [{ hacker: 5 }, { beginner: 300 }] },
+    "hacker-vs-5-scripters": {
+        title: "1 HACKER vs 5 SCRIPTERS",
+        focus: hacker,
+        sides: [{ hacker: 1 }, { scripter: 5 }],
+    },
+    "hacker-squad-vs-hacker-squad": {
+        title: "4 HACKERS vs 4 HACKERS",
+        focus: hacker,
+        sides: [{ hacker: 4 }, { hacker: 4 }],
+    },
+    "5-hackers-vs-300-noobs": {
+        title: "5 HACKERS vs 300 NOOBS",
+        focus: hacker,
+        sides: [{ hacker: 5 }, { beginner: 300 }],
+    },
     "sniper-hacker-vs-shotgun-hacker": {
         title: "SNIPER HACKER vs SHOTGUN HACKER",
         focus: hacker,
@@ -182,14 +194,24 @@ export const recipes: Record<string, Recipe> = {
         label: "GRENADE MAN",
         sides: [{ advanced: 1 }, { beginner: 50 }],
         bots: tough("advanced"),
-        kits: [{ ...melee("fists"), throwable: "frag", throwableCount: 40, extraThrowables: ["mirv"], perks: ["amped_explosives", "flak_jacket"] }, undefined],
+        kits: [{
+            ...melee("fists"),
+            throwable: "frag",
+            throwableCount: 40,
+            extraThrowables: ["mirv"],
+            perks: ["amped_explosives", "flak_jacket"],
+        }, undefined],
     },
     "snowball-fight": {
         title: "SNOWBALLS ONLY: 1 HACKER vs 50 NOOBS",
         focus: hacker,
         sides: [{ hacker: 1 }, { beginner: 50 }],
         bots: tough("hacker"),
-        kits: [{ ...melee("fists"), throwable: "snowball", throwableCount: 40 }, { ...melee("fists"), throwable: "snowball", throwableCount: 40 }],
+        kits: [{ ...melee("fists"), throwable: "snowball", throwableCount: 40 }, {
+            ...melee("fists"),
+            throwable: "snowball",
+            throwableCount: 40,
+        }],
     },
 };
 
@@ -218,7 +240,13 @@ function view(id: string): ItemView | undefined {
 }
 
 const plural = (n: number, word: string) => `${n} ${word.toUpperCase()}${n === 1 ? "" : "S"}`;
-const levelWord: Record<BotLevel, string> = { beginner: "noob", intermediate: "player", advanced: "pro", hacker: "hacker", scripter: "scripter" };
+const levelWord: Record<BotLevel, string> = {
+    beginner: "noob",
+    intermediate: "player",
+    advanced: "pro",
+    hacker: "hacker",
+    scripter: "scripter",
+};
 
 /** the full kit the match hands a side, or undefined to keep each bot's usual gear */
 export function sideKit(recipe: Recipe, side: number): PrivateLoadout | undefined {
@@ -248,10 +276,20 @@ export function describeSides(recipe: Recipe): [SideView, SideView] {
                 const v = view(id);
                 if (v) items.push(v);
             }
-            items.push(kit.armor ? { name: `Level ${kit.armor} Armor`, icon: `loot-chest-0${kit.armor}.svg` } : { name: "No Armor" });
+            items.push(
+                kit.armor
+                    ? { name: `Level ${kit.armor} Armor`, icon: `loot-chest-0${kit.armor}.svg` }
+                    : { name: "No Armor" },
+            );
         }
         const perkIds = [...(kit?.perks ?? []), ...(levels.some(([l]) => l === "hacker") ? HackerPerks : [])];
         const perks = [...new Set(perkIds)].map(view).filter((v): v is ItemView => !!v);
-        return { name: recipe.names?.[i] ?? (i === 0 ? `TEAM ${recipe.label ?? "HACKER"}` : "THE CHALLENGERS"), who, items, perks, loots: !kit };
+        return {
+            name: recipe.names?.[i] ?? (i === 0 ? `TEAM ${recipe.label ?? "HACKER"}` : "THE CHALLENGERS"),
+            who,
+            items,
+            perks,
+            loots: !kit,
+        };
     }) as [SideView, SideView];
 }

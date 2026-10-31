@@ -114,8 +114,7 @@ await page.exposeFunction("filmFeed", (text: string) => {
     if (victim && victim !== "themselves" && !victims.has(victim)) {
         victims.add(victim);
         kind = "kill";
-    }
-    else if (
+    } else if (
         low.endsWith(`killed ${n}`) || low.includes(`killed ${n} with`)
         || low.startsWith(`${n} died`) || low.startsWith(`${n} was`) || low.startsWith(`${n} killed themselves`)
     ) kind = "hacker_dead";
@@ -160,15 +159,18 @@ await page.addInitScript(() => {
                 rec.ondataavailable = async (e) => {
                     const buf = new Uint8Array(await e.data.arrayBuffer());
                     let bin = "";
-                    for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+                    for (let i = 0; i < buf.length; i += 0x8000) {
+                        bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+                    }
                     (window as any).filmAudio(btoa(bin));
                 };
                 rec.start(1000);
                 (window as any).filmAudioStart();
-                (window as any).filmStopAudio = () => new Promise((r) => {
-                    rec.onstop = () => setTimeout(r, 300);
-                    rec.stop();
-                });
+                (window as any).filmStopAudio = () =>
+                    new Promise((r) => {
+                        rec.onstop = () => setTimeout(r, 300);
+                        rec.stop();
+                    });
             }
             connect.call(this, tap, ...rest);
         }
@@ -210,7 +212,10 @@ await page.goto(`${client}/?u=${encodeURIComponent(u)}&jt=${encodeURIComponent(t
 
 await page.evaluate((bps) => {
     const canvas = document.getElementById("cvs") as HTMLCanvasElement;
-    const rec = new MediaRecorder(canvas.captureStream(60), { mimeType: "video/webm;codecs=vp9", videoBitsPerSecond: bps });
+    const rec = new MediaRecorder(canvas.captureStream(60), {
+        mimeType: "video/webm;codecs=vp9",
+        videoBitsPerSecond: bps,
+    });
     rec.ondataavailable = async (e) => {
         const buf = new Uint8Array(await e.data.arrayBuffer());
         let bin = "";
@@ -227,16 +232,18 @@ await page.evaluate((bps) => {
         const hp = Math.round(parseFloat(bar?.style.width ?? "") || 0);
         if (!health.length || health[health.length - 1][1] !== hp) health.push([Date.now(), hp]);
     }, 100);
-    (window as any).filmStopVideo = () => new Promise((r) => {
-        rec.onstop = () => setTimeout(r, 500);
-        rec.stop();
-    });
+    (window as any).filmStopVideo = () =>
+        new Promise((r) => {
+            rec.onstop = () => setTimeout(r, 500);
+            rec.stop();
+        });
 }, Math.round(height * height * 20));
 const deadline = t0 + maxSecs * 1000;
-const gameOver = () => page.evaluate(() => {
-    const stats = document.getElementById("ui-stats");
-    return !!stats && getComputedStyle(stats).display !== "none";
-});
+const gameOver = () =>
+    page.evaluate(() => {
+        const stats = document.getElementById("ui-stats");
+        return !!stats && getComputedStyle(stats).display !== "none";
+    });
 while (!done && Date.now() < deadline && !(await gameOver())) await page.waitForTimeout(500);
 // a few seconds of aftermath for the outro
 await page.waitForTimeout(4000);
@@ -255,14 +262,34 @@ fs.rmSync(capture);
 for (const e of events) e.t -= videoStart;
 const health = healthRaw.map(([ms, hp]) => [+((ms - t0) / 1000 - videoStart).toFixed(2), hp]);
 if (audioChunks.length) fs.writeFileSync(path.join(outDir, "game.webm"), Buffer.concat(audioChunks));
-fs.writeFileSync(path.join(outDir, "events.json"), JSON.stringify({ name, noobs, title: recipe?.title, focusLabel: recipe?.label, sides: recipe && describeSides(recipe), duration: duration - videoStart, audioStart: audioStart < 0 ? null : audioStart - videoStart, kills, health, events }, null, 2));
+fs.writeFileSync(
+    path.join(outDir, "events.json"),
+    JSON.stringify(
+        {
+            name,
+            noobs,
+            title: recipe?.title,
+            focusLabel: recipe?.label,
+            sides: recipe && describeSides(recipe),
+            duration: duration - videoStart,
+            audioStart: audioStart < 0 ? null : audioStart - videoStart,
+            kills,
+            health,
+            events,
+        },
+        null,
+        2,
+    ),
+);
 const retries = Number(arg("retries", "5"));
 const dud = events.some((e) => e.kind === "hacker_dead") && kills < noobs * 0.3;
 if (dud && recipe && retries > 0) {
     console.log(`\n"${name}" went down after ${kills} kills, re-rolling (${retries} left)`);
     fs.rmSync(outDir, { recursive: true });
     const rest = args.filter((_, i) => args[i] !== "--retries" && args[i - 1] !== "--retries");
-    const r = spawnSync("npx", ["tsx", import.meta.filename, ...rest, "--retries", String(retries - 1)], { stdio: "inherit" });
+    const r = spawnSync("npx", ["tsx", import.meta.filename, ...rest, "--retries", String(retries - 1)], {
+        stdio: "inherit",
+    });
     process.exit(r.status ?? 1);
 }
 console.log(`\n${kills} kills in ${duration.toFixed(0)}s -> ${outDir}\nnext: pnpm run edit "${outDir}"`);

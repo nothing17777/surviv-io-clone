@@ -360,7 +360,12 @@ const shotgun = (damage: number, shotsPerSec: number, capacity: number): GunEffe
 });
 
 /** a rifle on the base AK's default bullet at the Hellraiser's range, firing with the SCAR's sound (damage, shots/s, capacity) */
-const rifle = (damage: number, shotsPerSec: number, capacity: number, fireMode: "auto" | "single" = "auto"): GunEffect => ({
+const rifle = (
+    damage: number,
+    shotsPerSec: number,
+    capacity: number,
+    fireMode: "auto" | "single" = "auto",
+): GunEffect => ({
     bullet: { damage, distance: 40 },
     gun: {
         fireMode,

@@ -1,7 +1,7 @@
 import { expect, test, vi } from "vitest";
 import { BulletDefs } from "../../shared/defs/gameObjects/bulletDefs.ts";
-import { GameObjectDefs } from "../../shared/defs/register.ts";
 import { KitDefs, UltronMinion } from "../../shared/defs/gameObjects/kitDefs.ts";
+import { GameObjectDefs } from "../../shared/defs/register.ts";
 import { GameConfig, TeamMode } from "../../shared/gameConfig.ts";
 import { v2 } from "../../shared/utils/v2.ts";
 import { createGame } from "./gameTestHelpers.ts";
@@ -70,7 +70,7 @@ test("Spider-Man: auto webs the nearest enemy, 3x as often while dodging", () =>
     expect(before - enemy.health).toBeGreaterThanOrEqual(150);
 });
 
-test("Spider-Man: 5 hp/s regen, 20 hp/s after 5 s without damage", () => {
+test("Spider-Man: 2 hp/s regen, 20 hp/s after 5 s without damage", () => {
     const { game, me } = setup("spiderman", v2.create(200, 0));
     me.damage({ amount: 240, damageType: GameConfig.DamageType.Bleeding, dir: v2.create(1, 0) });
     // adrenaline heals on top, the same in both seconds
@@ -80,7 +80,7 @@ test("Spider-Man: 5 hp/s regen, 20 hp/s after 5 s without damage", () => {
     for (let i = 0; i < 50; i++) game.step(0.1);
     hp = me.health;
     for (let i = 0; i < 10; i++) game.step(0.1);
-    expect(me.health - hp - hurt).toBeCloseTo(15, 0);
+    expect(me.health - hp - hurt).toBeCloseTo(18, 0);
 });
 
 test("Wolverine: dashes 16 tiles through an enemy for 50 dmg and a bleed", () => {
@@ -203,9 +203,9 @@ test("Wizard: the enhanced circle marks enemies inside its drawn radius and no o
     expect(outside.enemy.wizardMarked).toBeFalsy();
 });
 
-test("Ultron: shield recovery is 5 per second for 3 energy per second", () => {
+test("Ultron: shield recovery is 2 per second for 3 energy per second", () => {
     const { shieldRegen, shieldCost } = KitDefs.ultron.energy!;
-    expect(shieldRegen).toBe(5);
+    expect(shieldRegen).toBe(2);
     expect(shieldCost).toBe(3);
     expect(KitDefs.wizard.shield).toBe(100);
 });
@@ -345,26 +345,30 @@ test("Wolverine shows his dash cooldown, not his claw swings", () => {
 });
 
 test("kit regen: slow base rates, then the out of combat rate after 5 s without being hit", () => {
+    // a kit on full adrenaline heals this much on top of its own rate
+    const boostRegen = 1.75;
     const rates = {
-        spiderman: { base: 2, calm: 20 },
-        wolverine: { base: 5, calm: 10 },
-        ironman: { base: 0, calm: 5 },
-        ultron: { base: 0, calm: 5 },
+        spiderman: { base: 2, calm: 20, boosted: true },
+        wolverine: { base: 5, calm: 10, boosted: true },
+        ironman: { base: 0, calm: 5, boosted: false },
+        ultron: { base: 0, calm: 5, boosted: false },
     };
     for (const [kit, r] of Object.entries(rates)) {
         const { game, me } = setup(kit, v2.create(60, 0));
         me.energy = 0;
         me.health = 20;
         me.calmTime = 0;
+        const adrenaline = r.boosted ? boostRegen : 0;
         const before = me.health;
-        for (let i = 0; i < 20; i++) game.step(0.05);
+        // game.step runs whole 0.1 s ticks: ten of them is a second
+        for (let i = 0; i < 10; i++) game.step(0.1);
         // the first second is still "in combat": only the base rate (0 for kits without one)
-        expect(me.health - before).toBeCloseTo(r.base, 0);
+        expect(me.health - before).toBeCloseTo(r.base + adrenaline, 1);
 
         me.calmTime = 5;
         const calm = me.health;
-        for (let i = 0; i < 20; i++) game.step(0.05);
-        expect(me.health - calm).toBeCloseTo(r.calm, 0);
+        for (let i = 0; i < 10; i++) game.step(0.1);
+        expect(me.health - calm).toBeCloseTo(r.calm + adrenaline, 1);
     }
     expect(KitDefs.wolverine.lowHealth).toBeUndefined();
 });
@@ -491,7 +495,13 @@ test("War Machine: armor regens 2/s, 8/s after 5 s without being hit", () => {
 test("War Machine: a hit ends the calm, and the shoulder mount's shots are quiet and don't kick his hands", () => {
     const { me, enemy } = setup("warmachine", v2.create(200, 0));
     me.calmTime = 10;
-    me.damage({ amount: 10, damageType: GameConfig.DamageType.Player, dir: v2.create(1, 0), source: enemy, gameSourceType: "ak47" });
+    me.damage({
+        amount: 10,
+        damageType: GameConfig.DamageType.Player,
+        dir: v2.create(1, 0),
+        source: enemy,
+        gameSourceType: "ak47",
+    });
     expect(me.calmTime).toBe(0);
     const gun = GameObjectDefs.typeToDef("kit_warmachine_mount", "gun");
     expect(gun.mounted).toBe(true);

@@ -41,13 +41,25 @@ const FONT = "/System/Library/Fonts/Supplemental/Impact.ttf";
 const ARROWS = "/System/Library/Fonts/Supplemental/Arial Unicode.ttf";
 const SFX = path.join(import.meta.dirname, "..", "client", "public", "audio");
 // the edit is laid out for 1080p and scaled to whatever the recording is
-const [W, H] = spawnSync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", raw])
+const [W, H] = spawnSync("ffprobe", [
+    "-v",
+    "error",
+    "-select_streams",
+    "v:0",
+    "-show_entries",
+    "stream=width,height",
+    "-of",
+    "csv=p=0",
+    raw,
+])
     .stdout.toString().trim().split(",").map(Number);
 const K = H / 1080;
 // scales the pixel numbers in a filter, leaving the words drawn on screen alone
 const px = (filter: string) =>
     filter.split(/(text='[^']*')/).map((part, i) =>
-        i % 2 ? part : part.replace(/(?<![\w.])(\d+)(?![\w.])/g, (n) => (Number(n) >= 6 ? String(Math.round(Number(n) * K)) : n))
+        i % 2
+            ? part
+            : part.replace(/(?<![\w.])(\d+)(?![\w.])/g, (n) => (Number(n) >= 6 ? String(Math.round(Number(n) * K)) : n))
     ).join("");
 /** biggest font (in 1080p units) that keeps a line of Impact inside the frame */
 const fit = (line: string, max: number) => Math.min(max, Math.floor(1750 / (line.length * 0.5)));
@@ -68,7 +80,8 @@ function ff(...a: string[]) {
     if (r.status !== 0) throw new Error(`ffmpeg failed: ${a.join(" ")}`);
 }
 const esc = (s: string) => s.replace(/\\/g, "\\\\").replace(/:/g, "\\:").replace(/'/g, "\u2019").replace(/%/g, "\\%");
-const text = (t: string, opts: string) => `drawtext=fontfile=${FONT}:text='${esc(t)}':borderw=8:bordercolor=black:${opts}`;
+const text = (t: string, opts: string) =>
+    `drawtext=fontfile=${FONT}:text='${esc(t)}':borderw=8:bordercolor=black:${opts}`;
 const f3 = (n: number) => n.toFixed(3);
 
 const kills = info.events.filter((e) => e.kind === "kill").map((e) => e.t);
@@ -123,39 +136,92 @@ segs.forEach((g, i) => {
         ? ["-ss", f3(Math.max(0, g.s - info.audioStart!)), "-t", dur, "-i", gameAudio]
         : ["-f", "lavfi", "-t", dur, "-i", "anullsrc=r=48000:cl=stereo"];
     ff(
-        "-ss", f3(g.s), "-t", dur, "-i", raw, ...audioIn,
-        "-filter_complex", `[0:v]${zoom}setpts=PTS/${g.speed},fps=60,format=yuv420p[v];[1:a]aresample=48000,${atempo(g.speed)},apad[a]`,
-        "-map", "[v]", "-map", "[a]", "-t", f3((g.e - g.s) / g.speed),
-        "-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-c:a", "aac", "-ar", "48000", "-ac", "2", f,
+        "-ss",
+        f3(g.s),
+        "-t",
+        dur,
+        "-i",
+        raw,
+        ...audioIn,
+        "-filter_complex",
+        `[0:v]${zoom}setpts=PTS/${g.speed},fps=60,format=yuv420p[v];[1:a]aresample=48000,${atempo(g.speed)},apad[a]`,
+        "-map",
+        "[v]",
+        "-map",
+        "[a]",
+        "-t",
+        f3((g.e - g.s) / g.speed),
+        "-c:v",
+        "libx264",
+        "-preset",
+        "veryfast",
+        "-crf",
+        "17",
+        "-c:a",
+        "aac",
+        "-ar",
+        "48000",
+        "-ac",
+        "2",
+        f,
     );
     list.push(`file '${f}'`);
 });
 const intro = path.join(work, "intro.mp4");
 ff(
-    "-f", "lavfi", "-i", `color=c=0x111111:s=${W}x${H}:r=60:d=${TITLE}`,
-    "-f", "lavfi", "-t", String(TITLE), "-i", "anullsrc=r=48000:cl=stereo",
-    "-vf", px([
+    "-f",
+    "lavfi",
+    "-i",
+    `color=c=0x111111:s=${W}x${H}:r=60:d=${TITLE}`,
+    "-f",
+    "lavfi",
+    "-t",
+    String(TITLE),
+    "-i",
+    "anullsrc=r=48000:cl=stereo",
+    "-vf",
+    px([
         text(title, `fontsize=${fit(title, 150)}:fontcolor=white:x=(w-tw)/2:y=(h-th)/2-60:alpha='min(1,t*3)'`),
         text("WHO WINS?", `fontsize=90:fontcolor=0xffd400:x=(w-tw)/2:y=(h/2)+90:enable='gt(t,1)'`),
     ].join(",")),
-    "-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-pix_fmt", "yuv420p", "-c:a", "aac", "-ar", "48000", "-ac", "2", intro,
+    "-c:v",
+    "libx264",
+    "-preset",
+    "veryfast",
+    "-crf",
+    "17",
+    "-pix_fmt",
+    "yuv420p",
+    "-c:a",
+    "aac",
+    "-ar",
+    "48000",
+    "-ac",
+    "2",
+    intro,
 );
 const listFile = path.join(work, "list.txt");
 // ---- loadout screen: a card per side, drawn as a web page so the game's own item icons can be used
 const LOOT = path.join(import.meta.dirname, "..", "client", "public", "img", "loot");
 const cardHtml = (side: SideView, color: string, compact = false) => {
     const item = (v: { name: string; icon?: string }) =>
-        `<div class="item">${v.icon ? `<img src="file://${path.join(LOOT, v.icon)}">` : `<div class="none">✕</div>`}${compact ? "" : `<span>${v.name}</span>`}</div>`;
+        `<div class="item">${v.icon ? `<img src="file://${path.join(LOOT, v.icon)}">` : `<div class="none">✕</div>`}${
+            compact ? "" : `<span>${v.name}</span>`
+        }</div>`;
     return `<html><head><style>
 @font-face { font-family: Impact; src: url("file://${FONT}"); }
 html, body { margin: 0; background: transparent; }
 .card { display: inline-block; font-family: Impact; color: white; background: rgba(12,14,20,.86);
-  border: ${6 * K}px solid ${color}; border-radius: ${22 * K}px; padding: ${compact ? 14 * K : 34 * K}px ${compact ? 18 * K : 40 * K}px;
+  border: ${6 * K}px solid ${color}; border-radius: ${22 * K}px; padding: ${compact ? 14 * K : 34 * K}px ${
+        compact ? 18 * K : 40 * K
+    }px;
   box-shadow: 0 0 ${40 * K}px ${color}88; ${compact ? "" : `width: ${700 * K}px;`} }
 h1 { margin: 0; font-size: ${74 * K}px; color: ${color}; letter-spacing: 1px; -webkit-text-stroke: ${2 * K}px black; }
 h2 { margin: ${4 * K}px 0 ${22 * K}px; font-size: ${44 * K}px; font-weight: normal; }
 .items { display: flex; flex-wrap: ${compact ? "nowrap" : "wrap"}; gap: ${compact ? 10 * K : 18 * K}px; }
-.item { display: flex; align-items: center; gap: ${12 * K}px; background: rgba(255,255,255,.08); border-radius: ${14 * K}px;
+.item { display: flex; align-items: center; gap: ${12 * K}px; background: rgba(255,255,255,.08); border-radius: ${
+        14 * K
+    }px;
   padding: ${8 * K}px ${16 * K}px ${8 * K}px ${8 * K}px; font-size: ${34 * K}px; }
 .item img, .none { width: ${compact ? 64 * K : 84 * K}px; height: ${compact ? 64 * K : 84 * K}px; object-fit: contain;
   filter: drop-shadow(0 0 ${4 * K}px black); }
@@ -166,7 +232,11 @@ h3 { margin: ${26 * K}px 0 ${12 * K}px; font-size: ${36 * K}px; font-weight: nor
 ${
         compact
             ? `<div class="items">${[...side.items, ...side.perks].map(item).join("")}</div>`
-            : `${side.loots ? `<div class="loots">🎒 LOOTS THE MAP</div>` : `<div class="items">${side.items.map(item).join("")}</div>`}
+            : `${
+                side.loots
+                    ? `<div class="loots">🎒 LOOTS THE MAP</div>`
+                    : `<div class="items">${side.items.map(item).join("")}</div>`
+            }
 ${side.perks.length ? `<h3>PERKS</h3><div class="items">${side.perks.map(item).join("")}</div>` : ""}`
     }
 </div></body></html>`;
@@ -194,21 +264,62 @@ if (info.sides) {
 
     // the cards slide in over a blurred, darkened first frame of the match
     const loadout = path.join(work, "loadout.mp4");
-    const slide = (from: string, to: string, at: number) => `if(lt(t,${at}),${from},if(lt(t,${at + 0.35}),${from}+(${to}-(${from}))*(t-${at})/0.35,${to}))`;
+    const slide = (from: string, to: string, at: number) =>
+        `if(lt(t,${at}),${from},if(lt(t,${at + 0.35}),${from}+(${to}-(${from}))*(t-${at})/0.35,${to}))`;
     ff(
-        "-ss", f3(start), "-i", raw, "-loop", "1", "-i", cards[0], "-loop", "1", "-i", cards[1],
-        "-f", "lavfi", "-t", String(LOAD), "-i", "anullsrc=r=48000:cl=stereo",
-        "-filter_complex", [
-            `[0:v]trim=end_frame=1,loop=loop=-1:size=1,setpts=N/60/TB,fps=60,scale=${W}:${H},gblur=sigma=${20 * K},eq=brightness=-0.25[bg]`,
+        "-ss",
+        f3(start),
+        "-i",
+        raw,
+        "-loop",
+        "1",
+        "-i",
+        cards[0],
+        "-loop",
+        "1",
+        "-i",
+        cards[1],
+        "-f",
+        "lavfi",
+        "-t",
+        String(LOAD),
+        "-i",
+        "anullsrc=r=48000:cl=stereo",
+        "-filter_complex",
+        [
+            `[0:v]trim=end_frame=1,loop=loop=-1:size=1,setpts=N/60/TB,fps=60,scale=${W}:${H},gblur=sigma=${
+                20 * K
+            },eq=brightness=-0.25[bg]`,
             `[bg][1:v]overlay=x='${slide("-w", `W*0.25-w/2`, 0.15)}':y='max((H-h)/2+${40 * K},${170 * K})'[a]`,
             `[a][2:v]overlay=x='${slide("W", `W*0.75-w/2`, 0.35)}':y='max((H-h)/2+${40 * K},${170 * K})'[b]`,
-            `[b]${px([
-                text("LOADOUTS", "fontsize=110:fontcolor=white:x=(w-tw)/2:y=30"),
-                text("VS", "fontsize=150:fontcolor=0xffd400:x=(w-tw)/2:y=(h-th)/2+40:enable='gt(t,0.7)'"),
-            ].join(","))},format=yuv420p[v]`,
+            `[b]${
+                px([
+                    text("LOADOUTS", "fontsize=110:fontcolor=white:x=(w-tw)/2:y=30"),
+                    text("VS", "fontsize=150:fontcolor=0xffd400:x=(w-tw)/2:y=(h-th)/2+40:enable='gt(t,0.7)'"),
+                ].join(","))
+            },format=yuv420p[v]`,
         ].join(";"),
-        "-map", "[v]", "-map", "3:a", "-t", String(LOAD), "-r", "60",
-        "-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-c:a", "aac", "-ar", "48000", "-ac", "2", loadout,
+        "-map",
+        "[v]",
+        "-map",
+        "3:a",
+        "-t",
+        String(LOAD),
+        "-r",
+        "60",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "veryfast",
+        "-crf",
+        "17",
+        "-c:a",
+        "aac",
+        "-ar",
+        "48000",
+        "-ac",
+        "2",
+        loadout,
     );
     sequence.push(loadout);
 }
@@ -227,18 +338,35 @@ segs.forEach((g) => {
     const a = outTime(g.s);
     const b = outTime(g.e);
     const tag = g.speed > 1 ? ">> 3X" : "SLOW-MO";
-    draw.push(text(tag, `fontsize=54:fontcolor=white@0.85:borderw=5:x=(w-tw)/2:y=40:enable='between(t,${f3(a)},${f3(b)})'`));
+    draw.push(
+        text(tag, `fontsize=54:fontcolor=white@0.85:borderw=5:x=(w-tw)/2:y=40:enable='between(t,${f3(a)},${f3(b)})'`),
+    );
 });
 killOut.forEach((t, i) => {
     const next = killOut[i + 1] ?? total;
     draw.push(
         text(`KILLS ${i + 1}`, `fontsize=72:fontcolor=white:x=50:y=40:enable='between(t,${f3(t)},${f3(next)})'`),
-        text(`ALIVE ${Math.max(0, info.noobs - i - 1)}`, `fontsize=56:fontcolor=0x9be7ff:borderw=5:x=50:y=125:enable='between(t,${f3(t)},${f3(Math.min(next, body))})'`),
-        text("+1", `fontsize='110+160*max(0,0.12-(t-${f3(t)}))':fontcolor=0xff3030:x=(w-tw)/2+260:y=(h/2)-200-(t-${f3(t)})*80:enable='between(t,${f3(t)},${f3(t + 0.7)})'`),
+        text(
+            `ALIVE ${Math.max(0, info.noobs - i - 1)}`,
+            `fontsize=56:fontcolor=0x9be7ff:borderw=5:x=50:y=125:enable='between(t,${f3(t)},${
+                f3(Math.min(next, body))
+            })'`,
+        ),
+        text(
+            "+1",
+            `fontsize='110+160*max(0,0.12-(t-${f3(t)}))':fontcolor=0xff3030:x=(w-tw)/2+260:y=(h/2)-200-(t-${
+                f3(t)
+            })*80:enable='between(t,${f3(t)},${f3(t + 0.7)})'`,
+        ),
         `drawbox=x=0:y=0:w=iw:h=ih:color=white@0.35:t=fill:enable='between(t,${f3(t)},${f3(t + 0.06)})'`,
     );
     if (milestone(i) && i !== kills.length - 1) {
-        draw.push(text(`${i + 1} KILLS!`, `fontsize=140:fontcolor=0xffd400:x=(w-tw)/2:y=h*0.18:enable='between(t,${f3(t)},${f3(t + 1.6)})'`));
+        draw.push(
+            text(
+                `${i + 1} KILLS!`,
+                `fontsize=140:fontcolor=0xffd400:x=(w-tw)/2:y=h*0.18:enable='between(t,${f3(t)},${f3(t + 1.6)})'`,
+            ),
+        );
     }
 });
 // health bar of whoever the camera follows, bottom centre like the game's own
@@ -248,14 +376,18 @@ const hpSteps = (info.health ?? []).filter(([, hp], i, all) =>
 );
 if (hpSteps.length) {
     // bottom right: the gear strip owns the bottom left
-    draw.push(`drawbox=x=iw-586:y=ih-96:w=532:h=40:color=black@0.6:t=fill:enable='between(t,${f3(INTRO)},${f3(body)})'`);
+    draw.push(
+        `drawbox=x=iw-586:y=ih-96:w=532:h=40:color=black@0.6:t=fill:enable='between(t,${f3(INTRO)},${f3(body)})'`,
+    );
     hpSteps.forEach(([t, hp], i) => {
         const a = Math.max(outTime(t), INTRO);
         const b = Math.min(i + 1 < hpSteps.length ? outTime(hpSteps[i + 1][0]) : body, body);
         if (b <= a) return;
         const color = hp > 50 ? "0x55dd55" : hp > 25 ? "0xffcc33" : "0xff3a3a";
         const on = `enable='between(t,${f3(a)},${f3(b)})'`;
-        if (hp > 0) draw.push(`drawbox=x=iw-580:y=ih-90:w=${Math.round(520 * hp / 100)}:h=28:color=${color}:t=fill:${on}`);
+        if (hp > 0) {
+            draw.push(`drawbox=x=iw-580:y=ih-90:w=${Math.round(520 * hp / 100)}:h=28:color=${color}:t=fill:${on}`);
+        }
         draw.push(text(`HP ${hp}`, `fontsize=44:fontcolor=white:borderw=5:x=w-600-tw:y=h-100:${on}`));
     });
 }
@@ -263,24 +395,56 @@ if (hpSteps.length) {
 // Gamerio-style callout pointing at the star, then narrator captions on the big moments
 // (the camera keeps the star in the middle of the frame)
 draw.push(
-    text(info.focusLabel ?? "HACKER", `fontsize=110:fontcolor=white:x=(w/2)-tw-170:y=(h/2)-250:enable='between(t,${f3(INTRO)},${f3(INTRO + 3)})'`),
-    `drawtext=fontfile='${ARROWS}':text='➘':fontsize=200:fontcolor=white:borderw=8:bordercolor=black:x=(w/2)-200:y=(h/2)-200:enable='between(t,${f3(INTRO)},${f3(INTRO + 3)})'`,
+    text(
+        info.focusLabel ?? "HACKER",
+        `fontsize=110:fontcolor=white:x=(w/2)-tw-170:y=(h/2)-250:enable='between(t,${f3(INTRO)},${f3(INTRO + 3)})'`,
+    ),
+    `drawtext=fontfile='${ARROWS}':text='➘':fontsize=200:fontcolor=white:borderw=8:bordercolor=black:x=(w/2)-200:y=(h/2)-200:enable='between(t,${
+        f3(INTRO)
+    },${f3(INTRO + 3)})'`,
 );
-const lines = (n: number) => [`${n} down. He's just warming up.`, "This is not fair anymore", "The noobs are panicking", "Nobody can stop him", "Is this even legal?"][Math.floor(n / 10) - 1] ?? "He's still going...";
+const lines = (n: number) =>
+    [
+        `${n} down. He's just warming up.`,
+        "This is not fair anymore",
+        "The noobs are panicking",
+        "Nobody can stop him",
+        "Is this even legal?",
+    ][Math.floor(n / 10) - 1] ?? "He's still going...";
 const captions: [number, string][] = [];
 if (killOut[0] !== undefined) captions.push([killOut[0], "First blood."]);
 killOut.forEach((t, i) => milestone(i) && i !== kills.length - 1 && captions.push([t + 1.6, lines(i + 1)]));
-const knocked = info.events.find((e) => e.kind === "feed" && /knocked out/i.test(e.text) && e.text.toLowerCase().endsWith(`out ${info.name?.toLowerCase()}`));
+const knocked = info.events.find((e) =>
+    e.kind === "feed" && /knocked out/i.test(e.text) && e.text.toLowerCase().endsWith(`out ${info.name?.toLowerCase()}`)
+);
 if (knocked) captions.push([outTime(knocked.t), "WAIT WHAT"]);
 if (hackerDead) captions.push([outTime(hackerDead), "NO WAY."]);
 for (const [t, line] of captions) {
-    draw.push(text(line, `fontsize=64:fontcolor=white:borderw=6:box=1:boxcolor=black@0.45:boxborderw=18:x=(w-tw)/2:y=h-th-260:enable='between(t,${f3(t)},${f3(t + 2.2)})'`));
+    draw.push(
+        text(
+            line,
+            `fontsize=64:fontcolor=white:borderw=6:box=1:boxcolor=black@0.45:boxborderw=18:x=(w-tw)/2:y=h-th-260:enable='between(t,${
+                f3(t)
+            },${f3(t + 2.2)})'`,
+        ),
+    );
 }
 draw.push(
-    text(`ALIVE ${info.noobs}`, `fontsize=56:fontcolor=0x9be7ff:borderw=5:x=50:y=125:enable='between(t,${INTRO},${f3(killOut[0] ?? body)})'`),
+    text(
+        `ALIVE ${info.noobs}`,
+        `fontsize=56:fontcolor=0x9be7ff:borderw=5:x=50:y=125:enable='between(t,${INTRO},${f3(killOut[0] ?? body)})'`,
+    ),
     `drawbox=x=0:y=0:w=iw:h=ih:color=black@0.55:t=fill:enable='gt(t,${f3(body)})'`,
-    text(outroText, `fontsize=${fit(outroText, 150)}:fontcolor=${won ? "0xff3030" : "0xffd400"}:x=(w-tw)/2:y=(h-th)/2-50:enable='gt(t,${f3(body)})'`),
-    text("SUBSCRIBE FOR PART 2", `fontsize=70:fontcolor=white:borderw=5:x=(w-tw)/2:y=(h/2)+110:enable='gt(t,${f3(body + 1)})'`),
+    text(
+        outroText,
+        `fontsize=${fit(outroText, 150)}:fontcolor=${
+            won ? "0xff3030" : "0xffd400"
+        }:x=(w-tw)/2:y=(h-th)/2-50:enable='gt(t,${f3(body)})'`,
+    ),
+    text(
+        "SUBSCRIBE FOR PART 2",
+        `fontsize=70:fontcolor=white:borderw=5:x=(w-tw)/2:y=(h/2)+110:enable='gt(t,${f3(body + 1)})'`,
+    ),
     `fade=t=out:st=${f3(total - 0.8)}:d=0.8`,
 );
 
@@ -300,7 +464,11 @@ const sfx: { file: string; t: number; vol: number }[] = [
 killOut.forEach((t, i) => {
     sfx.push({ file: "hits/player_bullet_hit_01.mp3", t, vol: 1.3 });
     if (milestone(i)) {
-        sfx.push({ file: "ui/kill_leader_assigned_01.mp3", t, vol: 1.1 }, { file: "sfx/explosion_02.mp3", t, vol: 0.7 });
+        sfx.push({ file: "ui/kill_leader_assigned_01.mp3", t, vol: 1.1 }, {
+            file: "sfx/explosion_02.mp3",
+            t,
+            vol: 0.7,
+        });
     }
 });
 segs.forEach((g, i) => {
@@ -308,7 +476,8 @@ segs.forEach((g, i) => {
     if (g.speed > 1 && segs[i + 1]) sfx.push({ file: "sfx/bullet_whiz_02.mp3", t: outTime(g.e) - 0.25, vol: 0.8 });
 });
 // meme sounds you supply yourself (vine boom, airhorn, bruh...): film/sfx/boom.mp3, airhorn.mp3, bruh.mp3
-const meme = (n: string) => ["mp3", "wav", "m4a"].map((x) => path.join(import.meta.dirname, "sfx", `${n}.${x}`)).find((f) => fs.existsSync(f));
+const meme = (n: string) =>
+    ["mp3", "wav", "m4a"].map((x) => path.join(import.meta.dirname, "sfx", `${n}.${x}`)).find((f) => fs.existsSync(f));
 const boom = meme("boom");
 const airhorn = meme("airhorn");
 const bruh = meme("bruh");
@@ -322,7 +491,9 @@ ff("-f", "lavfi", "-i", "sine=f=70:d=0.3", "-af", "afade=t=out:st=0:d=0.3,volume
 killOut.forEach((t) => sfx.push({ file: thump, t, vol: 1 }));
 
 const musicDir = path.join(import.meta.dirname, "music");
-const music = fs.existsSync(musicDir) ? fs.readdirSync(musicDir).filter((f) => /\.(mp3|m4a|wav|ogg)$/i.test(f)).sort() : [];
+const music = fs.existsSync(musicDir)
+    ? fs.readdirSync(musicDir).filter((f) => /\.(mp3|m4a|wav|ogg)$/i.test(f)).sort()
+    : [];
 const inputs = ["-i", joined];
 const inputCount = () => inputs.filter((x) => x === "-i").length;
 // the star's gear stays in the corner while they play
@@ -332,10 +503,15 @@ const labels = ["[game]"];
 if (music.length) {
     const ml = path.join(work, "music.txt");
     // repeat the playlist until it covers the video
-    fs.writeFileSync(ml, Array.from({ length: 20 }, () => music.map((m) => `file '${path.join(musicDir, m)}'`)).flat().join("\n"));
+    fs.writeFileSync(
+        ml,
+        Array.from({ length: 20 }, () => music.map((m) => `file '${path.join(musicDir, m)}'`)).flat().join("\n"),
+    );
     const idx = inputCount();
     inputs.push("-f", "concat", "-safe", "0", "-i", ml);
-    mixes.push(`[${idx}:a]atrim=0:${f3(total)},volume=0.45,afade=t=in:st=0:d=0.5,afade=t=out:st=${f3(total - 2)}:d=2[music]`);
+    mixes.push(
+        `[${idx}:a]atrim=0:${f3(total)},volume=0.45,afade=t=in:st=0:d=0.5,afade=t=out:st=${f3(total - 2)}:d=2[music]`,
+    );
     labels.push("[music]");
 }
 sfx.forEach((s, i) => {
@@ -346,10 +522,14 @@ sfx.forEach((s, i) => {
 });
 const graph = [
     strip
-        ? `[0:v]${px(draw.join(",\n"))}[drawn];[drawn][1:v]overlay=x=${Math.round(40 * K)}:y=H-h-${Math.round(40 * K)}:enable='between(t,${f3(INTRO)},${f3(body)})'[vout]`
+        ? `[0:v]${px(draw.join(",\n"))}[drawn];[drawn][1:v]overlay=x=${Math.round(40 * K)}:y=H-h-${
+            Math.round(40 * K)
+        }:enable='between(t,${f3(INTRO)},${f3(body)})'[vout]`
         : `[0:v]${px(draw.join(",\n"))}[vout]`,
     ...mixes,
-    `${labels.join("")}amix=inputs=${labels.length}:normalize=0:duration=first,apad=whole_dur=${f3(total)},atrim=0:${f3(total)},`
+    `${labels.join("")}amix=inputs=${labels.length}:normalize=0:duration=first,apad=whole_dur=${f3(total)},atrim=0:${
+        f3(total)
+    },`
     + "alimiter=limit=0.95,loudnorm=I=-14:TP=-1.5:LRA=11[aout]",
 ].join(";\n");
 const graphFile = path.join(work, "graph.txt");
@@ -358,10 +538,31 @@ fs.writeFileSync(graphFile, graph);
 const out = path.join(dir, "final.mp4");
 ff(
     ...inputs,
-    "-/filter_complex", graphFile,
-    "-map", "[vout]", "-map", "[aout]",
-    "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p",
-    "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart", "-t", f3(total), out,
+    "-/filter_complex",
+    graphFile,
+    "-map",
+    "[vout]",
+    "-map",
+    "[aout]",
+    "-c:v",
+    "libx264",
+    "-preset",
+    "medium",
+    "-crf",
+    "18",
+    "-pix_fmt",
+    "yuv420p",
+    "-c:a",
+    "aac",
+    "-b:a",
+    "192k",
+    "-ar",
+    "48000",
+    "-movflags",
+    "+faststart",
+    "-t",
+    f3(total),
+    out,
 );
 
 // ---- 4. thumbnail: the busiest moment, punched in and saturated, with the matchup in huge type
@@ -371,8 +572,14 @@ const busiest = kills.reduce((best, k) => {
 }, { k: kills[0] ?? info.duration / 2, n: 0 }).k;
 const [left, right] = title.includes(" vs ") ? title.split(" vs ") : [title, ""];
 ff(
-    "-ss", f3(busiest), "-i", raw, "-frames:v", "1",
-    "-vf", [
+    "-ss",
+    f3(busiest),
+    "-i",
+    raw,
+    "-frames:v",
+    "1",
+    "-vf",
+    [
         "crop=iw*0.45:ih*0.45,scale=1280:720",
         "eq=saturation=1.7:contrast=1.2:brightness=0.03",
         "vignette=PI/4",
@@ -397,7 +604,15 @@ const played: string[] = [];
 for (let t = 0, i = 0; music.length && t < total; i++) {
     const m = music[i % music.length];
     if (!played.includes(m)) played.push(m);
-    const probe = spawnSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", path.join(musicDir, m)]);
+    const probe = spawnSync("ffprobe", [
+        "-v",
+        "error",
+        "-show_entries",
+        "format=duration",
+        "-of",
+        "csv=p=0",
+        path.join(musicDir, m),
+    ]);
     t += Number(probe.stdout.toString()) || total;
 }
 const credits = played.length
@@ -405,9 +620,17 @@ const credits = played.length
     : "(no music used)";
 fs.writeFileSync(
     path.join(dir, "description.txt"),
-    `${title} | Surviv.io\n\n${won ? `The hacker took out ${kills.length} players. Who's next?` : `${kills.length} kills... and then the hacker fell.`}\n`
+    `${title} | Surviv.io\n\n${
+        won
+            ? `The hacker took out ${kills.length} players. Who's next?`
+            : `${kills.length} kills... and then the hacker fell.`
+    }\n`
         + `\n➖➖➖➖➖➖➖➖➖➖\n🎵 Music in this video:\n\n${credits}\n➖➖➖➖➖➖➖➖➖➖\n\n#survivio #iogames #hacker\n`,
 );
 
-console.log(`\n${kills.length} kills, ${total.toFixed(0)}s\n  ${out}\n  ${path.join(dir, "thumbnail.jpg")}\n  ${path.join(dir, "description.txt")}`);
+console.log(
+    `\n${kills.length} kills, ${total.toFixed(0)}s\n  ${out}\n  ${path.join(dir, "thumbnail.jpg")}\n  ${
+        path.join(dir, "description.txt")
+    }`,
+);
 if (!music.length) console.log("(no music: put NCS tracks in film/music/ and re-run)");
