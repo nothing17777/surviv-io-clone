@@ -52,17 +52,6 @@ const Notes: Record<string, string> = {
     pg_double_barreled_shotgun: "Two big blasts, then reload.",
     pg_napalmcannon: "Rocket that leaves fire burning for 3 s.",
     tr_sdmg: "Insanely fast, glowing shots.",
-    pg_duck_hunter: "Sets whoever it hits on fire for 3 s.",
-    pg_pyro_1116: "Sets whoever it hits on fire for 2 s.",
-    pg_poisonous_vine: "Poisons whoever it hits for 2 s.",
-    pg_plasmatic_digger: "Sets whoever it hits on fire for 2 s.",
-    pg_liquid_fire: "Sets whoever it hits on fire for 2 s.",
-    pg_large_caliber_machine_gun: "Makes whoever it hits bleed for 2 s.",
-    pg_glitched_machine_gun: "Makes whoever it hits bleed, burn and take poison for 1 s each.",
-    pg_combat_overlords: "Makes whoever it hits bleed for 2 s.",
-    pg_black_mamba: "Poisons whoever it hits for 2 s.",
-    pg_devastator: "Nine pellets that set whoever they hit on fire for 3 s.",
-    pg_debts_collector: "Nine pellets that make whoever they hit bleed for 4 s. Two shells, then reload.",
 };
 
 type Tab = "gun" | "melee";
