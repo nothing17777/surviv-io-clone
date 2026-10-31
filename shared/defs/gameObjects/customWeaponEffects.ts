@@ -335,15 +335,21 @@ export const GunEffects: Record<string, GunEffect> = {
 /** tweaks to one weapon on top of its effect, from its wiki page */
 export const GunOverrides: Record<string, GunEffect> = {
     // Fake Pistol: a single fire shotgun pistol with the Ultimatum's pellets, spread and pellet speed, but range 70 and
-    // pellets that stop at walls: 12 pellets x 15 dmg, 1.2 shots/s, 8 rounds, bleeds for 3 s (see Player.damage)
+    // pellets that stop at walls, drawn purple: 12 pellets x 15 dmg, 1.2 shots/s, 8 rounds, bleeds for 3 s (see
+    // Player.damage)
     pg_fake_pistol: {
-        bullet: { damage: 15, distance: 70, speed: 200, falloff: 0.85, pierce: false },
+        bullet: { damage: 15, distance: 70, speed: 200, falloff: 0.85, pierce: false, tracerColor: "cw_magic" },
         gun: {
             fireMode: "single",
             fireDelay: 0.833,
             bulletCount: 12,
             shotSpread: 3,
             moveSpread: 5,
+            // the Ultimatum's recoil: the spread is never cancelled (the pistol's own 0.5 s recoil made every
+            // shot, 0.83 s apart, a dead centre one) and the pellets start spread out; fire rate is fireDelay alone
+            recoilTime: 1e10,
+            jitter: 1,
+            reloadTime: 1.3,
             maxClip: 8,
             maxReload: 8,
             extendedClip: 8,
