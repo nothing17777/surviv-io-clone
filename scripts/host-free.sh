@@ -114,9 +114,24 @@ watchdog() {
     done
 }
 
+# Run the BUILT server, not tsx. Transpiling every file on the fly and keeping two `tsx watch`
+# watchers over ./src and ../shared costs CPU and most of a small box's memory, which is what put
+# the live server into swap and gave it multi-second ticks. gameProcessManager forks
+# dist/gameProcess.js by itself once the server it runs from is .js, so each game child drops tsx
+# too. If the build fails, fall back to the dev servers so the game still comes up.
+API_CMD="cd server && pnpm start:api"
+GAME_CMD="cd server && pnpm start:game"
+if (cd server && pnpm build); then
+    echo "Running the built server from server/dist"
+else
+    echo "Server build failed, falling back to the dev servers"
+    API_CMD="cd server && pnpm dev:api"
+    GAME_CMD="cd server && pnpm dev:game"
+fi
+
 supervise "game proxy" "exec node scripts/gameProxy.mjs" "$RUN/proxy.pid" 8002 &
-supervise "api server" "cd server && pnpm dev:api" "$RUN/api.pid" 8000 &
-supervise "game server" "cd server && pnpm dev:game" "$RUN/game.pid" 8001 &
+supervise "api server" "$API_CMD" "$RUN/api.pid" 8000 &
+supervise "game server" "$GAME_CMD" "$RUN/game.pid" 8001 &
 watchdog "api server" "http://127.0.0.1:8000/api/site_info" "$RUN/api.pid" &
 watchdog "game server" "http://127.0.0.1:8001/health" "$RUN/game.pid" &
 wait
