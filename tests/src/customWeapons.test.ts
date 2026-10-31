@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { CustomGuns, CustomMelees } from "../../shared/defs/gameObjects/customWeaponDefs.ts";
 import { SwingShots } from "../../shared/defs/gameObjects/customWeaponEffects.ts";
 import { GameObjectDefs } from "../../shared/defs/register.ts";
@@ -76,3 +76,48 @@ for (const [id] of CustomMelees) {
         expect(close).toBeGreaterThan(0);
     });
 }
+
+test("pg_fake_pistol fires 12 pellets of 15, 1.2 shots/s, 8 rounds, and bleeds for 3 s", () => {
+    const def = GameObjectDefs.typeToDef("pg_fake_pistol", "gun");
+    expect(def.bulletCount).toBe(12);
+    expect(def.shotSpread).toBe(3);
+    expect(def.moveSpread).toBe(5);
+    expect(def.maxClip).toBe(8);
+    expect(def.fireMode).toBe("single");
+    expect(1 / def.fireDelay).toBeCloseTo(1.2, 2);
+    const bullet = GameObjectDefs.typeToDef(def.bulletType, "bullet");
+    expect(bullet.damage).toBe(15);
+    // range 70, the Ultimatum's pellet speed, a little damage lost over distance, and nothing passes through walls
+    expect(bullet.distance).toBe(70);
+    expect(bullet.speed).toBe(200);
+    expect(bullet.falloff).toBe(0.85);
+    expect(bullet.pierce).toBeFalsy();
+
+    const game = createGame(TeamMode.Solo, "test_normal");
+    const shooter = game.playerBarn.addTestPlayer({});
+    const target = game.playerBarn.addTestPlayer({});
+    shooter.pos = v2.create(game.map.width / 2, 30);
+    target.pos = v2.add(shooter.pos, v2.create(6, 0));
+    for (const p of [shooter, target]) game.grid.updateObject(p);
+    const fire = vi.spyOn(game.bulletBarn, "fireBullet");
+    shooter.weaponManager.setWeapon(WeaponSlot.Primary, "pg_fake_pistol", 8);
+    shooter.weaponManager.setCurWeapIndex(WeaponSlot.Primary, true);
+    // let it finish equipping, then pull the trigger for one tick (game.step runs whole 0.1 s ticks)
+    for (let i = 0; i < 5; i++) game.step(0.05);
+    shooter.dir = v2.create(1, 0);
+    shooter.toMouseLen = 6;
+    shooter.shootStart = true;
+    shooter.shootHold = true;
+    game.step(0.05);
+    // holding the trigger for another second still fires only the one shot
+    shooter.shootStart = false;
+    for (let i = 0; i < 10; i++) game.step(0.05);
+    shooter.shootHold = false;
+    const pellets = fire.mock.calls.filter((c) => c[0].gameSourceType === "pg_fake_pistol");
+    expect(pellets.length).toBe(12);
+    for (let i = 0; i < 5; i++) game.step(0.05);
+    expect(target.burnDuration).toBe(0);
+    expect(target.bleeding).toBe(true);
+    expect(target.bleedDotDuration).toBeGreaterThan(2);
+    expect(target.bleedDotDuration).toBeLessThanOrEqual(3);
+});
