@@ -13,6 +13,7 @@ import { util } from "../../../shared/utils/util.ts";
 import { v2 } from "../../../shared/utils/v2.ts";
 import { Config } from "../config.ts";
 
+import { protocolVersion } from "../../../shared/net/protocol.ts";
 import type { Game, JoinTokenData, SpectateTokenData } from "./game.ts";
 import type { GameObject } from "./objects/gameObject.ts";
 import type { MapIndicator } from "./objects/mapIndicator.ts";
@@ -124,7 +125,7 @@ export class ClientBarn {
                 const oldIdx = stream.index;
                 const protocol = stream.readUint32();
 
-                if (protocol !== GameConfig.protocolVersion) {
+                if (protocol !== protocolVersion) {
                     return {
                         type: net.MsgType.Join,
                         msg: undefined,

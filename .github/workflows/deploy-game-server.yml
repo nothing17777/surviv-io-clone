@@ -1,0 +1,51 @@
+name: Deploy game server
+
+# Vercel rebuilds the client on every push to main. The VPS game server has to
+# follow immediately, because def wire ids come from registration order: a
+# client and server built from different commits disagree about every item id.
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-game-server
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to the VPS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          if [ -z "$SSH_KEY" ]; then
+            echo "VPS_SSH_KEY is not set; the box's own timer will pick the push up within a minute."
+            exit 0
+          fi
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes "$VPS_USER@$VPS_HOST" \
+            'cd ~/surviv-io-clone && ./scripts/auto-deploy.sh'
+
+      - name: Check the server came back up
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          [ -n "$VPS_HOST" ] || exit 0
+          for i in $(seq 1 20); do
+            if curl -sf "https://api-${VPS_HOST//./-}.sslip.io/api/site_info" > /dev/null; then
+              echo "API is answering"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "API never came back"
+          exit 1

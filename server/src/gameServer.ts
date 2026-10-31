@@ -5,6 +5,7 @@ import path from "node:path";
 import { App, SSLApp, type WebSocket } from "uWebSockets.js";
 import pkgJson from "../../package.json" with { type: "json" };
 import { GameConfig } from "../../shared/gameConfig.ts";
+import { protocolVersion } from "../../shared/net/protocol.ts";
 import { Config } from "./config.ts";
 import { GameProcess, GameProcessManager, ProcState } from "./game/gameProcessManager.ts";
 import { apiPrivateRouter } from "./utils/apiRouter.ts";
@@ -54,7 +55,7 @@ class GameServer {
     }
 
     async findGame(body: FindGamePrivateBody): Promise<FindGamePrivateRes> {
-        if (body.version !== GameConfig.protocolVersion) {
+        if (body.version !== protocolVersion) {
             return { error: "invalid_protocol" };
         }
 

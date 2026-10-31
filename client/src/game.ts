@@ -25,6 +25,7 @@ import { Editor } from "./debug/editor.ts";
 import { MapDefs } from "../../shared/defs/mapDefs.ts";
 import { GameObjectDefs } from "../../shared/defs/register.ts";
 import { type Connection, ConnectionState, WebsocketConnection } from "../../shared/net/connection.ts";
+import { protocolVersion } from "../../shared/net/protocol.ts";
 import { SpectateAction } from "../../shared/net/spectateMsg.ts";
 import type { GameWsDisconnectReason } from "../../shared/types/api.ts";
 import { device } from "./device.ts";
@@ -176,7 +177,7 @@ export class Game {
                 this.connected = true;
                 const name = this.m_config.get("playerName")!;
                 const joinMessage = new net.JoinMsg();
-                joinMessage.protocol = GameConfig.protocolVersion;
+                joinMessage.protocol = protocolVersion;
                 joinMessage.joinToken = joinToken;
                 joinMessage.name = name;
                 joinMessage.useTouch = device.touch;

@@ -1,0 +1,10 @@
+[Unit]
+Description=Deploy the surviv game server when origin/main moves
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=azureuser
+WorkingDirectory=/home/azureuser/surviv-io-clone
+Environment=PATH=/home/azureuser/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/azureuser/surviv-io-clone/scripts/auto-deploy.sh

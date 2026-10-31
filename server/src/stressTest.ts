@@ -1,5 +1,6 @@
 import { GameConfig } from "../../shared/gameConfig.ts";
 import { WebsocketConnection } from "../../shared/net/connection.ts";
+import { protocolVersion } from "../../shared/net/protocol.ts";
 import type { FindGameBody, FindGameResponse } from "../../shared/types/api.ts";
 import { Bot } from "../../shared/utils/bot.ts";
 import { Config } from "./config.ts";
@@ -44,7 +45,7 @@ for (let i = 1; i <= config.botCount; i++) {
                     autoFill: true,
                     gameModeIdx: config.gameModeIdx,
                     playerCount: 1,
-                    version: GameConfig.protocolVersion,
+                    version: protocolVersion,
                     zones: [config.region],
                 } satisfies FindGameBody,
             ),

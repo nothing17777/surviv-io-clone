@@ -2,6 +2,7 @@ import $ from "jquery";
 import * as PIXI from "pixi.js-legacy";
 import { GameConfig } from "../../shared/gameConfig.ts";
 import * as net from "../../shared/net/net.ts";
+import { protocolVersion } from "../../shared/net/protocol.ts";
 import type {
     FindGameBody,
     FindGameError,
@@ -783,7 +784,7 @@ export class Application {
                 delay = 0;
             }
 
-            const version = GameConfig.protocolVersion;
+            const version = protocolVersion;
             let region = this.config.get("region")!;
             const paramRegion = helpers.getParameterByName("region");
             if (paramRegion !== undefined && paramRegion.length > 0) {
@@ -1136,7 +1137,7 @@ window.onerror = function(msg, url, lineNo, columnNo, error) {
         column: columnNo,
         stacktrace,
         browser: navigator.userAgent,
-        protocol: GameConfig.protocolVersion,
+        protocol: protocolVersion,
         clientGitVersion: GIT_VERSION,
         serverGitVersion: App.siteInfo.info.gitRevision,
     };

@@ -6,6 +6,7 @@ import { GameConfig, type Input } from "../../shared/gameConfig.ts";
 import type { Connection } from "../net/connection.ts";
 import * as net from "../net/net.ts";
 import { type ObjectData, type ObjectsPartialData, ObjectType } from "../net/objectSerializeFns.ts";
+import { protocolVersion } from "../net/protocol.ts";
 import type { LocalData } from "../net/updateMsg.ts";
 import { util } from "./util.ts";
 import { v2 } from "./v2.ts";
@@ -154,7 +155,7 @@ export class Bot {
                 joinMsg.bot = true;
                 joinMsg.name = `BOT_${this.id}`;
                 joinMsg.isMobile = false;
-                joinMsg.protocol = GameConfig.protocolVersion;
+                joinMsg.protocol = protocolVersion;
 
                 joinMsg.loadout = {
                     melee: util.randomItem(melees),

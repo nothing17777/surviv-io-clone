@@ -2,6 +2,7 @@ import $ from "jquery";
 import { type MapDefKey, MapDefs } from "../../../shared/defs/mapDefs.ts";
 import { GameConfig } from "../../../shared/gameConfig.ts";
 import * as net from "../../../shared/net/net.ts";
+import { protocolVersion } from "../../../shared/net/protocol.ts";
 import {
     type BotArmy,
     type BotLevel,
@@ -1126,7 +1127,7 @@ export class TeamMenu {
     tryStartGame() {
         if (this.isLeader && !this.roomData.findingGame) {
             this.syncOwnKitToBots();
-            const version = GameConfig.protocolVersion;
+            const version = protocolVersion;
             let region = this.roomData.region;
             const paramRegion = helpers.getParameterByName("region");
             if (paramRegion !== undefined && paramRegion.length > 0) {
