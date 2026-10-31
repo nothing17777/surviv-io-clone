@@ -1,6 +1,11 @@
 import { SwingShots } from "../../../shared/defs/gameObjects/customWeaponEffects.ts";
 import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
-import { isKitItem, KitDefs, SpiderDodgeTime, WolverineDashDistance } from "../../../shared/defs/gameObjects/kitDefs.ts";
+import {
+    isKitItem,
+    KitDefs,
+    SpiderDodgeTime,
+    WolverineDashDistance,
+} from "../../../shared/defs/gameObjects/kitDefs.ts";
 import type { MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
 import { PerkProperties } from "../../../shared/defs/gameObjects/perkDefs.ts";
 import { type ThrowableDef, ThrowableDefs } from "../../../shared/defs/gameObjects/throwableDefs.ts";

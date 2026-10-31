@@ -45,7 +45,15 @@ export interface KitDef {
      * within `range`, `rate` shots/s each. The right mount is always on; the left one runs for `secondDuration`
      * seconds after the skill. `back` and `side` place a mount behind and to the right (or left) of the player
      */
-    mounts?: { gun: string; bullet: string; range: number; rate: number; back: number; side: number; secondDuration: number };
+    mounts?: {
+        gun: string;
+        bullet: string;
+        range: number;
+        rate: number;
+        back: number;
+        side: number;
+        secondDuration: number;
+    };
     /** Iron Man: energy pays for reloads, healing and shield */
     energy?: {
         max: number;
