@@ -83,8 +83,14 @@ test("pg_fake_pistol fires 12 pellets of 15, 1.2 shots/s, 8 rounds, and bleeds f
     expect(def.shotSpread).toBe(3);
     expect(def.moveSpread).toBe(5);
     expect(def.maxClip).toBe(8);
+    expect(def.fireMode).toBe("single");
     expect(1 / def.fireDelay).toBeCloseTo(1.2, 2);
-    expect(GameObjectDefs.typeToDef(def.bulletType, "bullet").damage).toBe(15);
+    const bullet = GameObjectDefs.typeToDef(def.bulletType, "bullet");
+    expect(bullet.damage).toBe(15);
+    // the Ultimatum's range, but nothing passes through walls
+    const ultimatum = GameObjectDefs.typeToDef("pg_ultimatum", "gun");
+    expect(bullet.distance).toBe(GameObjectDefs.typeToDef(ultimatum.bulletType, "bullet").distance);
+    expect(bullet.pierce).toBeFalsy();
 
     const game = createGame(TeamMode.Solo, "test_normal");
     const shooter = game.playerBarn.addTestPlayer({});
@@ -102,7 +108,9 @@ test("pg_fake_pistol fires 12 pellets of 15, 1.2 shots/s, 8 rounds, and bleeds f
     shooter.shootStart = true;
     shooter.shootHold = true;
     game.step(0.05);
+    // holding the trigger for another second still fires only the one shot
     shooter.shootStart = false;
+    for (let i = 0; i < 10; i++) game.step(0.05);
     shooter.shootHold = false;
     const pellets = fire.mock.calls.filter((c) => c[0].gameSourceType === "pg_fake_pistol");
     expect(pellets.length).toBe(12);
