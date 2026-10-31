@@ -69,8 +69,8 @@ Hit on 2026-10-31 when a PR removed 31 Pixel Gun 3D weapons from
 `shared/defs/gameObjects/customWeaponDefs.ts` (and bumped
 `CustomWeaponsVersion`); the VPS still handed out `pg_dead_star` and friends.
 
-**Fix — deploy the VPS on *every* push that touches `shared/defs`, `shared/net`
-or `server/`, not just protocol changes:**
+**This is now automated** (see "Auto-deploy" below), so a skew should only
+happen if the automation is broken. Deploy by hand with:
 
 ```sh
 ssh -i ~/.ssh/surviv-key.pem azureuser@52.180.66.249
@@ -89,6 +89,42 @@ A stale `server/dist` (build failed, host-free.sh fell back to the dev servers)
 looks exactly like a missing deploy. Always check `git log --oneline -1` on the
 VPS against `origin/main`, and check `origin/main` against your local `main` —
 a collaborator's merged PR is the usual reason the two differ.
+
+### Auto-deploy: keeping the server in step with the client
+
+Two layers, both added 2026-10-31:
+
+- **`scripts/auto-deploy.sh` on a systemd timer on the VPS.** Polls
+  `origin/main` every minute and redeploys when it moves (stashing the box's
+  local `scripts/gameProxy.mjs` edit around the pull). Units live in
+  `scripts/surviv-autodeploy.{service,timer}`, installed to
+  `/etc/systemd/system/`; `/etc/sudoers.d/surviv-autodeploy` grants the
+  passwordless `systemctl restart surviv` it needs. Check it with
+  `systemctl list-timers surviv-autodeploy` and
+  `journalctl -u surviv-autodeploy`.
+- **`.github/workflows/deploy-game-server.yml`.** On push to `main`, SSHes in
+  and runs the same script for an immediate deploy, then polls `/api/site_info`
+  until the server answers. It needs repo secrets `VPS_SSH_KEY`, `VPS_HOST` and
+  `VPS_USER`; without them the job no-ops and the timer covers the push a
+  minute later.
+
+The other inherited `.github/workflows/*` all trigger on `master`, so they
+never run on this fork.
+
+### The protocol version covers the def set
+
+`shared/net/protocol.ts` folds an FNV-1a hash of every registered type into the
+number the client and server compare, because a def's wire id is its index in
+the registry (`shared/defs/register.ts`) — adding or removing one renumbers
+every def after it, so mismatched builds disagree about *every* item id, not
+just the ones that changed. A skewed pair now fails `find_game` and the join
+check with `invalid_protocol` and the player sees the "outdated" message,
+instead of the silent green screen.
+
+`GameConfig.protocolVersion` stays the hand-bumped base for wire-format
+changes; the def hash rides on top of it automatically, so nobody has to
+remember to bump it after editing `shared/defs`. Import `protocolVersion` from
+`shared/net/protocol.ts` — never compare `GameConfig.protocolVersion` directly.
 
 ### Diagnosing the live site without a browser
 
