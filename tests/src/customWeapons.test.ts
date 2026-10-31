@@ -87,9 +87,10 @@ test("pg_fake_pistol fires 12 pellets of 15, 1.2 shots/s, 8 rounds, and bleeds f
     expect(1 / def.fireDelay).toBeCloseTo(1.2, 2);
     const bullet = GameObjectDefs.typeToDef(def.bulletType, "bullet");
     expect(bullet.damage).toBe(15);
-    // the Ultimatum's range, but nothing passes through walls
-    const ultimatum = GameObjectDefs.typeToDef("pg_ultimatum", "gun");
-    expect(bullet.distance).toBe(GameObjectDefs.typeToDef(ultimatum.bulletType, "bullet").distance);
+    // range 70, the Ultimatum's pellet speed, a little damage lost over distance, and nothing passes through walls
+    expect(bullet.distance).toBe(70);
+    expect(bullet.speed).toBe(200);
+    expect(bullet.falloff).toBe(0.85);
     expect(bullet.pierce).toBeFalsy();
 
     const game = createGame(TeamMode.Solo, "test_normal");
