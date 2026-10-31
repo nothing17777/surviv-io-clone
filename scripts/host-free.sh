@@ -119,8 +119,10 @@ watchdog() {
 # the live server into swap and gave it multi-second ticks. gameProcessManager forks
 # dist/gameProcess.js by itself once the server it runs from is .js, so each game child drops tsx
 # too. If the build fails, fall back to the dev servers so the game still comes up.
-API_CMD="cd server && pnpm start:api"
-GAME_CMD="cd server && pnpm start:game"
+# exec node directly rather than `pnpm start:*`: pnpm keeps two idle node processes (~95 MB each)
+# alive above every server for its whole life, ~380 MB in all, which is most of a 1 GB box.
+API_CMD="cd server && exec node --enable-source-maps dist/index.js"
+GAME_CMD="cd server && exec node --enable-source-maps dist/gameServer.js"
 if (cd server && pnpm build); then
     echo "Running the built server from server/dist"
 else
