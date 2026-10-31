@@ -85,6 +85,11 @@ test("pg_fake_pistol fires 12 pellets of 15, 1.2 shots/s, 8 rounds, and bleeds f
     expect(def.maxClip).toBe(8);
     expect(def.fireMode).toBe("single");
     expect(1 / def.fireDelay).toBeCloseTo(1.2, 2);
+    // the Ultimatum's recoil, so the spread is never cancelled, and a 1.3 s reload
+    const ultimatum = GameObjectDefs.typeToDef("pg_ultimatum", "gun");
+    expect(def.recoilTime).toBe(ultimatum.recoilTime);
+    expect(def.jitter).toBe(ultimatum.jitter);
+    expect(def.reloadTime).toBe(1.3);
     const bullet = GameObjectDefs.typeToDef(def.bulletType, "bullet");
     expect(bullet.damage).toBe(15);
     // range 70, the Ultimatum's pellet speed, a little damage lost over distance, and nothing passes through walls
@@ -117,6 +122,11 @@ test("pg_fake_pistol fires 12 pellets of 15, 1.2 shots/s, 8 rounds, and bleeds f
     shooter.shootHold = false;
     const pellets = fire.mock.calls.filter((c) => c[0].gameSourceType === "pg_fake_pistol");
     expect(pellets.length).toBe(12);
+    // the pellets fan out within the 3 degree spread instead of all leaving at one angle
+    const angles = pellets.map((c) => Math.atan2(c[0].dir.y, c[0].dir.x) * 180 / Math.PI);
+    expect(new Set(angles.map((a) => a.toFixed(3))).size).toBeGreaterThan(6);
+    expect(Math.max(...angles) - Math.min(...angles)).toBeGreaterThan(0.5);
+    expect(Math.max(...angles.map(Math.abs))).toBeLessThanOrEqual(1.5 + 1e-6);
     for (let i = 0; i < 5; i++) game.step(0.05);
     expect(target.burnDuration).toBe(0);
     expect(target.bleeding).toBe(true);

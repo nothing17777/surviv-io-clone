@@ -345,6 +345,11 @@ export const GunOverrides: Record<string, GunEffect> = {
             bulletCount: 12,
             shotSpread: 3,
             moveSpread: 5,
+            // the Ultimatum's recoil: the spread is never cancelled (the pistol's own 0.5 s recoil made every
+            // shot, 0.83 s apart, a dead centre one) and the pellets start spread out; fire rate is fireDelay alone
+            recoilTime: 1e10,
+            jitter: 1,
+            reloadTime: 1.3,
             maxClip: 8,
             maxReload: 8,
             extendedClip: 8,
