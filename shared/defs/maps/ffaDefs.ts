@@ -32,7 +32,7 @@ export const FfaGod = util.mergeDeep(
     } satisfies PartialMapDef,
 ) as MapDef;
 
-/** Zombie Apocalypse: the lobby packed with bots of every level, hackers and scripters included */
+/** Zombie Apocalypse: the lobby packed with bots up to scripter level, no hackers */
 export const Zombie = util.mergeDeep(
     {},
     Main,

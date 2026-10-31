@@ -4280,8 +4280,10 @@ export class Player extends BaseGameObject {
 
         const def = GameObjectDefs.typeToDef(obj.type);
         if (this.lockedKit && (def.type === "gun" || def.type === "melee" || def.type === "throwable")) return;
+        // League champions still pick up consumables, so they can heal between fights
+        const championConsumable = !!this.champ && (def.type === "heal" || def.type === "boost");
         // kits pick nothing up: no normal weapons, gear, perks or consumables
-        if (this.kit !== "default") return;
+        if (this.kit !== "default" && !championConsumable) return;
         if (
             (this.actionType == GameConfig.Action.UseItem && def.type != "gun")
             || this.actionType == GameConfig.Action.Revive

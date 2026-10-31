@@ -1881,7 +1881,7 @@ export class BotFiller {
         const gameMode = this.game.map.mapDef.gameMode;
         if (gameMode.ffaMode) {
             this._ffa = true;
-            // zombie apocalypse: pack the lobby with every level, leaving a few slots for people
+            // zombie apocalypse: pack the lobby with scripters and below, leaving a few slots for people
             // free for all: fill it right up (100 with whoever's playing), no hackers or scripters
             this._allLevels = !!gameMode.ffaAllLevels;
             this.target = this._allLevels ? this.maxPlayers - 4 : this.maxPlayers - 1;
@@ -1905,7 +1905,6 @@ export class BotFiller {
     private _added = 0;
 
     private _ffa = false;
-    private _ffaHacker = false;
     private _allLevels = false;
 
     private nextLevel(): BotLevel {
@@ -1915,11 +1914,7 @@ export class BotFiller {
                 if (r < 0.25) return "advanced";
                 return r < 0.6 ? "intermediate" : "beginner";
             }
-            // at most one hacker per game
-            if (r < 0.03 && !this._ffaHacker) {
-                this._ffaHacker = true;
-                return "hacker";
-            }
+            // no hackers in here, only scripters on top of the usual levels
             if (r < 0.1) return "scripter";
             if (r < 0.3) return "advanced";
             return r < 0.65 ? "intermediate" : "beginner";
