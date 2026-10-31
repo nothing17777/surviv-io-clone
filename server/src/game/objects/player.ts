@@ -4616,13 +4616,16 @@ export class Player extends BaseGameObject {
         const oldWeapon = params.weaponSourceType || params.gameSourceType;
         if (!oldWeapon) return;
 
-        const oldWeaponDef = GameObjectDefs.typeToDef(oldWeapon) as
+        const oldWeaponDef = GameObjectDefs.typeToDefSafe(oldWeapon) as
             | GunDef
             | ThrowableDef
-            | MeleeDef;
+            | MeleeDef
+            | undefined;
 
-        if (oldWeaponDef.noPotatoSwap) return;
+        if (!oldWeaponDef || oldWeaponDef.noPotatoSwap) return;
+        // kit and champion abilities, explosions etc. are not weapons with a pool to swap from
         const weaponDefs = WeaponTypeToDefs[oldWeaponDef.type];
+        if (!weaponDefs) return;
 
         // necessary for type safety since Object.entries() is not type safe and just returns "any"
         const enumerableDefs = Object.entries(weaponDefs) as [string, GunDef | ThrowableDef | MeleeDef][];
