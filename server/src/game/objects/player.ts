@@ -4280,10 +4280,11 @@ export class Player extends BaseGameObject {
 
         const def = GameObjectDefs.typeToDef(obj.type);
         if (this.lockedKit && (def.type === "gun" || def.type === "melee" || def.type === "throwable")) return;
-        // League champions still pick up consumables, so they can heal between fights
-        const championConsumable = !!this.champ && (def.type === "heal" || def.type === "boost");
-        // kits pick nothing up: no normal weapons, gear, perks or consumables
-        if (this.kit !== "default" && !championConsumable) return;
+        // League champions still pick up consumables and perks, so they can heal and build up
+        const championPickup = !!this.champ
+            && (def.type === "heal" || def.type === "boost" || def.type === "perk");
+        // other kits pick nothing up: no normal weapons, gear, perks or consumables
+        if (this.kit !== "default" && !championPickup) return;
         if (
             (this.actionType == GameConfig.Action.UseItem && def.type != "gun")
             || this.actionType == GameConfig.Action.Revive
@@ -5391,7 +5392,10 @@ export class Player extends BaseGameObject {
         this.outfit = kit.outfit;
         for (const item of Object.keys(this.invManager.items) as InventoryItem[]) this.invManager.set(item, 0);
         this.inventoryDirty = true;
-        for (let i = this.perks.length - 1; i >= 0; i--) this.removePerk(this.perks[i].type);
+        // champions keep their perks; every other kit drops them
+        if (!ChampionDefs[kitId]) {
+            for (let i = this.perks.length - 1; i >= 0; i--) this.removePerk(this.perks[i].type);
+        }
         this.weaponManager.setWeapon(GameConfig.WeaponSlot.Primary, kit.primary ?? "", 0);
         this.weaponManager.setWeapon(GameConfig.WeaponSlot.Secondary, kit.secondary ?? "", 0);
         this.weaponManager.setWeapon(GameConfig.WeaponSlot.Throwable, "", 0);
