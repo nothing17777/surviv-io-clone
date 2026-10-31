@@ -4942,6 +4942,12 @@ export class Player extends BaseGameObject {
         const kitId = godLoadout.kit;
         if (kitId && kitId !== "default" && KitDefs[kitId]) {
             this.applyKit(kitId);
+            // champions keep perks and pick consumables up, so the kit panel's perks and
+            // heals still apply to them; every other kit is only what its def says it is
+            if (this.champ) {
+                this.givePickedPerks(godLoadout);
+                this.givePickedHeals(godLoadout);
+            }
             return;
         }
         // a bot handed the leader's kit first, then the default one, drops that kit's skills
@@ -4963,12 +4969,7 @@ export class Player extends BaseGameObject {
             this.invManager.set(item, this.invManager.getMaxCapacity(item));
         }
 
-        // a private match leader can hand out fewer heals than a full bag
-        for (const item of ["bandage", "healthkit", "soda", "painkiller"] as const) {
-            const count = godLoadout[item];
-            if (count === undefined) continue;
-            this.invManager.set(item, math.min(count, this.invManager.getMaxCapacity(item)));
-        }
+        this.givePickedHeals(godLoadout);
         // the biggest scope in the bag, 8x at least
         this.scope = (["15xscope", "8xscope"] as const).find((s) => this.invManager.has(s)) ?? "8xscope";
         this.zoom = this.scopeZoomRadius[this.scope];
@@ -5017,11 +5018,7 @@ export class Player extends BaseGameObject {
             this.weaponManager.setWeapon(GameConfig.WeaponSlot.Melee, godLoadout.melee, 0);
         }
 
-        for (const perk of [...(godLoadout.perks ?? []), ...(godLoadout.allGoodPerks ? goodPerks : [])]) {
-            // past this the full update overflows its buffer
-            if (this.perks.length >= net.Constants.MaxPerks - 1) break;
-            if (GameObjectDefs.typeToDefSafe(perk)?.type === "perk" && !this.hasPerk(perk)) this.addPerk(perk, false);
-        }
+        this.givePickedPerks(godLoadout);
 
         // the main pick stays in hand unless there are none of it
         if (!this.invManager.has(throwable as InventoryItem)) this.weaponManager.showNextThrowable();
@@ -5376,6 +5373,24 @@ export class Player extends BaseGameObject {
             if (typeof perkProps === "object" && "minBoost" in perkProps) {
                 this.minBoost = math.max(perkProps.minBoost as number, this.minBoost);
             }
+        }
+    }
+
+    /** the kit panel's picked perks, plus every good one when the leader asked for them */
+    private givePickedPerks(godLoadout: Partial<PrivateLoadout>) {
+        for (const perk of [...(godLoadout.perks ?? []), ...(godLoadout.allGoodPerks ? goodPerks : [])]) {
+            // past this the full update overflows its buffer
+            if (this.perks.length >= net.Constants.MaxPerks - 1) break;
+            if (GameObjectDefs.typeToDefSafe(perk)?.type === "perk" && !this.hasPerk(perk)) this.addPerk(perk, false);
+        }
+    }
+
+    /** a private match leader can hand out fewer heals than a full bag */
+    private givePickedHeals(godLoadout: Partial<PrivateLoadout>) {
+        for (const item of ["bandage", "healthkit", "soda", "painkiller"] as const) {
+            const count = godLoadout[item];
+            if (count === undefined) continue;
+            this.invManager.set(item, math.min(count, this.invManager.getMaxCapacity(item)));
         }
     }
 
