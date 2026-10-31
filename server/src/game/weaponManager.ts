@@ -442,11 +442,6 @@ export class WeaponManager {
                 this.player.autoFireTimer = 0;
                 this.player.setDirty();
             }
-            if (this.activeWeapon === "kit_warmachine_secondfire") {
-                // the left shoulder mount switches on for its duration
-                this.player.kitEnhanceTime = KitDefs.warmachine.mounts!.secondDuration;
-                this.player.setDirty();
-            }
             if (this.activeWeapon === "kit_wizard_enhance") {
                 this.player.kitEnhanceTime = 9;
                 this.player.setDirty();
@@ -863,6 +858,11 @@ export class WeaponManager {
         this.player.weapsDirty = true;
         // Iron Man's rockets take him into the air for a while
         if (itemDef.flight) this.player.startFlight(itemDef.flight, this.activeWeapon);
+        // War Machine's Second Fire: the left shoulder mount switches on for its duration
+        if (this.activeWeapon === "kit_warmachine_secondfire") {
+            this.player.kitEnhanceTime = KitDefs.warmachine.mounts!.secondDuration;
+            this.player.setDirty();
+        }
         // Wolverine's dash: he slides 16 tiles alongside his streak (walls still stop him)
         if (this.activeWeapon === "kit_wolverine_dash") {
             const bullet = GameObjectDefs.typeToDef(itemDef.bulletType, "bullet");

@@ -396,16 +396,21 @@ test("kit shield and health sustain numbers", () => {
     expect(KitDefs.wizard.aura).toMatchObject({ shield: 2, health: 2 });
 });
 
-test("War Machine: 50 hp, 150 armor, and Second Fire is the only skill", () => {
+test("War Machine: 50 hp, 150 armor, Second Fire, Missile Barrage and Iron Man's gauntlets", () => {
     const { me } = setup("warmachine", v2.create(200, 0));
     expect(me.maxHealth).toBe(50);
     expect(me.health).toBe(50);
     expect(me.maxShield).toBe(150);
     expect(me.shield).toBe(150);
-    expect(me.weapons[Slot.Primary].type).toBe("");
-    expect(me.weapons[Slot.Secondary].type).toBe("");
-    expect(me.weapons[Slot.Melee].type).toBe("kit_warmachine_secondfire");
+    expect(me.weapons[Slot.Primary].type).toBe("kit_warmachine_secondfire");
+    expect(me.weapons[Slot.Secondary].type).toBe("kit_warmachine_barrage");
+    expect(me.weapons[Slot.Melee].type).toBe("kit_warmachine_fists");
     expect(me.outfit).toBe("outfitKitWarmachine");
+    // slot 3 is a copy of Iron Man's gauntlets
+    const mine = GameObjectDefs.typeToDef("kit_warmachine_fists", "melee");
+    const his = GameObjectDefs.typeToDef("kit_ironman_fists", "melee");
+    expect(mine.damage).toBe(his.damage);
+    expect(mine.attack).toEqual(his.attack);
 });
 
 test("War Machine: the right shoulder mount fires 5 shots/s at the nearest enemy within 30", () => {
@@ -455,10 +460,10 @@ test("War Machine: Second Fire adds a left mount for 10 s, then waits out a 12 s
     for (let i = 0; i < 30; i++) game.step(0.1);
     const single = 100000 - enemy.health;
 
-    use(game, me, Slot.Melee, 1);
+    use(game, me, Slot.Primary, 1);
     expect(me.kitAura).toBe(5);
     expect(me.kitEnhanceTime).toBeGreaterThan(9);
-    expect(me.abilityCooldowns[2]).toBeGreaterThan(10);
+    expect(me.abilityCooldowns[0]).toBeGreaterThan(10);
     const before = enemy.health;
     for (let i = 0; i < 30; i++) game.step(0.1);
     const double = before - enemy.health;
@@ -472,7 +477,78 @@ test("War Machine: Second Fire adds a left mount for 10 s, then waits out a 12 s
     for (let i = 0; i < 30; i++) game.step(0.1);
     expect(after - enemy.health).toBeLessThanOrEqual(single * 1.3);
     // the cooldown is still running until 12 s, then the skill is ready again
-    expect(me.abilityCooldowns[2]).toBe(0);
+    expect(me.abilityCooldowns[0]).toBe(0);
+});
+
+test("War Machine: Missile Barrage flies him 1.5 s with 2 rockets of 10 dmg and no second volley", () => {
+    const { game, me, enemy } = setup("warmachine", v2.create(20, 0));
+    enemy.maxHealth = 100000;
+    enemy.health = 100000;
+    const gun = GameObjectDefs.typeToDef("kit_warmachine_barrage", "gun");
+    const iron = GameObjectDefs.typeToDef("kit_ironman_rockets", "gun");
+    // the same flight and cooldown as Iron Man's rockets, but 2 rockets of 10 dmg
+    expect(gun.flight).toMatchObject({ duration: iron.flight!.duration, untargetable: iron.flight!.untargetable });
+    expect(gun.fireDelay).toBe(iron.fireDelay);
+    expect(gun.bulletCount).toBe(2);
+    expect(BulletDefs[gun.bulletType].damage).toBe(10);
+    expect(BulletDefs[gun.bulletType].sprite).toBe(BulletDefs[iron.bulletType].sprite);
+
+    // 2 s of the passive alone: 10 shots at 6 dmg
+    const fire = vi.spyOn(game.bulletBarn, "fireBullet");
+    for (let i = 0; i < 20; i++) game.step(0.1);
+    const calm = fire.mock.calls.filter((c) => c[0].gameSourceType === "kit_warmachine_mount").length;
+    expect(calm).toBeGreaterThanOrEqual(9);
+    expect(calm).toBeLessThanOrEqual(11);
+
+    expect(me.flying).toBe(false);
+    use(game, me, Slot.Secondary, 1);
+    expect(me.flying).toBe(true);
+    expect(me.flightTime).toBeCloseTo(1.5, 1);
+    expect(me.abilityCooldowns[1]).toBeGreaterThan(8);
+    const barrage = fire.mock.calls.filter((c) => c[0].gameSourceType === "kit_warmachine_barrage");
+    // 2 rockets and no second volley
+    expect(barrage.length).toBe(2);
+    for (let i = 0; i < 20; i++) game.step(0.1);
+    expect(fire.mock.calls.filter((c) => c[0].gameSourceType === "kit_warmachine_barrage").length).toBe(2);
+    expect(me.flying).toBe(false);
+
+});
+
+test("War Machine: the mounts fire 10 shots/s each while flying, the left one too once Second Fire is up", () => {
+    const shots = (second: boolean, flying: boolean) => {
+        const { game, me, enemy } = setup("warmachine", v2.create(20, 0));
+        enemy.maxHealth = 100000;
+        enemy.health = 100000;
+        const fire = vi.spyOn(game.bulletBarn, "fireBullet");
+        if (second) me.kitEnhanceTime = 10;
+        if (flying) me.flightTime = 10;
+        // game.step runs whole 0.1 s ticks: 20 of them is 2 s
+        for (let i = 0; i < 20; i++) game.step(0.1);
+        return fire.mock.calls.filter((c) => c[0].gameSourceType === "kit_warmachine_mount").length;
+    };
+    const base = shots(false, false);
+    expect(base).toBeGreaterThanOrEqual(9);
+    expect(base).toBeLessThanOrEqual(11);
+    const flying = shots(false, true);
+    expect(flying).toBeGreaterThanOrEqual(19);
+    expect(flying).toBeLessThanOrEqual(21);
+    // both mounts, both faster: about 4x the ground rate with one mount
+    const both = shots(true, true);
+    expect(both).toBeGreaterThanOrEqual(38);
+    expect(both).toBeLessThanOrEqual(42);
+});
+
+test("War Machine: Missile Barrage rockets burn for 4 s like Iron Man's", () => {
+    const { me, enemy } = setup("warmachine", v2.create(200, 0));
+    enemy.damage({
+        amount: 10,
+        damageType: GameConfig.DamageType.Player,
+        dir: v2.create(1, 0),
+        source: me,
+        gameSourceType: "kit_warmachine_barrage",
+    });
+    expect(enemy.burnDuration).toBeGreaterThan(3.5);
+    expect(enemy.burnWeapon).toBe("kit_warmachine_barrage");
 });
 
 test("War Machine: armor regens 2/s, 8/s after 5 s without being hit", () => {

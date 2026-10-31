@@ -784,7 +784,8 @@ export class Player extends BaseGameObject {
         this.flightTime = flight.duration;
         this.flightHittableAt = flight.duration - flight.untargetable;
         this.flightWaveAt = flight.duration - flight.waveAt;
-        this.flightWaveGun = gun;
+        // waveAt 0: no second volley
+        this.flightWaveGun = flight.waveAt > 0 ? gun : "";
         this.flightSpeedBonus = flight.speedBonus;
         this.setDirty();
     }
@@ -2976,7 +2977,9 @@ export class Player extends BaseGameObject {
             if (src === "pg_nanobots_rifle" || src === "kit_wolverine_claws" || src === "kit_wolverine_dash") {
                 this.applyBleed(4, playerSource);
             } // Iron Man: rockets burn, the repulsor blast bleeds
-            else if (src === "kit_ironman_rockets") this.applyBurn(4, playerSource, src);
+            else if (src === "kit_ironman_rockets" || src === "kit_warmachine_barrage") {
+                this.applyBurn(4, playerSource, src);
+            }
             else if (src === "kit_ironman_blast") this.applyBleed(4, playerSource);
             // Ultron's orb lasers: orange burns, red bleeds, purple poisons, 3s each
             else if (weap === "bullet_kit_ultron_orb_laser_orange") this.applyBurn(3, playerSource, src);
@@ -5575,7 +5578,8 @@ export class Player extends BaseGameObject {
                 continue;
             }
             // carry the leftover so the rate holds whatever the tick length
-            this.mountTimers[i] = Math.max(this.mountTimers[i] + 1 / m.rate, 0);
+            // both mounts speed up to flyingRate while the Missile Barrage flight lasts
+            this.mountTimers[i] = Math.max(this.mountTimers[i] + 1 / (this.flying ? m.flyingRate : m.rate), 0);
             const target = near.reduce((x, y) =>
                 v2.length(v2.sub(x.pos, this.pos)) < v2.length(v2.sub(y.pos, this.pos)) ? x : y
             );

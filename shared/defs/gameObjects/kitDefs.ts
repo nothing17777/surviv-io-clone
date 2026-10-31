@@ -50,6 +50,8 @@ export interface KitDef {
         bullet: string;
         range: number;
         rate: number;
+        /** shots/s each while the Missile Barrage flight is on */
+        flyingRate: number;
         back: number;
         side: number;
         secondDuration: number;
@@ -129,14 +131,18 @@ export const KitDefs: Record<string, KitDef> = {
         helmet: "helmet04",
         chest: "chest04",
         outfit: "outfitKitWarmachine",
-        // the only skill is Second Fire, in the melee slot like Spider-Man's dodge: left click to use it
-        melee: "kit_warmachine_secondfire",
+        // skill 1 (Second Fire) and skill 2 (Missile Barrage) are guns that fire nothing or the rockets; left
+        // click on the slot to use them. Slot 3 is Iron Man's gauntlets
+        primary: "kit_warmachine_secondfire",
+        secondary: "kit_warmachine_barrage",
+        melee: "kit_warmachine_fists",
         armorRegen: { rate: 2, calmRate: 8, after: 5 },
         mounts: {
             gun: "kit_warmachine_mount",
             bullet: "bullet_kit_warmachine_mount",
             range: 30,
             rate: 5,
+            flyingRate: 10,
             back: 0.6,
             side: 1,
             secondDuration: 10,
