@@ -244,7 +244,14 @@ export const ItemIcons: Record<string, string> = {
     stormsurge: "lol_stormsurge",
 };
 
-const ab = (name: string, cooldown: number, description: string): AbilityDef => ({ name, cooldown, description });
+/** every spell is on this cooldown, whatever League's own number for it is */
+const AbilityCooldown = 3;
+
+const ab = (name: string, _leagueCooldown: number, description: string): AbilityDef => ({
+    name,
+    cooldown: AbilityCooldown,
+    description,
+});
 
 // builds: METAsrc / Skill-Capped / Mobalytics / Blitz.gg most popular, patch 26.21
 export const ChampionDefs: Record<string, ChampionDef> = {

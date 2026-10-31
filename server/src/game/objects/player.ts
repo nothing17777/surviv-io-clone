@@ -2979,8 +2979,7 @@ export class Player extends BaseGameObject {
             } // Iron Man: rockets burn, the repulsor blast bleeds
             else if (src === "kit_ironman_rockets" || src === "kit_warmachine_barrage") {
                 this.applyBurn(4, playerSource, src);
-            }
-            else if (src === "kit_ironman_blast") this.applyBleed(4, playerSource);
+            } else if (src === "kit_ironman_blast") this.applyBleed(4, playerSource);
             // Ultron's orb lasers: orange burns, red bleeds, purple poisons, 3s each
             else if (weap === "bullet_kit_ultron_orb_laser_orange") this.applyBurn(3, playerSource, src);
             else if (weap === "bullet_kit_ultron_orb_laser_red") this.applyBleed(3, playerSource);

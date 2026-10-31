@@ -511,7 +511,6 @@ test("War Machine: Missile Barrage flies him 1.5 s with 2 rockets of 10 dmg and 
     for (let i = 0; i < 20; i++) game.step(0.1);
     expect(fire.mock.calls.filter((c) => c[0].gameSourceType === "kit_warmachine_barrage").length).toBe(2);
     expect(me.flying).toBe(false);
-
 });
 
 test("War Machine: the mounts fire 10 shots/s each while flying, the left one too once Second Fire is up", () => {
