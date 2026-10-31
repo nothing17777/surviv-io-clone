@@ -228,9 +228,8 @@ export const GunEffects: Record<string, GunEffect> = {
             speed: { equip: 3.5, attack: 1 },
         },
     },
-    // Pixel Gun 3D pistols: the Multitaskers' speed and range, no splash, and the base pistol's own
-    // bullet look (no sprite or tracer override), with each pistol's damage, fire rate and capacity
-    // from GunOverrides
+    // Fake Pistol: the Multitaskers' speed and range, no splash, and the base pistol's own bullet look (no sprite
+    // or tracer override); its damage, pellets, fire rate and capacity are in GunOverrides
     pistol_plasma: {
         bullet: {
             damage: 32,
@@ -333,22 +332,23 @@ export const GunEffects: Record<string, GunEffect> = {
     },
 };
 
-/** a pistol_plasma weapon's numbers: damage, shots per second and capacity */
-const pistol = (damage: number, shotsPerSec: number, capacity: number): GunEffect => ({
-    bullet: { damage },
-    gun: {
-        fireDelay: Math.round(1000 / shotsPerSec) / 1000,
-        maxClip: capacity,
-        maxReload: capacity,
-        extendedClip: capacity,
-        extendedReload: capacity,
-    },
-});
-
 /** tweaks to one weapon on top of its effect, from its wiki page */
 export const GunOverrides: Record<string, GunEffect> = {
-    // Pixel Gun 3D pistols (damage, shots/s, capacity)
-    pg_fake_pistol: pistol(114, 1.2, 6),
+    // Fake Pistol: a shotgun pistol like the Ultimatum's pellets and spread: 12 pellets x 15 dmg, 1.2 shots/s, 8 rounds,
+    // bleeds for 3 s (see Player.damage)
+    pg_fake_pistol: {
+        bullet: { damage: 15 },
+        gun: {
+            fireDelay: 0.833,
+            bulletCount: 12,
+            shotSpread: 3,
+            moveSpread: 5,
+            maxClip: 8,
+            maxReload: 8,
+            extendedClip: 8,
+            extendedReload: 8,
+        },
+    },
     // Phantom Dancer: attack speed item, fires faster than the vector
     lol_phantom_dancer: { gun: { fireDelay: 0.06 } },
     // The Collector: executes, so it hits hard

@@ -22,7 +22,7 @@ const GunEffectText: Record<string, string> = {
     rocket: "Rocket that blows up like a frag. One shot per reload.",
     nanobots: "Nanobot swarms that home in on enemies and burst, inflicting bleed.",
     multitaskers: "Fast firing dual guns with splash damage and high mobility.",
-    pistol_plasma: "Fast plasma shots and high mobility.",
+    pistol_plasma: "Fast, long range shots and high mobility.",
     christmas_ultimatum: "Cluster bomb tree rocket whose fragments split again, dropping 20% damage each split.",
     judge: "Slow, cursor-steered rocket that carries player camera up to 400 tiles.",
     frozen_dragon: "Flamethrower shooting blue flames that slow and burn for 2 seconds.",
@@ -52,6 +52,7 @@ const Notes: Record<string, string> = {
     pg_double_barreled_shotgun: "Two big blasts, then reload.",
     pg_napalmcannon: "Rocket that leaves fire burning for 3 s.",
     tr_sdmg: "Insanely fast, glowing shots.",
+    pg_fake_pistol: "Twelve tight pellets that make whoever they hit bleed for 3 s.",
 };
 
 type Tab = "gun" | "melee";
