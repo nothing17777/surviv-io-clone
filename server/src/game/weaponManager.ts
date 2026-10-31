@@ -523,8 +523,6 @@ export class WeaponManager {
         ) {
             return;
         }
-        const weaponDef = GameObjectDefs.typeToDef(this.activeWeapon, "gun");
-
         if (
             this.player.actionType == GameConfig.Action.Revive
             || this.player.actionType == GameConfig.Action.UseItem
@@ -533,6 +531,11 @@ export class WeaponManager {
         ) {
             return;
         }
+
+        // a kit can put a melee weapon in a gun slot (the champions' basic attacks), and a slot
+        // can be empty: there is nothing to reload either way
+        if (GameObjectDefs.typeToDefSafe(this.activeWeapon)?.type !== "gun") return;
+        const weaponDef = GameObjectDefs.typeToDef(this.activeWeapon, "gun");
 
         const isInfinite = this.isInfinite(weaponDef);
 
@@ -583,17 +586,18 @@ export class WeaponManager {
      * called when reload action completed, actually updates all state variables
      */
     reload(curWeapIdx = this.curWeapIdx, fullReload = false): void {
-        if (!this.weapons[curWeapIdx].type) return; // prevent rare bug
-        const reloadEnergy = GameObjectDefs.typeToDefSafe(this.weapons[curWeapIdx].type)?.type === "gun"
-            ? GameObjectDefs.typeToDef(this.weapons[curWeapIdx].type, "gun").reloadEnergy
-            : undefined;
+        const weapon = this.weapons[curWeapIdx];
+        if (!weapon.type) return; // prevent rare bug
+        // a kit can put a melee weapon in a gun slot, and that has no reload
+        if (GameObjectDefs.typeToDefSafe(weapon.type)?.type !== "gun") return;
+        const weaponDef = GameObjectDefs.typeToDef(weapon.type, "gun");
+
+        const reloadEnergy = weaponDef.reloadEnergy;
         if (reloadEnergy) {
             if (this.player.energy < reloadEnergy) return;
             this.player.energy -= reloadEnergy;
             this.player.energyDirty = true;
         }
-        const weapon = this.weapons[curWeapIdx];
-        const weaponDef = GameObjectDefs.typeToDef(weapon.type, "gun");
         const ammoStats = this.getAmmoStats(weaponDef);
         const activeWeaponAmmo = weapon.ammo;
 

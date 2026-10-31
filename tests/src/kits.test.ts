@@ -372,7 +372,13 @@ test("kit regen: slow base rates, then the out of combat rate after 5 s without 
 test("kit regen: a hit the shield soaks up still ends the calm", () => {
     const { game, me, enemy } = setup("ultron", v2.create(60, 0));
     me.calmTime = 10;
-    me.damage({ amount: 10, damageType: GameConfig.DamageType.Player, dir: v2.create(1, 0), source: enemy, gameSourceType: "ak47" });
+    me.damage({
+        amount: 10,
+        damageType: GameConfig.DamageType.Player,
+        dir: v2.create(1, 0),
+        source: enemy,
+        gameSourceType: "ak47",
+    });
     expect(me.shield).toBeLessThan(200);
     expect(me.health).toBe(me.maxHealth);
     expect(me.calmTime).toBe(0);
@@ -492,4 +498,18 @@ test("War Machine: a hit ends the calm, and the shoulder mount's shots are quiet
     expect(gun.shotVolume).toBeLessThan(0.5);
     expect(BulletDefs[gun.bulletType].damage).toBe(6);
     expect(BulletDefs[gun.bulletType].distance).toBe(KitDefs.warmachine.mounts!.range);
+});
+
+test("every kit: reloading a slot that holds no gun does nothing", () => {
+    for (const kit of Object.keys(KitDefs)) {
+        const { game, me } = setup(kit);
+        for (const slot of [Slot.Primary, Slot.Secondary]) {
+            me.weaponManager.setCurWeapIndex(slot, true);
+            use(game, me, slot, 40, true);
+            me.weaponManager.tryReload();
+            me.weaponManager.reload(slot);
+            for (let i = 0; i < 20; i++) game.step(0.05);
+        }
+        expect(me.dead).toBe(false);
+    }
 });
