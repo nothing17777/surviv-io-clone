@@ -3826,6 +3826,54 @@ BulletDefs.bullet_kit_warmachine_mount = {
     shrapnel: false,
 };
 const WarMachineGunDefs: Record<string, GunDef> = {
+    // Skill 1: Second Fire fires nothing itself (the left shoulder mount switches on, see WeaponManager), 12 s
+    ...Object.fromEntries([
+        kitGun("kit_warmachine_secondfire", "deagle", {}, {
+            name: "Second Fire",
+            fireMode: "single",
+            fireDelay: 12,
+            energyCost: 0,
+            bulletCount: 0,
+            shotSpread: 0,
+            moveSpread: 0,
+            maxClip: 250,
+            maxReload: 250,
+            extendedClip: 250,
+            extendedReload: 250,
+        }),
+        // Skill 2: Missile Barrage is Iron Man's rocket flight (1.5 s in the air, untargetable, through walls,
+        // faster, 10 s cooldown) with only 2 rockets, 10 dmg each, burning for the same 4 s
+        kitGun("kit_warmachine_barrage", "barrett", {
+            damage: 10,
+            speed: 55,
+            distance: 110,
+            falloff: 1,
+            homing: true,
+            homingFromAim: true,
+            homingDelay: 0.2,
+            tracerColor: "cw_flame",
+            tracerWidth: 0.25,
+            tracerLength: 0.4,
+            sprite: "img/custom-weapons/fx/lava_rocket.png",
+            spriteSize: 40,
+        }, {
+            name: "Missile Barrage",
+            fireMode: "single",
+            fireDelay: 10,
+            energyCost: 0,
+            bulletCount: 2,
+            ringShot: true,
+            ghostShots: true,
+            // waveAt 0: no second volley
+            flight: { duration: 1.5, untargetable: 1.5, waveAt: 0, speedBonus: 6 },
+            shotSpread: 0,
+            moveSpread: 0,
+            maxClip: 250,
+            maxReload: 250,
+            extendedClip: 250,
+            extendedReload: 250,
+        }),
+    ]),
     kit_warmachine_mount: defineGunSkin("mac10", {
         name: "Shoulder Mount",
         noPotatoSwap: true,

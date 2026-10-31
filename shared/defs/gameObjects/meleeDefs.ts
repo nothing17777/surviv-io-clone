@@ -1478,17 +1478,11 @@ const KitMeleeDefs: Record<string, MeleeDef> = {
         noPotatoSwap: true,
         damage: 35,
     }),
-    // War Machine's Second Fire: a second shoulder mount on the left for 10 s, 12 s cooldown
-    kit_warmachine_secondfire: defineMeleeSkin("fists", {
-        name: "Second Fire",
+    // War Machine's gauntlets: a copy of Iron Man's
+    kit_warmachine_fists: defineMeleeSkin("fists", {
+        name: "Repulsor Gauntlets",
         noPotatoSwap: true,
-        damage: 0,
-        attack: { offset: { x: 0, y: 0 }, rad: 0.1, cooldownTime: 12 },
-        lootImg: {
-            sprite: `img/custom-weapons/loot/kit_warmachine_secondfire.png?v=${CustomWeaponsVersion}`,
-            scale: 0.3,
-            tint: 0xffffff,
-        },
+        damage: 35,
     }),
     // Spider-Man's Sudden Dodge: untargetable for 2 s and faster auto webs, 8 s cooldown
     kit_spider_dodge: defineMeleeSkin("fists", {
