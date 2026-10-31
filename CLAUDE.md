@@ -49,3 +49,75 @@ Website on Vercel (`vercel.json`); game servers need a long-running WebSocket ho
 - Commit format (`COMMIT_FORMAT.md`): `<type> (<scope>): <subject>` — types chore/deploy/docs/enhance/feat/fix/perf/refactor/style; imperative, lowercase, no trailing period, lines ≤ 100 chars.
 - Formatting is dprint (`dprint.json`); run `pnpm lint` before committing.
 - Custom projectile sprites: `BulletDef.spriteSize` is **screen px at zoom 1**, not world units like a regular bullet's `tracerWidth`. Size against the Christmas Ultimatum tree (80): big projectiles 55-64, orbs/rockets 44-56, small shots 28-40. A single-digit `spriteSize` draws as a few pixels. Stretched `trailSprite`s are sized by `tracerWidth`/`tracerLength` instead.
+
+## Known issues and their fixes
+
+Recurring breakages on the live site, with how each was diagnosed. Check these
+before investigating anything else.
+
+### "Can't get into a game": blank green world, broken HUD images, stuck "Waiting for players"
+
+**Cause: client/server version skew.** Vercel redeploys the client on every push
+to `main`, but the Azure VPS game server is deployed by hand, so any push leaves
+the live client ahead of the server. When the server sends an item type the new
+client has no def for, `typeToDef()` throws every frame inside the render loop:
+the world never draws (flat green), HUD `<img>`s fall back to broken-image
+icons, and the lobby sits on "Waiting for players" forever. The game itself is
+fine — matchmaking returns a join token and the websocket opens.
+
+Hit on 2026-10-31 when a PR removed 31 Pixel Gun 3D weapons from
+`shared/defs/gameObjects/customWeaponDefs.ts` (and bumped
+`CustomWeaponsVersion`); the VPS still handed out `pg_dead_star` and friends.
+
+**Fix — deploy the VPS on *every* push that touches `shared/defs`, `shared/net`
+or `server/`, not just protocol changes:**
+
+```sh
+ssh -i ~/.ssh/surviv-key.pem azureuser@52.180.66.249
+cd ~/surviv-io-clone && git pull --ff-only && pnpm install --frozen-lockfile
+sudo systemctl restart surviv
+```
+
+`scripts/host-free.sh` rebuilds `server/dist` on restart, so confirm the
+rebuild actually took before declaring it fixed:
+
+```sh
+ssh -i ~/.ssh/surviv-key.pem azureuser@52.180.66.249 'cd ~/surviv-io-clone && grep -c pg_dead_star server/dist/gameProcess.js'
+```
+
+A stale `server/dist` (build failed, host-free.sh fell back to the dev servers)
+looks exactly like a missing deploy. Always check `git log --oneline -1` on the
+VPS against `origin/main`, and check `origin/main` against your local `main` —
+a collaborator's merged PR is the usual reason the two differ.
+
+### Diagnosing the live site without a browser
+
+The client's own `/api/*` paths 404 on Vercel, so probe the API host directly.
+Two Caddy hosts: `api-52-180-66-249.sslip.io` → 127.0.0.1:8000 (API) and
+`game-52-180-66-249.sslip.io` → 127.0.0.1:8002 (`scripts/gameProxy.mjs`, which
+forwards to the game server on 8001).
+
+```sh
+curl -X POST https://api-52-180-66-249.sslip.io/api/find_game_v2 -H 'content-type: application/json' -d '{"version":1032,"region":"local","zones":["local"],"playerCount":1,"autoFill":true,"gameModeIdx":0}'
+```
+
+Use the current `protocolVersion` from `shared/gameConfig.ts`. A success +
+`wss://…/play/<port>` URL means matchmaking and the game server are healthy, so
+the bug is client-side rendering (almost always the skew above). A wrong version
+gives `invalid_protocol`, which still proves the API is up.
+`find_game_failed` plus "Region local returned status Bad Gateway" in
+`journalctl -u surviv` means the game server on 8001 died (it has crashed
+silently before; the box has only ~944 MB RAM) — `sudo systemctl restart surviv`.
+
+Harmless log noise, not causes: `Failed to save lost games SyntaxError:
+Unexpected end of JSON input` and `Failed to save game data, saving locally
+instead` (the DB is disabled), `Failed to spawn <building>` map warnings, and
+`surviv-proxy` showing `failed` while port 8002 is served by host-free.sh.
+
+### `m_` in def ids breaks only the production client
+
+The production client build (codefend) renames anything containing `m_`,
+including inside id strings: `tr_s_d_m_g` shipped as `tr_s_d_ove`, so the client
+stopped matching the server. Dev builds don't do it, so it only shows live.
+Never put `m_` in a def id or any other string shared with the server;
+`scripts/genCustomWeapons.py`'s `slug()` already strips it.
