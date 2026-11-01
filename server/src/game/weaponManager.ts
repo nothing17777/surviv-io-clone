@@ -442,6 +442,8 @@ export class WeaponManager {
                 this.player.autoFireTimer = 0;
                 this.player.setDirty();
             }
+            // Green Goblin's Tricky Swap
+            if (this.activeWeapon === "kit_goblin_swap") this.player.goblinSwap();
             if (this.activeWeapon === "kit_wizard_enhance") {
                 this.player.kitEnhanceTime = 9;
                 this.player.setDirty();
@@ -863,6 +865,8 @@ export class WeaponManager {
             this.player.kitEnhanceTime = KitDefs.warmachine.mounts!.secondDuration;
             this.player.setDirty();
         }
+        // Green Goblin's Golden Upgrade: the sub drones come out and he runs faster for its duration
+        if (this.activeWeapon === "kit_goblin_upgrade") this.player.startGoblinUpgrade();
         // Wolverine's dash: he slides 16 tiles alongside his streak (walls still stop him)
         if (this.activeWeapon === "kit_wolverine_dash") {
             const bullet = GameObjectDefs.typeToDef(itemDef.bulletType, "bullet");

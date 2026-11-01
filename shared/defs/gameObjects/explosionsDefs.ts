@@ -15,6 +15,8 @@ export type ExplosionDef =
         dropRandomLoot?: number;
         healTeam?: boolean;
         healAmount?: number;
+        /** never hurts whoever set it off, or their teammates (Green Goblin's pumpkin bombs) */
+        ownerSafe?: boolean;
         /** shrapnel in a fixed triangle (one straight ahead, two to the sides) instead of random directions */
         shrapnelTriangle?: boolean;
     }
@@ -506,6 +508,19 @@ export const ExplosionDefs: Record<string, ExplosionDef> = {
         shrapnelType: "",
         explosionEffectType: "rounds",
         decalType: "",
+    },
+    // Green Goblin's pumpkin bombs (and the bomb his Tricky Swap leaves behind): 25 dmg, and they set the
+    // enemy burning for 3 s (see Player.damage). They never hurt the goblin or his team
+    explosion_kit_pumpkin: {
+        type: "explosion",
+        damage: 25,
+        obstacleDamage: 1,
+        rad: { min: 2, max: 3.5 },
+        shrapnelCount: 0,
+        shrapnelType: "",
+        explosionEffectType: "frag",
+        decalType: "decal_frag_small_explosion",
+        ownerSafe: true,
     },
     // Ultron's minions blow up after 20 s or when destroyed: 25 dmg
     explosion_kit_minion: {

@@ -1088,6 +1088,22 @@ const SkinDefs: Record<string, OutfitDef> = {
         },
         lootImg: { sprite: "loot-shirt-01.img", tint: 0xc8cad0 },
     }),
+    outfitKitGreengoblin: defineOutfitSkin("outfitBase", {
+        name: "Green Goblin",
+        noDropOnDeath: true,
+        rarity: Rarity.Common,
+        skinImg: {
+            baseTint: 0x3fb54a,
+            baseSprite: "player-base-01.img",
+            handTint: 0x2f9a3a,
+            handSprite: "player-hands-01.img",
+            footTint: 0x2f9a3a,
+            footSprite: "player-feet-01.img",
+            backpackTint: 0x237a2c,
+            backpackSprite: "player-circle-base-01.img",
+        },
+        lootImg: { sprite: "loot-shirt-01.img", tint: 0x3fb54a },
+    }),
     outfitRed: defineOutfitSkin("outfitBase", {
         name: "Target Practice",
         noDropOnDeath: true,

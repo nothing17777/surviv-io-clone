@@ -11,7 +11,7 @@ import {
     SCOPE_LEVELS,
 } from "../../../../shared/defs/gameObjects/gearDefs.ts";
 import type { GunDef } from "../../../../shared/defs/gameObjects/gunDefs.ts";
-import { isKitItem, kitAura, KitDefs, UltronMinion } from "../../../../shared/defs/gameObjects/kitDefs.ts";
+import { dronePos, isKitItem, kitAura, KitDefs, UltronMinion } from "../../../../shared/defs/gameObjects/kitDefs.ts";
 import type { MeleeDef } from "../../../../shared/defs/gameObjects/meleeDefs.ts";
 import { PerkProperties } from "../../../../shared/defs/gameObjects/perkDefs.ts";
 import type { RoleDef } from "../../../../shared/defs/gameObjects/roleDefs.ts";
@@ -751,6 +751,15 @@ export class Player extends BaseGameObject {
     autoFireTimer = 0;
     /** War Machine: seconds until the right and left shoulder mounts fire next (the left runs on kitEnhanceTime) */
     mountTimers = [0, 0];
+    /**
+     * Green Goblin: where his main drone is round him (radians counter clockwise from +x, kept in [0, 2pi) since
+     * clients are sent it), where it was a tick ago (for the hit check), the seconds before each enemy it hit
+     * can be hit by it again, and the seconds until his sub drones throw their next bombs
+     */
+    droneAngle = 0;
+    dronePrev?: Vec2;
+    droneHits = new Map<number, number>();
+    droneBombTimer = 0;
     private wasCooling = false;
     /** Ultron minion: who summoned it and how long it has left */
     minionOwner?: Player;
@@ -3002,6 +3011,8 @@ export class Player extends BaseGameObject {
             else if (src === "pg_frozen_dragon") this.applyBurn(2, playerSource);
             else if (src === "pg_photon_sniper_rifle") this.applyBurn(4, playerSource, src);
             else if (src === "pg_mercenary") this.applyBurn(2, playerSource, src);
+            else if (src === "kit_goblin_drone") this.applyBleed(KitDefs.greengoblin.drone!.bleed, playerSource);
+            else if (src === "kit_goblin_pumpkin") this.applyBurn(3, playerSource, src);
             else if (src === "pg_fake_pistol") this.applyBleed(3, playerSource);
             else if (src === "pg_goo_substance_rifle") this.applyPoison(2, playerSource);
             else if (src === "pg_aphrodite_crossbow") {
@@ -5420,6 +5431,12 @@ export class Player extends BaseGameObject {
         this.sustainShieldTime = 0;
         this.energyDirty = true;
         if (kit.fullBoost) this.boost = 100;
+        // Green Goblin starts with his drone on his right, no upgrade running
+        this.droneAngle = 0;
+        this.dronePrev = undefined;
+        this.droneHits.clear();
+        this.droneBombTimer = 0;
+        this.kitEnhanceTime = 0;
         this.champ = ChampionDefs[kitId] ? new Champion(this, kitId) : undefined;
         // a champion's adrenaline is pinned full, so recheck the floor now it is one
         this.recalculateMinBoost();
@@ -5530,6 +5547,7 @@ export class Player extends BaseGameObject {
         }
         if (kit.autoFire) this.updateAutoFire(dt, kit.autoFire);
         if (kit.mounts) this.updateMounts(dt, kit.mounts);
+        if (kit.drone) this.updateDrone(dt, kit.drone);
         if (kit.daggers) this.updateDaggers(dt, kit.daggers);
         if (kit.aura) this.updateAura(dt, kit.aura);
     }
@@ -5617,6 +5635,114 @@ export class Player extends BaseGameObject {
             // the aura id (one mount or two) changes when it runs out
             if (this.kitEnhanceTime === 0) this.setDirty();
         }
+    }
+
+    /** Green Goblin: every drone's angle and position, the main one first, then the sub drones while the upgrade lasts */
+    dronePositions(d: NonNullable<(typeof KitDefs)[string]["drone"]>, around: Vec2 = this.pos) {
+        const count = this.kitEnhanceTime > 0 ? 1 + d.upgrade.subDrones : 1;
+        return Array.from({ length: count }, (_, i) => {
+            const angle = this.droneAngle + (i * Math.PI * 2) / count;
+            return { angle, pos: dronePos(around, d.radius, angle) };
+        });
+    }
+
+    /** Green Goblin: the point of a drone's triangle and the way it points (counter clockwise round its circle) */
+    droneTip(d: NonNullable<(typeof KitDefs)[string]["drone"]>, drone: { angle: number; pos: Vec2 }) {
+        const dir = v2.create(-Math.sin(drone.angle), Math.cos(drone.angle));
+        return { dir, pos: v2.add(drone.pos, v2.mul(dir, d.tip)) };
+    }
+
+    /** Green Goblin: a pumpkin bomb (or the parked swap bomb) from `pos` along `dir`, silent */
+    fireGoblinBomb(d: NonNullable<(typeof KitDefs)[string]["drone"]>, bullet: string, from: Vec2, dir: Vec2) {
+        const pos = v2.copy(from);
+        this.game.map.clampToMapBounds(pos);
+        this.game.bulletBarn.fireBullet(
+            {
+                playerId: this.__id,
+                bulletType: bullet,
+                // the gun's id is what makes the explosion burn (see Player.damage)
+                gameSourceType: d.bombGun,
+                damageType: GameConfig.DamageType.Player,
+                pos,
+                dir: v2.normalizeSafe(dir, this.dir),
+                layer: this.layer,
+                damageMult: 1,
+                shotFx: false,
+                reflectCount: 0,
+            } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
+        );
+    }
+
+    /**
+     * Green Goblin: the drone circles him, and whatever enemy its path crosses takes damage and bleeds. The check
+     * is on the segment it covered this tick, since at 4 rad/s it moves further than an enemy is wide. The sub
+     * drones of Golden Upgrade throw their bombs off their tips instead, and the angle is sent to clients every tick
+     */
+    updateDrone(dt: number, d: NonNullable<(typeof KitDefs)[string]["drone"]>) {
+        const before = this.dronePrev ?? dronePos(this.pos, d.radius, this.droneAngle);
+        this.droneAngle = (this.droneAngle + d.turnRate * dt) % (Math.PI * 2);
+        const after = dronePos(this.pos, d.radius, this.droneAngle);
+        this.dronePrev = after;
+
+        for (const [id, left] of this.droneHits) {
+            if (left - dt <= 0) this.droneHits.delete(id);
+            else this.droneHits.set(id, left - dt);
+        }
+        const reach = d.radius + d.hitRadius + 3;
+        for (const enemy of this.enemiesWithin(reach)) {
+            if (this.droneHits.has(enemy.__id)) continue;
+            if (math.distToSegmentSq(enemy.pos, before, after) > (enemy.rad + d.hitRadius) ** 2) continue;
+            this.droneHits.set(enemy.__id, d.hitCooldown);
+            enemy.damage({
+                amount: d.damage,
+                damageType: GameConfig.DamageType.Player,
+                source: this,
+                gameSourceType: "kit_goblin_drone",
+                weaponSourceType: "kit_goblin_drone",
+                dir: v2.normalizeSafe(v2.sub(enemy.pos, after), this.dir),
+            });
+        }
+
+        if (this.kitEnhanceTime > 0) {
+            this.droneBombTimer -= dt;
+            if (this.droneBombTimer <= 1e-6) {
+                this.droneBombTimer += d.upgrade.bombEvery;
+                // every sub drone (not the main one) throws a bomb forward off its tip
+                for (const sub of this.dronePositions(d).slice(1)) {
+                    const tip = this.droneTip(d, sub);
+                    this.fireGoblinBomb(d, d.bomb, tip.pos, tip.dir);
+                }
+            }
+            this.kitEnhanceTime = this.kitEnhanceTime - dt < 1e-6 ? 0 : this.kitEnhanceTime - dt;
+        }
+        this.setDirty();
+    }
+
+    /** Green Goblin's Golden Upgrade: the sub drones come out and he runs faster, for the upgrade's duration */
+    startGoblinUpgrade() {
+        const d = KitDefs.greengoblin.drone!;
+        this.kitEnhanceTime = d.upgrade.duration;
+        this.droneBombTimer = d.upgrade.bombEvery;
+        this.setDirty();
+    }
+
+    /**
+     * Green Goblin's Tricky Swap: he and the main drone trade places, which puts the drone where he stood (the
+     * circle just turns half a lap), and a pumpkin bomb is left where he was
+     */
+    goblinSwap() {
+        const d = KitDefs.greengoblin.drone!;
+        const old = v2.copy(this.pos);
+        const to = dronePos(this.pos, d.radius, this.droneAngle);
+        this.game.map.clampToMapBounds(to, this.rad);
+        v2.set(this.pos, to);
+        this.droneAngle = (this.droneAngle + Math.PI) % (Math.PI * 2);
+        // the drone's hit path starts again from its new spot rather than sweeping across the jump
+        this.dronePrev = dronePos(this.pos, d.radius, this.droneAngle);
+        this.setPartDirty();
+        this.game.grid.updateObject(this);
+        this.setDirty();
+        this.fireGoblinBomb(d, d.swapBomb, old, this.dir);
     }
 
     enemiesWithin(rad: number): Player[] {
@@ -5836,6 +5962,8 @@ export class Player extends BaseGameObject {
         else if (this.botBrain?.level === "scripter") this.speed *= 1.3;
 
         this.speed += KitDefs[this.kit]?.speedBonus ?? 0;
+        // Green Goblin's Golden Upgrade
+        if (this.kitEnhanceTime > 0) this.speed += KitDefs[this.kit]?.drone?.upgrade.speedBonus ?? 0;
         if (this.champ) this.speed = this.champ.speed(this.speed);
         this.speed = this.debuffs.speed(this.speed, !!this.champ?.buff("highlander"));
         if (this.minionOwner) this.speed *= UltronMinion.speedMult;

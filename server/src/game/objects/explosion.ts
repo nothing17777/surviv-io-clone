@@ -218,6 +218,9 @@ export class ExplosionBarn {
             // hacker bots phase through blasts the way they phase through bullets
             if (!isSourceTeammate && obj.botBrain?.phaseExplosion(explosion)) return;
 
+            // Green Goblin's bombs only ever hurt his enemies
+            if (def.ownerSafe && isSourceTeammate) return;
+
             if (def.healTeam && isSourceTeammate) {
                 const healAmount = def.healAmount ?? 5; // default to 5 if healValue is not defined
                 obj.health += healAmount;

@@ -19,6 +19,15 @@ export interface BulletDef {
     skipCollision?: boolean;
     onHit?: string;
     noDistAdj?: boolean;
+    /**
+     * seconds from the shot leaving the gun until it ends, however often it bounces on the way (a bounce
+     * normally restarts the range at 1/1.5 of the last one); the end of its life sets off `onHit`
+     */
+    lifetime?: number;
+    /** flies through its owner and their teammates, even after a bounce */
+    noSelfDamage?: boolean;
+    /** never collides with players: only its own timer sets it off (the goblin's swap bomb) */
+    noPlayerHit?: boolean;
     useExplosiveRoundsAlt?: boolean;
     /** goes through players and obstacles, like a laser */
     pierce?: boolean;

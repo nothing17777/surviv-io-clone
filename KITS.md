@@ -65,6 +65,22 @@ treat locked kits generically. Neither needs edits for a normal kit.
 4. Three kit tests failed before any changes (Spider-Man regen, Ultron shield, "kit regen" table). They assume 0.05 s
    steps. Don't chase them, but check the failure list matches before blaming your change.
 
+## 3b. Lessons from Green Goblin (orbiting drones, bouncing bombs)
+
+- `kitGun(id, base, bulletOverrides, gunOverrides)` already defines `bullet_<id>`; put bullet tweaks in its second
+  argument instead of also calling `kitBullet` with the same name (it would overwrite it).
+- `fanShot` only fans out when spread is not cancelled: give the gun `recoilTime: 1e10`.
+- New `BulletDef` flags: `lifetime` (seconds, carried through bounces via `age`), `noSelfDamage` (skips the shooter's
+  team), `noPlayerHit` (never collides with players, so a parked bomb only goes off on its timer). `ghost` already
+  exists and means "passes through obstacles", so don't reuse the name.
+- `ExplosionDef.ownerSafe` makes a blast skip the owner and teammates.
+- Per-player visuals that follow a rotating angle need a net field: `droneAngle` (`writeFloat(.., 0, 2PI, 8)`, so keep
+  it in [0, 2PI]). `kitAura` ids so far: 1 summoner, 2/3 wizard, 4/5 War Machine, 6/7 Green Goblin. Remember the
+  client y-flip (screen y = -world y) when drawing orbits.
+- `player.speed` is only recomputed while moving: in tests call `me.recalculateSpeed(false)` before reading it, and
+  compare with the same weapon equipped (equip speed differs per slot).
+- In tests, moving a player by setting `pos` also needs `collider.pos` set, or explosions and sweeps miss it.
+
 ## 4. Test checklist
 
 - Stats applied by `applyKit` (hp, shield, empty slots, outfit)

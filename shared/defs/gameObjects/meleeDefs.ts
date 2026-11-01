@@ -1484,6 +1484,19 @@ const KitMeleeDefs: Record<string, MeleeDef> = {
         noPotatoSwap: true,
         damage: 35,
     }),
+    // Green Goblin's Tricky Swap: swaps places with the main drone and leaves a pumpkin bomb where he stood,
+    // 6 s cooldown
+    kit_goblin_swap: defineMeleeSkin("fists", {
+        name: "Tricky Swap",
+        noPotatoSwap: true,
+        damage: 0,
+        attack: { offset: { x: 0, y: 0 }, rad: 0.1, cooldownTime: 6 },
+        lootImg: {
+            sprite: `img/custom-weapons/loot/kit_goblin_swap.png?v=${CustomWeaponsVersion}`,
+            scale: 0.3,
+            tint: 0xffffff,
+        },
+    }),
     // Spider-Man's Sudden Dodge: untargetable for 2 s and faster auto webs, 8 s cooldown
     kit_spider_dodge: defineMeleeSkin("fists", {
         name: "Sudden Dodge",
