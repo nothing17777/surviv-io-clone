@@ -334,6 +334,7 @@ export class Player implements AbstractObject {
         burning: boolean;
         charmed: boolean;
         kitAura: number;
+        droneAngle: number;
         wizardMarked: boolean;
         vulnerable: boolean;
         excaliburActive: boolean;
@@ -515,6 +516,7 @@ export class Player implements AbstractObject {
             burning: false,
             charmed: false,
             kitAura: 0,
+            droneAngle: 0,
             wizardMarked: false,
             vulnerable: false,
             excaliburActive: false,
@@ -610,6 +612,7 @@ export class Player implements AbstractObject {
             this.m_netData.burning = data.burning;
             this.m_netData.charmed = data.charmed;
             this.m_netData.kitAura = data.kitAura;
+            this.m_netData.droneAngle = data.droneAngle;
             this.m_netData.wizardMarked = data.wizardMarked;
             this.m_netData.vulnerable = data.vulnerable;
             this.m_netData.excaliburActive = data.excaliburActive;
@@ -2847,6 +2850,16 @@ export class Player implements AbstractObject {
     kitDaggers: PIXI.Sprite[] = [];
     /** War Machine's right and left shoulder mounts */
     kitMounts: (PIXI.Graphics | undefined)[] = [];
+    /**
+     * Green Goblin's drones, drawn as triangles whose point leads. The server sends the main drone's angle each
+     * tick; between updates it turns on its own at the kit's rate and eases toward the latest one
+     */
+    kitDrones: PIXI.Graphics[] = [];
+    droneDraw = 0;
+    droneSync = 0;
+    droneSyncAge = 0;
+    droneSyncSeen = -1;
+    droneShown = false;
     kitTicker = 0;
     excaliburRing: PIXI.Graphics | null = null;
     flightGlow: PIXI.Graphics | null = null;
@@ -2914,6 +2927,54 @@ export class Player implements AbstractObject {
             const m = KitDefs.warmachine.mounts!;
             // bodyContainer's +x is where he aims and +y his right hand
             g.position.set(-m.back * px, (i === 0 ? m.side : -m.side) * px);
+        }
+        // Green Goblin's drones (aura 6: the main one, 7: it and two sub drones a third of a lap apart)
+        const drones = aura === 7 ? 3 : aura === 6 ? 1 : 0;
+        if (drones || this.kitDrones.length) {
+            const dd = KitDefs.greengoblin.drone!;
+            const TAU = Math.PI * 2;
+            if (drones) {
+                if (this.m_netData.droneAngle !== this.droneSyncSeen) {
+                    this.droneSyncSeen = this.m_netData.droneAngle;
+                    this.droneSync = this.m_netData.droneAngle;
+                    this.droneSyncAge = 0;
+                }
+                this.droneSyncAge += dt;
+                const target = this.droneSync + dd.turnRate * this.droneSyncAge;
+                this.droneDraw += dd.turnRate * dt;
+                // shortest way round to where the server says it is: snap if it's far (a swap), else ease
+                const err = ((target - this.droneDraw) % TAU + TAU + Math.PI) % TAU - Math.PI;
+                if (!this.droneShown || Math.abs(err) > 0.8) this.droneDraw = target;
+                else this.droneDraw += err * Math.min(1, dt * 12);
+            }
+            this.droneShown = drones > 0;
+            while (this.kitDrones.length < 3) {
+                const g = new PIXI.Graphics();
+                // the main drone is gray, the sub drones yellow; the point (the head) is along +x
+                const r = dd.tip * px;
+                g.lineStyle(2, this.kitDrones.length === 0 ? 0x3a3c42 : 0x7a5f00);
+                g.beginFill(this.kitDrones.length === 0 ? 0xa0a2a8 : 0xf5cd1e);
+                g.drawPolygon([
+                    r,
+                    0,
+                    r * Math.cos((2 * Math.PI) / 3),
+                    r * Math.sin((2 * Math.PI) / 3),
+                    r * Math.cos((4 * Math.PI) / 3),
+                    r * Math.sin((4 * Math.PI) / 3),
+                ]);
+                g.endFill();
+                this.container.addChild(g);
+                this.kitDrones.push(g);
+            }
+            this.kitDrones.forEach((g, i) => {
+                g.visible = !dead && i < drones;
+                if (!g.visible) return;
+                const a = this.droneDraw + (i * TAU) / drones;
+                // the server's circle runs counter clockwise with y up; the screen has y down
+                g.position.set(Math.cos(a) * dd.radius * px, -Math.sin(a) * dd.radius * px);
+                // heading: counter clockwise along the circle, which is (-sin a, -cos a) on the screen
+                g.rotation = Math.atan2(-Math.cos(a), -Math.sin(a));
+            });
         }
         const wizardAura = aura === 2 || aura === 3;
         if (wizardAura || this.kitCircle) {

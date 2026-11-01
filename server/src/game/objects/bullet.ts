@@ -57,6 +57,8 @@ export interface BulletParams {
     playerId: number;
     reflectCount?: number;
     reflectObjId?: number;
+    /** seconds the shot has already flown before this bounce segment (for BulletDef.lifetime) */
+    age?: number;
     onHitFx?: string;
     clipDistance?: boolean;
     distance?: number;
@@ -244,6 +246,13 @@ export class Bullet {
     /** Meowmere's cats bounce off every obstacle */
     bounce = false;
 
+    /** seconds this shot flew before the bounce that made this segment (BulletDef.lifetime) */
+    age = 0;
+
+    /** never hits its owner or their teammates (Green Goblin's pumpkin bombs) */
+    noSelfDamage = false;
+    noPlayerHit = false;
+
     /** Terra Blade / Heavy Sniper shots go through players, losing some damage on each */
     playerPierce = false;
 
@@ -313,6 +322,9 @@ export class Bullet {
         this.returning = false;
         this.ghost = !!params.ghost;
         this.firedAt = this.bulletManager.game.now;
+        this.age = params.age ?? 0;
+        this.noSelfDamage = !!bulletDef.noSelfDamage;
+        this.noPlayerHit = !!bulletDef.noPlayerHit;
         this.homingId = params.homingTargetId
             ? params.homingTargetId
             : bulletDef.homing && this.reflectCount === 0
@@ -334,6 +346,10 @@ export class Bullet {
             // we don't want it to be multiplied twice
             params.distanceMult = 1;
         }
+        // a shot with a lifetime flies for what is left of it, however often it bounced (each bounce
+        // would otherwise restart the range, shortened); the client is told the range
+        const timed = !!bulletDef.lifetime && !this.devShot;
+        if (timed) distance = Math.max(bulletDef.lifetime! - this.age, 0) * this.speed;
 
         this.shotSourceType = params.gameSourceType;
         this.mapSourceType = params.mapSourceType ?? "";
@@ -358,7 +374,7 @@ export class Bullet {
             Constants.MaxPosition,
         );
         // the client works out range from the gun unless told; tell it for the super hacker's map-wide shots
-        this.clipDistance = !!params.clipDistance || this.devShot;
+        this.clipDistance = !!params.clipDistance || this.devShot || timed;
         this.endPos = v2.add(params.pos, v2.mul(this.dir, this.distance));
         this.clientEndPos = v2.copy(this.endPos);
         this.damage = bulletDef.damage * this.damageMult;
@@ -635,11 +651,13 @@ export class Bullet {
                 if (
                     !(
                         !obj.dead
+                        && !this.noPlayerHit
                         // Iron Man in flight can't be hit: shots fly straight through him
                         && !obj.untargetable
                         // the super hacker's shots reach into bunkers and up from them too
                         && (util.sameLayer(obj.layer, this.layer) || 2 & obj.layer || this.devShot)
                         && (obj.__id !== this.playerId || this.damageSelf)
+                        && !(this.noSelfDamage && this.player && obj.teamId === this.player.teamId)
                         && obj.__id !== this.reflectObjId
                     )
                 ) {
@@ -985,6 +1003,7 @@ export class Bullet {
             shotFx: false,
             reflectCount: this.reflectCount + 1,
             reflectObjId: objId,
+            age: this.age + this.distanceTraveled / this.speed,
             playerId: this.playerId,
             damageType: this.damageType,
             shotAlt: this.shotAlt,

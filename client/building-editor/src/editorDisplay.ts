@@ -225,6 +225,7 @@ export class EditorDisplay {
             burning: false,
             charmed: false,
             kitAura: 0,
+            droneAngle: 0,
             wizardMarked: false,
             vulnerable: false,
             excaliburActive: false,

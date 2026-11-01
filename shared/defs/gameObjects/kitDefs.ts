@@ -56,6 +56,30 @@ export interface KitDef {
         side: number;
         secondDuration: number;
     };
+    /**
+     * Green Goblin: a drone circling the player counter clockwise at `radius`, `turnRate` rad/s, its point leading.
+     * An enemy it touches takes `damage` and bleeds for `bleed` s (and can't be hit again by it for `hitCooldown` s).
+     * Golden Upgrade (`upgrade.duration` s) adds `speedBonus` move speed and `subDrones` more drones, evenly spaced
+     * round the same circle, that each throw a pumpkin bomb off their tip every `bombEvery` s. Tricky Swap trades
+     * places with the main drone and leaves a bomb that goes off `swapBombFuse` s later
+     */
+    drone?: {
+        radius: number;
+        turnRate: number;
+        damage: number;
+        bleed: number;
+        /** how far from the drone's centre an enemy's edge can be and still be hit */
+        hitRadius: number;
+        hitCooldown: number;
+        /** how far the tip is from the drone's centre (the drawn triangle's size) */
+        tip: number;
+        /** the pumpkin bomb the sub drones throw (and Tricky Swap leaves): gun id for the damage source, bullets */
+        bombGun: string;
+        bomb: string;
+        swapBomb: string;
+        upgrade: { duration: number; speedBonus: number; subDrones: number; bombEvery: number };
+        swapBombFuse: number;
+    };
     /** Iron Man: energy pays for reloads, healing and shield */
     energy?: {
         max: number;
@@ -148,6 +172,33 @@ export const KitDefs: Record<string, KitDef> = {
             secondDuration: 10,
         },
     },
+    greengoblin: {
+        name: "Green Goblin",
+        health: 150,
+        helmet: "helmet04",
+        chest: "chest04",
+        outfit: "outfitKitGreengoblin",
+        // skills 1 and 2 are guns used for their cooldowns (left click on the slot); skill 3 is a melee
+        primary: "kit_goblin_pumpkin",
+        secondary: "kit_goblin_upgrade",
+        melee: "kit_goblin_swap",
+        regen: 1,
+        calmRegen: { rate: 4, after: 5 },
+        drone: {
+            radius: 25,
+            turnRate: 4.2,
+            damage: 25,
+            bleed: 4,
+            hitRadius: 1.2,
+            hitCooldown: 1,
+            tip: 1.4,
+            bombGun: "kit_goblin_pumpkin",
+            bomb: "bullet_kit_goblin_pumpkin",
+            swapBomb: "bullet_kit_goblin_trap",
+            upgrade: { duration: 8, speedBonus: 4, subDrones: 2, bombEvery: 2 },
+            swapBombFuse: 0.5,
+        },
+    },
     summoner: {
         name: "Summoner",
         health: 150,
@@ -203,13 +254,20 @@ export const UltronOrbColors = ["red", "blue", "green", "yellow", "purple", "ora
 
 /**
  * the kit's player aura id sent to clients: 0 none, 1 summoner daggers, 2 wizard circle, 3 enhanced,
- * 4 War Machine's right shoulder mount, 5 both mounts
+ * 4 War Machine's right shoulder mount, 5 both mounts, 6 Green Goblin's drone, 7 the drone and its two sub drones.
+ * The field is 3 bits on the wire, so 7 is the last id
  */
 export function kitAura(kit: string, enhanced: boolean) {
     if (kit === "summoner") return 1;
     if (kit === "wizard") return enhanced ? 3 : 2;
     if (kit === "warmachine") return enhanced ? 5 : 4;
+    if (kit === "greengoblin") return enhanced ? 7 : 6;
     return 0;
+}
+
+/** where a Green Goblin drone is: `angle` round the player (counter clockwise from +x, world y up) */
+export function dronePos(center: { x: number; y: number }, radius: number, angle: number) {
+    return { x: center.x + Math.cos(angle) * radius, y: center.y + Math.sin(angle) * radius };
 }
 
 export function isKitItem(type: string) {
