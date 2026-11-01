@@ -175,9 +175,8 @@ export const KitDefs: Record<string, KitDef> = {
     greengoblin: {
         name: "Green Goblin",
         health: 150,
-        // no armor: the sheet gives him none
-        helmet: "",
-        chest: "",
+        helmet: "helmet04",
+        chest: "chest04",
         outfit: "outfitKitGreengoblin",
         // skills 1 and 2 are guns used for their cooldowns (left click on the slot); skill 3 is a melee
         primary: "kit_goblin_pumpkin",

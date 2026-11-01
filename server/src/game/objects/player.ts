@@ -5679,10 +5679,21 @@ export class Player extends BaseGameObject {
      * drones of Golden Upgrade throw their bombs off their tips instead, and the angle is sent to clients every tick
      */
     updateDrone(dt: number, d: NonNullable<(typeof KitDefs)[string]["drone"]>) {
-        const before = this.dronePrev ?? dronePos(this.pos, d.radius, this.droneAngle);
+        const prevAngle = this.droneAngle;
+        const before = this.dronePrev ?? dronePos(this.pos, d.radius, prevAngle);
         this.droneAngle = (this.droneAngle + d.turnRate * dt) % (Math.PI * 2);
         const after = dronePos(this.pos, d.radius, this.droneAngle);
         this.dronePrev = after;
+        // the sub drones of Golden Upgrade are spaced evenly round the same circle and cut just like the main one
+        const count = this.kitEnhanceTime > 0 ? 1 + d.upgrade.subDrones : 1;
+        const sweeps = Array.from({ length: count }, (_, i) => {
+            if (i === 0) return { before, after };
+            const off = (i * Math.PI * 2) / count;
+            return {
+                before: dronePos(this.pos, d.radius, prevAngle + off),
+                after: dronePos(this.pos, d.radius, this.droneAngle + off),
+            };
+        });
 
         for (const [id, left] of this.droneHits) {
             if (left - dt <= 0) this.droneHits.delete(id);
@@ -5691,7 +5702,9 @@ export class Player extends BaseGameObject {
         const reach = d.radius + d.hitRadius + 3;
         for (const enemy of this.enemiesWithin(reach)) {
             if (this.droneHits.has(enemy.__id)) continue;
-            if (math.distToSegmentSq(enemy.pos, before, after) > (enemy.rad + d.hitRadius) ** 2) continue;
+            const r2 = (enemy.rad + d.hitRadius) ** 2;
+            const hitBy = sweeps.find((w) => math.distToSegmentSq(enemy.pos, w.before, w.after) <= r2);
+            if (!hitBy) continue;
             this.droneHits.set(enemy.__id, d.hitCooldown);
             enemy.damage({
                 amount: d.damage,
@@ -5699,7 +5712,7 @@ export class Player extends BaseGameObject {
                 source: this,
                 gameSourceType: "kit_goblin_drone",
                 weaponSourceType: "kit_goblin_drone",
-                dir: v2.normalizeSafe(v2.sub(enemy.pos, after), this.dir),
+                dir: v2.normalizeSafe(v2.sub(enemy.pos, hitBy.after), this.dir),
             });
         }
 

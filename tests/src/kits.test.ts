@@ -605,13 +605,13 @@ test("every kit: reloading a slot that holds no gun does nothing", () => {
 
 const goblin = KitDefs.greengoblin.drone!;
 
-test("Green Goblin: 150 hp, no armor, three skills in slots 1-3, in the sheet's green", () => {
+test("Green Goblin: 150 hp, level 4 armor and helmet, three skills in slots 1-3, in the sheet's green", () => {
     const { me } = setup("greengoblin", v2.create(200, 0));
     expect(me.maxHealth).toBe(150);
     expect(me.health).toBe(150);
     expect(me.maxShield).toBe(0);
-    expect(me.helmet).toBe("");
-    expect(me.chest).toBe("");
+    expect(me.helmet).toBe("helmet04");
+    expect(me.chest).toBe("chest04");
     expect(me.weapons[Slot.Primary].type).toBe("kit_goblin_pumpkin");
     expect(me.weapons[Slot.Secondary].type).toBe("kit_goblin_upgrade");
     expect(me.weapons[Slot.Melee].type).toBe("kit_goblin_swap");
@@ -651,6 +651,21 @@ test("Green Goblin: the drone circles counter clockwise at radius 25 and its poi
         expect(me.droneAngle).toBeGreaterThanOrEqual(0);
         expect(me.droneAngle).toBeLessThan(Math.PI * 2);
     }
+});
+
+test("Green Goblin: the sub drones cut enemies too", () => {
+    // straight down from him: the main drone needs over a second to get there, the 240 degree sub drone half a tick
+    const run = (upgrade: boolean) => {
+        const { game, me, enemy } = setup("greengoblin", v2.create(0, -25));
+        enemy.maxHealth = 10000;
+        enemy.health = 10000;
+        const hit = vi.spyOn(enemy, "damage");
+        if (upgrade) me.startGoblinUpgrade();
+        for (let i = 0; i < 5; i++) game.step(0.1);
+        return hit.mock.calls.filter((c) => c[0].gameSourceType === "kit_goblin_drone").length;
+    };
+    expect(run(false)).toBe(0);
+    expect(run(true)).toBe(1);
 });
 
 test("Green Goblin: the drone cuts an enemy it passes between ticks for 25 and a 4 s bleed, once a lap", () => {
