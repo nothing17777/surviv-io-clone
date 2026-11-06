@@ -211,6 +211,8 @@ export class Player implements AbstractObject {
     footRContainer = new PIXI.Container();
 
     bodyContainer = new PIXI.Container();
+    /** how much of the player shows: 1, or dim / 0 while Wolverine's Claw Combo hides him */
+    vanish = 1;
 
     /** the glowing aura a Terraria sword leaves on each swing */
     swingArc = new PIXI.Sprite();
@@ -338,6 +340,8 @@ export class Player implements AbstractObject {
         dummy: boolean;
         dummyHealth: number;
         wizardMarked: boolean;
+        wolverineMarked: boolean;
+        hidden: boolean;
         vulnerable: boolean;
         excaliburActive: boolean;
         championIndex: number;
@@ -522,6 +526,8 @@ export class Player implements AbstractObject {
             dummy: false,
             dummyHealth: 1,
             wizardMarked: false,
+            wolverineMarked: false,
+            hidden: false,
             vulnerable: false,
             excaliburActive: false,
             championIndex: 0,
@@ -620,6 +626,8 @@ export class Player implements AbstractObject {
             this.m_netData.dummy = data.dummy;
             this.m_netData.dummyHealth = data.dummyHealth;
             this.m_netData.wizardMarked = data.wizardMarked;
+            this.m_netData.wolverineMarked = data.wolverineMarked;
+            this.m_netData.hidden = data.hidden;
             this.m_netData.vulnerable = data.vulnerable;
             this.m_netData.excaliburActive = data.excaliburActive;
             this.m_netData.flying = data.flying;
@@ -1527,7 +1535,15 @@ export class Player implements AbstractObject {
             || (activePlayer.layer & 1) == 1
             || (this.layer & 1) == 0;
 
-        this.auraContainer.visible = Boolean(!this.m_netData.m_dead && auraLayerMatch);
+        // Wolverine's Claw Combo: only his team sees him, and even they only dimly
+        this.vanish = !this.m_netData.hidden
+            ? 1
+            : isActivePlayer
+                || playerBarn.getPlayerInfo(this.__id).teamId == playerBarn.getPlayerInfo(activeId).teamId
+            ? 0.35
+            : 0;
+
+        this.auraContainer.visible = Boolean(!this.m_netData.m_dead && auraLayerMatch && this.vanish > 0);
 
         renderer.addPIXIObj(
             this.container,
@@ -1544,7 +1560,8 @@ export class Player implements AbstractObject {
         const screenScale = camera.m_pixels(1);
         this.container.position.set(screenPos.x, screenPos.y);
         this.container.scale.set(screenScale, screenScale);
-        this.container.visible = !this.m_netData.m_dead;
+        this.container.visible = !this.m_netData.m_dead && this.vanish > 0;
+        this.container.alpha = this.vanish;
         this.auraContainer.position.set(screenPos.x, screenPos.y);
         this.auraContainer.scale.set(screenScale, screenScale);
 
@@ -3005,13 +3022,16 @@ export class Player implements AbstractObject {
                 this.kitCircle.rotation += dt * (aura === 3 ? 1.2 : 0.3);
             }
         }
-        if (this.m_netData.wizardMarked || this.kitSigil) {
+        const marked = this.m_netData.wizardMarked || this.m_netData.wolverineMarked;
+        if (marked || this.kitSigil) {
             if (!this.kitSigil) {
                 this.kitSigil = PIXI.Sprite.from("img/custom-weapons/fx/kit/dark_sigil.png");
                 this.kitSigil.anchor.set(0.5, 0.5);
                 this.auraContainer.addChild(this.kitSigil);
             }
-            this.kitSigil.visible = this.m_netData.wizardMarked && !dead;
+            this.kitSigil.visible = marked && !dead;
+            // Wolverine's mark is red; the Wizard's stays dark
+            this.kitSigil.tint = this.m_netData.wolverineMarked ? 0xff3a3a : 0xffffff;
             const tex = this.kitSigil.texture;
             const s = (3.2 * px) / Math.max(tex.width, 1);
             this.kitSigil.scale.set(s, s);

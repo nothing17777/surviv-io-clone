@@ -18,6 +18,9 @@ import {
     KitDefs,
     SentryCharge,
     UltronMinion,
+    WolverineCombo,
+    WolverineComboStep,
+    WolverineComboTime,
 } from "../../../../shared/defs/gameObjects/kitDefs.ts";
 import type { MeleeDef } from "../../../../shared/defs/gameObjects/meleeDefs.ts";
 import { PerkProperties } from "../../../../shared/defs/gameObjects/perkDefs.ts";
@@ -801,9 +804,40 @@ export class Player extends BaseGameObject {
         return this.flightTime > 0 && !this.dead;
     }
 
-    /** the start of Iron Man's flight (or Spider-Man's dodge), when nothing can hit or target him */
+    /** the start of Iron Man's flight (or Spider-Man's dodge, or Wolverine's Claw Combo), when nothing can hit or target him */
     get untargetable() {
-        return (this.flying && this.flightTime > this.flightHittableAt) || (this.dodgeTime > 0 && !this.dead);
+        return (this.flying && this.flightTime > this.flightHittableAt) || (this.dodgeTime > 0 && !this.dead)
+            || this.hidden;
+    }
+
+    /** Wolverine: the enemy in his mark (the nearest one within range), and every Wolverine that has this player marked */
+    markTarget?: Player;
+    markedBy = new Set<Player>();
+
+    get wolverineMarked() {
+        return this.markedBy.size > 0 && !this.dead;
+    }
+
+    /** Wolverine's Claw Combo while it runs (see startClawCombo) */
+    clawCombo?: {
+        target: Player;
+        /** which flint shot is out, and the seconds since it left */
+        step: number;
+        t: number;
+        start: Vec2;
+        dir: Vec2;
+        /** the far end of the latest flint shot: where he comes out */
+        end: Vec2;
+        /** whoever the shot has hit, and who it is dragging along */
+        shotHit: Set<number>;
+        grabbed: Player[];
+        /** every claw left so far, and who each has hit (once each) */
+        claws: Array<{ pos: Vec2; hit: Set<number> }>;
+    };
+
+    /** hidden for the whole Claw Combo: unseen by anyone but his team, and nothing can hit or target him */
+    get hidden() {
+        return !!this.clawCombo && !this.dead;
     }
 
     startFlight(flight: { duration: number; untargetable: number; waveAt: number; speedBonus: number }, gun: string) {
@@ -2509,8 +2543,8 @@ export class Player extends BaseGameObject {
         }
         if (this.activeJudgeRocket) v2.set(movement, v2.create(0, 0));
 
-        // Sentry Charge's stun: no moving, and any slide he was on stops
-        if (this.stunTime > 0) {
+        // Sentry Charge's stun (and Wolverine's Claw Combo): no moving, and any slide he was on stops
+        if (this.stunTime > 0 || this.clawCombo) {
             v2.set(movement, v2.create(0, 0));
             this.webPull = undefined;
         }
@@ -2586,6 +2620,7 @@ export class Player extends BaseGameObject {
 
         this.mapIndicator?.updatePosition(this.pos);
         this.updateSentryDash(dt);
+        this.updateClawCombo(dt);
 
         // if we are the group leader and new players can still join the group
         // update the group spawn position to our current position every 1 second
@@ -2928,8 +2963,8 @@ export class Player extends BaseGameObject {
         //
         // Weapon stuff
         //
-        // stunned: no shooting, swinging, reloading or item use
-        if (this.stunTime > 0) {
+        // stunned (or mid Claw Combo): no shooting, swinging, reloading or item use
+        if (this.stunTime > 0 || this.clawCombo) {
             this.shootStart = false;
             this.shootHold = false;
             this.cancelAction();
@@ -3211,6 +3246,9 @@ export class Player extends BaseGameObject {
             const weap = params.weaponSourceType ?? "";
             if (src === "pg_nanobots_rifle" || src === "kit_wolverine_claws" || src === "kit_wolverine_dash") {
                 this.applyBleed(4, playerSource);
+            } // Wolverine's Claw Combo: every flint shot and claw bleeds
+            else if (src === "kit_wolverine_combo") {
+                this.applyBleed(WolverineCombo.bleed, playerSource);
             } // Iron Man: rockets burn, the repulsor blast bleeds
             else if (src === "kit_ironman_rockets" || src === "kit_warmachine_barrage") {
                 this.applyBurn(4, playerSource, src);
@@ -3383,6 +3421,10 @@ export class Player extends BaseGameObject {
             p.setDirty();
         }
         this.wizardMarks.clear();
+        // a Wolverine's mark and combo end with either of them
+        this.endClawCombo();
+        this.setMarkTarget(undefined);
+        for (const w of [...this.markedBy]) w.setMarkTarget(undefined);
         this.flightTime = 0;
         this.dodgeTime = 0;
         if (this.downed) this.downed = false;
@@ -5701,6 +5743,8 @@ export class Player extends BaseGameObject {
         this.sustainShieldTime = 0;
         this.energyDirty = true;
         this.kitEnhanceTime = 0;
+        this.endClawCombo();
+        this.setMarkTarget(undefined);
         this.resetItemTriggers();
         this.outfit = this.loadout.outfit;
         for (
@@ -5780,6 +5824,7 @@ export class Player extends BaseGameObject {
             this.dodgeTime = Math.max(0, this.dodgeTime - dt);
             if (this.dodgeTime === 0) this.setDirty();
         }
+        if (kit.mark) this.updateMark(kit.mark);
         if (kit.autoFire) this.updateAutoFire(dt, kit.autoFire);
         if (kit.mounts) this.updateMounts(dt, kit.mounts);
         if (kit.drone) this.updateDrone(dt, kit.drone);
@@ -6107,6 +6152,215 @@ export class Player extends BaseGameObject {
                 && util.sameLayer(p.layer, this.layer)
                 && v2.length(v2.sub(p.pos, this.pos)) <= rad,
         );
+    }
+
+    /** Wolverine: the nearest enemy within range is marked; during a Claw Combo it stays on whoever it is hitting */
+    updateMark(m: NonNullable<(typeof KitDefs)[string]["mark"]>) {
+        if (this.clawCombo) {
+            this.setMarkTarget(this.clawCombo.target);
+            return;
+        }
+        const near = this.enemiesWithin(m.range);
+        this.setMarkTarget(
+            near.length
+                ? near.reduce((a, b) => (v2.distance(a.pos, this.pos) <= v2.distance(b.pos, this.pos) ? a : b))
+                : undefined,
+        );
+    }
+
+    setMarkTarget(next?: Player) {
+        if (next === this.markTarget) return;
+        if (this.markTarget) {
+            this.markTarget.markedBy.delete(this);
+            this.markTarget.setDirty();
+        }
+        this.markTarget = next;
+        if (next) {
+            next.markedBy.add(this);
+            next.setDirty();
+        }
+    }
+
+    /** the Claw Combo needs a marked enemy who can be hit, and only one runs at a time */
+    canStartClawCombo() {
+        const t = this.markTarget;
+        return !this.dead && !this.clawCombo && !!t && !t.dead && !t.untargetable;
+    }
+
+    startClawCombo() {
+        const target = this.markTarget!;
+        this.clawCombo = {
+            target,
+            step: 0,
+            t: 0,
+            start: v2.copy(this.pos),
+            dir: v2.create(0, -1),
+            end: v2.copy(this.pos),
+            shotHit: new Set(),
+            grabbed: [],
+            claws: [],
+        };
+        this.webPull = undefined;
+        this.beginClawShot();
+        this.setDirty();
+    }
+
+    /**
+     * The flint shot at `step`: it starts off to one side of the mark and is aimed straight through it, so it
+     * hits and drags the mark to the far end. The claw it leaves stays there until the combo is over
+     */
+    beginClawShot() {
+        const c = this.clawCombo!;
+        const o = WolverineCombo.offsets[c.step];
+        c.dir = v2.normalizeSafe(v2.create(-o.x, -o.y), v2.create(0, -1));
+        c.start = v2.sub(c.target.pos, v2.mul(c.dir, WolverineCombo.startDist));
+        c.end = v2.add(c.start, v2.mul(c.dir, WolverineCombo.distance));
+        c.t = 0;
+        c.shotHit = new Set();
+        c.grabbed = [];
+        c.claws.push({ pos: v2.copy(c.end), hit: new Set() });
+
+        const fire = (bulletType: string, pos: Vec2, extra: object) =>
+            this.game.bulletBarn.fireBullet(
+                {
+                    playerId: this.__id,
+                    bulletType,
+                    gameSourceType: "kit_wolverine_combo",
+                    damageType: GameConfig.DamageType.Player,
+                    pos: v2.copy(pos),
+                    dir: c.dir,
+                    layer: c.target.layer,
+                    damageMult: 1,
+                    shotFx: false,
+                    reflectCount: 0,
+                    ...extra,
+                } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
+            );
+        fire("bullet_kit_wolverine_flint", c.start, {});
+        // the claw barely moves, and is told to go for as long as the combo has left
+        const left = WolverineComboTime - c.step * WolverineComboStep;
+        fire("bullet_kit_wolverine_claw", c.end, {
+            clipDistance: true,
+            distance: WolverineCombo.clawSpeed * left,
+        });
+    }
+
+    /** a flint shot or a claw lands: 20 dmg and a 2 s bleed (via damage()), and a flint shot also stuns for the rest of the combo */
+    clawHit(p: Player, dir: Vec2, stunFor: number) {
+        p.damage({
+            amount: WolverineCombo.damage,
+            damageType: GameConfig.DamageType.Player,
+            gameSourceType: "kit_wolverine_combo",
+            weaponSourceType: "kit_wolverine_combo",
+            source: this,
+            dir,
+        });
+        if (stunFor > 0) {
+            p.stunTime = Math.max(p.stunTime, stunFor);
+            p.webPull = undefined;
+            p.setDirty();
+        }
+    }
+
+    /** an enemy a Claw Combo can hit: alive, not hidden or dodging, on the same layer as the mark */
+    private clawVictims(c: NonNullable<Player["clawCombo"]>): Player[] {
+        return this.game.playerBarn.livingPlayers.filter(
+            (p) =>
+                p !== this && !p.dead && !p.untargetable && p.teamId !== this.teamId
+                && util.sameLayer(p.layer, c.target.layer),
+        );
+    }
+
+    /**
+     * Every tick of a Claw Combo: the flint shot hits everyone its path crosses, once, and drags them along to
+     * its far end (they are only ever pushed forward, so the mark stays put until the shot gets to it); the claws
+     * hit whoever stands in them once each; and when a shot has flown its length the next one is called down
+     * around wherever the mark now is. If the mark dies the combo is over
+     */
+    updateClawCombo(dt: number) {
+        const c = this.clawCombo;
+        if (!c) return;
+        if (this.dead || c.target.dead) {
+            this.endClawCombo();
+            return;
+        }
+        const prevProg = Math.min(c.t * WolverineCombo.speed, WolverineCombo.distance);
+        c.t += dt;
+        const prog = Math.min(c.t * WolverineCombo.speed, WolverineCombo.distance);
+        const before = v2.add(c.start, v2.mul(c.dir, prevProg));
+        const head = v2.add(c.start, v2.mul(c.dir, prog));
+        const left = Math.max(WolverineComboTime - (c.step * WolverineComboStep + c.t), 0);
+
+        const victims = this.clawVictims(c);
+        for (const p of victims) {
+            if (c.shotHit.has(p.__id)) continue;
+            if (math.distToSegmentSq(p.pos, before, head) > (WolverineCombo.hitRadius + p.rad) ** 2) continue;
+            c.shotHit.add(p.__id);
+            this.clawHit(p, c.dir, left + 0.15);
+            c.grabbed.push(p);
+        }
+        for (const claw of c.claws) {
+            for (const p of victims) {
+                if (claw.hit.has(p.__id) || p.dead) continue;
+                if (v2.distance(p.pos, claw.pos) > WolverineCombo.clawRadius + p.rad) continue;
+                claw.hit.add(p.__id);
+                this.clawHit(p, c.dir, 0);
+            }
+        }
+
+        // drag: whoever the shot has hit is reeled in to just ahead of it, and walls stop them
+        const pull = WolverineCombo.speed * 2 * dt;
+        c.grabbed = c.grabbed.filter((p) => {
+            if (p.dead) return false;
+            const hold = v2.add(head, v2.mul(c.dir, this.rad + p.rad + 0.3));
+            const to = v2.sub(hold, p.pos);
+            const dist = v2.length(to);
+            if (dist > 0.001 && v2.dot(to, c.dir) > 0) {
+                v2.set(p.pos, v2.add(p.pos, v2.mul(to, Math.min(dist, pull) / dist)));
+            }
+            this.pushOutOfWalls(p);
+            this.game.map.clampToMapBounds(p.pos, p.rad);
+            p.mapIndicator?.updatePosition(p.pos);
+            p.setPartDirty();
+            return true;
+        });
+
+        if (c.t >= WolverineComboStep - 1e-6) {
+            if (c.step >= WolverineCombo.offsets.length - 1) {
+                this.endClawCombo();
+                return;
+            }
+            c.step++;
+            this.beginClawShot();
+        }
+    }
+
+    private pushOutOfWalls(p: Player) {
+        const objs = this.game.grid.intersectCollider(collider.createCircle(p.pos, p.rad + 1));
+        for (const obj of objs) {
+            if (obj.__type !== ObjectType.Obstacle || !obj.collidable || obj.dead) continue;
+            if (!util.sameLayer(obj.layer, p.layer)) continue;
+            const hit = collider.intersectCircle(obj.collider, p.pos, p.rad);
+            if (hit) v2.set(p.pos, v2.add(p.pos, v2.mul(hit.dir, hit.pen + 0.001)));
+        }
+    }
+
+    /** the combo is over (or its mark died, or he did): he comes out at the far end of the last flint shot */
+    endClawCombo() {
+        const c = this.clawCombo;
+        if (!c) return;
+        this.clawCombo = undefined;
+        if (!this.dead) {
+            const to = v2.copy(c.end);
+            this.game.map.clampToMapBounds(to, this.rad);
+            v2.set(this.pos, to);
+            this.pushOutOfWalls(this);
+            v2.set(this.posOld, this.pos);
+            this.mapIndicator?.updatePosition(this.pos);
+            this.setPartDirty();
+            this.game.grid.updateObject(this);
+        }
+        this.setDirty();
     }
 
     /** Summoner: the blade minions take turns flying at the focused enemy, else the nearest one on screen */
