@@ -106,6 +106,10 @@ export interface ObjectsFullData {
         dummyHealth: number;
         /** inside an enhanced Wizard's circle: a sigil under them */
         wizardMarked: boolean;
+        /** Wolverine's mark: a red sigil under them, which his Claw Combo needs */
+        wolverineMarked: boolean;
+        /** mid Claw Combo: unseen by everyone but his team, who see him dim */
+        hidden: boolean;
         /** hit by the Summoner's whip: a rainbow circle under them while minion hits land harder */
         vulnerable: boolean;
         /** Excalibur: a dim yellow circle under them while it halves their damage taken */
@@ -261,6 +265,8 @@ export const ObjectSerializeFns: {
             s.writeBoolean(data.dummy);
             if (data.dummy) s.writeFloat(data.dummyHealth, 0, 1, 10);
             s.writeBoolean(data.wizardMarked);
+            s.writeBoolean(data.wolverineMarked);
+            s.writeBoolean(data.hidden);
             s.writeBoolean(data.vulnerable);
             s.writeBoolean(data.excaliburActive);
             s.writeBoolean(data.flying);
@@ -348,6 +354,8 @@ export const ObjectSerializeFns: {
             data.dummy = s.readBoolean();
             data.dummyHealth = data.dummy ? s.readFloat(0, 1, 10) : 1;
             data.wizardMarked = s.readBoolean();
+            data.wolverineMarked = s.readBoolean();
+            data.hidden = s.readBoolean();
             data.vulnerable = s.readBoolean();
             data.excaliburActive = s.readBoolean();
             data.flying = s.readBoolean();

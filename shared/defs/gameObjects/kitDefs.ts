@@ -91,6 +91,8 @@ export interface KitDef {
         upgrade: { duration: number; speedBonus: number; subDrones: number; bombEvery: number };
         swapBombFuse: number;
     };
+    /** Wolverine: the nearest enemy within `range` is marked (a sigil under them), which his Claw Combo needs */
+    mark?: { range: number };
     /** Sentry: takes this fraction less damage from everything (a hit's armor penetration cuts it too) */
     damageReduction?: number;
     /** Sentry: once per game, a hit that would kill him leaves him at full health instead */
@@ -159,12 +161,15 @@ export const KitDefs: Record<string, KitDef> = {
         helmet: "helmet04",
         chest: "chest04",
         outfit: "outfitKitWolverine",
+        // skill 1 is a gun used for its cooldown (left click on the slot, see WeaponManager and Player.startClawCombo)
+        primary: "kit_wolverine_combo",
         secondary: "kit_wolverine_dash",
         melee: "kit_wolverine_claws",
         fullBoost: true,
         speedBonus: 2,
         regen: 5,
         calmRegen: { rate: 10, after: 5 },
+        mark: { range: 30 },
     },
     ironman: {
         name: "Iron Man",
@@ -324,6 +329,36 @@ export const SpiderDodgeTime = 2;
 
 /** Wolverine's dash: how far he goes */
 export const WolverineDashDistance = 16;
+
+/**
+ * Wolverine's Claw Combo. It needs an enemy in his mark (the nearest one within the kit's `mark.range`). While it
+ * runs he is hidden, untargetable and can't move, and five flint shots, the dash's streak (same speed, length and
+ * sprite size), are called down on the mark one after another. Each one starts `startDist` tiles off, on the side
+ * `offsets` names (world y is up), and is aimed through the mark, so every shot hits, drags the mark with it and
+ * leaves it where the next one starts: the mark is stunned for the whole combo. Each shot does `damage` and
+ * bleeds `bleed` s, and leaves a claw that stays until the combo is over and hits anyone near it once. He ends
+ * up at the far end of the last shot
+ */
+export const WolverineCombo = {
+    cooldown: 7.5,
+    damage: 20,
+    bleed: 2,
+    /** the dash's streak */
+    speed: 40,
+    distance: WolverineDashDistance,
+    /** how far from the mark each shot starts */
+    startDist: 8,
+    /** how wide a flint shot and a claw hit (the mark's own radius is added) */
+    hitRadius: 2.5,
+    clawRadius: 3,
+    /** a claw barely moves: this slow, so it hangs where it was left */
+    clawSpeed: 0.2,
+    /** bottom left, top right, top left, bottom right, straight above */
+    offsets: [{ x: -1, y: -1 }, { x: 1, y: 1 }, { x: -1, y: 1 }, { x: 1, y: -1 }, { x: 0, y: 1 }],
+};
+/** seconds one flint shot takes, and the whole combo */
+export const WolverineComboStep = WolverineCombo.distance / WolverineCombo.speed;
+export const WolverineComboTime = WolverineComboStep * WolverineCombo.offsets.length;
 
 /**
  * Sentry Charge: dashes `distance` tiles at `speed` (Ahri's dash speed) and flies for `flight` s. Whoever it hits

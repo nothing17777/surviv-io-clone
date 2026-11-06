@@ -819,6 +819,8 @@ export class WeaponManager {
         this.scheduledReload = weapon.ammo <= 1;
 
         if (weapon.ammo <= 0) return;
+        // Wolverine's Claw Combo needs a marked enemy; without one nothing is used and no cooldown starts
+        if (this.activeWeapon === "kit_wolverine_combo" && !this.player.canStartClawCombo()) return;
         // only one Judge rocket in the air at a time
         if (this.activeWeapon === "pg_judge") {
             const live = this.player.activeJudgeRocket;
@@ -868,6 +870,8 @@ export class WeaponManager {
         }
         // Green Goblin's Golden Upgrade: the sub drones come out and he runs faster for its duration
         if (this.activeWeapon === "kit_goblin_upgrade") this.player.startGoblinUpgrade();
+        // Wolverine's Claw Combo: he vanishes while five flint shots chain his mark around
+        if (this.activeWeapon === "kit_wolverine_combo") this.player.startClawCombo();
         // Wolverine's dash: he slides 16 tiles alongside his streak (walls still stop him)
         if (this.activeWeapon === "kit_wolverine_dash") {
             const bullet = GameObjectDefs.typeToDef(itemDef.bulletType, "bullet");

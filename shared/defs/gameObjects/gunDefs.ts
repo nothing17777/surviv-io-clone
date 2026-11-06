@@ -6,7 +6,7 @@ import { ChampionDefs, championSound } from "./championDefs.ts";
 import { CustomGuns, CustomWeaponsVersion } from "./customWeaponDefs.ts";
 import { BaseGunLengths, GunEffects, GunOverrides, HiddenCustomGuns, SwingShotBullets } from "./customWeaponEffects.ts";
 import type { BaseWeaponDef } from "./itemTypes.ts";
-import { SentryCharge } from "./kitDefs.ts";
+import { SentryCharge, WolverineCombo } from "./kitDefs.ts";
 
 export interface GunDef extends BaseWeaponDef {
     type: "gun";
@@ -3971,6 +3971,36 @@ kitBullet("bullet_kit_spider_auto", {
     spriteSize: 28,
 });
 
+// Wolverine's Claw Combo (see Player.updateClawCombo, which does the hitting). Its flint shot is only the picture of
+// the dash's streak (same speed, length and size): damage 0 and it flies through everyone
+kitBullet("bullet_kit_wolverine_flint", {
+    damage: 0,
+    speed: WolverineCombo.speed,
+    distance: WolverineCombo.distance,
+    noPlayerHit: true,
+    noDistAdj: true,
+    noTracer: true,
+    tracerColor: "cw_white",
+    tracerWidth: 0.3,
+    sprite: kitAsset("flint_shot"),
+    // screen px at zoom 1, the same as the dash's streak
+    spriteSize: 120,
+});
+// the claw it leaves: parked, since it only creeps along at 0.2 u/s. It is fired with a range of that speed times
+// the seconds the combo has left, so it goes away when the combo does. The same size as the streak
+kitBullet("bullet_kit_wolverine_claw", {
+    damage: 0,
+    speed: WolverineCombo.clawSpeed,
+    distance: 60,
+    noPlayerHit: true,
+    noDistAdj: true,
+    noTracer: true,
+    tracerColor: "cw_white",
+    tracerWidth: 0.3,
+    sprite: kitAsset("wolverine_claw"),
+    spriteSize: 120,
+});
+
 // Green Goblin's pumpkin bomb: an orange orb that goes off on the first enemy it touches or when its 10 s are
 // up, whichever comes first, bouncing off every wall in between (the 10 s runs through the bounces). The
 // explosion does the 25 dmg and, via Player.damage, the 3 s burn; it never hurts the goblin or his team
@@ -4071,6 +4101,21 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
         fireMode: "single",
         fireDelay: SentryCharge.cooldown,
         energyCost: 0,
+        shotSpread: 0,
+        moveSpread: 0,
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
+    // Wolverine's skill 1, Claw Combo: only a cooldown and a name here, it fires nothing itself. Using it needs a
+    // marked enemy; see Player.startClawCombo. 7.5 s cooldown
+    kitGun("kit_wolverine_combo", "deagle", {}, {
+        name: "Claw Combo",
+        fireMode: "single",
+        fireDelay: WolverineCombo.cooldown,
+        energyCost: 0,
+        bulletCount: 0,
         shotSpread: 0,
         moveSpread: 0,
         maxClip: 250,
