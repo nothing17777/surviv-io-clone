@@ -1,6 +1,6 @@
 import { expect, test, vi } from "vitest";
 import { BulletDefs } from "../../shared/defs/gameObjects/bulletDefs.ts";
-import { dronePos, KitDefs, UltronMinion } from "../../shared/defs/gameObjects/kitDefs.ts";
+import { dronePos, KitDefs, SentryCharge, UltronMinion } from "../../shared/defs/gameObjects/kitDefs.ts";
 import { GameObjectDefs } from "../../shared/defs/register.ts";
 import { GameConfig, TeamMode } from "../../shared/gameConfig.ts";
 import * as net from "../../shared/net/net.ts";
@@ -959,7 +959,7 @@ test("Sentry: removes a debuff, then waits 4 s before removing another", () => {
     expect(me.burning).toBe(false);
 });
 
-test("Sentry Charge: dashes 30 tiles, hits for 120, heals 90, flies 2 s, 4 s cooldown", () => {
+test("Sentry Charge: dashes 30 tiles, hits for 120, heals 90, flies 2 s, 3 s cooldown", () => {
     const { game, me, enemy } = setup("sentry", v2.create(4, 0));
     enemy.maxHealth = 1000;
     enemy.health = 1000;
@@ -1021,6 +1021,49 @@ test("Sentry Charge: reaches a dodging (untargetable) enemy and ignores 80% of a
     expect(def.hitsFlying).toBe(true);
     expect(def.armorPenetration).toBe(0.2);
     expect(def.hitRadius).toBeGreaterThan(1);
+});
+
+test("Sentry Charge: 3 s cooldown", () => {
+    const { game, me } = setup("sentry", v2.create(200, 0));
+    expect(SentryCharge.cooldown).toBe(3);
+    use(game, me, Slot.Primary, 1);
+    expect(me.abilityCooldowns[Slot.Primary]).toBeGreaterThan(2);
+    expect(me.abilityCooldowns[Slot.Primary]).toBeLessThanOrEqual(3);
+    for (let i = 0; i < 31; i++) game.step(0.1);
+    expect(me.abilityCooldowns[Slot.Primary]).toBe(0);
+});
+
+test("Sentry Charge: his body hits too, and an enemy off to the side of the crescent's path still gets caught", () => {
+    expect(SentryCharge.hitRadius).toBeGreaterThan(10.5);
+    expect(SentryCharge.bodyRadius).toBeGreaterThan(1);
+    const { game, me, enemy } = setup("sentry", v2.create(4, 0));
+    enemy.maxHealth = 1000;
+    enemy.health = 1000;
+    use(game, me, Slot.Primary, 1);
+    for (let i = 0; i < 5; i++) game.step(0.1);
+    // hit once, not once from the crescent and once from his body
+    expect(1000 - enemy.health).toBeGreaterThanOrEqual(30);
+    expect(1000 - enemy.health).toBeLessThan(240);
+    expect(me.sentryDashHit.has(enemy.__id)).toBe(true);
+});
+
+test("Sentry Charge: stuns whoever it hits and drags them along the dash", () => {
+    const { game, me, enemy } = setup("sentry", v2.create(4, 0));
+    enemy.maxHealth = 1000;
+    enemy.health = 1000;
+    const start = v2.copy(enemy.pos);
+    use(game, me, Slot.Primary, 1);
+    for (let i = 0; i < 4; i++) game.step(0.1);
+    expect(enemy.stunned).toBe(true);
+    // carried well past where he stood, right in front of the Sentry
+    expect(v2.length(v2.sub(enemy.pos, start))).toBeGreaterThan(15);
+    expect(v2.distance(enemy.pos, me.pos)).toBeLessThan(6);
+    // the drag ends with the dash: still stunned, but no longer moving
+    for (let i = 0; i < 5; i++) game.step(0.1);
+    const at = v2.copy(enemy.pos);
+    game.step(0.1);
+    expect(enemy.stunned).toBe(true);
+    expect(v2.length(v2.sub(enemy.pos, at))).toBeLessThan(0.01);
 });
 
 test("Sentry Charge: heals 90 even when it hits nothing", () => {

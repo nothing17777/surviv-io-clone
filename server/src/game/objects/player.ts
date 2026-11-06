@@ -897,6 +897,83 @@ export class Player extends BaseGameObject {
             || this.strippedPerks.length > 0 || d.root > 0 || d.slow > 0 || d.silence > 0 || d.airborne > 0;
     }
 
+    /** Sentry Charge: seconds of dash left, which way he is going, who it has hit and who it is carrying along */
+    sentryDashTime = 0;
+    sentryDashDir = v2.create(1, 0);
+    sentryDashHit = new Set<number>();
+    sentryDashGrabbed: Player[] = [];
+
+    startSentryDash(dir: Vec2, time: number) {
+        this.sentryDashTime = time;
+        v2.set(this.sentryDashDir, v2.normalizeSafe(dir, v2.create(1, 0)));
+        this.sentryDashHit.clear();
+        this.sentryDashGrabbed = [];
+    }
+
+    endSentryDash() {
+        this.sentryDashTime = 0;
+        this.sentryDashGrabbed = [];
+    }
+
+    /**
+     * Sentry Charge, every tick of the dash: his body hits anyone it runs into (the crescent ahead of him does
+     * the same with a wider reach, and nobody is hit twice), and everyone hit is reeled in to just in front of
+     * him and carried along until the dash is over. Walls stop whoever is being carried, and one that gets
+     * stuck behind a wall is let go
+     */
+    updateSentryDash(dt: number) {
+        if (this.sentryDashTime <= 0) return;
+        if (this.dead || this.stunTime > 0) {
+            this.endSentryDash();
+            return;
+        }
+        this.sentryDashTime -= dt;
+
+        // sweep along the path he just ran, so a long tick can't skip someone
+        const ran = v2.distance(this.posOld, this.pos);
+        for (const p of this.enemiesWithin(SentryCharge.bodyRadius + 3 + ran)) {
+            if (this.sentryDashHit.has(p.__id)) continue;
+            if (math.distToSegmentSq(p.pos, this.posOld, this.pos) > (SentryCharge.bodyRadius + p.rad) ** 2) continue;
+            // the guard in damage() records the hit, so the crescent can't hit this player again
+            p.damage({
+                amount: SentryCharge.damage,
+                damageType: GameConfig.DamageType.Player,
+                gameSourceType: "kit_sentry_charge",
+                weaponSourceType: "kit_sentry_charge",
+                source: this,
+                dir: this.sentryDashDir,
+                armorPenetration: SentryCharge.armorPen,
+                hitsFlying: true,
+            });
+        }
+
+        const pull = SentryCharge.speed * SentryCharge.pullSpeedMult * dt;
+        this.sentryDashGrabbed = this.sentryDashGrabbed.filter((p) => {
+            if (p.dead || p.stunTime <= 0) return false;
+            const hold = v2.add(this.pos, v2.mul(this.sentryDashDir, this.rad + p.rad + 0.3));
+            const to = v2.sub(hold, p.pos);
+            const dist = v2.length(to);
+            if (dist > 0.001) {
+                v2.set(p.pos, v2.add(p.pos, v2.mul(to, Math.min(dist, pull) / dist)));
+            }
+            const objs = this.game.grid.intersectCollider(
+                collider.createCircle(p.pos, p.rad + 1),
+            );
+            for (const obj of objs) {
+                if (obj.__type !== ObjectType.Obstacle || !obj.collidable || obj.dead) continue;
+                if (!util.sameLayer(obj.layer, p.layer)) continue;
+                const hit = collider.intersectCircle(obj.collider, p.pos, p.rad);
+                if (hit) v2.set(p.pos, v2.add(p.pos, v2.mul(hit.dir, hit.pen + 0.001)));
+            }
+            p.mapIndicator?.updatePosition(p.pos);
+            p.setPartDirty();
+            // pinned behind a wall while the Sentry flies on: let go
+            return v2.length(v2.sub(hold, p.pos)) <= 4;
+        });
+
+        if (this.sentryDashTime <= 0) this.endSentryDash();
+    }
+
     /** a Sentry Charge hit: burn, bleed and stun, and every perk gone for a while */
     applySentryHit(source: Player) {
         this.applyBurn(SentryCharge.debuff, source, "kit_sentry_charge");
@@ -904,6 +981,10 @@ export class Player extends BaseGameObject {
         this.stunTime = Math.max(this.stunTime, SentryCharge.debuff);
         this.webPull = undefined;
         this.stripPerks(SentryCharge.perkStrip);
+        // mid-dash, whoever is hit is carried along with him
+        if (source.sentryDashTime > 0 && !source.sentryDashGrabbed.includes(this)) {
+            source.sentryDashGrabbed.push(this);
+        }
         this.setDirty();
     }
 
@@ -2491,6 +2572,7 @@ export class Player extends BaseGameObject {
         }
 
         this.mapIndicator?.updatePosition(this.pos);
+        this.updateSentryDash(dt);
 
         // if we are the group leader and new players can still join the group
         // update the group spawn position to our current position every 1 second
@@ -2924,6 +3006,12 @@ export class Player extends BaseGameObject {
         const playerSource = params.source?.__type === ObjectType.Player
             ? (params.source as Player)
             : undefined;
+
+        // Sentry Charge hits each player once per dash, whether the crescent or his body gets there first
+        if (params.gameSourceType === "kit_sentry_charge" && playerSource && playerSource !== this) {
+            if (playerSource.sentryDashHit.has(this.__id)) return;
+            playerSource.sentryDashHit.add(this.__id);
+        }
 
         // teammates can't deal damage to each other
         if (playerSource && params.source !== this) {
@@ -5540,6 +5628,7 @@ export class Player extends BaseGameObject {
         this.sustainShieldTime = 0;
         this.energyDirty = true;
         if (kit.fullBoost) this.boost = 100;
+        this.endSentryDash();
         // Green Goblin starts with his drone on his right, no upgrade running
         this.droneAngle = 0;
         this.dronePrev = undefined;

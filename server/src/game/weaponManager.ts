@@ -878,13 +878,16 @@ export class WeaponManager {
             };
         }
 
-        // Sentry Charge: a 30 tile dash at Ahri's dash speed, flying for 2 s; it heals him whether or not it hits
+        // Sentry Charge: a 30 tile dash at Ahri's dash speed, flying for 2 s; it heals him whether or not it hits.
+        // His body hits and drags along whoever he runs through for as long as the dash lasts
         if (this.activeWeapon === "kit_sentry_charge") {
+            const dashTime = SentryCharge.distance / SentryCharge.speed + 0.1;
             this.player.webPull = {
                 target: v2.add(this.player.pos, v2.mul(this.player.dir, SentryCharge.distance)),
                 speed: SentryCharge.speed,
-                time: SentryCharge.distance / SentryCharge.speed + 0.1,
+                time: dashTime,
             };
+            this.player.startSentryDash(this.player.dir, dashTime);
             this.player.startFlight(
                 { duration: SentryCharge.flight, untargetable: 0, waveAt: 0, speedBonus: 0 },
                 this.activeWeapon,

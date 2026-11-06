@@ -269,19 +269,24 @@ export const WolverineDashDistance = 16;
 /**
  * Sentry Charge: dashes `distance` tiles at `speed` (Ahri's dash speed) and flies for `flight` s. Whoever it hits
  * takes the bullet's damage, burns, bleeds and is stunned for `debuff` s and loses their perks for `perkStrip` s;
- * every charge heals the Sentry `heal` hp, hit or miss. `armorPen` multiplies the armor reduction it meets
+ * every charge heals the Sentry `heal` hp, hit or miss. `armorPen` multiplies the armor reduction it meets.
+ * `hitRadius` is the crescent's width; `bodyRadius` is a second hitbox on the Sentry himself, so running
+ * through someone hits them too. Everyone hit is carried along with the dash (`pullSpeedMult` x the dash speed
+ * is how fast they are reeled in to just in front of him) until the dash ends
  */
 export const SentryCharge = {
     distance: 30,
     speed: 80,
-    cooldown: 4,
+    cooldown: 3,
     damage: 120,
     heal: 90,
     debuff: 3,
     perkStrip: 5,
     armorPen: 0.2,
     flight: 2,
-    hitRadius: 10.5,
+    hitRadius: 14,
+    bodyRadius: 6,
+    pullSpeedMult: 2,
 };
 
 export const UltronMinion ={ count: 4, health: 17.5, speedMult: 0.75, life: 15, explosion: "explosion_kit_minion" };
