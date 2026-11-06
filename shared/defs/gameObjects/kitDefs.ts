@@ -332,31 +332,46 @@ export const WolverineDashDistance = 16;
 
 /**
  * Wolverine's Claw Combo. It needs an enemy in his mark (the nearest one within the kit's `mark.range`). While it
- * runs he is hidden, untargetable and can't move, and five flint shots, the dash's streak (same speed, length and
- * sprite size), are called down on the mark one after another. Each one starts `startDist` tiles off, on the side
- * `offsets` names (world y is up), and is aimed through the mark, so every shot hits, drags the mark with it and
- * leaves it where the next one starts: the mark is stunned for the whole combo. Each shot does `damage` and
- * bleeds `bleed` s, and leaves a claw that stays until the combo is over and hits anyone near it once. He ends
- * up at the far end of the last shot
+ * runs he is hidden, untargetable and can't move, and a claw flies in on the mark ten times, one after another,
+ * twice as fast as the dash (same length and sprite size). Each one starts `startDist` tiles off, on the side
+ * `offsets` names (world y is up), and is aimed through the mark, so every claw hits, drags the mark with it and
+ * leaves it where the next one starts: the mark is stunned for the whole combo. A claw hits once, for `damage`
+ * and a `bleed` of that many seconds, then stays where it ended for `linger` s (for show only). He ends up at
+ * the far end of the last claw
  */
 export const WolverineCombo = {
-    cooldown: 7.5,
-    damage: 20,
+    cooldown: 10,
+    damage: 10,
     bleed: 2,
-    /** the dash's streak */
-    speed: 40,
+    /** twice the dash's streak */
+    speed: 80,
     distance: WolverineDashDistance,
-    /** how far from the mark each shot starts */
+    /** how far from the mark each claw starts */
     startDist: 8,
-    /** how wide a flint shot and a claw hit (the mark's own radius is added) */
+    /** how wide a claw hits (the mark's own radius is added) */
     hitRadius: 2.5,
-    clawRadius: 3,
-    /** a claw barely moves: this slow, so it hangs where it was left */
+    /** how long a claw stays where it ended */
+    linger: 0.5,
+    /** a parked claw barely moves: this slow, so it hangs where it was left */
     clawSpeed: 0.2,
-    /** bottom left, top right, top left, bottom right, straight above */
-    offsets: [{ x: -1, y: -1 }, { x: 1, y: 1 }, { x: -1, y: 1 }, { x: 1, y: -1 }, { x: 0, y: 1 }],
+    /**
+     * the side each claw comes from: bottom left, top right, top left, bottom right, straight above, top right,
+     * bottom left, bottom right, top left, then from below
+     */
+    offsets: [
+        { x: -1, y: -1 },
+        { x: 1, y: 1 },
+        { x: -1, y: 1 },
+        { x: 1, y: -1 },
+        { x: 0, y: 1 },
+        { x: 1, y: 1 },
+        { x: -1, y: -1 },
+        { x: 1, y: -1 },
+        { x: -1, y: 1 },
+        { x: 0, y: -1 },
+    ],
 };
-/** seconds one flint shot takes, and the whole combo */
+/** seconds one claw takes, and the whole combo */
 export const WolverineComboStep = WolverineCombo.distance / WolverineCombo.speed;
 export const WolverineComboTime = WolverineComboStep * WolverineCombo.offsets.length;
 

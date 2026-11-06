@@ -119,7 +119,7 @@ export interface GunDef extends BaseWeaponDef {
     energyCost?: number;
     /** a kit's energy each reload costs; no reload without it */
     reloadEnergy?: number;
-    /** fired from a body-mounted gun (War Machine): no hand recoil or fire delay for the shooter */
+    /** fired from a body-mounted gun (War Machine, Wolverine's claws): no hand recoil or fire delay for the shooter */
     mounted?: boolean;
     /** multiplies the volume of this gun's shot sound (default 1) */
     shotVolume?: number;
@@ -3971,9 +3971,9 @@ kitBullet("bullet_kit_spider_auto", {
     spriteSize: 28,
 });
 
-// Wolverine's Claw Combo (see Player.updateClawCombo, which does the hitting). Its flint shot is only the picture of
-// the dash's streak (same speed, length and size): damage 0 and it flies through everyone
-kitBullet("bullet_kit_wolverine_flint", {
+// Wolverine's Claw Combo (see Player.updateClawCombo, which does the hitting). The claw is only the picture: damage 0,
+// it flies through everyone, as far as the dash's streak and twice as fast, and is drawn the same size
+kitBullet("bullet_kit_wolverine_claw", {
     damage: 0,
     speed: WolverineCombo.speed,
     distance: WolverineCombo.distance,
@@ -3982,13 +3982,13 @@ kitBullet("bullet_kit_wolverine_flint", {
     noTracer: true,
     tracerColor: "cw_white",
     tracerWidth: 0.3,
-    sprite: kitAsset("flint_shot"),
+    sprite: kitAsset("wolverine_claw"),
     // screen px at zoom 1, the same as the dash's streak
     spriteSize: 120,
 });
-// the claw it leaves: parked, since it only creeps along at 0.2 u/s. It is fired with a range of that speed times
-// the seconds the combo has left, so it goes away when the combo does. The same size as the streak
-kitBullet("bullet_kit_wolverine_claw", {
+// the same claw left where it ended: it only creeps along at 0.2 u/s, and is fired with a range of that speed
+// times how long it should stay (WolverineCombo.linger), so it goes away by itself
+kitBullet("bullet_kit_wolverine_claw_rest", {
     damage: 0,
     speed: WolverineCombo.clawSpeed,
     distance: 60,
@@ -4108,14 +4108,18 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
         extendedClip: 250,
         extendedReload: 250,
     }),
-    // Wolverine's skill 1, Claw Combo: only a cooldown and a name here, it fires nothing itself. Using it needs a
-    // marked enemy; see Player.startClawCombo. 7.5 s cooldown
+    // Wolverine's skill 1, Claw Combo: it fires nothing itself, the combo does (see Player.startClawCombo). Using it
+    // needs a marked enemy. 10 s cooldown. Each claw plays one of the two sounds below, taking turns (shotAlt); the
+    // claws come from the target's side of the map, not his hands, so there is no recoil or casing
     kitGun("kit_wolverine_combo", "deagle", {}, {
         name: "Claw Combo",
         fireMode: "single",
         fireDelay: WolverineCombo.cooldown,
         energyCost: 0,
         bulletCount: 0,
+        mounted: true,
+        caseTiming: "reload",
+        sound: { shoot: "wolverine_combo_devourer", shootAlt: "wolverine_combo_murasama" },
         shotSpread: 0,
         moveSpread: 0,
         maxClip: 250,

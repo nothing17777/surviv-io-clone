@@ -870,7 +870,7 @@ export class WeaponManager {
         }
         // Green Goblin's Golden Upgrade: the sub drones come out and he runs faster for its duration
         if (this.activeWeapon === "kit_goblin_upgrade") this.player.startGoblinUpgrade();
-        // Wolverine's Claw Combo: he vanishes while five flint shots chain his mark around
+        // Wolverine's Claw Combo: he vanishes while ten claws chain his mark around
         if (this.activeWeapon === "kit_wolverine_combo") this.player.startClawCombo();
         // Wolverine's dash: he slides 16 tiles alongside his streak (walls still stop him)
         if (this.activeWeapon === "kit_wolverine_dash") {
