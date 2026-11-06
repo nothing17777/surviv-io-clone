@@ -870,8 +870,6 @@ export class Player extends BaseGameObject {
     /** the perks a Sentry Charge took away, and the seconds until they come back */
     strippedPerks: Array<Player["_perks"][0]> = [];
     perkStripTime = 0;
-    /** Sentry: the first hit of his charge heals him, then this is spent */
-    sentryHealReady = false;
     /** Sentry: his once-per-game revive has gone off */
     sentryReviveUsed = false;
     /** Sentry: seconds until he can remove a debuff again */
@@ -3116,14 +3114,9 @@ export class Player extends BaseGameObject {
                 if (this.charmDuration <= 0) this.setDirty();
                 this.charmDuration = Math.max(this.charmDuration, 4);
             }
-            // Sentry Charge: burn, bleed, stun and no perks for the target; the first hit heals the Sentry
+            // Sentry Charge: burn, bleed, stun and no perks for the target
             if (src === "kit_sentry_charge") {
                 this.applySentryHit(playerSource);
-                if (playerSource.sentryHealReady && !playerSource.dead) {
-                    playerSource.sentryHealReady = false;
-                    playerSource.health = Math.min(playerSource.health + SentryCharge.heal, playerSource.maxHealth);
-                    playerSource.setDirty();
-                }
             }
             // Engineer Exoskeleton heals its user the damage it deals
             if (src === "pg_engineer_exoskeleton" && !playerSource.dead) {
@@ -5544,7 +5537,6 @@ export class Player extends BaseGameObject {
         this.droneBombTimer = 0;
         this.kitEnhanceTime = 0;
         this.sentryReviveUsed = false;
-        this.sentryHealReady = false;
         this.cleanseCooldown = 0;
         this.champ = ChampionDefs[kitId] ? new Champion(this, kitId) : undefined;
         // a champion's adrenaline is pinned full, so recheck the floor now it is one

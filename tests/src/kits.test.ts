@@ -945,17 +945,17 @@ test("Sentry: survives a killing hit once per game, at full health", () => {
     expect(me.dead).toBe(true);
 });
 
-test("Sentry: removes a debuff, then waits 6 s before removing another", () => {
+test("Sentry: removes a debuff, then waits 4 s before removing another", () => {
     const { game, me } = setup("sentry", v2.create(200, 0));
     me.applyBurn(30);
     game.step(0.1);
     expect(me.burning).toBe(false);
     me.applyBurn(30);
-    // 4 s later it is still on him
-    for (let i = 0; i < 40; i++) game.step(0.1);
+    // 3 s later it is still on him
+    for (let i = 0; i < 30; i++) game.step(0.1);
     expect(me.burning).toBe(true);
-    // the cooldown is up by 6 s
-    for (let i = 0; i < 25; i++) game.step(0.1);
+    // the cooldown is up by 4 s
+    for (let i = 0; i < 15; i++) game.step(0.1);
     expect(me.burning).toBe(false);
 });
 
@@ -975,7 +975,7 @@ test("Sentry Charge: dashes 10 tiles, hits for 120, heals 90, flies 2 s, 4 s coo
     // 120 once (not once per tick it overlaps), with no armor on him
     expect(1000 - enemy.health).toBeGreaterThanOrEqual(120);
     expect(1000 - enemy.health).toBeLessThan(240);
-    // the heal is 90, once (the 9% left of his passive is on the dash's burn and bleed only)
+    // the heal is 90, once per cast
     expect(me.health - hurt).toBeGreaterThanOrEqual(85);
     expect(me.health - hurt).toBeLessThanOrEqual(100);
     expect(enemy.burning).toBe(true);
@@ -1021,4 +1021,13 @@ test("Sentry Charge: reaches a dodging (untargetable) enemy and ignores 80% of a
     expect(def.hitsFlying).toBe(true);
     expect(def.armorPenetration).toBe(0.2);
     expect(def.hitRadius).toBeGreaterThan(1);
+});
+
+test("Sentry Charge: heals 90 even when it hits nothing", () => {
+    const { game, me } = setup("sentry", v2.create(200, 0));
+    me.damage({ amount: 200, damageType: GameConfig.DamageType.Bleeding, dir: v2.create(1, 0) });
+    const hurt = me.health;
+    use(game, me, Slot.Primary, 1);
+    expect(me.health - hurt).toBeGreaterThanOrEqual(90);
+    expect(me.health - hurt).toBeLessThanOrEqual(95);
 });

@@ -216,7 +216,7 @@ export const KitDefs: Record<string, KitDef> = {
         melee: "fists",
         damageReduction: 0.45,
         revive: true,
-        cleanse: { cooldown: 6 },
+        cleanse: { cooldown: 4 },
     },
     summoner: {
         name: "Summoner",
@@ -269,7 +269,7 @@ export const WolverineDashDistance = 16;
 /**
  * Sentry Charge: dashes `distance` tiles at `speed` (Ahri's dash speed) and flies for `flight` s. Whoever it hits
  * takes the bullet's damage, burns, bleeds and is stunned for `debuff` s and loses their perks for `perkStrip` s;
- * the first hit of each charge heals the Sentry `heal` hp. `armorPen` multiplies the armor reduction it meets
+ * every charge heals the Sentry `heal` hp, hit or miss. `armorPen` multiplies the armor reduction it meets
  */
 export const SentryCharge = {
     distance: 10,
