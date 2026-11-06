@@ -959,7 +959,7 @@ test("Sentry: removes a debuff, then waits 4 s before removing another", () => {
     expect(me.burning).toBe(false);
 });
 
-test("Sentry Charge: dashes 10 tiles, hits for 120, heals 90, flies 2 s, 4 s cooldown", () => {
+test("Sentry Charge: dashes 30 tiles, hits for 120, heals 90, flies 2 s, 4 s cooldown", () => {
     const { game, me, enemy } = setup("sentry", v2.create(4, 0));
     enemy.maxHealth = 1000;
     enemy.health = 1000;
@@ -970,8 +970,8 @@ test("Sentry Charge: dashes 10 tiles, hits for 120, heals 90, flies 2 s, 4 s coo
     expect(me.flying).toBe(true);
     for (let i = 0; i < 10; i++) game.step(0.1);
     const moved = v2.length(v2.sub(me.pos, start));
-    expect(moved).toBeGreaterThan(8);
-    expect(moved).toBeLessThan(12);
+    expect(moved).toBeGreaterThan(26);
+    expect(moved).toBeLessThan(32);
     // 120 once (not once per tick it overlaps), with no armor on him
     expect(1000 - enemy.health).toBeGreaterThanOrEqual(120);
     expect(1000 - enemy.health).toBeLessThan(240);

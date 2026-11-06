@@ -272,7 +272,7 @@ export const WolverineDashDistance = 16;
  * every charge heals the Sentry `heal` hp, hit or miss. `armorPen` multiplies the armor reduction it meets
  */
 export const SentryCharge = {
-    distance: 10,
+    distance: 30,
     speed: 80,
     cooldown: 4,
     damage: 120,
@@ -281,7 +281,7 @@ export const SentryCharge = {
     perkStrip: 5,
     armorPen: 0.2,
     flight: 2,
-    hitRadius: 3.5,
+    hitRadius: 10.5,
 };
 
 export const UltronMinion ={ count: 4, health: 17.5, speedMult: 0.75, life: 15, explosion: "explosion_kit_minion" };
