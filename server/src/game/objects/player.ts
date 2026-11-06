@@ -693,12 +693,22 @@ export class Player extends BaseGameObject {
         return this._health;
     }
 
+    /** the training dummy: every client sees its health bar, so it goes out with the full data */
+    get dummy(): boolean {
+        return this.botBrain?.level === "dummy";
+    }
+
+    get dummyHealth(): number {
+        return math.clamp(this._health / this.maxHealth, 0, 1);
+    }
+
     set health(health: number) {
         health = math.clamp(health, 0, this.maxHealth);
         if (this._health === health) return;
         this._health = health;
         this.healthDirty = true;
         this.setGroupStatuses();
+        if (this.dummy) this.setDirty();
 
         if (this.obstacleOutfit) {
             const healthT = math.clamp(this._health / this.maxHealth, 0, 1);

@@ -100,6 +100,10 @@ export interface ObjectsFullData {
         kitAura: number;
         /** Green Goblin: where his main drone is round him, radians in [0, 2pi) */
         droneAngle: number;
+        /** a training dummy: its health bar is drawn over it, so its health goes on the wire */
+        dummy: boolean;
+        /** the dummy's health as a fraction in [0, 1] */
+        dummyHealth: number;
         /** inside an enhanced Wizard's circle: a sigil under them */
         wizardMarked: boolean;
         /** hit by the Summoner's whip: a rainbow circle under them while minion hits land harder */
@@ -254,6 +258,8 @@ export const ObjectSerializeFns: {
             s.writeBoolean(data.charmed);
             s.writeBits(data.kitAura, 3);
             s.writeFloat(data.droneAngle, 0, Math.PI * 2, 8);
+            s.writeBoolean(data.dummy);
+            if (data.dummy) s.writeFloat(data.dummyHealth, 0, 1, 10);
             s.writeBoolean(data.wizardMarked);
             s.writeBoolean(data.vulnerable);
             s.writeBoolean(data.excaliburActive);
@@ -339,6 +345,8 @@ export const ObjectSerializeFns: {
             data.charmed = s.readBoolean();
             data.kitAura = s.readBits(3);
             data.droneAngle = s.readFloat(0, Math.PI * 2, 8);
+            data.dummy = s.readBoolean();
+            data.dummyHealth = data.dummy ? s.readFloat(0, 1, 10) : 1;
             data.wizardMarked = s.readBoolean();
             data.vulnerable = s.readBoolean();
             data.excaliburActive = s.readBoolean();

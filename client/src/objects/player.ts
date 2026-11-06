@@ -335,6 +335,8 @@ export class Player implements AbstractObject {
         charmed: boolean;
         kitAura: number;
         droneAngle: number;
+        dummy: boolean;
+        dummyHealth: number;
         wizardMarked: boolean;
         vulnerable: boolean;
         excaliburActive: boolean;
@@ -517,6 +519,8 @@ export class Player implements AbstractObject {
             charmed: false,
             kitAura: 0,
             droneAngle: 0,
+            dummy: false,
+            dummyHealth: 1,
             wizardMarked: false,
             vulnerable: false,
             excaliburActive: false,
@@ -613,6 +617,8 @@ export class Player implements AbstractObject {
             this.m_netData.charmed = data.charmed;
             this.m_netData.kitAura = data.kitAura;
             this.m_netData.droneAngle = data.droneAngle;
+            this.m_netData.dummy = data.dummy;
+            this.m_netData.dummyHealth = data.dummyHealth;
             this.m_netData.wizardMarked = data.wizardMarked;
             this.m_netData.vulnerable = data.vulnerable;
             this.m_netData.excaliburActive = data.excaliburActive;
@@ -1150,6 +1156,7 @@ export class Player implements AbstractObject {
         this.updateSubmersion(dt, map);
         this.updateFrozenState(dt);
         this.updateDebuffDots(dt);
+        this.updateDummyBar();
         this.updateKitVisuals(dt);
 
         // Play a footstep if we've moved enough
@@ -3055,6 +3062,35 @@ export class Player implements AbstractObject {
     debuffTicker = 0;
 
     /** a pulsing red dot over the head while bleeding, green while poisoned, orange while burning */
+    dummyBar: PIXI.Graphics | null = null;
+
+    /** the training dummy's health bar, over its head and above any debuff dots */
+    updateDummyBar() {
+        if (!this.m_netData.dummy) return;
+        if (!this.dummyBar) {
+            this.dummyBar = new PIXI.Graphics();
+            this.container.addChild(this.dummyBar);
+        }
+        const g = this.dummyBar;
+        g.clear();
+        g.visible = !this.m_netData.m_dead;
+        if (!g.visible) return;
+        const w = 64;
+        const h = 9;
+        const t = Math.max(0, Math.min(1, this.m_netData.dummyHealth));
+        const y = -66;
+        g.lineStyle(2, 0x000000, 0.8);
+        g.beginFill(0x2b2b2b, 0.85);
+        g.drawRect(-w / 2, y, w, h);
+        g.endFill();
+        g.lineStyle(0);
+        // green down to red as it takes damage
+        const color = t > 0.5 ? 0x4caf50 : t > 0.25 ? 0xffb300 : 0xe53935;
+        g.beginFill(color, 0.95);
+        g.drawRect(-w / 2, y, w * t, h);
+        g.endFill();
+    }
+
     updateDebuffDots(dt: number) {
         const colors: number[] = [];
         if (!this.m_netData.m_dead) {

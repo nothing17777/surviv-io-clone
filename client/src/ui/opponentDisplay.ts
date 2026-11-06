@@ -301,6 +301,8 @@ export class LoadoutDisplay {
             charmed: false,
             kitAura: 0,
             droneAngle: 0,
+            dummy: false,
+            dummyHealth: 1,
             wizardMarked: false,
             vulnerable: false,
             excaliburActive: false,
