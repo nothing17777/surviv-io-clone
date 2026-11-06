@@ -11,6 +11,7 @@ import { GameConfig } from "../../../shared/gameConfig.ts";
 import { math } from "../../../shared/utils/math.ts";
 import { util } from "../../../shared/utils/util.ts";
 import { v2, type Vec2 } from "../../../shared/utils/v2.ts";
+import { ChampionKits } from "./championKits/index.ts";
 import type { DamageParams } from "./objects/gameObject.ts";
 import type { Player } from "./objects/player.ts";
 
@@ -385,8 +386,12 @@ export class Champion {
 
     abilities: Record<string, Partial<Record<AbilityKey, () => boolean | void>>> = {
         ...Object.fromEntries(
-            ChampionIds.filter((id) => !HandWrittenChampionIds.has(id)).map((id) => [id, this.genericAbilities()]),
+            ChampionIds.filter((id) => !HandWrittenChampionIds.has(id) && !ChampionKits[id]).map((
+                id,
+            ) => [id, this.genericAbilities()]),
         ),
+        // the kits written outside this file, one module per batch of champions
+        ...Object.fromEntries(Object.entries(ChampionKits).map(([id, kit]) => [id, kit(this)])),
         jinx: {
             q: () => {
                 // Switcheroo!: Pow-Pow <-> Fishbones

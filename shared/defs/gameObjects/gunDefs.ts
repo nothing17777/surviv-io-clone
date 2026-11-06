@@ -2,6 +2,8 @@ import { FactionTeam } from "../../gameConfig.ts";
 import { type DeepPartial, util } from "../../utils/util.ts";
 import type { Vec2 } from "../../utils/v2.ts";
 import { type BulletDef, BulletDefs } from "./bulletDefs.ts";
+import { ChampionAbilityBullets } from "./championAbilityBullets/index.ts";
+import { champFx } from "./championAbilityBullets/types.ts";
 import { ChampionDefs, championSound } from "./championDefs.ts";
 import { CustomGuns, CustomWeaponsVersion } from "./customWeaponDefs.ts";
 import { BaseGunLengths, GunEffects, GunOverrides, HiddenCustomGuns, SwingShotBullets } from "./customWeaponEffects.ts";
@@ -4342,7 +4344,6 @@ const ChampionGunDefs: Record<string, GunDef> = Object.fromEntries(
 );
 
 // League champions' ability shots, with their own particle textures (scripts/genLolChampionFx.py)
-const champFx = (file: string) => `img/champions/fx/${file}.png`;
 const champShot = (id: string, b: Partial<BulletDef>) =>
     kitBullet(`bullet_champ_${id}`, { speed: 90, distance: 60, tracerWidth: 0.2, ...b });
 champShot("jinx_w", { damage: 50, speed: 160, distance: 90, tracerColor: "cw_plasma", tracerWidth: 0.35 });
@@ -4563,6 +4564,9 @@ champShot("runaan", { damage: 10, speed: 110, distance: 40, homing: true, tracer
 
 // champions without a hand-written kit cast these instead, so every champion's abilities still
 // throw something visible: a bolt on Q, a heavier one on R (see Champion.genericAbilities)
+// every champion ability projectile written outside this file
+for (const [id, bullet] of Object.entries(ChampionAbilityBullets)) champShot(id, bullet);
+
 champShot("generic_q", { damage: 45, speed: 100, distance: 55, tracerColor: "cw_magic", tracerWidth: 0.3 });
 champShot("generic_r", {
     damage: 95,
