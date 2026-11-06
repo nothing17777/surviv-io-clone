@@ -1,8 +1,10 @@
 import { expect, test } from "vitest";
-import { ChampionDefs, ChampionIds, ItemDefs } from "../../shared/defs/gameObjects/championDefs.ts";
+import { ChampionDefs, ChampionIds, championIndex, ItemDefs } from "../../shared/defs/gameObjects/championDefs.ts";
 import { GameObjectDefs } from "../../shared/defs/register.ts";
-import { GameConfig, TeamMode } from "../../shared/gameConfig.ts";
+import { Action, Anim, GameConfig, HasteType, TeamMode } from "../../shared/gameConfig.ts";
 import { InputMsg } from "../../shared/net/inputMsg.ts";
+import { BitStream } from "../../shared/net/net.ts";
+import { type ObjectData, ObjectSerializeFns, ObjectType } from "../../shared/net/objectSerializeFns.ts";
 import { v2 } from "../../shared/utils/v2.ts";
 import { createGame } from "./gameTestHelpers.ts";
 import "./testHelpers.ts";
@@ -114,4 +116,63 @@ test("Zhonya's: Lux can't be hurt in stasis", () => {
     me.damage({ amount: 50, damageType: GameConfig.DamageType.Player, source: enemy, dir: v2.create(1, 0) });
     expect(me.health).toBe(me.maxHealth);
     steps(game, 1);
+});
+
+// every champion's index has to survive the wire: the field was 4 bits, so anything past the
+// 15th champion arrived as a different one (the client then drew that champion's sprites,
+// animations and abilities instead)
+test("every champion's index round-trips through the player object data", () => {
+    const base: ObjectData<ObjectType.Player> = {
+        pos: v2.create(10, 10),
+        dir: v2.create(1, 0),
+        outfit: "outfitBase",
+        backpack: "backpack00",
+        helmet: "",
+        chest: "",
+        activeWeapon: "fists",
+        layer: 0,
+        dead: false,
+        downed: false,
+        animType: Anim.None,
+        animSeq: 0,
+        actionType: Action.None,
+        actionSeq: 0,
+        wearingPan: false,
+        bigPan: false,
+        healEffect: false,
+        lastStandEffect: false,
+        bleeding: false,
+        poisoned: false,
+        burning: false,
+        charmed: false,
+        kitAura: 0,
+        droneAngle: 0,
+        wizardMarked: false,
+        vulnerable: false,
+        excaliburActive: false,
+        flying: false,
+        championIndex: 0,
+        champCastSeq: 0,
+        champCastKey: 0,
+        champRooted: false,
+        frozen: false,
+        frozenOri: 0,
+        frozenType: "",
+        hasteType: HasteType.None,
+        hasteSeq: 0,
+        actionItem: "",
+        scale: 1,
+        role: "",
+        perks: [],
+    };
+    const fns = ObjectSerializeFns[ObjectType.Player];
+    for (const id of ChampionIds) {
+        const index = championIndex(id);
+        const stream = new BitStream(new ArrayBuffer(1024));
+        fns.serializeFull(stream, { ...base, championIndex: index });
+        stream.index = 0;
+        const out = { ...base, championIndex: -1 };
+        fns.deserializeFull(stream, out);
+        expect(out.championIndex, id).toBe(index);
+    }
 });

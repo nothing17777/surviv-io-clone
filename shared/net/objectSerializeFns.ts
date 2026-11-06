@@ -108,7 +108,7 @@ export interface ObjectsFullData {
         excaliburActive: boolean;
         /** Iron Man's flight: untargetable and through walls */
         flying: boolean;
-        /** League champion kit: 0 none, else 1 + its place in ChampionIds */
+        /** League champion kit: 0 none, else 1 + its place in ChampionIds (9 bits on the wire: up to 511) */
         championIndex: number;
         /** bumps on each cast, so every client plays its sound once; castKey 0-3 Q-R, 4 item, 5 passive, 6 melee basic hit */
         champCastSeq: number;
@@ -258,7 +258,7 @@ export const ObjectSerializeFns: {
             s.writeBoolean(data.vulnerable);
             s.writeBoolean(data.excaliburActive);
             s.writeBoolean(data.flying);
-            s.writeBits(data.championIndex, 4);
+            s.writeBits(data.championIndex, 9);
             s.writeBits(data.champCastSeq, 3);
             s.writeBits(data.champCastKey, 3);
             s.writeBoolean(data.champRooted);
@@ -343,7 +343,7 @@ export const ObjectSerializeFns: {
             data.vulnerable = s.readBoolean();
             data.excaliburActive = s.readBoolean();
             data.flying = s.readBoolean();
-            data.championIndex = s.readBits(4);
+            data.championIndex = s.readBits(9);
             data.champCastSeq = s.readBits(3);
             data.champCastKey = s.readBits(3);
             data.champRooted = s.readBoolean();
