@@ -6,7 +6,7 @@ import { ChampionDefs, championSound } from "./championDefs.ts";
 import { CustomGuns, CustomWeaponsVersion } from "./customWeaponDefs.ts";
 import { BaseGunLengths, GunEffects, GunOverrides, HiddenCustomGuns, SwingShotBullets } from "./customWeaponEffects.ts";
 import type { BaseWeaponDef } from "./itemTypes.ts";
-import { SentryCharge, WolverineCombo } from "./kitDefs.ts";
+import { SentryCharge, WolverineCombo, WolverineDashDistance, WolverineDashHands } from "./kitDefs.ts";
 
 export interface GunDef extends BaseWeaponDef {
     type: "gun";
@@ -3986,6 +3986,20 @@ kitBullet("bullet_kit_wolverine_claw", {
     // screen px at zoom 1, the same as the dash's streak
     spriteSize: 120,
 });
+// the two hands beside Wolverine's dash: the same claw, flying with the streak (the dash's speed and length), damage
+// 0 and through everyone; the streak's own wider hitbox is what hits (see kit_wolverine_dash)
+kitBullet("bullet_kit_wolverine_dash_claw", {
+    damage: 0,
+    speed: 40,
+    distance: WolverineDashDistance,
+    noPlayerHit: true,
+    noDistAdj: true,
+    noTracer: true,
+    tracerColor: "cw_white",
+    tracerWidth: 0.3,
+    sprite: kitAsset("wolverine_claw"),
+    spriteSize: 120,
+});
 // the same claw left where it ended: it only creeps along at 0.2 u/s, and is fired with a range of that speed
 // times how long it should stay (WolverineCombo.linger), so it goes away by itself
 kitBullet("bullet_kit_wolverine_claw_rest", {
@@ -4128,7 +4142,8 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
         extendedReload: 250,
     }),
     // Wolverine dash: 16 tiles forward, 50 dmg and a bleed to whoever he slashes through, 8 s cooldown.
-    // The streak flies alongside him and does the damage
+    // The streak flies alongside him and does the damage; a Claw Combo hand flies on each side of it (see
+    // WeaponManager), and the streak hits everyone within their width. It is held as its slot icon
     kitGun("kit_wolverine_dash", "barrett", {
         damage: 50,
         speed: 40,
@@ -4136,6 +4151,7 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
         falloff: 1,
         playerPierce: true,
         pierceLoss: 0,
+        hitRadius: WolverineDashHands.hitRadius,
         noTracer: true,
         tracerColor: "cw_white",
         tracerWidth: 0.3,
@@ -4144,6 +4160,15 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
         spriteSize: 120,
     }, {
         name: "Adamantium Dash",
+        // the slot icon (168 wide) is the held sprite too; its art fills the whole image, where the old world
+        // sprite's filled 112 of 128, so it is drawn at that share of the usual size to look the same size
+        worldImg: {
+            sprite: `img/custom-weapons/loot/kit_wolverine_dash.png?v=${CustomWeaponsVersion}`,
+            scale: {
+                x: ((BaseGunLengths.barrett ?? 48) / 80) * (112 / 168),
+                y: ((BaseGunLengths.barrett ?? 48) / 80) * (112 / 168),
+            },
+        },
         fireMode: "single",
         fireDelay: 8,
         energyCost: 0,
