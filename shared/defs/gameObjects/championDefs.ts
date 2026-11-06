@@ -2977,7 +2977,7 @@ export const ChampionDefs: Record<string, ChampionDef> = {
         title: "the Missing Link",
         health: 173,
         speedBonus: 0.5,
-        gun: false,
+        gun: true,
         basic: { damage: 33, cooldown: 0.55 },
         passive: {
             name: "Rage Gene",
@@ -3534,7 +3534,7 @@ export const ChampionDefs: Record<string, ChampionDef> = {
         title: "the Defender of Tomorrow",
         health: 160,
         speedBonus: 0.5,
-        gun: false,
+        gun: true,
         basic: { damage: 32, cooldown: 0.55 },
         passive: {
             name: "Hextech Capacitor",
@@ -3911,7 +3911,7 @@ export const ChampionDefs: Record<string, ChampionDef> = {
         title: "the Righteous",
         health: 180,
         speedBonus: 0,
-        gun: false,
+        gun: true,
         basic: { damage: 28, cooldown: 0.5 },
         passive: {
             name: "Divine Ascent",
@@ -7302,7 +7302,7 @@ export const ChampionDefs: Record<string, ChampionDef> = {
         title: "the Dreadnought",
         health: 201,
         speedBonus: 0.5,
-        gun: false,
+        gun: true,
         basic: { damage: 34, cooldown: 0.55 },
         passive: {
             name: "Echoing Flames",

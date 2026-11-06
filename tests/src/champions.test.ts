@@ -185,6 +185,9 @@ test("every champion's abilities do something the player can see", () => {
         for (let i = 0; i < 4; i++) {
             // close enough that a melee champion's abilities reach, far enough to still aim
             const { game, me, enemy } = setup(id, v2.create(3, 0));
+            // one step first, because game.now is only set once the game has ticked and an
+            // ability that reads the clock (Yasuo's Sweeping Blade) finds no target without it
+            steps(game, 1);
             const bullets = game.bulletBarn.newBullets.length;
             const health = enemy.health;
             const shield = me.shield;
@@ -209,9 +212,7 @@ test("every champion's abilities do something the player can see", () => {
             }
         }
     }
-    // Last Breath only casts on a target his own knock-up has put in the air, which nothing here
-    // stands in for. Sweeping Blade is a separate pre-existing problem: it finds its target and
-    // still leaves no dash behind, so it is pinned here rather than quietly passing
-    expect(silent, `abilities with no visible effect: ${silent.join(", ")}`)
-        .toEqual(["yasuo e", "yasuo r"]);
+    // Last Breath is the one ability with a precondition nothing here stands in for: it only
+    // casts on a target Yasuo's own knock-up has put in the air
+    expect(silent, `abilities with no visible effect: ${silent.join(", ")}`).toEqual(["yasuo r"]);
 });
