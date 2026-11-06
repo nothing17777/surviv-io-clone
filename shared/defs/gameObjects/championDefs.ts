@@ -231,6 +231,984 @@ export const AbilityRanges: Record<string, Record<AbilityKey, AbilityRange>> = {
         e: { range: 0, indicator: "self" }, // self-cast
         r: { range: 0, indicator: "self" }, // self-cast
     },
+    aatrox: {
+        q: { range: 200, indicator: "line", radius: 4 }, // global
+        w: { range: 28, indicator: "circle", radius: 3 }, // 825
+        e: { range: 200, indicator: "line", radius: 4 }, // global
+        r: { range: 200, indicator: "self" }, // global
+    },
+    akali: {
+        q: { range: 18, indicator: "line" }, // 550
+        w: { range: 12, indicator: "line" }, // 350
+        e: { range: 28, indicator: "line" }, // 825
+        r: { range: 23, indicator: "line" }, // 675
+    },
+    akshan: {
+        q: { range: 28, indicator: "line" }, // 850
+        w: { range: 183, indicator: "self" }, // 5500
+        e: { range: 27, indicator: "line" }, // 800
+        r: { range: 83, indicator: "line" }, // 2500
+    },
+    alistar: {
+        q: { range: 12, indicator: "self", radius: 12 }, // 365
+        w: { range: 22, indicator: "line" }, // 650
+        e: { range: 12, indicator: "self", radius: 12 }, // 350
+        r: { range: 0, indicator: "self" }, // self-cast
+    },
+    ambessa: {
+        q: { range: 22, indicator: "line" }, // 650
+        w: { range: 11, indicator: "self", radius: 11 }, // 325
+        e: { range: 11, indicator: "self", radius: 11 }, // 325
+        r: { range: 42, indicator: "circle", radius: 3 }, // 1250
+    },
+    amumu: {
+        q: { range: 37, indicator: "line" }, // 1100
+        w: { range: 10, indicator: "self", radius: 10 }, // 300
+        e: { range: 12, indicator: "self", radius: 12 }, // 350
+        r: { range: 18, indicator: "line" }, // 550
+    },
+    anivia: {
+        q: { range: 36, indicator: "circle", radius: 3 }, // 1075
+        w: { range: 33, indicator: "wall", radius: 5 }, // 1000
+        e: { range: 22, indicator: "circle", radius: 3 }, // 650
+        r: { range: 25, indicator: "circle", radius: 3 }, // 750
+    },
+    annie: {
+        q: { range: 21, indicator: "line" }, // 625
+        w: { range: 20, indicator: "cone", radius: 0.5 }, // 600
+        e: { range: 27, indicator: "self" }, // 800
+        r: { range: 20, indicator: "circle", radius: 3 }, // 600
+    },
+    aphelios: {
+        q: { range: 48, indicator: "cone", radius: 0.5 }, // 1450
+        w: { range: 8, indicator: "line" }, // 250
+        e: { range: 33, indicator: "line" }, // 1000
+        r: { range: 43, indicator: "line" }, // 1300
+    },
+    aurelionsol: {
+        q: { range: 25, indicator: "line" }, // 750
+        w: { range: 50, indicator: "self" }, // 1500
+        e: { range: 25, indicator: "self" }, // 750
+        r: { range: 42, indicator: "circle", radius: 3 }, // 1250
+    },
+    aurora: {
+        q: { range: 30, indicator: "line" }, // 900
+        w: { range: 23, indicator: "line" }, // 700
+        e: { range: 28, indicator: "line" }, // 825
+        r: { range: 8, indicator: "self", radius: 8 }, // 250
+    },
+    azir: {
+        q: { range: 25, indicator: "circle", radius: 3 }, // 740
+        w: { range: 18, indicator: "circle", radius: 3 }, // 525
+        e: { range: 37, indicator: "self" }, // 1100
+        r: { range: 8, indicator: "wall", radius: 5 }, // 250
+    },
+    bard: {
+        q: { range: 200, indicator: "line", radius: 4 }, // global
+        w: { range: 27, indicator: "self" }, // 800
+        e: { range: 30, indicator: "line" }, // 900
+        r: { range: 113, indicator: "circle", radius: 3 }, // 3400
+    },
+    belveth: {
+        q: { range: 15, indicator: "line" }, // 450
+        w: { range: 24, indicator: "circle", radius: 3 }, // 715
+        e: { range: 17, indicator: "self", radius: 17 }, // 500
+        r: { range: 15, indicator: "circle", radius: 3 }, // 450
+    },
+    blitzcrank: {
+        q: { range: 36, indicator: "line" }, // 1079
+        w: { range: 0, indicator: "self" }, // self-cast
+        e: { range: 10, indicator: "line" }, // 300
+        r: { range: 20, indicator: "self" }, // 600
+    },
+    brand: {
+        q: { range: 35, indicator: "line" }, // 1050
+        w: { range: 30, indicator: "circle", radius: 3 }, // 900
+        e: { range: 21, indicator: "line" }, // 625
+        r: { range: 25, indicator: "line" }, // 750
+    },
+    braum: {
+        q: { range: 33, indicator: "line" }, // 1000
+        w: { range: 22, indicator: "self" }, // 650
+        e: { range: 200, indicator: "line", radius: 4 }, // global
+        r: { range: 42, indicator: "circle", radius: 3 }, // 1250
+    },
+    briar: {
+        q: { range: 16, indicator: "line" }, // 475
+        w: { range: 12, indicator: "self", radius: 12 }, // 350
+        e: { range: 13, indicator: "wall", radius: 5 }, // 400
+        r: { range: 200, indicator: "line" }, // 12000
+    },
+    camille: {
+        q: { range: 11, indicator: "line" }, // 325
+        w: { range: 20, indicator: "cone", radius: 0.5 }, // 610
+        e: { range: 27, indicator: "wall", radius: 5 }, // 800
+        r: { range: 16, indicator: "self" }, // 475
+    },
+    cassiopeia: {
+        q: { range: 28, indicator: "self" }, // 850
+        w: { range: 23, indicator: "line" }, // 700
+        e: { range: 23, indicator: "line" }, // 700
+        r: { range: 28, indicator: "line" }, // 825
+    },
+    chogath: {
+        q: { range: 32, indicator: "circle", radius: 3 }, // 950
+        w: { range: 10, indicator: "cone", radius: 0.5 }, // 300
+        e: { range: 1, indicator: "self" }, // 40
+        r: { range: 6, indicator: "self" }, // 175
+    },
+    corki: {
+        q: { range: 28, indicator: "line" }, // 825
+        w: { range: 20, indicator: "line" }, // 600
+        e: { range: 20, indicator: "cone", radius: 0.5 }, // 600
+        r: { range: 41, indicator: "line" }, // 1225
+    },
+    diana: {
+        q: { range: 30, indicator: "cone", radius: 0.5 }, // 900
+        w: { range: 27, indicator: "circle", radius: 3 }, // 800
+        e: { range: 28, indicator: "line" }, // 825
+        r: { range: 16, indicator: "self", radius: 16 }, // 475
+    },
+    drmundo: {
+        q: { range: 33, indicator: "line" }, // 975
+        w: { range: 11, indicator: "self", radius: 11 }, // 325
+        e: { range: 0, indicator: "self" }, // self-cast
+        r: { range: 1, indicator: "self" }, // 20
+    },
+    draven: {
+        q: { range: 10, indicator: "self", radius: 10 }, // 300
+        w: { range: 33, indicator: "line" }, // 1000
+        e: { range: 35, indicator: "line" }, // 1050
+        r: { range: 200, indicator: "line", radius: 4 }, // global
+    },
+    ekko: {
+        q: { range: 36, indicator: "self" }, // 1075
+        w: { range: 53, indicator: "line" }, // 1600
+        e: { range: 11, indicator: "line" }, // 325
+        r: { range: 28, indicator: "circle", radius: 3 }, // 850
+    },
+    elise: {
+        q: { range: 21, indicator: "line" }, // 615
+        w: { range: 32, indicator: "line" }, // 950
+        e: { range: 36, indicator: "self" }, // 1075
+        r: { range: 1, indicator: "self" }, // 20
+    },
+    evelynn: {
+        q: { range: 27, indicator: "line" }, // 800
+        w: { range: 53, indicator: "line" }, // 1600
+        e: { range: 7, indicator: "line" }, // 210
+        r: { range: 200, indicator: "self" }, // global
+    },
+    fiddlesticks: {
+        q: { range: 19, indicator: "self" }, // 575
+        w: { range: 22, indicator: "line" }, // 650
+        e: { range: 28, indicator: "circle", radius: 3 }, // 850
+        r: { range: 27, indicator: "circle", radius: 3 }, // 800
+    },
+    fiora: {
+        q: { range: 13, indicator: "self", radius: 13 }, // 400
+        w: { range: 25, indicator: "line" }, // 750
+        e: { range: 14, indicator: "self" }, // 425
+        r: { range: 17, indicator: "self" }, // 500
+    },
+    fizz: {
+        q: { range: 18, indicator: "line" }, // 550
+        w: { range: 20, indicator: "line" }, // 600
+        e: { range: 13, indicator: "self", radius: 13 }, // 400
+        r: { range: 43, indicator: "circle", radius: 3 }, // 1300
+    },
+    galio: {
+        q: { range: 28, indicator: "line" }, // 825
+        w: { range: 9, indicator: "self", radius: 9 }, // 275
+        e: { range: 22, indicator: "line" }, // 650
+        r: { range: 183, indicator: "self" }, // 5500
+    },
+    gangplank: {
+        q: { range: 21, indicator: "line" }, // 625
+        w: { range: 13, indicator: "line" }, // 400
+        e: { range: 33, indicator: "circle", radius: 3 }, // 1000
+        r: { range: 200, indicator: "self" }, // global
+    },
+    gnar: {
+        q: { range: 37, indicator: "line" }, // 1100
+        w: { range: 0, indicator: "self" }, // self-cast
+        e: { range: 16, indicator: "self", radius: 16 }, // 475
+        r: { range: 20, indicator: "wall", radius: 5 }, // 590
+    },
+    gragas: {
+        q: { range: 28, indicator: "circle", radius: 3 }, // 850
+        w: { range: 1, indicator: "self", radius: 1 }, // 20
+        e: { range: 20, indicator: "circle", radius: 3 }, // 600
+        r: { range: 33, indicator: "circle", radius: 3 }, // 1000
+    },
+    graves: {
+        q: { range: 31, indicator: "line" }, // 925
+        w: { range: 32, indicator: "line" }, // 950
+        e: { range: 14, indicator: "self" }, // 425
+        r: { range: 33, indicator: "cone", radius: 0.5 }, // 1000
+    },
+    gwen: {
+        q: { range: 15, indicator: "cone", radius: 0.5 }, // 450
+        w: { range: 0, indicator: "self" }, // self-cast
+        e: { range: 13, indicator: "self" }, // 400
+        r: { range: 40, indicator: "line" }, // 1200
+    },
+    hecarim: {
+        q: { range: 12, indicator: "self", radius: 12 }, // 350
+        w: { range: 18, indicator: "line" }, // 525
+        e: { range: 10, indicator: "line" }, // 300
+        r: { range: 200, indicator: "line", radius: 4 }, // global
+    },
+    heimerdinger: {
+        q: { range: 12, indicator: "circle", radius: 3 }, // 350
+        w: { range: 44, indicator: "line" }, // 1325
+        e: { range: 32, indicator: "circle", radius: 3 }, // 970
+        r: { range: 0, indicator: "self" }, // self-cast
+    },
+    hwei: {
+        q: { range: 0, indicator: "self" }, // self-cast
+        w: { range: 0, indicator: "self" }, // self-cast
+        e: { range: 0, indicator: "self" }, // self-cast
+        r: { range: 43, indicator: "line" }, // 1300
+    },
+    illaoi: {
+        q: { range: 28, indicator: "line" }, // 850
+        w: { range: 13, indicator: "self", radius: 13 }, // 400
+        e: { range: 30, indicator: "line" }, // 900
+        r: { range: 15, indicator: "self", radius: 15 }, // 450
+    },
+    irelia: {
+        q: { range: 20, indicator: "self" }, // 600
+        w: { range: 28, indicator: "line" }, // 825
+        e: { range: 28, indicator: "self" }, // 850
+        r: { range: 32, indicator: "wall", radius: 5 }, // 950
+    },
+    ivern: {
+        q: { range: 38, indicator: "line" }, // 1125
+        w: { range: 38, indicator: "line" }, // 1150
+        e: { range: 25, indicator: "self" }, // 750
+        r: { range: 20, indicator: "circle", radius: 3 }, // 600
+    },
+    janna: {
+        q: { range: 36, indicator: "circle", radius: 3 }, // 1075
+        w: { range: 200, indicator: "self" }, // global
+        e: { range: 27, indicator: "self" }, // 800
+        r: { range: 24, indicator: "circle", radius: 3 }, // 725
+    },
+    jarvaniv: {
+        q: { range: 26, indicator: "self" }, // 770
+        w: { range: 21, indicator: "line" }, // 625
+        e: { range: 29, indicator: "self" }, // 860
+        r: { range: 22, indicator: "self" }, // 650
+    },
+    jax: {
+        q: { range: 23, indicator: "line" }, // 700
+        w: { range: 10, indicator: "line" }, // 300
+        e: { range: 10, indicator: "self", radius: 10 }, // 300
+        r: { range: 9, indicator: "self", radius: 9 }, // 260
+    },
+    jayce: {
+        q: { range: 20, indicator: "line" }, // 600
+        w: { range: 10, indicator: "self", radius: 10 }, // 285
+        e: { range: 8, indicator: "self" }, // 240
+        r: { range: 20, indicator: "line" }, // 600
+    },
+    jhin: {
+        q: { range: 18, indicator: "line" }, // 550
+        w: { range: 100, indicator: "line" }, // 3000
+        e: { range: 25, indicator: "self" }, // 750
+        r: { range: 200, indicator: "line", radius: 4 }, // global
+    },
+    ksante: {
+        q: { range: 15, indicator: "self", radius: 15 }, // 450
+        w: { range: 20, indicator: "line" }, // 600
+        e: { range: 18, indicator: "self" }, // 525
+        r: { range: 8, indicator: "wall", radius: 5 }, // 250
+    },
+    kaisa: {
+        q: { range: 20, indicator: "circle", radius: 3 }, // 600
+        w: { range: 100, indicator: "line" }, // 3000
+        e: { range: 0, indicator: "self" }, // self-cast
+        r: { range: 100, indicator: "self" }, // 3000
+    },
+    kalista: {
+        q: { range: 38, indicator: "line" }, // 1150
+        w: { range: 167, indicator: "circle", radius: 3 }, // 5000
+        e: { range: 33, indicator: "line" }, // 1000
+        r: { range: 33, indicator: "self" }, // 1000
+    },
+    karma: {
+        q: { range: 32, indicator: "self" }, // 950
+        w: { range: 23, indicator: "self" }, // 675
+        e: { range: 27, indicator: "self" }, // 800
+        r: { range: 37, indicator: "line" }, // 1100
+    },
+    karthus: {
+        q: { range: 29, indicator: "circle", radius: 3 }, // 875
+        w: { range: 33, indicator: "line" }, // 1000
+        e: { range: 18, indicator: "line" }, // 550
+        r: { range: 200, indicator: "line" }, // 10000
+    },
+    kassadin: {
+        q: { range: 22, indicator: "line" }, // 650
+        w: { range: 0, indicator: "self" }, // self-cast
+        e: { range: 13, indicator: "cone", radius: 0.5 }, // 400
+        r: { range: 17, indicator: "self", radius: 17 }, // 500
+    },
+    katarina: {
+        q: { range: 21, indicator: "circle", radius: 3 }, // 625
+        w: { range: 200, indicator: "self" }, // global
+        e: { range: 24, indicator: "self" }, // 725
+        r: { range: 18, indicator: "self" }, // 550
+    },
+    kayle: {
+        q: { range: 30, indicator: "circle", radius: 3 }, // 900
+        w: { range: 30, indicator: "self" }, // 900
+        e: { range: 18, indicator: "line" }, // 550
+        r: { range: 30, indicator: "self" }, // 900
+    },
+    kayn: {
+        q: { range: 12, indicator: "line" }, // 350
+        w: { range: 23, indicator: "line" }, // 700
+        e: { range: 13, indicator: "line" }, // 400
+        r: { range: 18, indicator: "line" }, // 550
+    },
+    kennen: {
+        q: { range: 32, indicator: "circle", radius: 3 }, // 950
+        w: { range: 24, indicator: "self" }, // 725
+        e: { range: 6, indicator: "circle", radius: 3 }, // 170
+        r: { range: 18, indicator: "circle", radius: 3 }, // 550
+    },
+    khazix: {
+        q: { range: 11, indicator: "line" }, // 325
+        w: { range: 33, indicator: "cone", radius: 0.5 }, // 1000
+        e: { range: 23, indicator: "circle", radius: 3 }, // 700
+        r: { range: 200, indicator: "self" }, // global
+    },
+    kindred: {
+        q: { range: 11, indicator: "self", radius: 11 }, // 340
+        w: { range: 19, indicator: "line" }, // 560
+        e: { range: 17, indicator: "line" }, // 500
+        r: { range: 17, indicator: "circle", radius: 3 }, // 500
+    },
+    kled: {
+        q: { range: 27, indicator: "self" }, // 800
+        w: { range: 0, indicator: "self" }, // self-cast
+        e: { range: 18, indicator: "line" }, // 550
+        r: { range: 150, indicator: "circle", radius: 3 }, // 4500
+    },
+    kogmaw: {
+        q: { range: 39, indicator: "line" }, // 1175
+        w: { range: 18, indicator: "line" }, // 530
+        e: { range: 40, indicator: "line" }, // 1200
+        r: { range: 60, indicator: "line" }, // 1800
+    },
+    leblanc: {
+        q: { range: 23, indicator: "self" }, // 700
+        w: { range: 20, indicator: "circle", radius: 3 }, // 600
+        e: { range: 31, indicator: "line" }, // 925
+        r: { range: 200, indicator: "self" }, // global
+    },
+    leesin: {
+        q: { range: 37, indicator: "line" }, // 1100
+        w: { range: 23, indicator: "self" }, // 700
+        e: { range: 15, indicator: "self", radius: 15 }, // 450
+        r: { range: 13, indicator: "line" }, // 375
+    },
+    leona: {
+        q: { range: 3, indicator: "self" }, // 100
+        w: { range: 15, indicator: "self", radius: 15 }, // 450
+        e: { range: 29, indicator: "line" }, // 875
+        r: { range: 40, indicator: "circle", radius: 3 }, // 1200
+    },
+    lillia: {
+        q: { range: 15, indicator: "self", radius: 15 }, // 450
+        w: { range: 17, indicator: "self", radius: 17 }, // 500
+        e: { range: 23, indicator: "wall", radius: 5 }, // 700
+        r: { range: 53, indicator: "line" }, // 1600
+    },
+    lissandra: {
+        q: { range: 24, indicator: "line" }, // 725
+        w: { range: 15, indicator: "self", radius: 15 }, // 450
+        e: { range: 35, indicator: "circle", radius: 3 }, // 1050
+        r: { range: 18, indicator: "self" }, // 550
+    },
+    locke: {
+        q: { range: 32, indicator: "line" }, // 950
+        w: { range: 8, indicator: "line" }, // 250
+        e: { range: 14, indicator: "circle", radius: 3 }, // 425
+        r: { range: 33, indicator: "self" }, // 1000
+    },
+    lucian: {
+        q: { range: 17, indicator: "line" }, // 500
+        w: { range: 30, indicator: "self" }, // 900
+        e: { range: 15, indicator: "line" }, // 445
+        r: { range: 47, indicator: "line" }, // 1400
+    },
+    lulu: {
+        q: { range: 31, indicator: "line" }, // 925
+        w: { range: 22, indicator: "self" }, // 650
+        e: { range: 22, indicator: "self" }, // 650
+        r: { range: 30, indicator: "self" }, // 900
+    },
+    malphite: {
+        q: { range: 21, indicator: "circle", radius: 3 }, // 625
+        w: { range: 13, indicator: "line" }, // 400
+        e: { range: 13, indicator: "self", radius: 13 }, // 400
+        r: { range: 33, indicator: "circle", radius: 3 }, // 1000
+    },
+    malzahar: {
+        q: { range: 30, indicator: "line" }, // 900
+        w: { range: 5, indicator: "self", radius: 5 }, // 150
+        e: { range: 22, indicator: "line" }, // 650
+        r: { range: 23, indicator: "self" }, // 700
+    },
+    maokai: {
+        q: { range: 20, indicator: "line" }, // 600
+        w: { range: 18, indicator: "line" }, // 525
+        e: { range: 37, indicator: "circle", radius: 3 }, // 1100
+        r: { range: 100, indicator: "wall", radius: 5 }, // 3000
+    },
+    mel: {
+        q: { range: 32, indicator: "line" }, // 950
+        w: { range: 8, indicator: "self", radius: 8 }, // 250
+        e: { range: 33, indicator: "line" }, // 1000
+        r: { range: 200, indicator: "self" }, // global
+    },
+    milio: {
+        q: { range: 40, indicator: "circle", radius: 3 }, // 1200
+        w: { range: 12, indicator: "self" }, // 350
+        e: { range: 22, indicator: "self" }, // 650
+        r: { range: 23, indicator: "line" }, // 700
+    },
+    missfortune: {
+        q: { range: 22, indicator: "line" }, // 650
+        w: { range: 20, indicator: "line" }, // 600
+        e: { range: 33, indicator: "circle", radius: 3 }, // 1000
+        r: { range: 200, indicator: "self" }, // global
+    },
+    monkeyking: {
+        q: { range: 12, indicator: "line" }, // 350
+        w: { range: 9, indicator: "self", radius: 9 }, // 275
+        e: { range: 22, indicator: "self" }, // 650
+        r: { range: 11, indicator: "self", radius: 11 }, // 315
+    },
+    mordekaiser: {
+        q: { range: 23, indicator: "circle", radius: 3 }, // 675
+        w: { range: 200, indicator: "self" }, // global
+        e: { range: 23, indicator: "circle", radius: 3 }, // 700
+        r: { range: 22, indicator: "line" }, // 650
+    },
+    morgana: {
+        q: { range: 42, indicator: "circle", radius: 3 }, // 1250
+        w: { range: 30, indicator: "circle", radius: 3 }, // 900
+        e: { range: 27, indicator: "line" }, // 800
+        r: { range: 21, indicator: "circle", radius: 3 }, // 625
+    },
+    naafiri: {
+        q: { range: 30, indicator: "line" }, // 900
+        w: { range: 13, indicator: "line" }, // 400
+        e: { range: 15, indicator: "self", radius: 15 }, // 450
+        r: { range: 30, indicator: "line" }, // 900
+    },
+    nami: {
+        q: { range: 29, indicator: "circle", radius: 3 }, // 875
+        w: { range: 24, indicator: "line" }, // 725
+        e: { range: 27, indicator: "self" }, // 800
+        r: { range: 85, indicator: "circle", radius: 3 }, // 2550
+    },
+    nasus: {
+        q: { range: 9, indicator: "line" }, // 255
+        w: { range: 23, indicator: "self" }, // 700
+        e: { range: 22, indicator: "circle", radius: 3 }, // 650
+        r: { range: 13, indicator: "self", radius: 13 }, // 400
+    },
+    nautilus: {
+        q: { range: 38, indicator: "line" }, // 1150
+        w: { range: 12, indicator: "self", radius: 12 }, // 350
+        e: { range: 20, indicator: "line" }, // 600
+        r: { range: 28, indicator: "line" }, // 825
+    },
+    neeko: {
+        q: { range: 27, indicator: "line" }, // 800
+        w: { range: 30, indicator: "line" }, // 900
+        e: { range: 33, indicator: "line" }, // 1000
+        r: { range: 20, indicator: "line" }, // 600
+    },
+    nidalee: {
+        q: { range: 50, indicator: "self" }, // 1500
+        w: { range: 30, indicator: "circle", radius: 3 }, // 900
+        e: { range: 30, indicator: "line" }, // 900
+        r: { range: 1, indicator: "self" }, // 20
+    },
+    nilah: {
+        q: { range: 20, indicator: "line" }, // 600
+        w: { range: 5, indicator: "self" }, // 150
+        e: { range: 18, indicator: "self" }, // 550
+        r: { range: 13, indicator: "self", radius: 13 }, // 400
+    },
+    nocturne: {
+        q: { range: 38, indicator: "line" }, // 1125
+        w: { range: 1, indicator: "self" }, // 20
+        e: { range: 14, indicator: "circle", radius: 3 }, // 425
+        r: { range: 133, indicator: "self" }, // 4000
+    },
+    nunu: {
+        q: { range: 4, indicator: "self" }, // 125
+        w: { range: 200, indicator: "line" }, // 7500
+        e: { range: 21, indicator: "line" }, // 625
+        r: { range: 22, indicator: "circle", radius: 3 }, // 650
+    },
+    olaf: {
+        q: { range: 33, indicator: "circle", radius: 3 }, // 1000
+        w: { range: 23, indicator: "line" }, // 700
+        e: { range: 11, indicator: "line" }, // 325
+        r: { range: 13, indicator: "line" }, // 400
+    },
+    orianna: {
+        q: { range: 27, indicator: "circle", radius: 3 }, // 815
+        w: { range: 8, indicator: "self", radius: 8 }, // 225
+        e: { range: 37, indicator: "self" }, // 1095
+        r: { range: 14, indicator: "self", radius: 14 }, // 410
+    },
+    ornn: {
+        q: { range: 27, indicator: "circle", radius: 3 }, // 800
+        w: { range: 200, indicator: "line", radius: 4 }, // global
+        e: { range: 15, indicator: "self", radius: 15 }, // 450
+        r: { range: 83, indicator: "circle", radius: 3 }, // 2500
+    },
+    pantheon: {
+        q: { range: 19, indicator: "line" }, // 575
+        w: { range: 20, indicator: "line" }, // 600
+        e: { range: 13, indicator: "line" }, // 400
+        r: { range: 183, indicator: "circle", radius: 3 }, // 5500
+    },
+    poppy: {
+        q: { range: 14, indicator: "circle", radius: 3 }, // 430
+        w: { range: 13, indicator: "self", radius: 13 }, // 400
+        e: { range: 16, indicator: "wall", radius: 5 }, // 475
+        r: { range: 17, indicator: "line" }, // 500
+    },
+    pyke: {
+        q: { range: 13, indicator: "line" }, // 400
+        w: { range: 20, indicator: "line" }, // 600
+        e: { range: 18, indicator: "line" }, // 550
+        r: { range: 25, indicator: "self" }, // 750
+    },
+    qiyana: {
+        q: { range: 18, indicator: "line" }, // 525
+        w: { range: 37, indicator: "circle", radius: 3 }, // 1100
+        e: { range: 22, indicator: "line" }, // 650
+        r: { range: 32, indicator: "line" }, // 950
+    },
+    quinn: {
+        q: { range: 34, indicator: "circle", radius: 3 }, // 1025
+        w: { range: 70, indicator: "circle", radius: 3 }, // 2100
+        e: { range: 23, indicator: "line" }, // 675
+        r: { range: 23, indicator: "line" }, // 700
+    },
+    rakan: {
+        q: { range: 28, indicator: "line" }, // 850
+        w: { range: 20, indicator: "circle", radius: 3 }, // 600
+        e: { range: 22, indicator: "self" }, // 650
+        r: { range: 5, indicator: "self" }, // 150
+    },
+    rammus: {
+        q: { range: 10, indicator: "line" }, // 300
+        w: { range: 10, indicator: "line" }, // 300
+        e: { range: 11, indicator: "self" }, // 325
+        r: { range: 200, indicator: "self" }, // global
+    },
+    reksai: {
+        q: { range: 11, indicator: "self", radius: 11 }, // 325
+        w: { range: 55, indicator: "circle", radius: 3 }, // 1650
+        e: { range: 8, indicator: "line" }, // 250
+        r: { range: 50, indicator: "self" }, // 1500
+    },
+    rell: {
+        q: { range: 20, indicator: "line" }, // 600
+        w: { range: 15, indicator: "line" }, // 450
+        e: { range: 40, indicator: "self" }, // 1200
+        r: { range: 7, indicator: "self", radius: 7 }, // 200
+    },
+    renata: {
+        q: { range: 30, indicator: "line" }, // 900
+        w: { range: 27, indicator: "self" }, // 800
+        e: { range: 27, indicator: "line" }, // 800
+        r: { range: 67, indicator: "line" }, // 2000
+    },
+    renekton: {
+        q: { range: 11, indicator: "self", radius: 11 }, // 325
+        w: { range: 10, indicator: "line" }, // 300
+        e: { range: 15, indicator: "line" }, // 450
+        r: { range: 1, indicator: "self", radius: 1 }, // 20
+    },
+    rengar: {
+        q: { range: 15, indicator: "self" }, // 450
+        w: { range: 15, indicator: "self" }, // 450
+        e: { range: 33, indicator: "line" }, // 1000
+        r: { range: 117, indicator: "self" }, // 3500
+    },
+    riven: {
+        q: { range: 9, indicator: "self", radius: 9 }, // 275
+        w: { range: 9, indicator: "self", radius: 9 }, // 260
+        e: { range: 8, indicator: "line" }, // 250
+        r: { range: 7, indicator: "line" }, // 200
+    },
+    rumble: {
+        q: { range: 20, indicator: "cone", radius: 0.5 }, // 600
+        w: { range: 1, indicator: "circle", radius: 3 }, // 20
+        e: { range: 28, indicator: "circle", radius: 3 }, // 850
+        r: { range: 58, indicator: "wall", radius: 5 }, // 1750
+    },
+    ryze: {
+        q: { range: 33, indicator: "line" }, // 1000
+        w: { range: 21, indicator: "line" }, // 615
+        e: { range: 21, indicator: "line" }, // 615
+        r: { range: 100, indicator: "circle", radius: 3 }, // 3000
+    },
+    samira: {
+        q: { range: 32, indicator: "line" }, // 950
+        w: { range: 11, indicator: "self", radius: 11 }, // 325
+        e: { range: 20, indicator: "self" }, // 600
+        r: { range: 20, indicator: "line" }, // 600
+    },
+    sejuani: {
+        q: { range: 22, indicator: "self" }, // 650
+        w: { range: 20, indicator: "line" }, // 600
+        e: { range: 19, indicator: "self" }, // 560
+        r: { range: 43, indicator: "circle", radius: 3 }, // 1300
+    },
+    senna: {
+        q: { range: 20, indicator: "line" }, // 600
+        w: { range: 42, indicator: "line" }, // 1250
+        e: { range: 13, indicator: "self", radius: 13 }, // 400
+        r: { range: 200, indicator: "line", radius: 4 }, // global
+    },
+    seraphine: {
+        q: { range: 30, indicator: "circle", radius: 3 }, // 900
+        w: { range: 27, indicator: "line" }, // 800
+        e: { range: 43, indicator: "line" }, // 1300
+        r: { range: 200, indicator: "self" }, // global
+    },
+    sett: {
+        q: { range: 0, indicator: "self" }, // self-cast
+        w: { range: 200, indicator: "self" }, // global
+        e: { range: 16, indicator: "line" }, // 490
+        r: { range: 13, indicator: "self", radius: 13 }, // 400
+    },
+    shaco: {
+        q: { range: 13, indicator: "self" }, // 400
+        w: { range: 17, indicator: "self", radius: 17 }, // 500
+        e: { range: 21, indicator: "line" }, // 625
+        r: { range: 7, indicator: "self", radius: 7 }, // 200
+    },
+    shen: {
+        q: { range: 13, indicator: "self" }, // 400
+        w: { range: 13, indicator: "line" }, // 400
+        e: { range: 20, indicator: "line" }, // 600
+        r: { range: 200, indicator: "self" }, // global
+    },
+    shyvana: {
+        q: { range: 200, indicator: "self" }, // global
+        w: { range: 12, indicator: "self", radius: 12 }, // 350
+        e: { range: 27, indicator: "line" }, // 800
+        r: { range: 35, indicator: "line" }, // 1050
+    },
+    singed: {
+        q: { range: 1, indicator: "self" }, // 20
+        w: { range: 33, indicator: "circle", radius: 3 }, // 1000
+        e: { range: 4, indicator: "self" }, // 125
+        r: { range: 1, indicator: "self" }, // 20
+    },
+    sion: {
+        q: { range: 200, indicator: "circle", radius: 3 }, // 10000
+        w: { range: 17, indicator: "self", radius: 17 }, // 500
+        e: { range: 27, indicator: "line" }, // 800
+        r: { range: 200, indicator: "circle", radius: 3 }, // 7500
+    },
+    sivir: {
+        q: { range: 40, indicator: "line" }, // 1200
+        w: { range: 1, indicator: "self", radius: 1 }, // 20
+        e: { range: 1, indicator: "self" }, // 20
+        r: { range: 33, indicator: "line" }, // 1000
+    },
+    skarner: {
+        q: { range: 13, indicator: "line" }, // 400
+        w: { range: 23, indicator: "line" }, // 700
+        e: { range: 57, indicator: "wall", radius: 5 }, // 1700
+        r: { range: 21, indicator: "line" }, // 625
+    },
+    smolder: {
+        q: { range: 18, indicator: "line" }, // 550
+        w: { range: 50, indicator: "line" }, // 1500
+        e: { range: 23, indicator: "circle", radius: 3 }, // 700
+        r: { range: 140, indicator: "line" }, // 4200
+    },
+    sona: {
+        q: { range: 28, indicator: "circle", radius: 3 }, // 825
+        w: { range: 33, indicator: "self" }, // 1000
+        e: { range: 14, indicator: "self", radius: 14 }, // 430
+        r: { range: 30, indicator: "line" }, // 900
+    },
+    soraka: {
+        q: { range: 27, indicator: "self" }, // 810
+        w: { range: 18, indicator: "line" }, // 550
+        e: { range: 31, indicator: "circle", radius: 3 }, // 925
+        r: { range: 200, indicator: "self" }, // global
+    },
+    swain: {
+        q: { range: 25, indicator: "line" }, // 750
+        w: { range: 200, indicator: "line" }, // 7500
+        e: { range: 28, indicator: "line" }, // 850
+        r: { range: 22, indicator: "line" }, // 650
+    },
+    sylas: {
+        q: { range: 26, indicator: "circle", radius: 3 }, // 775
+        w: { range: 13, indicator: "line" }, // 400
+        e: { range: 13, indicator: "circle", radius: 3 }, // 400
+        r: { range: 32, indicator: "line" }, // 950
+    },
+    syndra: {
+        q: { range: 27, indicator: "line" }, // 800
+        w: { range: 31, indicator: "line" }, // 925
+        e: { range: 22, indicator: "line" }, // 650
+        r: { range: 23, indicator: "self" }, // 675
+    },
+    tahmkench: {
+        q: { range: 30, indicator: "self" }, // 900
+        w: { range: 40, indicator: "circle", radius: 3 }, // 1200
+        e: { range: 80, indicator: "line" }, // 2400
+        r: { range: 200, indicator: "self" }, // global
+    },
+    taliyah: {
+        q: { range: 33, indicator: "circle", radius: 3 }, // 1000
+        w: { range: 30, indicator: "circle", radius: 3 }, // 900
+        e: { range: 32, indicator: "line" }, // 950
+        r: { range: 200, indicator: "wall", radius: 5 }, // 6500
+    },
+    talon: {
+        q: { range: 19, indicator: "self" }, // 575
+        w: { range: 22, indicator: "line" }, // 650
+        e: { range: 24, indicator: "line" }, // 725
+        r: { range: 18, indicator: "circle", radius: 3 }, // 550
+    },
+    taric: {
+        q: { range: 11, indicator: "self", radius: 11 }, // 325
+        w: { range: 27, indicator: "self" }, // 800
+        e: { range: 20, indicator: "line" }, // 610
+        r: { range: 13, indicator: "self", radius: 13 }, // 400
+    },
+    teemo: {
+        q: { range: 23, indicator: "self" }, // 680
+        w: { range: 1, indicator: "self" }, // 20
+        e: { range: 23, indicator: "line" }, // 680
+        r: { range: 30, indicator: "circle", radius: 3 }, // 900
+    },
+    thresh: {
+        q: { range: 36, indicator: "line" }, // 1075
+        w: { range: 32, indicator: "self" }, // 950
+        e: { range: 17, indicator: "line" }, // 500
+        r: { range: 15, indicator: "line" }, // 450
+    },
+    tristana: {
+        q: { range: 1, indicator: "self" }, // 20
+        w: { range: 30, indicator: "line" }, // 900
+        e: { range: 18, indicator: "self" }, // 550
+        r: { range: 18, indicator: "line" }, // 550
+    },
+    trundle: {
+        q: { range: 10, indicator: "line" }, // 300
+        w: { range: 25, indicator: "circle", radius: 3 }, // 750
+        e: { range: 33, indicator: "circle", radius: 3 }, // 1000
+        r: { range: 22, indicator: "line" }, // 650
+    },
+    tryndamere: {
+        q: { range: 13, indicator: "line" }, // 400
+        w: { range: 28, indicator: "line" }, // 850
+        e: { range: 22, indicator: "self" }, // 650
+        r: { range: 13, indicator: "line" }, // 400
+    },
+    twistedfate: {
+        q: { range: 200, indicator: "line" }, // 10000
+        w: { range: 7, indicator: "line" }, // 200
+        e: { range: 0, indicator: "self" }, // self-cast
+        r: { range: 183, indicator: "circle", radius: 3 }, // 5500
+    },
+    twitch: {
+        q: { range: 1, indicator: "self" }, // 20
+        w: { range: 32, indicator: "circle", radius: 3 }, // 950
+        e: { range: 40, indicator: "line" }, // 1200
+        r: { range: 40, indicator: "line" }, // 1200
+    },
+    udyr: {
+        q: { range: 20, indicator: "line" }, // 600
+        w: { range: 0, indicator: "self" }, // self-cast
+        e: { range: 20, indicator: "line" }, // 600
+        r: { range: 12, indicator: "self", radius: 12 }, // 370
+    },
+    urgot: {
+        q: { range: 27, indicator: "line" }, // 800
+        w: { range: 16, indicator: "self", radius: 16 }, // 490
+        e: { range: 16, indicator: "self" }, // 475
+        r: { range: 83, indicator: "line" }, // 2500
+    },
+    varus: {
+        q: { range: 31, indicator: "line" }, // 925
+        w: { range: 25, indicator: "line" }, // 750
+        e: { range: 31, indicator: "line" }, // 925
+        r: { range: 43, indicator: "line" }, // 1300
+    },
+    vayne: {
+        q: { range: 10, indicator: "circle", radius: 3 }, // 300
+        w: { range: 25, indicator: "line" }, // 750
+        e: { range: 18, indicator: "line" }, // 550
+        r: { range: 0, indicator: "self" }, // self-cast
+    },
+    veigar: {
+        q: { range: 33, indicator: "line" }, // 1000
+        w: { range: 32, indicator: "circle", radius: 3 }, // 950
+        e: { range: 24, indicator: "line" }, // 725
+        r: { range: 22, indicator: "self" }, // 650
+    },
+    velkoz: {
+        q: { range: 35, indicator: "line" }, // 1050
+        w: { range: 35, indicator: "line" }, // 1050
+        e: { range: 27, indicator: "circle", radius: 3 }, // 810
+        r: { range: 53, indicator: "line" }, // 1575
+    },
+    vex: {
+        q: { range: 40, indicator: "line" }, // 1200
+        w: { range: 16, indicator: "self", radius: 16 }, // 475
+        e: { range: 27, indicator: "circle", radius: 3 }, // 800
+        r: { range: 100, indicator: "line" }, // 3000
+    },
+    vi: {
+        q: { range: 8, indicator: "line" }, // 250
+        w: { range: 25, indicator: "line" }, // 750
+        e: { range: 13, indicator: "line" }, // 400
+        r: { range: 27, indicator: "circle", radius: 3 }, // 800
+    },
+    viego: {
+        q: { range: 20, indicator: "line" }, // 600
+        w: { range: 13, indicator: "line" }, // 400
+        e: { range: 25, indicator: "line" }, // 750
+        r: { range: 17, indicator: "self", radius: 17 }, // 500
+    },
+    viktor: {
+        q: { range: 20, indicator: "self" }, // 600
+        w: { range: 27, indicator: "circle", radius: 3 }, // 800
+        e: { range: 18, indicator: "line" }, // 525
+        r: { range: 23, indicator: "self" }, // 700
+    },
+    vladimir: {
+        q: { range: 20, indicator: "self" }, // 600
+        w: { range: 12, indicator: "self" }, // 350
+        e: { range: 20, indicator: "circle", radius: 3 }, // 600
+        r: { range: 21, indicator: "circle", radius: 3 }, // 625
+    },
+    volibear: {
+        q: { range: 10, indicator: "line" }, // 300
+        w: { range: 11, indicator: "line" }, // 325
+        e: { range: 40, indicator: "circle", radius: 3 }, // 1200
+        r: { range: 18, indicator: "circle", radius: 3 }, // 550
+    },
+    warwick: {
+        q: { range: 12, indicator: "line" }, // 365
+        w: { range: 133, indicator: "line" }, // 4000
+        e: { range: 13, indicator: "self", radius: 13 }, // 375
+        r: { range: 200, indicator: "self" }, // global
+    },
+    xayah: {
+        q: { range: 13, indicator: "line" }, // 400
+        w: { range: 33, indicator: "circle", radius: 3 }, // 1000
+        e: { range: 67, indicator: "line" }, // 2000
+        r: { range: 15, indicator: "cone", radius: 0.5 }, // 450
+    },
+    xerath: {
+        q: { range: 25, indicator: "line" }, // 750
+        w: { range: 33, indicator: "circle", radius: 3 }, // 1000
+        e: { range: 35, indicator: "line" }, // 1050
+        r: { range: 167, indicator: "line" }, // 5000
+    },
+    xinzhao: {
+        q: { range: 13, indicator: "line" }, // 375
+        w: { range: 33, indicator: "line" }, // 1000
+        e: { range: 22, indicator: "circle", radius: 3 }, // 650
+        r: { range: 17, indicator: "self", radius: 17 }, // 500
+    },
+    yone: {
+        q: { range: 15, indicator: "circle", radius: 3 }, // 450
+        w: { range: 23, indicator: "cone", radius: 0.5 }, // 700
+        e: { range: 200, indicator: "self" }, // global
+        r: { range: 33, indicator: "line" }, // 1000
+    },
+    yorick: {
+        q: { range: 0, indicator: "self" }, // self-cast
+        w: { range: 20, indicator: "wall", radius: 5 }, // 600
+        e: { range: 23, indicator: "self" }, // 700
+        r: { range: 20, indicator: "self" }, // 600
+    },
+    yunara: {
+        q: { range: 0, indicator: "self" }, // self-cast
+        w: { range: 38, indicator: "line" }, // 1150
+        e: { range: 0, indicator: "self" }, // self-cast
+        r: { range: 0, indicator: "self" }, // self-cast
+    },
+    yuumi: {
+        q: { range: 200, indicator: "line", radius: 4 }, // global
+        w: { range: 200, indicator: "line", radius: 4 }, // global
+        e: { range: 17, indicator: "self" }, // 500
+        r: { range: 37, indicator: "line" }, // 1100
+    },
+    zaahen: {
+        q: { range: 200, indicator: "line", radius: 4 }, // global
+        w: { range: 28, indicator: "line" }, // 850
+        e: { range: 200, indicator: "line", radius: 4 }, // global
+        r: { range: 20, indicator: "line" }, // 600
+    },
+    zac: {
+        q: { range: 27, indicator: "line" }, // 800
+        w: { range: 12, indicator: "self", radius: 12 }, // 350
+        e: { range: 10, indicator: "circle", radius: 3 }, // 300
+        r: { range: 10, indicator: "line" }, // 300
+    },
+    zed: {
+        q: { range: 30, indicator: "line" }, // 900
+        w: { range: 22, indicator: "circle", radius: 3 }, // 650
+        e: { range: 10, indicator: "self", radius: 10 }, // 290
+        r: { range: 21, indicator: "self" }, // 625
+    },
+    zeri: {
+        q: { range: 23, indicator: "line" }, // 700
+        w: { range: 38, indicator: "wall", radius: 5 }, // 1150
+        e: { range: 200, indicator: "line", radius: 4 }, // global
+        r: { range: 27, indicator: "line" }, // 800
+    },
+    ziggs: {
+        q: { range: 28, indicator: "line" }, // 850
+        w: { range: 33, indicator: "line" }, // 1000
+        e: { range: 30, indicator: "line" }, // 900
+        r: { range: 167, indicator: "circle", radius: 3 }, // 5000
+    },
+    zilean: {
+        q: { range: 30, indicator: "circle", radius: 3 }, // 900
+        w: { range: 20, indicator: "line" }, // 600
+        e: { range: 18, indicator: "self" }, // 550
+        r: { range: 30, indicator: "self" }, // 900
+    },
+    zoe: {
+        q: { range: 27, indicator: "line" }, // 800
+        w: { range: 200, indicator: "line" }, // 6000
+        e: { range: 27, indicator: "line" }, // 800
+        r: { range: 19, indicator: "line" }, // 575
+    },
+    zyra: {
+        q: { range: 27, indicator: "line" }, // 800
+        w: { range: 28, indicator: "circle", radius: 3 }, // 850
+        e: { range: 37, indicator: "circle", radius: 3 }, // 1100
+        r: { range: 23, indicator: "circle", radius: 3 }, // 700
+    },
 };
 
 /** item id -> loot/world image id, for the HUD */

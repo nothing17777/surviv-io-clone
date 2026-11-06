@@ -4483,6 +4483,20 @@ champShot("yasuo_q3", {
 });
 champShot("runaan", { damage: 10, speed: 110, distance: 40, homing: true, tracerColor: "cw_arrow" });
 
+// champions without a hand-written kit cast these instead, so every champion's abilities still
+// throw something visible: a bolt on Q, a heavier one on R (see Champion.genericAbilities)
+champShot("generic_q", { damage: 45, speed: 100, distance: 55, tracerColor: "cw_magic", tracerWidth: 0.3 });
+champShot("generic_r", {
+    damage: 95,
+    speed: 85,
+    distance: 70,
+    tracerColor: "cw_magic",
+    tracerWidth: 0.55,
+    tracerLength: 2,
+    playerPierce: true,
+    pierceLoss: 0.15,
+});
+
 // Jinx's Fishbones: rockets that splash, drawn as her basic weapon
 const ChampionAbilityDefs: Record<string, GunDef> = Object.fromEntries([(() => {
     const [defId, def] = kitGun("kit_jinx_fishbones", "barrett", {

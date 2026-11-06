@@ -176,3 +176,42 @@ test("every champion's index round-trips through the player object data", () => 
         expect(out.championIndex, id).toBe(index);
     }
 });
+
+// a champion whose ability fires nothing the player can see reads as broken in game, which is what
+// the generic kit used to do: Q only set a hidden buff and R was an invisible delayed hit
+test("every champion's abilities do something the player can see", () => {
+    const silent: string[] = [];
+    for (const id of ChampionIds) {
+        for (let i = 0; i < 4; i++) {
+            // close enough that a melee champion's abilities reach, far enough to still aim
+            const { game, me, enemy } = setup(id, v2.create(3, 0));
+            const bullets = game.bulletBarn.newBullets.length;
+            const health = enemy.health;
+            const shield = me.shield;
+            const weapon = me.weapons[GameConfig.WeaponSlot.Primary].type;
+            const pull = me.webPull;
+            const enemyPull = enemy.webPull;
+            const placed = me.champ!.zones.length + me.champ!.traps.length;
+            me.champ!.cast(i);
+            // a dash is read before the steps below, because it is over well inside them
+            const moved = me.webPull !== pull || enemy.webPull !== enemyPull;
+            // a wind wall or a chomper counts from the moment it is laid, before it burns down
+            const laid = me.champ!.zones.length + me.champ!.traps.length > placed;
+            // 2 s, so an ability that lands on a delay (Caitlyn's and Lux's ultimates) still counts
+            steps(game, 40);
+            const fired = game.bulletBarn.newBullets.length > bullets;
+            const hurt = enemy.health < health;
+            const shielded = me.shield > shield;
+            const swapped = me.weapons[GameConfig.WeaponSlot.Primary].type !== weapon;
+            const buffed = me.champ!.nextAttackBonus > 0 || Object.keys(me.champ!.buffs).length > 0;
+            if (!fired && !hurt && !shielded && !moved && !swapped && !buffed && !laid) {
+                silent.push(`${id} ${"qwer"[i]}`);
+            }
+        }
+    }
+    // Last Breath only casts on a target his own knock-up has put in the air, which nothing here
+    // stands in for. Sweeping Blade is a separate pre-existing problem: it finds its target and
+    // still leaves no dash behind, so it is pinned here rather than quietly passing
+    expect(silent, `abilities with no visible effect: ${silent.join(", ")}`)
+        .toEqual(["yasuo e", "yasuo r"]);
+});

@@ -2,6 +2,7 @@ import {
     type AbilityKey,
     AbilityRanges,
     ChampionDefs,
+    ChampionIds,
     championIndex,
     type ItemDef,
     ItemDefs,
@@ -14,6 +15,19 @@ import type { DamageParams } from "./objects/gameObject.ts";
 import type { Player } from "./objects/player.ts";
 
 export const AbilityKeys: AbilityKey[] = ["q", "w", "e", "r"];
+/** champions with a hand-written kit below; every other champion gets Champion.genericAbilities() */
+const HandWrittenChampionIds = new Set([
+    "jinx",
+    "caitlyn",
+    "ashe",
+    "ezreal",
+    "lux",
+    "ahri",
+    "yasuo",
+    "garen",
+    "darius",
+    "masteryi",
+]);
 /** Jinx's chompers fly at bullet_champ_jinx_e's speed */
 const ChomperSpeed = 50;
 /** what a cast sends to clients (for its sound and flash): 0-3 Q-R, 4 item active, 5 passive */
@@ -323,9 +337,56 @@ export class Champion {
         p.setDirty();
     }
 
+    /**
+     * champions without a hand-written kit above. Ranged champions throw a bolt on Q and a heavy
+     * piercing one on R; melee champions strike in front of them instead, so neither ends up with
+     * an ability that fires nothing the player can see. W shields, E dashes for both.
+     */
+    genericAbilities(): Partial<Record<AbilityKey, () => boolean | void>> {
+        // `this.def` is still unset while the abilities record is being built, so the champion is
+        // only looked at once an ability actually casts
+        return {
+            q: () => {
+                this.nextAttackBonus = Math.max(this.nextAttackBonus, 0.5);
+                if (this.def.gun) {
+                    this.shoot("generic_q", "q");
+                    return;
+                }
+                // a melee champion sweeps everyone in front of them instead of throwing a bolt
+                const at = this.cursor(7);
+                for (const e of this.enemies(5, at)) this.hit(e, this.def.basic.damage * 1.2, "q");
+            },
+            w: () => {
+                this.addShield(this.def.health * 0.3);
+            },
+            e: () => {
+                const to = this.at("e");
+                this.dash(to, 40);
+                const target = this.nearest(6, to);
+                if (target) this.hit(target, this.def.basic.damage * 1.5, "e");
+            },
+            r: () => {
+                if (this.def.gun) {
+                    this.shoot("generic_r", "r");
+                    return;
+                }
+                // a self-cast or short ranged R has a reach of almost nothing, so a melee
+                // champion's finisher always has at least a lunge's worth of it
+                const target = this.nearest(Math.max(this.reach("r"), 10));
+                if (!target) return false;
+                this.later(0.3, () => {
+                    if (!target.dead) this.hit(target, this.def.basic.damage * 3.5, "r", true);
+                });
+            },
+        };
+    }
+
     // ---- abilities, by champion: return false to not cast (no target)
 
     abilities: Record<string, Partial<Record<AbilityKey, () => boolean | void>>> = {
+        ...Object.fromEntries(
+            ChampionIds.filter((id) => !HandWrittenChampionIds.has(id)).map((id) => [id, this.genericAbilities()]),
+        ),
         jinx: {
             q: () => {
                 // Switcheroo!: Pow-Pow <-> Fishbones
