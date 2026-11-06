@@ -3,6 +3,7 @@ import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
 import {
     isKitItem,
     KitDefs,
+    SentryCharge,
     SpiderDodgeTime,
     WolverineDashDistance,
 } from "../../../shared/defs/gameObjects/kitDefs.ts";
@@ -818,6 +819,8 @@ export class WeaponManager {
         this.scheduledReload = weapon.ammo <= 1;
 
         if (weapon.ammo <= 0) return;
+        // Wolverine's Claw Combo needs a marked enemy; without one nothing is used and no cooldown starts
+        if (this.activeWeapon === "kit_wolverine_combo" && !this.player.canStartClawCombo()) return;
         // only one Judge rocket in the air at a time
         if (this.activeWeapon === "pg_judge") {
             const live = this.player.activeJudgeRocket;
@@ -867,6 +870,8 @@ export class WeaponManager {
         }
         // Green Goblin's Golden Upgrade: the sub drones come out and he runs faster for its duration
         if (this.activeWeapon === "kit_goblin_upgrade") this.player.startGoblinUpgrade();
+        // Wolverine's Claw Combo: he vanishes while ten claws chain his mark around
+        if (this.activeWeapon === "kit_wolverine_combo") this.player.startClawCombo();
         // Wolverine's dash: he slides 16 tiles alongside his streak (walls still stop him)
         if (this.activeWeapon === "kit_wolverine_dash") {
             const bullet = GameObjectDefs.typeToDef(itemDef.bulletType, "bullet");
@@ -875,6 +880,27 @@ export class WeaponManager {
                 speed: bullet.speed,
                 time: WolverineDashDistance / bullet.speed + 0.1,
             };
+        }
+
+        // Sentry Charge: a 30 tile dash at Ahri's dash speed, flying for 2 s; it heals him whether or not it hits.
+        // His body hits and drags along whoever he runs through for as long as the dash lasts
+        if (this.activeWeapon === "kit_sentry_charge") {
+            const dashTime = SentryCharge.distance / SentryCharge.speed + 0.1;
+            this.player.webPull = {
+                target: v2.add(this.player.pos, v2.mul(this.player.dir, SentryCharge.distance)),
+                speed: SentryCharge.speed,
+                time: dashTime,
+            };
+            this.player.startSentryDash(this.player.dir, dashTime);
+            this.player.startFlight(
+                { duration: SentryCharge.flight, untargetable: 0, waveAt: 0, speedBonus: 0 },
+                this.activeWeapon,
+            );
+            this.player.health = Math.min(
+                this.player.health + this.player.maxHealth * SentryCharge.healPercent,
+                this.player.maxHealth,
+            );
+            this.player.setDirty();
         }
 
         const collisionLayer = util.toGroundLayer(this.player.layer);

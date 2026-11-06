@@ -1,6 +1,6 @@
 import { expect, test, vi } from "vitest";
 import { BulletDefs } from "../../shared/defs/gameObjects/bulletDefs.ts";
-import { dronePos, KitDefs, UltronMinion } from "../../shared/defs/gameObjects/kitDefs.ts";
+import { dronePos, kitBuild, KitDefs, SentryCharge, UltronMinion } from "../../shared/defs/gameObjects/kitDefs.ts";
 import { GameObjectDefs } from "../../shared/defs/register.ts";
 import { GameConfig, TeamMode } from "../../shared/gameConfig.ts";
 import * as net from "../../shared/net/net.ts";
@@ -916,4 +916,237 @@ test("Green Goblin: a fresh kit starts with the drone on his right and no upgrad
     expect(me.kitEnhanceTime).toBe(0);
     expect(me.droneAngle).toBe(0);
     expect(me.droneHits.size).toBe(0);
+});
+
+test("Sentry: 2369 hp, yellow outfit, Sentry Charge in slot 1", () => {
+    const { me } = setup("sentry");
+    // (300 + Heal's 812) x 2.13: the Artifact's, Liberation's and Jeff's +44%, +25% and +44% are added together
+    expect(me.maxHealth).toBe(2369);
+    expect(me.health).toBe(2369);
+    expect(me.outfit).toBe("outfitKitSentry");
+    expect(me.weapons[Slot.Primary].type).toBe("kit_sentry_charge");
+    // his own 45% plus Liberation's 20%, added together
+    expect(KitDefs.sentry.damageReduction).toBeCloseTo(0.65, 5);
+    expect("kit_sentry_charge".length).toBeLessThanOrEqual(32);
+    expect("sentry".length).toBeLessThanOrEqual(16);
+});
+
+test("Sentry: takes 65% less damage", () => {
+    const { me } = setup("sentry", v2.create(200, 0));
+    // bleeding skips armor, so only the passive is left
+    me.damage({ amount: 100, damageType: GameConfig.DamageType.Bleeding, dir: v2.create(1, 0) });
+    expect(me.health).toBeCloseTo(2369 - 35, 1);
+});
+
+test("Sentry: items add flat health first, then the multipliers are summed, +3 speed, +44% damage", () => {
+    expect(kitBuild(300, ["sentry_heal"]).health).toBe(1112);
+    expect(kitBuild(300, ["sentry_artifact"]).health).toBe(432);
+    // two +44% multipliers make x1.88, not x2.07
+    expect(kitBuild(100, ["sentry_artifact", "sentry_artifact"]).health).toBe(188);
+    expect(kitBuild(100, ["sentry_artifact", "sentry_artifact"]).damageMult).toBeCloseTo(1.88, 5);
+    expect(KitDefs.sentry.items).toEqual(["sentry_heal", "sentry_artifact", "sentry_liberation", "sentry_jeff"]);
+    expect(kitBuild(300, KitDefs.sentry.items!).health).toBe(2369);
+    // +44% and +89% damage, added together
+    expect(KitDefs.sentry.damageMult).toBeCloseTo(2.33, 5);
+    expect(KitDefs.sentry.armorIgnore).toBeCloseTo(0.1, 5);
+    expect(KitDefs.sentry.speedBonus).toBe(3);
+    const { me, enemy } = setup("sentry", v2.create(200, 0));
+    enemy.maxHealth = 1000;
+    enemy.health = 1000;
+    enemy.damage({
+        amount: 100,
+        damageType: GameConfig.DamageType.Player,
+        dir: v2.create(1, 0),
+        source: me,
+        gameSourceType: "fists",
+    });
+    expect(1000 - enemy.health).toBeCloseTo(233, 1);
+});
+
+test("Sentry items: Liberation and Jeff stack with the others, and Jeff ignores 10% of enemy damage reduction", () => {
+    const build = kitBuild(300, ["sentry_heal", "sentry_artifact", "sentry_liberation", "sentry_jeff"]);
+    expect(build.health).toBe(2369);
+    expect(build.damageReduction).toBeCloseTo(0.2, 5);
+    const { me, enemy } = setup("sentry", v2.create(200, 0));
+    enemy.maxHealth = 1000;
+    enemy.health = 1000;
+    enemy.chest = "chest03";
+    enemy.helmet = "";
+    const vest = GameObjectDefs.typeToDef("chest03", "chest").damageReduction;
+    const hit = (armorPenetration?: number) => {
+        enemy.health = 1000;
+        enemy.damage({
+            amount: 100,
+            damageType: GameConfig.DamageType.Player,
+            dir: v2.create(1, 0),
+            source: me,
+            gameSourceType: "fists",
+            armorPenetration,
+        });
+        return 1000 - enemy.health;
+    };
+    // x2.33 damage, and the vest only counts for 90% of what it would
+    expect(hit()).toBeCloseTo(233 * (1 - vest * 0.9), 1);
+    // like Sentry Charge's 20% armor penetration, which ignores 80%: Jeff makes that 90%
+    expect(hit(0.2)).toBeCloseTo(233 * (1 - vest * 0.1), 1);
+    // someone without the items gets the plain numbers
+    const { me: plain, enemy: other } = setup("default", v2.create(200, 0));
+    other.maxHealth = 1000;
+    other.health = 1000;
+    other.chest = "chest03";
+    other.helmet = "";
+    other.damage({
+        amount: 100,
+        damageType: GameConfig.DamageType.Player,
+        dir: v2.create(1, 0),
+        source: plain,
+        gameSourceType: "fists",
+    });
+    expect(1000 - other.health).toBeCloseTo(100 * (1 - vest), 1);
+});
+
+test("Sentry: survives a killing hit once per game, at full health", () => {
+    const { me } = setup("sentry", v2.create(200, 0));
+    me.damage({ amount: 20000, damageType: GameConfig.DamageType.Bleeding, dir: v2.create(1, 0) });
+    expect(me.dead).toBe(false);
+    expect(me.health).toBe(2369);
+    me.damage({ amount: 20000, damageType: GameConfig.DamageType.Bleeding, dir: v2.create(1, 0) });
+    expect(me.dead).toBe(true);
+});
+
+test("Sentry: removes a debuff, then waits 4 s before removing another", () => {
+    const { game, me } = setup("sentry", v2.create(200, 0));
+    me.applyBurn(30);
+    game.step(0.1);
+    expect(me.burning).toBe(false);
+    me.applyBurn(30);
+    // 3 s later it is still on him
+    for (let i = 0; i < 30; i++) game.step(0.1);
+    expect(me.burning).toBe(true);
+    // the cooldown is up by 4 s
+    for (let i = 0; i < 15; i++) game.step(0.1);
+    expect(me.burning).toBe(false);
+});
+
+test("Sentry Charge: dashes 30 tiles, hits for 120, heals 30% of max hp, flies 2 s, 3 s cooldown", () => {
+    const { game, me, enemy } = setup("sentry", v2.create(4, 0));
+    enemy.maxHealth = 1000;
+    enemy.health = 1000;
+    // 3000 less 65% is 1050 off his 2369, so there is room for the whole heal
+    me.damage({ amount: 3000, damageType: GameConfig.DamageType.Bleeding, dir: v2.create(1, 0) });
+    const hurt = me.health;
+    const start = v2.copy(me.pos);
+    use(game, me, Slot.Primary, 1);
+    expect(me.flying).toBe(true);
+    for (let i = 0; i < 10; i++) game.step(0.1);
+    const moved = v2.length(v2.sub(me.pos, start));
+    expect(moved).toBeGreaterThan(26);
+    expect(moved).toBeLessThan(32);
+    // 120 once (not once per tick it overlaps), with no armor on him
+    expect(1000 - enemy.health).toBeGreaterThanOrEqual(279);
+    expect(1000 - enemy.health).toBeLessThan(559);
+    // the heal is 30% of his max hp (711), once per cast
+    expect(me.health - hurt).toBeGreaterThanOrEqual(705);
+    expect(me.health - hurt).toBeLessThanOrEqual(716);
+    expect(enemy.burning).toBe(true);
+    expect(enemy.bleeding).toBe(true);
+    expect(enemy.stunned).toBe(true);
+    for (let i = 0; i < 15; i++) game.step(0.1);
+    expect(me.flying).toBe(false);
+    // cooldown shows while it runs
+    expect(me.abilityCooldowns[Slot.Primary]).toBeGreaterThan(0);
+});
+
+test("Sentry Charge: a stunned enemy can't move or act for 3 s, and loses perks for 5 s", () => {
+    const { game, me, enemy } = setup("sentry", v2.create(4, 0));
+    enemy.maxHealth = 1000;
+    enemy.health = 1000;
+    enemy.addPerk("steelskin");
+    use(game, me, Slot.Primary, 1);
+    for (let i = 0; i < 5; i++) game.step(0.1);
+    expect(enemy.stunned).toBe(true);
+    expect(enemy.hasPerk("steelskin")).toBe(false);
+    const at = v2.copy(enemy.pos);
+    enemy.moveRight = true;
+    for (let i = 0; i < 10; i++) game.step(0.1);
+    expect(v2.length(v2.sub(enemy.pos, at))).toBeLessThan(0.01);
+    // 3 s stun is over, 5 s perk loss is not
+    for (let i = 0; i < 25; i++) game.step(0.1);
+    expect(enemy.stunned).toBe(false);
+    expect(enemy.hasPerk("steelskin")).toBe(false);
+    for (let i = 0; i < 25; i++) game.step(0.1);
+    expect(enemy.hasPerk("steelskin")).toBe(true);
+});
+
+test("Sentry Charge: reaches a dodging (untargetable) enemy and ignores 80% of armor", () => {
+    const { game, me, enemy } = setup("sentry", v2.create(4, 0));
+    enemy.maxHealth = 1000;
+    enemy.health = 1000;
+    enemy.dodgeTime = 5;
+    expect(enemy.untargetable).toBe(true);
+    use(game, me, Slot.Primary, 1);
+    for (let i = 0; i < 5; i++) game.step(0.1);
+    expect(enemy.health).toBeLessThan(1000);
+    const def = BulletDefs.bullet_kit_sentry_charge;
+    expect(def.hitsFlying).toBe(true);
+    expect(def.armorPenetration).toBe(0.2);
+    expect(def.hitRadius).toBeGreaterThan(1);
+});
+
+test("Sentry Charge: 3 s cooldown", () => {
+    const { game, me } = setup("sentry", v2.create(200, 0));
+    expect(SentryCharge.cooldown).toBe(3);
+    use(game, me, Slot.Primary, 1);
+    expect(me.abilityCooldowns[Slot.Primary]).toBeGreaterThan(2);
+    expect(me.abilityCooldowns[Slot.Primary]).toBeLessThanOrEqual(3);
+    for (let i = 0; i < 31; i++) game.step(0.1);
+    expect(me.abilityCooldowns[Slot.Primary]).toBe(0);
+});
+
+test("Sentry Charge: his body hits too, and an enemy off to the side of the crescent's path still gets caught", () => {
+    expect(SentryCharge.hitRadius).toBeGreaterThan(10.5);
+    expect(SentryCharge.bodyRadius).toBeGreaterThan(1);
+    const { game, me, enemy } = setup("sentry", v2.create(4, 0));
+    enemy.maxHealth = 1000;
+    enemy.health = 1000;
+    use(game, me, Slot.Primary, 1);
+    for (let i = 0; i < 5; i++) game.step(0.1);
+    // hit once, not once from the crescent and once from his body
+    expect(1000 - enemy.health).toBeGreaterThanOrEqual(30);
+    expect(1000 - enemy.health).toBeLessThan(559);
+    expect(me.sentryDashHit.has(enemy.__id)).toBe(true);
+});
+
+test("Sentry Charge: stuns whoever it hits and drags them along the dash", () => {
+    const { game, me, enemy } = setup("sentry", v2.create(4, 0));
+    enemy.maxHealth = 1000;
+    enemy.health = 1000;
+    const start = v2.copy(enemy.pos);
+    use(game, me, Slot.Primary, 1);
+    for (let i = 0; i < 4; i++) game.step(0.1);
+    expect(enemy.stunned).toBe(true);
+    // carried well past where he stood, right in front of the Sentry
+    expect(v2.length(v2.sub(enemy.pos, start))).toBeGreaterThan(15);
+    expect(v2.distance(enemy.pos, me.pos)).toBeLessThan(6);
+    // the drag ends with the dash: still stunned, but no longer moving
+    for (let i = 0; i < 5; i++) game.step(0.1);
+    const at = v2.copy(enemy.pos);
+    game.step(0.1);
+    expect(enemy.stunned).toBe(true);
+    expect(v2.length(v2.sub(enemy.pos, at))).toBeLessThan(0.01);
+});
+
+test("Sentry Charge: heals 30% of max hp even when it hits nothing, and never past full", () => {
+    const { game, me } = setup("sentry", v2.create(200, 0));
+    me.damage({ amount: 3000, damageType: GameConfig.DamageType.Bleeding, dir: v2.create(1, 0) });
+    const hurt = me.health;
+    use(game, me, Slot.Primary, 1);
+    expect(me.health - hurt).toBeGreaterThanOrEqual(705);
+    expect(me.health - hurt).toBeLessThanOrEqual(716);
+    // a nearly full Sentry only gets what is missing
+    me.health = me.maxHealth - 10;
+    me.weapons[Slot.Primary].cooldown = 0;
+    use(game, me, Slot.Primary, 1);
+    expect(me.health).toBeLessThanOrEqual(me.maxHealth);
+    expect(me.health).toBeGreaterThan(me.maxHealth - 10);
 });

@@ -15,6 +15,7 @@ import {
     goodPerks,
     isHackerLevel,
     type PrivateBot,
+    TrainingDummyHealth,
     type VsBots,
 } from "../../../shared/types/api.ts";
 import { collider } from "../../../shared/utils/collider.ts";
@@ -72,6 +73,23 @@ const SwingDelay: Partial<Record<BotLevel, [number, number]>> = {
 };
 
 const Skills: Record<BotLevel, BotSkill> = {
+    /** the training dummy never thinks or acts (see BotBrain.update), so none of these matter */
+    dummy: {
+        accuracy: 0,
+        dodge: 0,
+        reaction: 0,
+        lead: false,
+        turnRate: 0,
+        burst: [0, 1000],
+        noSpread: false,
+        spin: false,
+        quickSwitch: false,
+        strafeTime: [1000, 1000],
+        throwEvery: [1000, 1000],
+        cook: 0,
+        throwError: 0,
+        panBlock: 0,
+    },
     beginner: {
         accuracy: 0.35,
         dodge: 0.2,
@@ -483,6 +501,9 @@ export class BotBrain {
             player.roleSelect(roles[util.randomInt(0, roles.length - 1)]);
             return;
         }
+
+        // the training dummy stands where it spawned and does nothing
+        if (this.level === "dummy") return;
 
         this._dodgeClearTicker -= dt;
         if (this._dodgeClearTicker <= 0) {
@@ -1799,6 +1820,15 @@ const HackerSpinRate = 45;
 /** the hacker gets the same perks as "All good perks" in a kit */
 const HackerPerks = goodPerks;
 
+/** no gear, no perks, fists, and TrainingDummyHealth hp so damage tests don't end in one fight */
+function setupDummy(player: Player) {
+    player.emptyInventory();
+    for (let i = player.perks.length - 1; i >= 0; i--) player.removePerk(player.perks[i].type);
+    player.maxHealth = TrainingDummyHealth;
+    player.health = TrainingDummyHealth;
+    player.setDirty();
+}
+
 /**
  * Spawns a bot straight into the game, through the same path a joining client takes.
  * `side` is the private match side; bots on a side join that side's group.
@@ -1813,9 +1843,12 @@ export function addBot(game: Game, level: BotLevel, side?: number, minion = fals
         ? `austrian painter${hackers ? ` ${hackers + 1}` : ""}`
         : level === "super_hacker"
         ? "dev_nothing"
+        : level === "dummy"
+        ? "Training Dummy"
         : randomBotName();
     const star = game.config.privateMatch?.filmStar;
-    if (star && side === 0 && level !== "hacker" && !game.playerBarn.players.some((p) => p.name === star)) {
+    const starTaken = game.playerBarn.players.some((p) => p.name === star);
+    if (star && side === 0 && level !== "hacker" && level !== "dummy" && !starTaken) {
         joinMsg.name = star;
     }
     joinMsg.bot = false;
@@ -1830,6 +1863,12 @@ export function addBot(game: Game, level: BotLevel, side?: number, minion = fals
         bot: true,
     });
     client.player = player;
+    // the training dummy: bare, unarmed and tough, whatever the match hands out
+    if (level === "dummy") {
+        setupDummy(player);
+        player.botBrain = new BotBrain(player, level);
+        return player;
+    }
     // Ultron minions get set up by their summoner instead
     if (minion) {
         // minions always hunt their summoner's enemies down

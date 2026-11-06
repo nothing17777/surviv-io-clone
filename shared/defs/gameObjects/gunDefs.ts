@@ -6,6 +6,7 @@ import { ChampionDefs, championSound } from "./championDefs.ts";
 import { CustomGuns, CustomWeaponsVersion } from "./customWeaponDefs.ts";
 import { BaseGunLengths, GunEffects, GunOverrides, HiddenCustomGuns, SwingShotBullets } from "./customWeaponEffects.ts";
 import type { BaseWeaponDef } from "./itemTypes.ts";
+import { SentryCharge, WolverineCombo } from "./kitDefs.ts";
 
 export interface GunDef extends BaseWeaponDef {
     type: "gun";
@@ -118,7 +119,7 @@ export interface GunDef extends BaseWeaponDef {
     energyCost?: number;
     /** a kit's energy each reload costs; no reload without it */
     reloadEnergy?: number;
-    /** fired from a body-mounted gun (War Machine): no hand recoil or fire delay for the shooter */
+    /** fired from a body-mounted gun (War Machine, Wolverine's claws): no hand recoil or fire delay for the shooter */
     mounted?: boolean;
     /** multiplies the volume of this gun's shot sound (default 1) */
     shotVolume?: number;
@@ -3970,6 +3971,36 @@ kitBullet("bullet_kit_spider_auto", {
     spriteSize: 28,
 });
 
+// Wolverine's Claw Combo (see Player.updateClawCombo, which does the hitting). The claw is only the picture: damage 0,
+// it flies through everyone, as far as the dash's streak and twice as fast, and is drawn the same size
+kitBullet("bullet_kit_wolverine_claw", {
+    damage: 0,
+    speed: WolverineCombo.speed,
+    distance: WolverineCombo.distance,
+    noPlayerHit: true,
+    noDistAdj: true,
+    noTracer: true,
+    tracerColor: "cw_white",
+    tracerWidth: 0.3,
+    sprite: kitAsset("wolverine_claw"),
+    // screen px at zoom 1, the same as the dash's streak
+    spriteSize: 120,
+});
+// the same claw left where it ended: it only creeps along at 0.2 u/s, and is fired with a range of that speed
+// times how long it should stay (WolverineCombo.linger), so it goes away by itself
+kitBullet("bullet_kit_wolverine_claw_rest", {
+    damage: 0,
+    speed: WolverineCombo.clawSpeed,
+    distance: 60,
+    noPlayerHit: true,
+    noDistAdj: true,
+    noTracer: true,
+    tracerColor: "cw_white",
+    tracerWidth: 0.3,
+    sprite: kitAsset("wolverine_claw"),
+    spriteSize: 120,
+});
+
 // Green Goblin's pumpkin bomb: an orange orb that goes off on the first enemy it touches or when its 10 s are
 // up, whichever comes first, bouncing off every wall in between (the 10 s runs through the bounces). The
 // explosion does the 25 dmg and, via Player.damage, the 3 s burn; it never hurts the goblin or his team
@@ -4044,6 +4075,58 @@ const GreenGoblinGunDefs: Record<string, GunDef> = Object.fromEntries([
 ]);
 
 const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
+    // Sentry Charge: a 30 tile dash at Ahri's dash speed behind a wide crescent that does 120, burns, bleeds and
+    // stuns for 3 s, strips perks for 5 s, ignores 80% of armor and reaches flying / dodging targets. His own body
+    // hits too (see Player.updateSentryDash) and everyone hit is dragged along for the dash. It heals him 30% of his max hp on
+    // every cast, hit or miss, and he flies for 2 s (see WeaponManager); 3 s cooldown
+    kitGun("kit_sentry_charge", "barrett", {
+        damage: SentryCharge.damage,
+        speed: SentryCharge.speed,
+        distance: SentryCharge.distance,
+        falloff: 1,
+        playerPierce: true,
+        pierceLoss: 0,
+        noTracer: true,
+        tracerColor: "cw_holy",
+        tracerWidth: 0.3,
+        hitRadius: SentryCharge.hitRadius,
+        hitsFlying: true,
+        armorPenetration: SentryCharge.armorPen,
+        sprite: kitAsset("sentry_charge"),
+        // screen px across at zoom 1 (the Christmas Ultimatum tree is 80): a huge slash, about 28 tiles tall,
+        // the same as its hit width (2 x hitRadius)
+        spriteSize: 280,
+    }, {
+        name: "Sentry Charge",
+        fireMode: "single",
+        fireDelay: SentryCharge.cooldown,
+        energyCost: 0,
+        shotSpread: 0,
+        moveSpread: 0,
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
+    // Wolverine's skill 1, Claw Combo: it fires nothing itself, the combo does (see Player.startClawCombo). Using it
+    // needs a marked enemy. 10 s cooldown. Each claw plays one of the two sounds below, taking turns (shotAlt); the
+    // claws come from the target's side of the map, not his hands, so there is no recoil or casing
+    kitGun("kit_wolverine_combo", "deagle", {}, {
+        name: "Claw Combo",
+        fireMode: "single",
+        fireDelay: WolverineCombo.cooldown,
+        energyCost: 0,
+        bulletCount: 0,
+        mounted: true,
+        caseTiming: "reload",
+        sound: { shoot: "wolverine_combo_devourer", shootAlt: "wolverine_combo_murasama" },
+        shotSpread: 0,
+        moveSpread: 0,
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
     // Wolverine dash: 16 tiles forward, 50 dmg and a bleed to whoever he slashes through, 8 s cooldown.
     // The streak flies alongside him and does the damage
     kitGun("kit_wolverine_dash", "barrett", {
