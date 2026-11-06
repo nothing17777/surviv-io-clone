@@ -917,3 +917,108 @@ test("Green Goblin: a fresh kit starts with the drone on his right and no upgrad
     expect(me.droneAngle).toBe(0);
     expect(me.droneHits.size).toBe(0);
 });
+
+test("Sentry: 300 hp, yellow outfit, Sentry Charge in slot 1", () => {
+    const { me } = setup("sentry");
+    expect(me.maxHealth).toBe(300);
+    expect(me.health).toBe(300);
+    expect(me.outfit).toBe("outfitKitSentry");
+    expect(me.weapons[Slot.Primary].type).toBe("kit_sentry_charge");
+    expect(KitDefs.sentry.damageReduction).toBe(0.45);
+    expect("kit_sentry_charge".length).toBeLessThanOrEqual(32);
+    expect("sentry".length).toBeLessThanOrEqual(16);
+});
+
+test("Sentry: takes 45% less damage", () => {
+    const { me } = setup("sentry", v2.create(200, 0));
+    // bleeding skips armor, so only the passive is left
+    me.damage({ amount: 100, damageType: GameConfig.DamageType.Bleeding, dir: v2.create(1, 0) });
+    expect(me.health).toBeCloseTo(245, 1);
+});
+
+test("Sentry: survives a killing hit once per game, at full health", () => {
+    const { me } = setup("sentry", v2.create(200, 0));
+    me.damage({ amount: 5000, damageType: GameConfig.DamageType.Bleeding, dir: v2.create(1, 0) });
+    expect(me.dead).toBe(false);
+    expect(me.health).toBe(300);
+    me.damage({ amount: 5000, damageType: GameConfig.DamageType.Bleeding, dir: v2.create(1, 0) });
+    expect(me.dead).toBe(true);
+});
+
+test("Sentry: removes a debuff, then waits 6 s before removing another", () => {
+    const { game, me } = setup("sentry", v2.create(200, 0));
+    me.applyBurn(30);
+    game.step(0.1);
+    expect(me.burning).toBe(false);
+    me.applyBurn(30);
+    // 4 s later it is still on him
+    for (let i = 0; i < 40; i++) game.step(0.1);
+    expect(me.burning).toBe(true);
+    // the cooldown is up by 6 s
+    for (let i = 0; i < 25; i++) game.step(0.1);
+    expect(me.burning).toBe(false);
+});
+
+test("Sentry Charge: dashes 10 tiles, hits for 120, heals 90, flies 2 s, 4 s cooldown", () => {
+    const { game, me, enemy } = setup("sentry", v2.create(4, 0));
+    enemy.maxHealth = 1000;
+    enemy.health = 1000;
+    me.damage({ amount: 200, damageType: GameConfig.DamageType.Bleeding, dir: v2.create(1, 0) });
+    const hurt = me.health;
+    const start = v2.copy(me.pos);
+    use(game, me, Slot.Primary, 1);
+    expect(me.flying).toBe(true);
+    for (let i = 0; i < 10; i++) game.step(0.1);
+    const moved = v2.length(v2.sub(me.pos, start));
+    expect(moved).toBeGreaterThan(8);
+    expect(moved).toBeLessThan(12);
+    // 120 once (not once per tick it overlaps), with no armor on him
+    expect(1000 - enemy.health).toBeGreaterThanOrEqual(120);
+    expect(1000 - enemy.health).toBeLessThan(240);
+    // the heal is 90, once (the 9% left of his passive is on the dash's burn and bleed only)
+    expect(me.health - hurt).toBeGreaterThanOrEqual(85);
+    expect(me.health - hurt).toBeLessThanOrEqual(100);
+    expect(enemy.burning).toBe(true);
+    expect(enemy.bleeding).toBe(true);
+    expect(enemy.stunned).toBe(true);
+    for (let i = 0; i < 15; i++) game.step(0.1);
+    expect(me.flying).toBe(false);
+    // cooldown shows while it runs
+    expect(me.abilityCooldowns[Slot.Primary]).toBeGreaterThan(0);
+});
+
+test("Sentry Charge: a stunned enemy can't move or act for 3 s, and loses perks for 5 s", () => {
+    const { game, me, enemy } = setup("sentry", v2.create(4, 0));
+    enemy.maxHealth = 1000;
+    enemy.health = 1000;
+    enemy.addPerk("steelskin");
+    use(game, me, Slot.Primary, 1);
+    for (let i = 0; i < 5; i++) game.step(0.1);
+    expect(enemy.stunned).toBe(true);
+    expect(enemy.hasPerk("steelskin")).toBe(false);
+    const at = v2.copy(enemy.pos);
+    enemy.moveRight = true;
+    for (let i = 0; i < 10; i++) game.step(0.1);
+    expect(v2.length(v2.sub(enemy.pos, at))).toBeLessThan(0.01);
+    // 3 s stun is over, 5 s perk loss is not
+    for (let i = 0; i < 25; i++) game.step(0.1);
+    expect(enemy.stunned).toBe(false);
+    expect(enemy.hasPerk("steelskin")).toBe(false);
+    for (let i = 0; i < 25; i++) game.step(0.1);
+    expect(enemy.hasPerk("steelskin")).toBe(true);
+});
+
+test("Sentry Charge: reaches a dodging (untargetable) enemy and ignores 80% of armor", () => {
+    const { game, me, enemy } = setup("sentry", v2.create(4, 0));
+    enemy.maxHealth = 1000;
+    enemy.health = 1000;
+    enemy.dodgeTime = 5;
+    expect(enemy.untargetable).toBe(true);
+    use(game, me, Slot.Primary, 1);
+    for (let i = 0; i < 5; i++) game.step(0.1);
+    expect(enemy.health).toBeLessThan(1000);
+    const def = BulletDefs.bullet_kit_sentry_charge;
+    expect(def.hitsFlying).toBe(true);
+    expect(def.armorPenetration).toBe(0.2);
+    expect(def.hitRadius).toBeGreaterThan(1);
+});

@@ -6,6 +6,7 @@ import { ChampionDefs, championSound } from "./championDefs.ts";
 import { CustomGuns, CustomWeaponsVersion } from "./customWeaponDefs.ts";
 import { BaseGunLengths, GunEffects, GunOverrides, HiddenCustomGuns, SwingShotBullets } from "./customWeaponEffects.ts";
 import type { BaseWeaponDef } from "./itemTypes.ts";
+import { SentryCharge } from "./kitDefs.ts";
 
 export interface GunDef extends BaseWeaponDef {
     type: "gun";
@@ -4044,6 +4045,37 @@ const GreenGoblinGunDefs: Record<string, GunDef> = Object.fromEntries([
 ]);
 
 const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
+    // Sentry Charge: a 10 tile dash at Ahri's dash speed behind a wide crescent that does 120, burns, bleeds and
+    // stuns for 3 s, strips perks for 5 s, ignores 80% of armor and reaches flying / dodging targets. It heals
+    // him 90 and he flies for 2 s (see WeaponManager); 4 s cooldown
+    kitGun("kit_sentry_charge", "barrett", {
+        damage: SentryCharge.damage,
+        speed: SentryCharge.speed,
+        distance: SentryCharge.distance,
+        falloff: 1,
+        playerPierce: true,
+        pierceLoss: 0,
+        noTracer: true,
+        tracerColor: "cw_holy",
+        tracerWidth: 0.3,
+        hitRadius: SentryCharge.hitRadius,
+        hitsFlying: true,
+        armorPenetration: SentryCharge.armorPen,
+        sprite: kitAsset("sentry_charge"),
+        // screen px across at zoom 1 (the Christmas Ultimatum tree is 80): a wide slash, about 7 tiles tall
+        spriteSize: 70,
+    }, {
+        name: "Sentry Charge",
+        fireMode: "single",
+        fireDelay: SentryCharge.cooldown,
+        energyCost: 0,
+        shotSpread: 0,
+        moveSpread: 0,
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
     // Wolverine dash: 16 tiles forward, 50 dmg and a bleed to whoever he slashes through, 8 s cooldown.
     // The streak flies alongside him and does the damage
     kitGun("kit_wolverine_dash", "barrett", {

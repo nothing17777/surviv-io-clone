@@ -11,7 +11,14 @@ import {
     SCOPE_LEVELS,
 } from "../../../../shared/defs/gameObjects/gearDefs.ts";
 import type { GunDef } from "../../../../shared/defs/gameObjects/gunDefs.ts";
-import { dronePos, isKitItem, kitAura, KitDefs, UltronMinion } from "../../../../shared/defs/gameObjects/kitDefs.ts";
+import {
+    dronePos,
+    isKitItem,
+    kitAura,
+    KitDefs,
+    SentryCharge,
+    UltronMinion,
+} from "../../../../shared/defs/gameObjects/kitDefs.ts";
 import type { MeleeDef } from "../../../../shared/defs/gameObjects/meleeDefs.ts";
 import { PerkProperties } from "../../../../shared/defs/gameObjects/perkDefs.ts";
 import type { RoleDef } from "../../../../shared/defs/gameObjects/roleDefs.ts";
@@ -857,6 +864,59 @@ export class Player extends BaseGameObject {
         });
     }
     eclipseHitCount = 0;
+
+    /** Sentry Charge's stun: seconds left with no movement and no actions */
+    stunTime = 0;
+    /** the perks a Sentry Charge took away, and the seconds until they come back */
+    strippedPerks: Array<Player["_perks"][0]> = [];
+    perkStripTime = 0;
+    /** Sentry: the first hit of his charge heals him, then this is spent */
+    sentryHealReady = false;
+    /** Sentry: his once-per-game revive has gone off */
+    sentryReviveUsed = false;
+    /** Sentry: seconds until he can remove a debuff again */
+    cleanseCooldown = 0;
+
+    get stunned() {
+        return this.stunTime > 0 && !this.dead;
+    }
+
+    /** anything the Sentry's cleanse takes off him */
+    get hasDebuff() {
+        const d = this.debuffs;
+        return this.burnDuration > 0 || this.bleedDotDuration > 0 || this.poisonDuration > 0
+            || this.charmDuration > 0 || this.vulnerableTime > 0 || this.stunTime > 0
+            || this.strippedPerks.length > 0 || d.root > 0 || d.slow > 0 || d.silence > 0 || d.airborne > 0;
+    }
+
+    /** a Sentry Charge hit: burn, bleed and stun, and every perk gone for a while */
+    applySentryHit(source: Player) {
+        this.applyBurn(SentryCharge.debuff, source, "kit_sentry_charge");
+        this.applyBleed(SentryCharge.debuff, source);
+        this.stunTime = Math.max(this.stunTime, SentryCharge.debuff);
+        this.webPull = undefined;
+        this.stripPerks(SentryCharge.perkStrip);
+        this.setDirty();
+    }
+
+    stripPerks(time: number) {
+        for (const perk of [...this.perks]) {
+            this.strippedPerks.push({ ...perk });
+            this.removePerk(perk.type);
+        }
+        this.perkStripTime = Math.max(this.perkStripTime, time);
+    }
+
+    restorePerks() {
+        for (const perk of this.strippedPerks) {
+            if (!this.hasPerk(perk.type)) {
+                this.addPerk(perk.type, perk.droppable, perk.replaceOnDeath, perk.isFromRole);
+            }
+        }
+        this.strippedPerks = [];
+        this.perkStripTime = 0;
+        this.setDirty();
+    }
 
     // Judge rocket
     activeJudgeRocket?: any;
@@ -2131,6 +2191,19 @@ export class Player extends BaseGameObject {
                 if (this.vulnerableTime <= 0) this.setDirty();
             }
 
+            if (this.stunTime > 0) {
+                this.stunTime -= dt;
+                if (this.stunTime <= 0) {
+                    this.stunTime = 0;
+                    this.setDirty();
+                }
+            }
+
+            if (this.perkStripTime > 0) {
+                this.perkStripTime -= dt;
+                if (this.perkStripTime <= 0) this.restorePerks();
+            }
+
             // Power Fists: 10 shield per second while held, up to 200
             const shieldCap = this.maxShield || 200;
             if (this.weapons[this.curWeapIdx]?.type === "pg_power_fists" && this.shield < shieldCap) {
@@ -2333,6 +2406,12 @@ export class Player extends BaseGameObject {
             this.activeJudgeRocket = undefined;
         }
         if (this.activeJudgeRocket) v2.set(movement, v2.create(0, 0));
+
+        // Sentry Charge's stun: no moving, and any slide he was on stops
+        if (this.stunTime > 0) {
+            v2.set(movement, v2.create(0, 0));
+            this.webPull = undefined;
+        }
 
         // Spider-Man swinging to where his web hit
         if (this.webPull) {
@@ -2746,6 +2825,12 @@ export class Player extends BaseGameObject {
         //
         // Weapon stuff
         //
+        // stunned: no shooting, swinging, reloading or item use
+        if (this.stunTime > 0) {
+            this.shootStart = false;
+            this.shootHold = false;
+            this.cancelAction();
+        }
         this.weaponManager.update(dt);
 
         this.shotSlowdownTimer -= dt;
@@ -2880,6 +2965,10 @@ export class Player extends BaseGameObject {
             finalDamage -= finalDamage * multi;
         };
 
+        // Sentry: less damage from everything, and an armor-ignoring hit cuts that too
+        const sentryReduction = KitDefs[this.kit]?.damageReduction;
+        if (sentryReduction) reduceDamage(sentryReduction);
+
         // ignore armor for gas and bleeding damage
         if (
             params.damageType !== GameConfig.DamageType.Gas
@@ -2937,6 +3026,14 @@ export class Player extends BaseGameObject {
                 this.shield = 0;
             }
             this.shieldDirty = true;
+            this.setDirty();
+        }
+
+        // Sentry: the hit that would take him to 0 leaves him at full health instead, once per game
+        if (finalDamage > 0 && this._health - finalDamage <= 0 && KitDefs[this.kit]?.revive && !this.sentryReviveUsed) {
+            this.sentryReviveUsed = true;
+            this.health = this.maxHealth;
+            finalDamage = 0;
             this.setDirty();
         }
 
@@ -3018,6 +3115,15 @@ export class Player extends BaseGameObject {
             else if (src === "pg_aphrodite_crossbow") {
                 if (this.charmDuration <= 0) this.setDirty();
                 this.charmDuration = Math.max(this.charmDuration, 4);
+            }
+            // Sentry Charge: burn, bleed, stun and no perks for the target; the first hit heals the Sentry
+            if (src === "kit_sentry_charge") {
+                this.applySentryHit(playerSource);
+                if (playerSource.sentryHealReady && !playerSource.dead) {
+                    playerSource.sentryHealReady = false;
+                    playerSource.health = Math.min(playerSource.health + SentryCharge.heal, playerSource.maxHealth);
+                    playerSource.setDirty();
+                }
             }
             // Engineer Exoskeleton heals its user the damage it deals
             if (src === "pg_engineer_exoskeleton" && !playerSource.dead) {
@@ -5437,6 +5543,9 @@ export class Player extends BaseGameObject {
         this.droneHits.clear();
         this.droneBombTimer = 0;
         this.kitEnhanceTime = 0;
+        this.sentryReviveUsed = false;
+        this.sentryHealReady = false;
+        this.cleanseCooldown = 0;
         this.champ = ChampionDefs[kitId] ? new Champion(this, kitId) : undefined;
         // a champion's adrenaline is pinned full, so recheck the floor now it is one
         this.recalculateMinBoost();
@@ -5550,6 +5659,24 @@ export class Player extends BaseGameObject {
         if (kit.drone) this.updateDrone(dt, kit.drone);
         if (kit.daggers) this.updateDaggers(dt, kit.daggers);
         if (kit.aura) this.updateAura(dt, kit.aura);
+        if (kit.cleanse) this.updateCleanse(dt, kit.cleanse);
+    }
+
+    /** Sentry: any debuff on him comes off at once, then the next removal waits out the cooldown */
+    updateCleanse(dt: number, c: NonNullable<(typeof KitDefs)[string]["cleanse"]>) {
+        this.cleanseCooldown = Math.max(0, this.cleanseCooldown - dt);
+        if (this.cleanseCooldown > 0 || !this.hasDebuff) return;
+        this.cleanseCooldown = c.cooldown;
+        this.burnDuration = 0;
+        this.bleedDotDuration = 0;
+        this.poisonDuration = 0;
+        this.charmDuration = 0;
+        this.vulnerableTime = 0;
+        this.stunTime = 0;
+        const d = this.debuffs;
+        d.root = d.slow = d.silence = d.airborne = 0;
+        this.restorePerks();
+        this.setDirty();
     }
 
     /** Spider-Man: a web ball at the nearest enemy in range, every 1/rate seconds */

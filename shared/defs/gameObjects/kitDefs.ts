@@ -80,6 +80,12 @@ export interface KitDef {
         upgrade: { duration: number; speedBonus: number; subDrones: number; bombEvery: number };
         swapBombFuse: number;
     };
+    /** Sentry: takes this fraction less damage from everything (a hit's armor penetration cuts it too) */
+    damageReduction?: number;
+    /** Sentry: once per game, a hit that would kill him leaves him at full health instead */
+    revive?: boolean;
+    /** Sentry: any debuff on him is removed at once, then none can be removed for `cooldown` s */
+    cleanse?: { cooldown: number };
     /** Iron Man: energy pays for reloads, healing and shield */
     energy?: {
         max: number;
@@ -199,6 +205,19 @@ export const KitDefs: Record<string, KitDef> = {
             swapBombFuse: 0.5,
         },
     },
+    sentry: {
+        name: "Sentry",
+        health: 300,
+        helmet: "helmet04",
+        chest: "chest04",
+        outfit: "outfitKitSentry",
+        // skill 1 is a gun used for its cooldown and its dash (see WeaponManager); slot 3 is plain fists
+        primary: "kit_sentry_charge",
+        melee: "fists",
+        damageReduction: 0.45,
+        revive: true,
+        cleanse: { cooldown: 6 },
+    },
     summoner: {
         name: "Summoner",
         health: 150,
@@ -247,7 +266,25 @@ export const SpiderDodgeTime = 2;
 /** Wolverine's dash: how far he goes */
 export const WolverineDashDistance = 16;
 
-export const UltronMinion = { count: 4, health: 17.5, speedMult: 0.75, life: 15, explosion: "explosion_kit_minion" };
+/**
+ * Sentry Charge: dashes `distance` tiles at `speed` (Ahri's dash speed) and flies for `flight` s. Whoever it hits
+ * takes the bullet's damage, burns, bleeds and is stunned for `debuff` s and loses their perks for `perkStrip` s;
+ * the first hit of each charge heals the Sentry `heal` hp. `armorPen` multiplies the armor reduction it meets
+ */
+export const SentryCharge = {
+    distance: 10,
+    speed: 80,
+    cooldown: 4,
+    damage: 120,
+    heal: 90,
+    debuff: 3,
+    perkStrip: 5,
+    armorPen: 0.2,
+    flight: 2,
+    hitRadius: 3.5,
+};
+
+export const UltronMinion ={ count: 4, health: 17.5, speedMult: 0.75, life: 15, explosion: "explosion_kit_minion" };
 
 /** Ultron's energy blast orbs, one per colour, and the laser each one's blast fires */
 export const UltronOrbColors = ["red", "blue", "green", "yellow", "purple", "orange"] as const;

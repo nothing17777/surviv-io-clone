@@ -3,6 +3,7 @@ import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
 import {
     isKitItem,
     KitDefs,
+    SentryCharge,
     SpiderDodgeTime,
     WolverineDashDistance,
 } from "../../../shared/defs/gameObjects/kitDefs.ts";
@@ -875,6 +876,20 @@ export class WeaponManager {
                 speed: bullet.speed,
                 time: WolverineDashDistance / bullet.speed + 0.1,
             };
+        }
+
+        // Sentry Charge: a 10 tile dash at Ahri's dash speed, flying for 2 s; the first hit heals him
+        if (this.activeWeapon === "kit_sentry_charge") {
+            this.player.webPull = {
+                target: v2.add(this.player.pos, v2.mul(this.player.dir, SentryCharge.distance)),
+                speed: SentryCharge.speed,
+                time: SentryCharge.distance / SentryCharge.speed + 0.1,
+            };
+            this.player.startFlight(
+                { duration: SentryCharge.flight, untargetable: 0, waveAt: 0, speedBonus: 0 },
+                this.activeWeapon,
+            );
+            this.player.sentryHealReady = true;
         }
 
         const collisionLayer = util.toGroundLayer(this.player.layer);
