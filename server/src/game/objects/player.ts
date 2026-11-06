@@ -3041,6 +3041,8 @@ export class Player extends BaseGameObject {
         if (playerSource?.champ && playerSource !== this) {
             finalDamage = playerSource.champ.onDealDamage(this, params, finalDamage);
         }
+        // a kit's items on all the damage it deals (Sentry Artifact)
+        if (playerSource && playerSource !== this) finalDamage *= KitDefs[playerSource.kit]?.damageMult ?? 1;
 
         // vulnerable to the Summoner: each minion hit (a dagger hits as hard as its damage, the whip softer) lands harder
         const daggerDamage = KitDefs.summoner.daggers!.damage;

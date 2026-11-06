@@ -23,6 +23,10 @@ export interface KitDef {
     fullBoost?: boolean;
     /** added move speed */
     speedBonus?: number;
+    /** item ids in ItemDefs (the build's health is already in `health`) */
+    items?: string[];
+    /** all damage this kit deals to players is multiplied by this (from its items) */
+    damageMult?: number;
     /** hp per second, doubled under lowHealth */
     regen?: number;
     lowHealth?: number;
@@ -98,6 +102,26 @@ export interface KitDef {
         shieldCost: number;
     };
 }
+
+/**
+ * A kit's build: every item's flat health is added to the base first, then the health multipliers are added
+ * together into one (+44% and +44% is x1.88, not x2.07) and applied; all damage works the same way
+ */
+export function kitBuild(baseHealth: number, items: string[]) {
+    let flat = 0;
+    let healthMult = 0;
+    let damageMult = 0;
+    for (const id of items) {
+        const item = ItemDefs[id];
+        flat += item.health ?? 0;
+        healthMult += item.healthMult ?? 0;
+        damageMult += item.allDamage ?? 0;
+    }
+    return { health: Math.round((baseHealth + flat) * (1 + healthMult)), damageMult: 1 + damageMult };
+}
+
+const SentryItems = ["sentry_heal", "sentry_artifact"];
+const SentryBuild = kitBuild(300, SentryItems);
 
 export const KitDefs: Record<string, KitDef> = {
     default: { name: "Default", health: 100, helmet: "", chest: "", outfit: "", melee: "" },
@@ -207,7 +231,11 @@ export const KitDefs: Record<string, KitDef> = {
     },
     sentry: {
         name: "Sentry",
-        health: 300,
+        // 300 base + Heal's 812, then +44% from the Sentry Artifact: 1601
+        health: SentryBuild.health,
+        items: SentryItems,
+        damageMult: SentryBuild.damageMult,
+        speedBonus: 3,
         helmet: "helmet04",
         chest: "chest04",
         outfit: "outfitKitSentry",

@@ -1,6 +1,6 @@
 import { expect, test, vi } from "vitest";
 import { BulletDefs } from "../../shared/defs/gameObjects/bulletDefs.ts";
-import { dronePos, KitDefs, SentryCharge, UltronMinion } from "../../shared/defs/gameObjects/kitDefs.ts";
+import { dronePos, kitBuild, KitDefs, SentryCharge, UltronMinion } from "../../shared/defs/gameObjects/kitDefs.ts";
 import { GameObjectDefs } from "../../shared/defs/register.ts";
 import { GameConfig, TeamMode } from "../../shared/gameConfig.ts";
 import * as net from "../../shared/net/net.ts";
@@ -918,10 +918,11 @@ test("Green Goblin: a fresh kit starts with the drone on his right and no upgrad
     expect(me.droneHits.size).toBe(0);
 });
 
-test("Sentry: 300 hp, yellow outfit, Sentry Charge in slot 1", () => {
+test("Sentry: 1601 hp, yellow outfit, Sentry Charge in slot 1", () => {
     const { me } = setup("sentry");
-    expect(me.maxHealth).toBe(300);
-    expect(me.health).toBe(300);
+    // (300 + Heal's 812) x 1.44 from the Sentry Artifact
+    expect(me.maxHealth).toBe(1601);
+    expect(me.health).toBe(1601);
     expect(me.outfit).toBe("outfitKitSentry");
     expect(me.weapons[Slot.Primary].type).toBe("kit_sentry_charge");
     expect(KitDefs.sentry.damageReduction).toBe(0.45);
@@ -933,14 +934,35 @@ test("Sentry: takes 45% less damage", () => {
     const { me } = setup("sentry", v2.create(200, 0));
     // bleeding skips armor, so only the passive is left
     me.damage({ amount: 100, damageType: GameConfig.DamageType.Bleeding, dir: v2.create(1, 0) });
-    expect(me.health).toBeCloseTo(245, 1);
+    expect(me.health).toBeCloseTo(1601 - 55, 1);
+});
+
+test("Sentry: items add flat health first, then the multipliers are summed, +3 speed, +44% damage", () => {
+    expect(kitBuild(300, ["sentry_heal"]).health).toBe(1112);
+    expect(kitBuild(300, ["sentry_artifact"]).health).toBe(432);
+    // two +44% multipliers make x1.88, not x2.07
+    expect(kitBuild(100, ["sentry_artifact", "sentry_artifact"]).health).toBe(188);
+    expect(kitBuild(100, ["sentry_artifact", "sentry_artifact"]).damageMult).toBeCloseTo(1.88, 5);
+    expect(KitDefs.sentry.items).toEqual(["sentry_heal", "sentry_artifact"]);
+    expect(KitDefs.sentry.speedBonus).toBe(3);
+    const { me, enemy } = setup("sentry", v2.create(200, 0));
+    enemy.maxHealth = 1000;
+    enemy.health = 1000;
+    enemy.damage({
+        amount: 100,
+        damageType: GameConfig.DamageType.Player,
+        dir: v2.create(1, 0),
+        source: me,
+        gameSourceType: "fists",
+    });
+    expect(1000 - enemy.health).toBeCloseTo(144, 1);
 });
 
 test("Sentry: survives a killing hit once per game, at full health", () => {
     const { me } = setup("sentry", v2.create(200, 0));
     me.damage({ amount: 5000, damageType: GameConfig.DamageType.Bleeding, dir: v2.create(1, 0) });
     expect(me.dead).toBe(false);
-    expect(me.health).toBe(300);
+    expect(me.health).toBe(1601);
     me.damage({ amount: 5000, damageType: GameConfig.DamageType.Bleeding, dir: v2.create(1, 0) });
     expect(me.dead).toBe(true);
 });

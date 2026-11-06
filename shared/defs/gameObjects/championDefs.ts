@@ -40,7 +40,14 @@ export interface ItemDef {
     /** basic attack speed, added up (0.25 = 25% shorter cooldown between attacks) */
     attackSpeed?: number;
     moveSpeed?: number;
+    /** flat max health, added before any health multiplier */
     health?: number;
+    /** kit items (Sentry): max health, +0.44 is +44%. Every multiplier on a build is added together first */
+    healthMult?: number;
+    /** kit items (Sentry): all damage dealt to players, +0.44 is +44%, added together like healthMult */
+    allDamage?: number;
+    /** HUD image, for the kits that show their build */
+    icon?: string;
     /** chance a basic attack crits, added up and capped at 1 */
     crit?: number;
     /** crit damage on top of the base 1.75x */
@@ -143,6 +150,14 @@ export const ItemDefs: Record<string, ItemDef> = {
     guinsoos_rageblade: { name: "Guinsoo's Rageblade", attackSpeed: 0.25, passive: "guinsoo" },
     wits_end: { name: "Wit's End", attackSpeed: 0.5, damage: 0.08, damageReduction: 0.1 },
     lich_bane: { name: "Lich Bane", abilityPower: 0.15, moveSpeed: 0.3, passive: "lich_bane" },
+    // Sentry's build (see KitDefs.sentry)
+    sentry_heal: { name: "Heal", health: 812, icon: "img/kit-items/sentry_heal.png" },
+    sentry_artifact: {
+        name: "Sentry Artifact",
+        healthMult: 0.44,
+        allDamage: 0.44,
+        icon: "img/kit-items/sentry_artifact.png",
+    },
 };
 
 /**
