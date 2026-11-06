@@ -410,9 +410,9 @@ export class Game {
     /** where League controls walk the champion to (the last right-click), until it gets there */
     moveTarget?: Vec2;
 
-    /** the League controls setting is on and the player is a champion */
+    /** the League controls setting is on */
     leagueControlsActive() {
-        const on = !!this.m_config.get("leagueControls") && this.m_activePlayer?.m_netData.championIndex > 0;
+        const on = !!this.m_config.get("leagueControls") && !!this.m_activePlayer;
         leagueControls.active = on;
         if (!on) this.moveTarget = undefined;
         return on;
