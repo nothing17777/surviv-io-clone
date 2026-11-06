@@ -981,11 +981,12 @@ test("Sentry: removes a debuff, then waits 4 s before removing another", () => {
     expect(me.burning).toBe(false);
 });
 
-test("Sentry Charge: dashes 30 tiles, hits for 120, heals 90, flies 2 s, 3 s cooldown", () => {
+test("Sentry Charge: dashes 30 tiles, hits for 120, heals 30% of max hp, flies 2 s, 3 s cooldown", () => {
     const { game, me, enemy } = setup("sentry", v2.create(4, 0));
     enemy.maxHealth = 1000;
     enemy.health = 1000;
-    me.damage({ amount: 200, damageType: GameConfig.DamageType.Bleeding, dir: v2.create(1, 0) });
+    // 1500 less 45% is 825 off his 1601, so there is room for the whole heal
+    me.damage({ amount: 1500, damageType: GameConfig.DamageType.Bleeding, dir: v2.create(1, 0) });
     const hurt = me.health;
     const start = v2.copy(me.pos);
     use(game, me, Slot.Primary, 1);
@@ -997,9 +998,9 @@ test("Sentry Charge: dashes 30 tiles, hits for 120, heals 90, flies 2 s, 3 s coo
     // 120 once (not once per tick it overlaps), with no armor on him
     expect(1000 - enemy.health).toBeGreaterThanOrEqual(120);
     expect(1000 - enemy.health).toBeLessThan(240);
-    // the heal is 90, once per cast
-    expect(me.health - hurt).toBeGreaterThanOrEqual(85);
-    expect(me.health - hurt).toBeLessThanOrEqual(100);
+    // the heal is 30% of his max hp (480), once per cast
+    expect(me.health - hurt).toBeGreaterThanOrEqual(475);
+    expect(me.health - hurt).toBeLessThanOrEqual(490);
     expect(enemy.burning).toBe(true);
     expect(enemy.bleeding).toBe(true);
     expect(enemy.stunned).toBe(true);
@@ -1088,11 +1089,17 @@ test("Sentry Charge: stuns whoever it hits and drags them along the dash", () =>
     expect(v2.length(v2.sub(enemy.pos, at))).toBeLessThan(0.01);
 });
 
-test("Sentry Charge: heals 90 even when it hits nothing", () => {
+test("Sentry Charge: heals 30% of max hp even when it hits nothing, and never past full", () => {
     const { game, me } = setup("sentry", v2.create(200, 0));
-    me.damage({ amount: 200, damageType: GameConfig.DamageType.Bleeding, dir: v2.create(1, 0) });
+    me.damage({ amount: 1500, damageType: GameConfig.DamageType.Bleeding, dir: v2.create(1, 0) });
     const hurt = me.health;
     use(game, me, Slot.Primary, 1);
-    expect(me.health - hurt).toBeGreaterThanOrEqual(90);
-    expect(me.health - hurt).toBeLessThanOrEqual(95);
+    expect(me.health - hurt).toBeGreaterThanOrEqual(480);
+    expect(me.health - hurt).toBeLessThanOrEqual(485);
+    // a nearly full Sentry only gets what is missing
+    me.health = me.maxHealth - 10;
+    me.weapons[Slot.Primary].cooldown = 0;
+    use(game, me, Slot.Primary, 1);
+    expect(me.health).toBeLessThanOrEqual(me.maxHealth);
+    expect(me.health).toBeGreaterThan(me.maxHealth - 10);
 });

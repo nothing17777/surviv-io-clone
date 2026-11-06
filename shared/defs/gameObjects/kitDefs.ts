@@ -297,7 +297,7 @@ export const WolverineDashDistance = 16;
 /**
  * Sentry Charge: dashes `distance` tiles at `speed` (Ahri's dash speed) and flies for `flight` s. Whoever it hits
  * takes the bullet's damage, burns, bleeds and is stunned for `debuff` s and loses their perks for `perkStrip` s;
- * every charge heals the Sentry `heal` hp, hit or miss. `armorPen` multiplies the armor reduction it meets.
+ * every charge heals the Sentry `healPercent` of his max hp, hit or miss. `armorPen` multiplies the armor reduction it meets.
  * `hitRadius` is the crescent's width; `bodyRadius` is a second hitbox on the Sentry himself, so running
  * through someone hits them too. Everyone hit is carried along with the dash (`pullSpeedMult` x the dash speed
  * is how fast they are reeled in to just in front of him) until the dash ends
@@ -307,7 +307,8 @@ export const SentryCharge = {
     speed: 80,
     cooldown: 3,
     damage: 120,
-    heal: 90,
+    /** every charge heals this share of his max health */
+    healPercent: 0.3,
     debuff: 3,
     perkStrip: 5,
     armorPen: 0.2,

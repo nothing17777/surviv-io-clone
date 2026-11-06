@@ -1,5 +1,5 @@
 import type { LootDef } from "../../../shared/defs/gameObjectDefs.ts";
-import { ChampionDefs, ChampionIds, ItemDefs } from "../../../shared/defs/gameObjects/championDefs.ts";
+import { ChampionDefs, ChampionIds, type ItemDef, ItemDefs } from "../../../shared/defs/gameObjects/championDefs.ts";
 import {
     type AmmoDef,
     type BackpackDef,
@@ -11,6 +11,7 @@ import {
     SCOPE_LEVELS,
 } from "../../../shared/defs/gameObjects/gearDefs.ts";
 import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
+import { KitDefs } from "../../../shared/defs/gameObjects/kitDefs.ts";
 import type { MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
 import type { RoleDef } from "../../../shared/defs/gameObjects/roleDefs.ts";
 import type { ObstacleDef } from "../../../shared/defs/mapObjects/obstacles/obstacleDefs.ts";
@@ -694,6 +695,55 @@ export class UiManager2 {
         }
     }
 
+    kitItemBar?: HTMLDivElement;
+    kitItemBarOutfit = "";
+    /** the items of the non-champion kit that wears this outfit (the client is only told the outfit) */
+    kitItemsByOutfit = new globalThis.Map<string, string[]>();
+
+    kitItemsFor(outfit: string) {
+        let items = this.kitItemsByOutfit.get(outfit);
+        if (!items) {
+            const kit = Object.values(KitDefs).find((k) => k.outfit === outfit && k.items?.length);
+            items = kit?.items ?? [];
+            this.kitItemsByOutfit.set(outfit, items);
+        }
+        return items;
+    }
+
+    /** a line per stat an item gives, for its hover text */
+    itemSummary(item: ItemDef) {
+        const lines: string[] = [];
+        if (item.health) lines.push(`+${item.health} max HP`);
+        if (item.healthMult) lines.push(`+${Math.round(item.healthMult * 100)}% max HP`);
+        if (item.allDamage) lines.push(`+${Math.round(item.allDamage * 100)}% damage`);
+        return lines.join("\n");
+    }
+
+    /** kits with a build of their own (Sentry): its items in a row above the bottom bar, named on hover */
+    updateKitItemBar(outfit: string) {
+        if (outfit === this.kitItemBarOutfit) return;
+        this.kitItemBarOutfit = outfit;
+        this.kitItemBar?.remove();
+        this.kitItemBar = undefined;
+        const ids = outfit ? this.kitItemsFor(outfit) : [];
+        if (!ids.length) return;
+        const bar = document.createElement("div");
+        bar.style.cssText =
+            "position:absolute;left:50%;bottom:150px;transform:translateX(-50%);display:flex;gap:6px;pointer-events:auto;z-index:10;";
+        for (const id of ids) {
+            const item = ItemDefs[id];
+            const el = document.createElement("div");
+            el.title = `${item.name}\n${this.itemSummary(item)}`;
+            el.style.cssText =
+                "width:44px;height:44px;border:2px solid #c8aa6e;border-radius:6px;background:#0a1428 center/contain no-repeat;";
+            if (item.icon) el.style.backgroundImage = `url(${item.icon})`;
+            else el.textContent = item.name.split(" ").map((w) => w[0]).join("");
+            bar.appendChild(el);
+        }
+        document.getElementById("ui-game")?.appendChild(bar);
+        this.kitItemBar = bar;
+    }
+
     pushAction(itemAction: { action: string; type: string; data: string }) {
         this.uiEvents.push({
             action: itemAction.action,
@@ -840,6 +890,7 @@ export class UiManager2 {
             activePlayer.m_netData.m_dead ? 0 : activePlayer.m_netData.championIndex,
             activePlayer.m_localData.champCooldowns ?? [],
         );
+        this.updateKitItemBar(activePlayer.m_netData.m_dead ? "" : activePlayer.m_netData.m_outfit);
         this.dom.health.shieldText.textContent = shield > 0 ? `${Math.ceil(shield)}` : "";
         state.boost = activePlayer.m_localData.m_boost;
         state.downed = activePlayer.m_netData.m_downed;

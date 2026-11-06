@@ -892,7 +892,10 @@ export class WeaponManager {
                 { duration: SentryCharge.flight, untargetable: 0, waveAt: 0, speedBonus: 0 },
                 this.activeWeapon,
             );
-            this.player.health = Math.min(this.player.health + SentryCharge.heal, this.player.maxHealth);
+            this.player.health = Math.min(
+                this.player.health + this.player.maxHealth * SentryCharge.healPercent,
+                this.player.maxHealth,
+            );
             this.player.setDirty();
         }
 

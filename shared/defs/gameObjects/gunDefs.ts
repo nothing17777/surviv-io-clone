@@ -4047,7 +4047,7 @@ const GreenGoblinGunDefs: Record<string, GunDef> = Object.fromEntries([
 const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
     // Sentry Charge: a 30 tile dash at Ahri's dash speed behind a wide crescent that does 120, burns, bleeds and
     // stuns for 3 s, strips perks for 5 s, ignores 80% of armor and reaches flying / dodging targets. His own body
-    // hits too (see Player.updateSentryDash) and everyone hit is dragged along for the dash. It heals him 90 on
+    // hits too (see Player.updateSentryDash) and everyone hit is dragged along for the dash. It heals him 30% of his max hp on
     // every cast, hit or miss, and he flies for 2 s (see WeaponManager); 3 s cooldown
     kitGun("kit_sentry_charge", "barrett", {
         damage: SentryCharge.damage,
