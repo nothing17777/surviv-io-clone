@@ -1,5 +1,5 @@
 import { type GameObjectDef, type LootDef, WeaponTypeToDefs } from "../../../../shared/defs/gameObjectDefs.ts";
-import { ChampionDefs } from "../../../../shared/defs/gameObjects/championDefs.ts";
+import { ChampionDefs, ItemDefs } from "../../../../shared/defs/gameObjects/championDefs.ts";
 import { EmotesDefs } from "../../../../shared/defs/gameObjects/emoteDefs.ts";
 import {
     type BackpackDef,
@@ -884,6 +884,19 @@ export class Player extends BaseGameObject {
     sentryReviveUsed = false;
     /** Sentry: seconds until he can remove a debuff again */
     cleanseCooldown = 0;
+
+    /** kit items that fire when health is low (Sentry's Conquest and Rescue): seconds until each can fire again */
+    itemCooldowns: Record<string, number> = {};
+    /** max HP an item adds for a while (Conquest's +30%, as a share), and the seconds it has left */
+    itemMaxHealthMult = 0;
+    itemMaxHealthTime = 0;
+    /** Conquest's Wall: the share of damage it cuts right now, the seconds left, and how it wears down */
+    wallReduction = 0;
+    wallTime = 0;
+    wallRule?: { perHit: number; floor: number };
+    /** Rescue's shield: how much it granted (what goes when it runs out) and the seconds left */
+    itemShield = 0;
+    itemShieldTime = 0;
 
     get stunned() {
         return this.stunTime > 0 && !this.dead;
@@ -3071,6 +3084,19 @@ export class Player extends BaseGameObject {
         // Sentry: less damage from everything, and an armor-ignoring hit cuts that too
         const sentryReduction = KitDefs[this.kit]?.damageReduction;
         if (sentryReduction) reduceDamage(sentryReduction);
+
+        // Conquest's Wall is a layer of its own on top of that; every hit that comes in (not the gas or a bleed)
+        // wears it down
+        if (this.wallTime > 0) {
+            reduceDamage(this.wallReduction);
+            if (
+                this.wallRule && (params.amount ?? 0) > 0
+                && params.damageType !== GameConfig.DamageType.Bleeding
+                && params.damageType !== GameConfig.DamageType.Gas
+            ) {
+                this.wallReduction = Math.max(this.wallRule.floor, this.wallReduction - this.wallRule.perHit);
+            }
+        }
 
         // ignore armor for gas and bleeding damage
         if (
@@ -5644,6 +5670,7 @@ export class Player extends BaseGameObject {
         this.kitEnhanceTime = 0;
         this.sentryReviveUsed = false;
         this.cleanseCooldown = 0;
+        this.resetItemTriggers();
         this.champ = ChampionDefs[kitId] ? new Champion(this, kitId) : undefined;
         // a champion's adrenaline is pinned full, so recheck the floor now it is one
         this.recalculateMinBoost();
@@ -5674,6 +5701,7 @@ export class Player extends BaseGameObject {
         this.sustainShieldTime = 0;
         this.energyDirty = true;
         this.kitEnhanceTime = 0;
+        this.resetItemTriggers();
         this.outfit = this.loadout.outfit;
         for (
             const slot of [GameConfig.WeaponSlot.Primary, GameConfig.WeaponSlot.Secondary, GameConfig.WeaponSlot.Melee]
@@ -5758,6 +5786,95 @@ export class Player extends BaseGameObject {
         if (kit.daggers) this.updateDaggers(dt, kit.daggers);
         if (kit.aura) this.updateAura(dt, kit.aura);
         if (kit.cleanse) this.updateCleanse(dt, kit.cleanse);
+        if (kit.items?.length) this.updateItemTriggers(dt, kit);
+    }
+
+    /** every item effect off and every cooldown ready, for a fresh kit (max HP and shield are set by the caller) */
+    resetItemTriggers() {
+        this.itemCooldowns = {};
+        this.itemMaxHealthMult = 0;
+        this.itemMaxHealthTime = 0;
+        this.wallReduction = 0;
+        this.wallTime = 0;
+        this.wallRule = undefined;
+        this.itemShield = 0;
+        this.itemShieldTime = 0;
+    }
+
+    /** max HP from the kit's build plus whatever an item adds for now; health can't stay above it */
+    updateKitMaxHealth(kit: (typeof KitDefs)[string]) {
+        const base = kit.healthBase ?? kit.health;
+        this.maxHealth = Math.round(base * (1 + (kit.healthMult ?? 0) + this.itemMaxHealthMult));
+        this.health = Math.min(this._health, this.maxHealth);
+        this.healthDirty = true;
+    }
+
+    /** Rescue's shield is over: what it granted and hasn't been spent goes, and the bar goes back to the kit's own */
+    endItemShield(kit: (typeof KitDefs)[string]) {
+        this.shield = Math.max(0, this.shield - this.itemShield);
+        this.itemShield = 0;
+        this.itemShieldTime = 0;
+        this.maxShield = kit.shield ?? 0;
+        this.shieldDirty = true;
+        this.energyDirty = true;
+        this.setDirty();
+    }
+
+    /** the kit's items that fire by themselves when health is low: Conquest and Rescue */
+    updateItemTriggers(dt: number, kit: (typeof KitDefs)[string]) {
+        for (const id of Object.keys(this.itemCooldowns)) {
+            this.itemCooldowns[id] = Math.max(0, this.itemCooldowns[id] - dt);
+        }
+        if (this.itemMaxHealthTime > 0) {
+            this.itemMaxHealthTime -= dt;
+            if (this.itemMaxHealthTime <= 0) {
+                this.itemMaxHealthMult = 0;
+                this.itemMaxHealthTime = 0;
+                this.updateKitMaxHealth(kit);
+                this.setDirty();
+            }
+        }
+        if (this.wallTime > 0) {
+            this.wallTime -= dt;
+            if (this.wallTime <= 0) {
+                this.wallTime = 0;
+                this.wallReduction = 0;
+                this.wallRule = undefined;
+            }
+        }
+        if (this.itemShieldTime > 0) {
+            this.itemShieldTime -= dt;
+            if (this.itemShieldTime <= 0) this.endItemShield(kit);
+        }
+
+        for (const id of kit.items ?? []) {
+            const t = ItemDefs[id]?.trigger;
+            if (!t || (this.itemCooldowns[id] ?? 0) > 0 || this.health >= this.maxHealth * t.below) continue;
+            this.itemCooldowns[id] = t.cooldown;
+            // max HP first, so the heal and the shield are shares of the bigger number
+            if (t.maxHealthMult) {
+                this.itemMaxHealthMult = t.maxHealthMult;
+                this.itemMaxHealthTime = t.duration;
+                this.updateKitMaxHealth(kit);
+            }
+            if (t.heal) this.health = Math.min(this._health + t.heal * this.maxHealth, this.maxHealth);
+            if (t.shield) {
+                const granted = t.shield * this.maxHealth;
+                this.shield += granted;
+                this.itemShield += granted;
+                this.itemShieldTime = t.duration;
+                // the shield bar is full when it comes up
+                this.maxShield = Math.max(this.maxShield, this.shield);
+                this.shieldDirty = true;
+                this.energyDirty = true;
+            }
+            if (t.wall) {
+                this.wallReduction = t.wall.start;
+                this.wallTime = t.duration;
+                this.wallRule = { perHit: t.wall.perHit, floor: t.wall.floor };
+            }
+            this.setDirty();
+        }
     }
 
     /** Sentry: any debuff on him comes off at once, then the next removal waits out the cooldown */

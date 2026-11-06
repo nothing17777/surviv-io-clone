@@ -31,6 +31,28 @@ export interface ChampionDef {
 }
 
 /** what an item gives in surviv terms */
+/**
+ * A kit item's effect that fires when health drops below `below` (a share of max HP) and then can't fire again for
+ * `cooldown` s, counted from when it fired. Its buffs last `duration` s. Every effect is optional, and a kit
+ * runs one of each kind at a time
+ */
+export interface ItemTrigger {
+    below: number;
+    cooldown: number;
+    duration: number;
+    /** health recovered, as a share of max HP once any max HP it adds is in */
+    heal?: number;
+    /** max HP added for `duration`, +0.3 is +30%; it joins the build's other max HP multipliers, which are added */
+    maxHealthMult?: number;
+    /** a shield of this share of max HP for `duration`; whatever is left of it then goes */
+    shield?: number;
+    /**
+     * damage taken cut by `start` for `duration`, a layer of its own on top of the kit's reductions: each hit taken
+     * lowers it by `perHit`, down to `floor`
+     */
+    wall?: { start: number; perHit: number; floor: number };
+}
+
 export interface ItemDef {
     name: string;
     /** basic attack damage multiplier, added up across items */
@@ -50,6 +72,8 @@ export interface ItemDef {
     damageTakenReduction?: number;
     /** kit items (Sentry): share of the enemy's damage reduction ignored, like Sentry Charge's armor penetration */
     ignoreReduction?: number;
+    /** kit items (Sentry): an effect that fires by itself when health is low, then waits out a cooldown */
+    trigger?: ItemTrigger;
     /** HUD image, for the kits that show their build */
     icon?: string;
     /** chance a basic attack crits, added up and capped at 1 */
@@ -174,6 +198,26 @@ export const ItemDefs: Record<string, ItemDef> = {
         ignoreReduction: 0.1,
         healthMult: 0.44,
         icon: "img/kit-items/sentry_jeff.png",
+    },
+    sentry_conquest: {
+        name: "Conquest",
+        // below half health: recover 20% of max HP and gain +30% max HP, and a Wall that blocks all damage at first
+        trigger: {
+            below: 0.5,
+            cooldown: 11,
+            duration: 6,
+            heal: 0.2,
+            maxHealthMult: 0.3,
+            wall: { start: 1, perHit: 0.03, floor: 0.8 },
+        },
+        icon: "img/kit-items/sentry_conquest.png",
+    },
+    sentry_rescue: {
+        name: "Rescue",
+        healthMult: 0.25,
+        // below 99% health: a shield of half his max HP
+        trigger: { below: 0.99, cooldown: 10, duration: 5, shield: 0.5 },
+        icon: "img/kit-items/sentry_rescue.png",
     },
 };
 

@@ -720,6 +720,22 @@ export class UiManager2 {
         if (item.ignoreReduction) {
             lines.push(`ignores ${Math.round(item.ignoreReduction * 100)}% of enemy damage reduction`);
         }
+        const t = item.trigger;
+        if (t) {
+            const pct = (n: number) => `${Math.round(n * 100)}%`;
+            const parts: string[] = [];
+            if (t.heal) parts.push(`recover ${pct(t.heal)} HP`);
+            if (t.maxHealthMult) parts.push(`+${pct(t.maxHealthMult)} max HP`);
+            if (t.shield) parts.push(`a shield of ${pct(t.shield)} max HP`);
+            if (t.wall) {
+                parts.push(
+                    `Wall: ${pct(t.wall.start)} less damage taken, ${pct(t.wall.perHit)} less with each hit, `
+                        + `never under ${pct(t.wall.floor)}`,
+                );
+            }
+            lines.push(`Below ${pct(t.below)} HP: ${parts.join(", ")} (${t.duration} s)`);
+            lines.push(`${t.cooldown} s cooldown`);
+        }
         return lines.join("\n");
     }
 

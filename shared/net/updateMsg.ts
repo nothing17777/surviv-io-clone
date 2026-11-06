@@ -51,7 +51,7 @@ function serializeActivePlayer(s: BitStream, data: LocalDataWithDirty) {
 
     s.writeBoolean(!!data.shieldDirty);
     if (data.shieldDirty) {
-        s.writeFloat(data.shield ?? 0, 0, 400, 10);
+        s.writeFloat(data.shield ?? 0, 0, 4000, 12);
     }
 
     s.writeBoolean(!!data.energyDirty);
@@ -119,7 +119,7 @@ function deserializeActivePlayer(s: BitStream, data: LocalDataWithDirty) {
     }
     data.shieldDirty = s.readBoolean();
     if (data.shieldDirty) {
-        data.shield = s.readFloat(0, 400, 10);
+        data.shield = s.readFloat(0, 4000, 12);
     }
     data.energyDirty = s.readBoolean();
     if (data.energyDirty) {

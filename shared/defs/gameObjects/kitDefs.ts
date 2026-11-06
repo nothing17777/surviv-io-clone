@@ -25,6 +25,10 @@ export interface KitDef {
     speedBonus?: number;
     /** item ids in ItemDefs (the build's health is already in `health`) */
     items?: string[];
+    /** the build's health before its multipliers (base plus every item's flat health), for max HP that changes */
+    healthBase?: number;
+    /** the build's max HP multipliers added together, +1.38 is +138% */
+    healthMult?: number;
     /** all damage this kit deals to players is multiplied by this (from its items) */
     damageMult?: number;
     /** everything this kit deals ignores this share of the target's damage reduction (from its items), on top of
@@ -127,6 +131,8 @@ export function kitBuild(baseHealth: number, items: string[]) {
     }
     return {
         health: Math.round((baseHealth + flat) * (1 + healthMult)),
+        base: baseHealth + flat,
+        healthMult,
         damageMult: 1 + damageMult,
         damageReduction,
         armorIgnore,
@@ -135,7 +141,14 @@ export function kitBuild(baseHealth: number, items: string[]) {
 
 /** Sentry's own damage reduction, before his items' */
 const SentryBaseReduction = 0.45;
-const SentryItems = ["sentry_heal", "sentry_artifact", "sentry_liberation", "sentry_jeff"];
+const SentryItems = [
+    "sentry_heal",
+    "sentry_artifact",
+    "sentry_liberation",
+    "sentry_jeff",
+    "sentry_conquest",
+    "sentry_rescue",
+];
 const SentryBuild = kitBuild(300, SentryItems);
 
 export const KitDefs: Record<string, KitDef> = {
@@ -246,9 +259,11 @@ export const KitDefs: Record<string, KitDef> = {
     },
     sentry: {
         name: "Sentry",
-        // 300 base + Heal's 812, then +113% (Artifact 44, Liberation 25, Jeff 44, added together): 2369
+        // 300 base + Heal's 812, then +138% (Artifact 44, Liberation 25, Jeff 44, Rescue 25, added together): 2647
         health: SentryBuild.health,
         items: SentryItems,
+        healthBase: SentryBuild.base,
+        healthMult: SentryBuild.healthMult,
         damageMult: SentryBuild.damageMult,
         armorIgnore: SentryBuild.armorIgnore,
         speedBonus: 3,
