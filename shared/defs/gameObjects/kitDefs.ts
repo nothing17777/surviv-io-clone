@@ -27,6 +27,9 @@ export interface KitDef {
     items?: string[];
     /** all damage this kit deals to players is multiplied by this (from its items) */
     damageMult?: number;
+    /** everything this kit deals ignores this share of the target's damage reduction (from its items), on top of
+     * any armor penetration the hit already has */
+    armorIgnore?: number;
     /** hp per second, doubled under lowHealth */
     regen?: number;
     lowHealth?: number;
@@ -105,22 +108,34 @@ export interface KitDef {
 
 /**
  * A kit's build: every item's flat health is added to the base first, then the health multipliers are added
- * together into one (+44% and +44% is x1.88, not x2.07) and applied; all damage works the same way
+ * together into one (+44% and +44% is x1.88, not x2.07) and applied; all damage, damage taken and the share
+ * of the enemy's reduction ignored work the same way
  */
 export function kitBuild(baseHealth: number, items: string[]) {
     let flat = 0;
     let healthMult = 0;
     let damageMult = 0;
+    let damageReduction = 0;
+    let armorIgnore = 0;
     for (const id of items) {
         const item = ItemDefs[id];
         flat += item.health ?? 0;
         healthMult += item.healthMult ?? 0;
         damageMult += item.allDamage ?? 0;
+        damageReduction += item.damageTakenReduction ?? 0;
+        armorIgnore += item.ignoreReduction ?? 0;
     }
-    return { health: Math.round((baseHealth + flat) * (1 + healthMult)), damageMult: 1 + damageMult };
+    return {
+        health: Math.round((baseHealth + flat) * (1 + healthMult)),
+        damageMult: 1 + damageMult,
+        damageReduction,
+        armorIgnore,
+    };
 }
 
-const SentryItems = ["sentry_heal", "sentry_artifact"];
+/** Sentry's own damage reduction, before his items' */
+const SentryBaseReduction = 0.45;
+const SentryItems = ["sentry_heal", "sentry_artifact", "sentry_liberation", "sentry_jeff"];
 const SentryBuild = kitBuild(300, SentryItems);
 
 export const KitDefs: Record<string, KitDef> = {
@@ -231,10 +246,11 @@ export const KitDefs: Record<string, KitDef> = {
     },
     sentry: {
         name: "Sentry",
-        // 300 base + Heal's 812, then +44% from the Sentry Artifact: 1601
+        // 300 base + Heal's 812, then +113% (Artifact 44, Liberation 25, Jeff 44, added together): 2369
         health: SentryBuild.health,
         items: SentryItems,
         damageMult: SentryBuild.damageMult,
+        armorIgnore: SentryBuild.armorIgnore,
         speedBonus: 3,
         helmet: "helmet04",
         chest: "chest04",
@@ -242,7 +258,7 @@ export const KitDefs: Record<string, KitDef> = {
         // skill 1 is a gun used for its cooldown and its dash (see WeaponManager); slot 3 is plain fists
         primary: "kit_sentry_charge",
         melee: "fists",
-        damageReduction: 0.45,
+        damageReduction: SentryBaseReduction + SentryBuild.damageReduction,
         revive: true,
         cleanse: { cooldown: 4 },
     },

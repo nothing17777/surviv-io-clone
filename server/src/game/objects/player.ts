@@ -3056,9 +3056,14 @@ export class Player extends BaseGameObject {
         // Excalibur: 50% less damage taken while actively firing it
         if (this.excaliburActive) finalDamage *= 0.5;
 
+        // a kit's items can ignore part of the target's damage reduction, on top of the hit's own armor
+        // penetration (Jeff: 10%, so a Sentry Charge that ignores 80% ignores 90%)
+        const ignore = playerSource && playerSource !== this ? KitDefs[playerSource.kit]?.armorIgnore ?? 0 : 0;
+        const armorPen = ignore ? Math.max(0, (params.armorPenetration ?? 1) - ignore) : params.armorPenetration;
+
         const reduceDamage = (multi: number) => {
-            if (params.armorPenetration !== undefined) {
-                multi *= params.armorPenetration;
+            if (armorPen !== undefined) {
+                multi *= armorPen;
             }
             finalDamage -= finalDamage * multi;
         };

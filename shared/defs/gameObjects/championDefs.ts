@@ -46,6 +46,10 @@ export interface ItemDef {
     healthMult?: number;
     /** kit items (Sentry): all damage dealt to players, +0.44 is +44%, added together like healthMult */
     allDamage?: number;
+    /** kit items (Sentry): less damage taken from everything, +0.2 is 20% less; added together with the kit's own */
+    damageTakenReduction?: number;
+    /** kit items (Sentry): share of the enemy's damage reduction ignored, like Sentry Charge's armor penetration */
+    ignoreReduction?: number;
     /** HUD image, for the kits that show their build */
     icon?: string;
     /** chance a basic attack crits, added up and capped at 1 */
@@ -157,6 +161,19 @@ export const ItemDefs: Record<string, ItemDef> = {
         healthMult: 0.44,
         allDamage: 0.44,
         icon: "img/kit-items/sentry_artifact.png",
+    },
+    sentry_liberation: {
+        name: "Liberation",
+        healthMult: 0.25,
+        damageTakenReduction: 0.2,
+        icon: "img/kit-items/sentry_liberation.png",
+    },
+    sentry_jeff: {
+        name: "Jeff",
+        allDamage: 0.89,
+        ignoreReduction: 0.1,
+        healthMult: 0.44,
+        icon: "img/kit-items/sentry_jeff.png",
     },
 };
 

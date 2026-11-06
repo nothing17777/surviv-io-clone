@@ -716,6 +716,10 @@ export class UiManager2 {
         if (item.health) lines.push(`+${item.health} max HP`);
         if (item.healthMult) lines.push(`+${Math.round(item.healthMult * 100)}% max HP`);
         if (item.allDamage) lines.push(`+${Math.round(item.allDamage * 100)}% damage`);
+        if (item.damageTakenReduction) lines.push(`-${Math.round(item.damageTakenReduction * 100)}% damage taken`);
+        if (item.ignoreReduction) {
+            lines.push(`ignores ${Math.round(item.ignoreReduction * 100)}% of enemy damage reduction`);
+        }
         return lines.join("\n");
     }
 
