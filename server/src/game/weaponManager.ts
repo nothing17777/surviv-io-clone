@@ -6,6 +6,7 @@ import {
     SentryCharge,
     SpiderDodgeTime,
     WolverineDashDistance,
+    WolverineDashHands,
 } from "../../../shared/defs/gameObjects/kitDefs.ts";
 import type { MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
 import { PerkProperties } from "../../../shared/defs/gameObjects/perkDefs.ts";
@@ -880,6 +881,25 @@ export class WeaponManager {
                 speed: bullet.speed,
                 time: WolverineDashDistance / bullet.speed + 0.1,
             };
+            // a Claw Combo hand flies on each side of the streak; the streak's wider hitbox is what they stand for
+            const side = v2.perp(this.player.dir);
+            const front = v2.add(this.player.pos, v2.mul(this.player.dir, this.player.rad));
+            for (const sign of [-1, 1]) {
+                this.player.game.bulletBarn.fireBullet(
+                    {
+                        playerId: this.player.__id,
+                        bulletType: "bullet_kit_wolverine_dash_claw",
+                        gameSourceType: this.activeWeapon,
+                        damageType: GameConfig.DamageType.Player,
+                        pos: v2.add(front, v2.mul(side, sign * WolverineDashHands.offset)),
+                        dir: v2.copy(this.player.dir),
+                        layer: this.player.aimLayer,
+                        damageMult: 1,
+                        shotFx: false,
+                        reflectCount: 0,
+                    } as Parameters<typeof this.player.game.bulletBarn.fireBullet>[0],
+                );
+            }
         }
 
         // Sentry Charge: a 30 tile dash at Ahri's dash speed, flying for 2 s; it heals him whether or not it hits.

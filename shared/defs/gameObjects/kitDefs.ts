@@ -331,6 +331,12 @@ export const SpiderDodgeTime = 2;
 export const WolverineDashDistance = 16;
 
 /**
+ * Wolverine's dash flies with a Claw Combo hand (the claw) on either side of the streak, `offset` tiles from its
+ * line, and hits everyone within `hitRadius` tiles of that line, so the hands are what widen it
+ */
+export const WolverineDashHands = { offset: 2.5, hitRadius: 3.5 };
+
+/**
  * Wolverine's Claw Combo. It needs an enemy in his mark (the nearest one within the kit's `mark.range`). While it
  * runs he is hidden, untargetable and can't move, and a claw flies in on the mark ten times, one after another,
  * twice as fast as the dash (same length and sprite size). Each one starts `startDist` tiles off, on the side
