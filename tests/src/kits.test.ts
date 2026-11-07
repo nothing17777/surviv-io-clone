@@ -105,7 +105,7 @@ test("Ultron: minions, orb blast and laser cost energy and hit", () => {
     expect(me.minions.length).toBe(UltronMinion.count);
     expect(me.minions.every((m) => m.teamId === me.teamId)).toBeTruthy();
 
-    // the Combo takes all his energy, and the ring, 5 orbs, blast and laser (20 + 75 + 30 + 40) finish a 100 hp enemy
+    // the Combo takes all his energy, and the ring, 5 blasts, 5 portal shots and 5 lasers (20 + 50 + 50 + 75) finish a 100 hp enemy
     me.energy = 200;
     use(game, me, Slot.Secondary, 1);
     expect(me.energy).toBeLessThan(5);

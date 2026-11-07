@@ -454,44 +454,36 @@ export const SentryNova = {
  * Ultron's Combo (his skill 2): all his energy, `cooldown` s. He hangs untargetable and rooted until it ends.
  * A green ring expands from him to `ring.radius`: each enemy it crosses takes `ring.damage` once and is
  * stunned until the combo is over, enemy projectiles it crosses are deleted, and the first enemy it hits (the
- * closest) is marked orange. `orbs.count` red orbs then appear round him, get a blue outline after `orbs.red` s
- * and `orbs.blue` s later a portal opens in front of the marked enemy, `portal.lead` s before it fires: each
- * orb teleports into it and fires, one every `volley.interval` s, for `volley.damage`. Another portal to the
- * enemy's left fires one `blast.damage` blast and a third behind them a `laser.damage` piercing laser. Each
- * portal is gone as soon as it has fired. `Times` are seconds since the cast
+ * closest) is marked orange. `orbs.count` red orbs then appear round the marked enemy, get a blue outline after
+ * `orbs.red` s and go off `orbs.blue` s later in a wide blast (`orbs.damage` each, full damage out to
+ * `orbs.blast.min` and none past `orbs.blast.max`). A portal opens at every blast; `portal.lead` s later they
+ * fire in turn, `portal.interval` s apart: each one a blast (`blast.damage`) and, `laser.delay` s after it, a
+ * piercing laser (`laser.damage`), and closes as the laser leaves. `Times` are seconds since the cast
  */
 export const UltronCombo = {
     cooldown: 15,
     ring: { radius: 30, speed: 100, damage: 20, bullets: 64 },
     /** how long the stun lasts past the end of the combo */
     stunAfter: 0.5,
-    orbs: { count: 5, radius: 4, red: 0.5, blue: 0.3 },
-    portal: { distance: 8, lead: 0.2, gap: 0.1 },
-    volley: { interval: 0.1, damage: 15 },
-    blast: { damage: 30 },
-    laser: { damage: 40 },
+    orbs: { count: 5, radius: 4.5, red: 0.5, blue: 0.3, damage: 10, blast: { min: 5, max: 9 } },
+    portal: { lead: 0.2, interval: 0.15 },
+    blast: { damage: 10 },
+    laser: { damage: 15, delay: 0.2 },
 };
 
 const ringEnd = UltronCombo.ring.radius / UltronCombo.ring.speed;
 const blueAt = ringEnd + UltronCombo.orbs.red;
-const portal1At = blueAt + UltronCombo.orbs.blue;
-const volleyAt = portal1At + UltronCombo.portal.lead;
-const volleyEnd = volleyAt + (UltronCombo.orbs.count - 1) * UltronCombo.volley.interval;
-const portal2At = volleyEnd + UltronCombo.portal.gap;
-const blastAt = portal2At + UltronCombo.portal.lead;
-const portal3At = blastAt + UltronCombo.portal.gap;
-const laserAt = portal3At + UltronCombo.portal.lead;
+const boomAt = blueAt + UltronCombo.orbs.blue;
+/** when portal `i` fires its blast, and when its laser follows */
+const fireAt = (i: number) => boomAt + UltronCombo.portal.lead + i * UltronCombo.portal.interval;
+const laserAt = (i: number) => fireAt(i) + UltronCombo.laser.delay;
 export const UltronComboTimes = {
     ringEnd,
     blueAt,
-    portal1At,
-    volleyAt,
-    volleyEnd,
-    portal2At,
-    blastAt,
-    portal3At,
+    boomAt,
+    fireAt,
     laserAt,
-    end: laserAt + 0.05,
+    end: laserAt(UltronCombo.orbs.count - 1) + 0.05,
 };
 
 export const UltronMinion ={ count: 4, health: 17.5, speedMult: 0.75, life: 15, explosion: "explosion_kit_minion" };

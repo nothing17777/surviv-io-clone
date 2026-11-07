@@ -1,3 +1,5 @@
+import { UltronCombo } from "./kitDefs.ts";
+
 export type ExplosionDef =
     & {
         type: "explosion";
@@ -508,6 +510,18 @@ export const ExplosionDefs: Record<string, ExplosionDef> = {
         shrapnelType: "",
         explosionEffectType: "rounds",
         decalType: "",
+    },
+    // Ultron's Combo: each red orb goes off in a wide blast, full damage out to rad.min (see UltronCombo.orbs)
+    explosion_kit_ultron_orb: {
+        type: "explosion",
+        damage: UltronCombo.orbs.damage,
+        obstacleDamage: 1,
+        rad: UltronCombo.orbs.blast,
+        shrapnelCount: 0,
+        shrapnelType: "",
+        explosionEffectType: "frag",
+        decalType: "",
+        ownerSafe: true,
     },
     // Ultron's Combo: where its ring deletes a projectile. No damage; clients end the shots near it
     explosion_kit_pop: {

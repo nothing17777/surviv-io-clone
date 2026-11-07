@@ -3933,7 +3933,7 @@ for (const [color, tracer] of Object.entries(orbColorTracer)) {
     });
 }
 // Ultron's Combo (see UltronCombo). The ring, the orbs and the portals are parked sprite shots that hurt no one
-// (Player.updateUltronCombo does the ring's damage and times the rest): the ring's fly out at the ring's speed,
+// (Player.updateUltronCombo does the ring's damage, sets the orbs off and times the rest): the ring's fly out at the ring's speed,
 // the others sit for the `lifetime` they are fired with (an `age` makes the rest of it)
 const comboFx = (id: string, b: Partial<BulletDef>) =>
     kitBullet(`bullet_kit_ultron_fx_${id}`, {
@@ -3956,17 +3956,7 @@ const comboHover = { speed: 0.2, lifetime: 10 };
 comboFx("red", { ...comboHover, sprite: kitAsset("orb_red"), spriteSize: 44 });
 comboFx("blue", { ...comboHover, sprite: kitAsset("ultron_orb_blue"), spriteSize: 48 });
 comboFx("portal", { ...comboHover, sprite: kitAsset("ultron_portal"), spriteSize: 80, spin: 5 });
-// the real shots: 15 dmg orbs, one 30 dmg blast and a 40 dmg piercing laser (the same beam as his skill 1)
-kitBullet("bullet_kit_ultron_combo_orb", {
-    damage: UltronCombo.volley.damage,
-    speed: 140,
-    distance: 60,
-    noTracer: true,
-    tracerColor: "cw_bubble",
-    tracerWidth: 0.3,
-    sprite: kitAsset("ultron_orb_blue"),
-    spriteSize: 40,
-});
+// the real shots: a blast from each portal, then a piercing laser (the same beam as his skill 1)
 kitBullet("bullet_kit_ultron_combo_blast", {
     damage: UltronCombo.blast.damage,
     speed: 160,

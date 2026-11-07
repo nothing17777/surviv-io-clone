@@ -18,11 +18,11 @@ import {
     KitDefs,
     SentryCharge,
     SentryNova,
+    SpiderCombo,
     UltronCombo,
     UltronComboTimes,
     UltronMinion,
     WolverineCombo,
-    SpiderCombo,
     WolverineComboStep,
     WolverineDash,
 } from "../../../../shared/defs/gameObjects/kitDefs.ts";
@@ -1144,10 +1144,8 @@ export class Player extends BaseGameObject {
         target?: Player;
         /** the steps already done */
         done: Set<string>;
-        /** the portals' axis: from Ultron to the marked enemy, set when the first portal opens */
-        axis: Vec2;
-        /** the red orbs' places round Ultron */
-        orbSpots: Vec2[];
+        /** where the red orbs hang round the marked enemy, then go off, and where the portals open */
+        spots: Vec2[];
     };
     /** marked by an Ultron's Combo: an orange target under them */
     ultronMarked = false;
@@ -1166,8 +1164,7 @@ export class Player extends BaseGameObject {
             hit: new Set(),
             deleted: 0,
             done: new Set(),
-            axis: v2.copy(this.dir),
-            orbSpots: [],
+            spots: [],
         };
         // the green ring: a circle of shots that spread as fast as the ring does
         const n = UltronCombo.ring.bullets;
@@ -1238,14 +1235,6 @@ export class Player extends BaseGameObject {
         );
     }
 
-    /** where a portal of the combo opens: `side` 0 in front of the marked enemy, 1 to their left, 2 behind */
-    comboPortalPos(target: Vec2, axis: Vec2, side: 0 | 1 | 2) {
-        const d = UltronCombo.portal.distance;
-        // world y points up, so v2.perp is to the left of the way Ultron is looking at them
-        const way = side === 0 ? v2.mul(axis, -d) : side === 1 ? v2.mul(v2.perp(axis), d) : v2.mul(axis, d);
-        return v2.add(target, way);
-    }
-
     /** Ultron's Combo, every tick: the ring, then the orbs, then the three portals, on the times UltronComboTimes gives */
     updateUltronCombo(dt: number) {
         const c = this.ultronCombo;
@@ -1279,56 +1268,45 @@ export class Player extends BaseGameObject {
 
         const count = UltronCombo.orbs.count;
         if (due("orbs", T.ringEnd)) {
-            // red orbs in a circle round him; they will turn blue
-            const turn = Math.atan2(this.dir.y, this.dir.x);
+            // red orbs drop in a circle round the marked enemy; one of them is on Ultron's side of them
+            const back = v2.normalizeSafe(v2.sub(this.pos, target.pos), this.dir);
+            const turn = Math.atan2(back.y, back.x);
             for (let i = 0; i < count; i++) {
                 const a = turn + (i / count) * Math.PI * 2;
                 const way = v2.create(Math.cos(a), Math.sin(a));
-                c.orbSpots.push(v2.add(this.pos, v2.mul(way, UltronCombo.orbs.radius)));
-                this.fireComboFx("red", c.orbSpots[i], way, T.blueAt - c.time);
+                c.spots.push(v2.add(target.pos, v2.mul(way, UltronCombo.orbs.radius)));
+                this.fireComboFx("red", c.spots[i], way, T.blueAt - c.time);
             }
         }
         if (due("blue", T.blueAt)) {
-            // the blue outline: each orb stays up until its own shot is fired
+            // the blue outline: they go off when it has been up for orbs.blue s
+            for (const spot of c.spots) this.fireComboFx("blue", spot, v2.copy(this.dir), T.boomAt - c.time);
+        }
+        if (due("boom", T.boomAt)) {
             for (let i = 0; i < count; i++) {
-                const fireAt = T.volleyAt + i * UltronCombo.volley.interval;
-                this.fireComboFx("blue", c.orbSpots[i], v2.copy(this.dir), fireAt - c.time);
-            }
-        }
-        if (due("portal1", T.portal1At)) {
-            c.axis = v2.normalizeSafe(v2.sub(target.pos, this.pos), this.dir);
-            const at = this.comboPortalPos(target.pos, c.axis, 0);
-            // it is gone as the last orb has gone through it
-            this.fireComboFx("portal", at, c.axis, T.volleyEnd + 0.03 - c.time);
-        }
-        for (let i = 0; i < count; i++) {
-            if (due(`shot${i}`, T.volleyAt + i * UltronCombo.volley.interval)) {
-                this.fireComboShot(
-                    "bullet_kit_ultron_combo_orb",
-                    this.comboPortalPos(target.pos, c.axis, 0),
-                    target.pos,
+                this.game.explosionBarn.addExplosion("explosion_kit_ultron_orb", v2.copy(c.spots[i]), this.layer, {
+                    source: this,
+                    gameSourceType: "kit_ultron_blast",
+                    weaponSourceType: "kit_ultron_blast",
+                    damageType: GameConfig.DamageType.Player,
+                });
+                // a portal opens where each one went off, and closes as its laser has left
+                this.fireComboFx(
+                    "portal",
+                    c.spots[i],
+                    v2.normalizeSafe(v2.sub(target.pos, c.spots[i]), this.dir),
+                    T.laserAt(i) + 0.03 - c.time,
                 );
             }
         }
-        if (due("portal2", T.portal2At)) {
-            this.fireComboFx("portal", this.comboPortalPos(target.pos, c.axis, 1), c.axis, T.blastAt + 0.03 - c.time);
-        }
-        if (due("blast", T.blastAt)) {
-            this.fireComboShot(
-                "bullet_kit_ultron_combo_blast",
-                this.comboPortalPos(target.pos, c.axis, 1),
-                target.pos,
-            );
-        }
-        if (due("portal3", T.portal3At)) {
-            this.fireComboFx("portal", this.comboPortalPos(target.pos, c.axis, 2), c.axis, T.laserAt + 0.03 - c.time);
-        }
-        if (due("laser", T.laserAt)) {
-            this.fireComboShot(
-                "bullet_kit_ultron_combo_laser",
-                this.comboPortalPos(target.pos, c.axis, 2),
-                target.pos,
-            );
+        // the portals fire in turn: a blast, then a laser
+        for (let i = 0; i < count; i++) {
+            if (due(`blast${i}`, T.fireAt(i))) {
+                this.fireComboShot("bullet_kit_ultron_combo_blast", c.spots[i], target.pos);
+            }
+            if (due(`laser${i}`, T.laserAt(i))) {
+                this.fireComboShot("bullet_kit_ultron_combo_laser", c.spots[i], target.pos);
+            }
         }
         if (c.time >= T.end) this.endUltronCombo();
     }
