@@ -331,10 +331,11 @@ export const SpiderDodgeTime = 2;
 export const WolverineDashDistance = 16;
 
 /**
- * Wolverine's dash flies with a Claw Combo hand (the claw) on either side of the streak, `offset` tiles from its
- * line, and hits everyone within `hitRadius` tiles of that line, so the hands are what widen it
+ * Wolverine's second skill, Adamantium Dash: the Claw Combo with a single claw, from below. It needs a marked
+ * enemy, hides and roots him the same way, drags the mark along and puts him at the claw's far end. It keeps the
+ * dash's old 50 dmg and 4 s bleed (see Player.damage) and 8 s cooldown
  */
-export const WolverineDashHands = { offset: 2.5, hitRadius: 3.5 };
+export const WolverineDash = { cooldown: 8, damage: 50, offsets: [{ x: 0, y: -1 }] };
 
 /**
  * Wolverine's Claw Combo. It needs an enemy in his mark (the nearest one within the kit's `mark.range`). While it

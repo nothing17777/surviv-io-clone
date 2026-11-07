@@ -5,8 +5,6 @@ import {
     KitDefs,
     SentryCharge,
     SpiderDodgeTime,
-    WolverineDashDistance,
-    WolverineDashHands,
 } from "../../../shared/defs/gameObjects/kitDefs.ts";
 import type { MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
 import { PerkProperties } from "../../../shared/defs/gameObjects/perkDefs.ts";
@@ -820,8 +818,11 @@ export class WeaponManager {
         this.scheduledReload = weapon.ammo <= 1;
 
         if (weapon.ammo <= 0) return;
-        // Wolverine's Claw Combo needs a marked enemy; without one nothing is used and no cooldown starts
-        if (this.activeWeapon === "kit_wolverine_combo" && !this.player.canStartClawCombo()) return;
+        // Wolverine's skills need a marked enemy; without one nothing is used and no cooldown starts
+        if (
+            (this.activeWeapon === "kit_wolverine_combo" || this.activeWeapon === "kit_wolverine_dash")
+            && !this.player.canStartClawCombo()
+        ) return;
         // only one Judge rocket in the air at a time
         if (this.activeWeapon === "pg_judge") {
             const live = this.player.activeJudgeRocket;
@@ -871,35 +872,10 @@ export class WeaponManager {
         }
         // Green Goblin's Golden Upgrade: the sub drones come out and he runs faster for its duration
         if (this.activeWeapon === "kit_goblin_upgrade") this.player.startGoblinUpgrade();
-        // Wolverine's Claw Combo: he vanishes while ten claws chain his mark around
-        if (this.activeWeapon === "kit_wolverine_combo") this.player.startClawCombo();
-        // Wolverine's dash: he slides 16 tiles alongside his streak (walls still stop him)
-        if (this.activeWeapon === "kit_wolverine_dash") {
-            const bullet = GameObjectDefs.typeToDef(itemDef.bulletType, "bullet");
-            this.player.webPull = {
-                target: v2.add(this.player.pos, v2.mul(this.player.dir, WolverineDashDistance)),
-                speed: bullet.speed,
-                time: WolverineDashDistance / bullet.speed + 0.1,
-            };
-            // a Claw Combo hand flies on each side of the streak; the streak's wider hitbox is what they stand for
-            const side = v2.perp(this.player.dir);
-            const front = v2.add(this.player.pos, v2.mul(this.player.dir, this.player.rad));
-            for (const sign of [-1, 1]) {
-                this.player.game.bulletBarn.fireBullet(
-                    {
-                        playerId: this.player.__id,
-                        bulletType: "bullet_kit_wolverine_dash_claw",
-                        gameSourceType: this.activeWeapon,
-                        damageType: GameConfig.DamageType.Player,
-                        pos: v2.add(front, v2.mul(side, sign * WolverineDashHands.offset)),
-                        dir: v2.copy(this.player.dir),
-                        layer: this.player.aimLayer,
-                        damageMult: 1,
-                        shotFx: false,
-                        reflectCount: 0,
-                    } as Parameters<typeof this.player.game.bulletBarn.fireBullet>[0],
-                );
-            }
+        // Wolverine's Claw Combo (ten claws) and Adamantium Dash (one, from below): he vanishes while the claws
+        // chain his mark around
+        if (this.activeWeapon === "kit_wolverine_combo" || this.activeWeapon === "kit_wolverine_dash") {
+            this.player.startClawCombo(this.activeWeapon);
         }
 
         // Sentry Charge: a 30 tile dash at Ahri's dash speed, flying for 2 s; it heals him whether or not it hits.

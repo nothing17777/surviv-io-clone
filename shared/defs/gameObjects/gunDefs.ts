@@ -6,7 +6,7 @@ import { ChampionDefs, championSound } from "./championDefs.ts";
 import { CustomGuns, CustomWeaponsVersion } from "./customWeaponDefs.ts";
 import { BaseGunLengths, GunEffects, GunOverrides, HiddenCustomGuns, SwingShotBullets } from "./customWeaponEffects.ts";
 import type { BaseWeaponDef } from "./itemTypes.ts";
-import { SentryCharge, WolverineCombo, WolverineDashDistance, WolverineDashHands } from "./kitDefs.ts";
+import { SentryCharge, WolverineCombo, WolverineDash } from "./kitDefs.ts";
 
 export interface GunDef extends BaseWeaponDef {
     type: "gun";
@@ -3986,20 +3986,6 @@ kitBullet("bullet_kit_wolverine_claw", {
     // screen px at zoom 1, the same as the dash's streak
     spriteSize: 120,
 });
-// the two hands beside Wolverine's dash: the same claw, flying with the streak (the dash's speed and length), damage
-// 0 and through everyone; the streak's own wider hitbox is what hits (see kit_wolverine_dash)
-kitBullet("bullet_kit_wolverine_dash_claw", {
-    damage: 0,
-    speed: 40,
-    distance: WolverineDashDistance,
-    noPlayerHit: true,
-    noDistAdj: true,
-    noTracer: true,
-    tracerColor: "cw_white",
-    tracerWidth: 0.3,
-    sprite: kitAsset("wolverine_claw"),
-    spriteSize: 120,
-});
 // the same claw left where it ended: it only creeps along at 0.2 u/s, and is fired with a range of that speed
 // times how long it should stay (WolverineCombo.linger), so it goes away by itself
 kitBullet("bullet_kit_wolverine_claw_rest", {
@@ -4141,25 +4127,15 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
         extendedClip: 250,
         extendedReload: 250,
     }),
-    // Wolverine dash: 16 tiles forward, 50 dmg and a bleed to whoever he slashes through, 8 s cooldown.
-    // The streak flies alongside him and does the damage; a Claw Combo hand flies on each side of it (see
-    // WeaponManager), and the streak hits everyone within their width. It is held as its slot icon
-    kitGun("kit_wolverine_dash", "barrett", {
-        damage: 50,
-        speed: 40,
-        distance: 16,
-        falloff: 1,
-        playerPierce: true,
-        pierceLoss: 0,
-        hitRadius: WolverineDashHands.hitRadius,
-        noTracer: true,
-        tracerColor: "cw_white",
-        tracerWidth: 0.3,
-        sprite: kitAsset("flint_shot"),
-        // screen px at zoom 1, sized like the Christmas Ultimatum tree (80) so it reads at 15x zoom
-        spriteSize: 120,
-    }, {
+    // Wolverine's skill 2, Adamantium Dash: the Claw Combo with one claw, from below (see Player.startClawCombo).
+    // It fires nothing itself, needs a marked enemy, does 50 dmg and a 4 s bleed, 8 s cooldown, and plays the
+    // combo's first sound. It is held as its slot icon
+    kitGun("kit_wolverine_dash", "barrett", {}, {
         name: "Adamantium Dash",
+        bulletCount: 0,
+        mounted: true,
+        caseTiming: "reload",
+        sound: { shoot: "wolverine_combo_devourer" },
         // the slot icon (168 wide) is the held sprite too; its art fills the whole image, where the old world
         // sprite's filled 112 of 128, so it is drawn at that share of the usual size to look the same size
         worldImg: {
@@ -4170,7 +4146,7 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
             },
         },
         fireMode: "single",
-        fireDelay: 8,
+        fireDelay: WolverineDash.cooldown,
         energyCost: 0,
         shotSpread: 0,
         moveSpread: 0,
