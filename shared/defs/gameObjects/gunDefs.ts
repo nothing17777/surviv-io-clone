@@ -6,7 +6,7 @@ import { ChampionDefs, championSound } from "./championDefs.ts";
 import { CustomGuns, CustomWeaponsVersion } from "./customWeaponDefs.ts";
 import { BaseGunLengths, GunEffects, GunOverrides, HiddenCustomGuns, SwingShotBullets } from "./customWeaponEffects.ts";
 import type { BaseWeaponDef } from "./itemTypes.ts";
-import { SentryCharge, SentryNova, WolverineCombo, WolverineDash } from "./kitDefs.ts";
+import { SentryCharge, SentryNova, SpiderCombo, WolverineCombo, WolverineDash } from "./kitDefs.ts";
 
 export interface GunDef extends BaseWeaponDef {
     type: "gun";
@@ -4000,6 +4000,37 @@ kitBullet("bullet_kit_wolverine_claw_rest", {
     sprite: kitAsset("wolverine_claw"),
     spriteSize: 120,
 });
+
+// Spider-Man's Portal Combo (see Player.updateSpiderCombo, which does the hitting). The portal is a picture only,
+// parked where it opens (fired with a range of its slow speed times how long it stays); the slash is drawn flying
+// with each dash, one sprite per direction since a bullet's sprite is not turned to face where it goes
+kitBullet("bullet_kit_spider_portal", {
+    damage: 0,
+    speed: SpiderCombo.parkSpeed,
+    distance: 60,
+    noPlayerHit: true,
+    noDistAdj: true,
+    noTracer: true,
+    tracerColor: "cw_white",
+    tracerWidth: 0.3,
+    sprite: kitAsset("spider_portal"),
+    // screen px at zoom 1, like the claws
+    spriteSize: 120,
+});
+for (const side of ["r", "l", "t", "b"]) {
+    kitBullet(`bullet_kit_spider_slash_${side}`, {
+        damage: 0,
+        speed: SpiderCombo.speed,
+        distance: SpiderCombo.distance,
+        noPlayerHit: true,
+        noDistAdj: true,
+        noTracer: true,
+        tracerColor: "cw_white",
+        tracerWidth: 0.3,
+        sprite: kitAsset(`spider_slash_${side}`),
+        spriteSize: 120,
+    });
+}
 
 // Green Goblin's pumpkin bomb: an orange orb that goes off on the first enemy it touches or when its 10 s are
 // up, whichever comes first, bouncing off every wall in between (the 10 s runs through the bounces). The

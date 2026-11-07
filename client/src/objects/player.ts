@@ -343,6 +343,7 @@ export class Player implements AbstractObject {
         wizardMarked: boolean;
         wolverineMarked: boolean;
         hidden: boolean;
+        webbed: boolean;
         vulnerable: boolean;
         excaliburActive: boolean;
         championIndex: number;
@@ -530,6 +531,7 @@ export class Player implements AbstractObject {
             wizardMarked: false,
             wolverineMarked: false,
             hidden: false,
+            webbed: false,
             vulnerable: false,
             excaliburActive: false,
             championIndex: 0,
@@ -631,6 +633,7 @@ export class Player implements AbstractObject {
             this.m_netData.wizardMarked = data.wizardMarked;
             this.m_netData.wolverineMarked = data.wolverineMarked;
             this.m_netData.hidden = data.hidden;
+            this.m_netData.webbed = data.webbed;
             this.m_netData.vulnerable = data.vulnerable;
             this.m_netData.excaliburActive = data.excaliburActive;
             this.m_netData.flying = data.flying;
@@ -2873,6 +2876,7 @@ export class Player implements AbstractObject {
 
     kitCircle: PIXI.Sprite | null = null;
     kitSigil: PIXI.Sprite | null = null;
+    webbedSprite: PIXI.Sprite | null = null;
     vulnerableRing: PIXI.Graphics | null = null;
     kitDaggers: PIXI.Sprite[] = [];
     /** War Machine's right and left shoulder mounts */
@@ -3067,6 +3071,19 @@ export class Player implements AbstractObject {
             const s = (3.2 * px) / Math.max(tex.width, 1);
             this.kitSigil.scale.set(s, s);
             this.kitSigil.rotation -= dt * 0.8;
+        }
+        // Spider-Man's Portal Combo: the webbing over whoever it stunned
+        if (this.m_netData.webbed || this.webbedSprite) {
+            if (!this.webbedSprite) {
+                this.webbedSprite = PIXI.Sprite.from("img/custom-weapons/fx/kit/spider_stun.png");
+                this.webbedSprite.anchor.set(0.5, 0.5);
+                this.auraContainer.addChild(this.webbedSprite);
+            }
+            this.webbedSprite.visible = this.m_netData.webbed && !dead;
+            const tex = this.webbedSprite.texture;
+            const s = (3.4 * px) / Math.max(tex.width, 1);
+            this.webbedSprite.scale.set(s, s);
+            this.webbedSprite.alpha = 0.85;
         }
         if (this.m_netData.vulnerable || this.vulnerableRing) {
             if (!this.vulnerableRing) {

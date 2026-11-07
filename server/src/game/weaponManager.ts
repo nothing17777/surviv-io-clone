@@ -5,7 +5,6 @@ import {
     KitDefs,
     SentryCharge,
     SentryNova,
-    SpiderDodgeTime,
 } from "../../../shared/defs/gameObjects/kitDefs.ts";
 import type { MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
 import { PerkProperties } from "../../../shared/defs/gameObjects/perkDefs.ts";
@@ -432,16 +431,14 @@ export class WeaponManager {
             player.animType !== GameConfig.Anim.Melee
             && (player.shootStart || (player.shootHold && itemDef.autoAttack))
             && weapon.cooldown < 0
+            && (this.activeWeapon !== "kit_spider_dodge" || this.player.canStartSpiderCombo())
             && this.payEnergy(itemDef.energyCost)
         ) {
             this.player.cancelAction();
             // abilities in the melee slot
             if (this.activeWeapon === "kit_ultron_minions") this.player.spawnMinions();
             if (this.activeWeapon === "kit_spider_dodge") {
-                this.player.dodgeTime = SpiderDodgeTime;
-                // the faster webs start straight away
-                this.player.autoFireTimer = 0;
-                this.player.setDirty();
+                this.player.startSpiderCombo();
             }
             // Green Goblin's Tricky Swap
             if (this.activeWeapon === "kit_goblin_swap") this.player.goblinSwap();

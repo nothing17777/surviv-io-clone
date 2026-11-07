@@ -91,7 +91,7 @@ export interface KitDef {
         upgrade: { duration: number; speedBonus: number; subDrones: number; bombEvery: number };
         swapBombFuse: number;
     };
-    /** Wolverine: the nearest enemy within `range` is marked (a sigil under them), which his Claw Combo needs */
+    /** Wolverine and Spider-Man: the nearest enemy within `range` is marked (a sigil under them), which their combos need */
     mark?: { range: number };
     /** Sentry: takes this fraction less damage from everything (a hit's armor penetration cuts it too) */
     damageReduction?: number;
@@ -192,6 +192,7 @@ export const KitDefs: Record<string, KitDef> = {
         outfit: "outfitKitSpiderman",
         primary: "kit_spider_web",
         melee: "kit_spider_dodge",
+        mark: { range: 30 },
         fullBoost: true,
         speedBonus: 2,
         regen: 2,
@@ -325,8 +326,30 @@ export const KitDefs: Record<string, KitDef> = {
 };
 
 /** Ultron's minions: bots that fight for their summoner, then blow up */
-/** Spider-Man's Sudden Dodge: seconds untargetable */
-export const SpiderDodgeTime = 2;
+/**
+ * Spider-Man's second skill, the Portal Combo. It needs an enemy in his mark (like Wolverine's), who is stunned
+ * for `stun` seconds the moment it starts. Then four portals open around the mark, one every `interval` seconds,
+ * on the sides `offsets` names (world y is up) and `startDist` away; each lasts `portalLife`, and `enter` seconds
+ * after it opens he steps through and dashes straight across the mark to the same distance on the far side
+ * (`speed`, `distance` long), hurting everyone the dash crosses once for `damage`. He can't move on his own for the
+ * whole combo, and it leaves him where the last dash ended
+ */
+export const SpiderCombo = {
+    cooldown: 12,
+    damage: 25,
+    stun: 4,
+    interval: 1,
+    portalLife: 0.7,
+    enter: 0.3,
+    speed: 80,
+    distance: 16,
+    startDist: 8,
+    hitRadius: 2.5,
+    /** a portal this much slower than a bullet can be: it only sits where it was fired */
+    parkSpeed: 0.2,
+    /** right, left, top, bottom of the mark */
+    offsets: [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }],
+};
 
 /** Wolverine's dash: how far he goes */
 export const WolverineDashDistance = 16;

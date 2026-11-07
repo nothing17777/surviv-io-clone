@@ -20,6 +20,7 @@ import {
     SentryNova,
     UltronMinion,
     WolverineCombo,
+    SpiderCombo,
     WolverineComboStep,
     WolverineDash,
 } from "../../../../shared/defs/gameObjects/kitDefs.ts";
@@ -836,6 +837,29 @@ export class Player extends BaseGameObject {
         /** whoever the claw has hit, and who it is dragging along */
         shotHit: Set<number>;
         grabbed: Player[];
+    };
+
+    /** seconds left of the web stun Spider-Man's Portal Combo put on this player (see `webbed`) */
+    webStunTime = 0;
+
+    get webbed() {
+        return this.webStunTime > 0 && !this.dead;
+    }
+
+    /** Spider-Man's Portal Combo while it runs (see startSpiderCombo) */
+    spiderCombo?: {
+        target: Player;
+        /** which portal is out, and the seconds since it opened */
+        step: number;
+        t: number;
+        /** the portal, the way he dashes through it, and whether he is mid-dash (and the seconds into it) */
+        portal: Vec2;
+        dir: Vec2;
+        dashing: boolean;
+        entered: boolean;
+        dashT: number;
+        /** who this dash has already hurt */
+        hit: Set<number>;
     };
 
     /** hidden for the whole Claw Combo: unseen by anyone but his team, and nothing can hit or target him */
@@ -2628,7 +2652,7 @@ export class Player extends BaseGameObject {
         if (this.activeJudgeRocket) v2.set(movement, v2.create(0, 0));
 
         // Sentry Charge's stun (and Wolverine's Claw Combo): no moving, and any slide he was on stops
-        if (this.stunTime > 0 || this.clawCombo) {
+        if (this.stunTime > 0 || this.clawCombo || this.spiderCombo) {
             v2.set(movement, v2.create(0, 0));
             this.webPull = undefined;
         }
@@ -2705,6 +2729,7 @@ export class Player extends BaseGameObject {
         this.mapIndicator?.updatePosition(this.pos);
         this.updateSentryDash(dt);
         this.updateClawCombo(dt);
+        this.updateSpiderCombo(dt);
         this.updateSentryNova(dt);
 
         // if we are the group leader and new players can still join the group
@@ -3049,7 +3074,7 @@ export class Player extends BaseGameObject {
         // Weapon stuff
         //
         // stunned (or mid Claw Combo): no shooting, swinging, reloading or item use
-        if (this.stunTime > 0 || this.clawCombo) {
+        if (this.stunTime > 0 || this.clawCombo || this.spiderCombo) {
             this.shootStart = false;
             this.shootHold = false;
             this.cancelAction();
@@ -3512,6 +3537,8 @@ export class Player extends BaseGameObject {
         this.wizardMarks.clear();
         // a Wolverine's mark and combo end with either of them
         this.endClawCombo();
+        this.spiderCombo = undefined;
+        this.webStunTime = 0;
         this.setMarkTarget(undefined);
         for (const w of [...this.markedBy]) w.setMarkTarget(undefined);
         this.flightTime = 0;
@@ -5833,6 +5860,7 @@ export class Player extends BaseGameObject {
         this.energyDirty = true;
         this.kitEnhanceTime = 0;
         this.endClawCombo();
+        this.spiderCombo = undefined;
         this.setMarkTarget(undefined);
         this.resetItemTriggers();
         this.outfit = this.loadout.outfit;
@@ -5912,6 +5940,10 @@ export class Player extends BaseGameObject {
         if (this.dodgeTime > 0) {
             this.dodgeTime = Math.max(0, this.dodgeTime - dt);
             if (this.dodgeTime === 0) this.setDirty();
+        }
+        if (this.webStunTime > 0) {
+            this.webStunTime = Math.max(0, this.webStunTime - dt);
+            if (this.webStunTime === 0) this.setDirty();
         }
         if (kit.mark) this.updateMark(kit.mark);
         if (kit.autoFire) this.updateAutoFire(dt, kit.autoFire);
@@ -6245,8 +6277,9 @@ export class Player extends BaseGameObject {
 
     /** Wolverine: the nearest enemy within range is marked; during a Claw Combo it stays on whoever it is hitting */
     updateMark(m: NonNullable<(typeof KitDefs)[string]["mark"]>) {
-        if (this.clawCombo) {
-            this.setMarkTarget(this.clawCombo.target);
+        const locked = this.clawCombo?.target ?? this.spiderCombo?.target;
+        if (locked) {
+            this.setMarkTarget(locked);
             return;
         }
         const near = this.enemiesWithin(m.range);
@@ -6450,6 +6483,139 @@ export class Player extends BaseGameObject {
             this.game.grid.updateObject(this);
         }
         this.setDirty();
+    }
+
+    /** the Portal Combo needs a marked enemy who can be hit, and Spider-Man can't be in another combo */
+    canStartSpiderCombo() {
+        const t = this.markTarget;
+        return !this.dead && !this.spiderCombo && !this.clawCombo && !!t && !t.dead && !t.untargetable;
+    }
+
+    /** the mark is webbed up and stunned for the whole combo, and the first portal opens around it */
+    startSpiderCombo() {
+        const target = this.markTarget!;
+        this.spiderCombo = {
+            target,
+            step: 0,
+            t: 0,
+            portal: v2.copy(target.pos),
+            dir: v2.create(1, 0),
+            dashing: false,
+            entered: false,
+            dashT: 0,
+            hit: new Set(),
+        };
+        this.webPull = undefined;
+        target.stunTime = Math.max(target.stunTime, SpiderCombo.stun);
+        target.webStunTime = SpiderCombo.stun;
+        target.webPull = undefined;
+        target.setDirty();
+        this.beginSpiderPortal();
+        this.setDirty();
+    }
+
+    private fireSpiderBullet(bulletType: string, pos: Vec2, dir: Vec2, extra: object) {
+        const c = this.spiderCombo!;
+        return this.game.bulletBarn.fireBullet(
+            {
+                playerId: this.__id,
+                bulletType,
+                gameSourceType: "kit_spider_web",
+                damageType: GameConfig.DamageType.Player,
+                pos: v2.copy(pos),
+                dir,
+                layer: c.target.layer,
+                damageMult: 1,
+                shotFx: false,
+                reflectCount: 0,
+                ...extra,
+            } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
+        );
+    }
+
+    /** the portal at `step` opens beside the mark; it is only the picture, and goes away by itself */
+    private beginSpiderPortal() {
+        const c = this.spiderCombo!;
+        const o = SpiderCombo.offsets[c.step];
+        c.dir = v2.normalizeSafe(v2.create(-o.x, -o.y), v2.create(-1, 0));
+        c.portal = v2.add(c.target.pos, v2.mul(v2.create(o.x, o.y), SpiderCombo.startDist));
+        this.game.map.clampToMapBounds(c.portal, this.rad);
+        c.t = 0;
+        c.entered = false;
+        c.dashing = false;
+        c.dashT = 0;
+        c.hit = new Set();
+        this.fireSpiderBullet("bullet_kit_spider_portal", c.portal, c.dir, {
+            clipDistance: true,
+            distance: SpiderCombo.parkSpeed * SpiderCombo.portalLife,
+        });
+    }
+
+    /** he is put at `to` (the portal or the end of the dash), the way a Claw Combo ends */
+    private warpTo(to: Vec2) {
+        const pos = v2.copy(to);
+        this.game.map.clampToMapBounds(pos, this.rad);
+        v2.set(this.pos, pos);
+        this.pushOutOfWalls(this);
+        v2.set(this.posOld, this.pos);
+        this.mapIndicator?.updatePosition(this.pos);
+        this.setPartDirty();
+        this.game.grid.updateObject(this);
+    }
+
+    /**
+     * Every tick of a Portal Combo: a portal opens every second; shortly after, he steps through and dashes
+     * across the mark, hurting everyone the dash crosses once. If the mark or he dies the combo is over
+     */
+    updateSpiderCombo(dt: number) {
+        const c = this.spiderCombo;
+        if (!c) return;
+        if (this.dead || c.target.dead) {
+            this.spiderCombo = undefined;
+            return;
+        }
+        c.t += dt;
+        if (!c.entered && c.t >= SpiderCombo.enter) {
+            c.entered = true;
+            c.dashing = true;
+            c.dashT = 0;
+            this.warpTo(c.portal);
+            const horizontal = Math.abs(c.dir.x) > Math.abs(c.dir.y);
+            const dirName = horizontal ? (c.dir.x > 0 ? "r" : "l") : (c.dir.y > 0 ? "t" : "b");
+            this.fireSpiderBullet(`bullet_kit_spider_slash_${dirName}`, c.portal, c.dir, {});
+        }
+        if (c.dashing) {
+            const prevProg = Math.min(c.dashT * SpiderCombo.speed, SpiderCombo.distance);
+            c.dashT += dt;
+            const prog = Math.min(c.dashT * SpiderCombo.speed, SpiderCombo.distance);
+            const before = v2.add(c.portal, v2.mul(c.dir, prevProg));
+            const head = v2.add(c.portal, v2.mul(c.dir, prog));
+            for (const p of this.game.playerBarn.livingPlayers) {
+                if (p === this || p.dead || p.untargetable || p.teamId === this.teamId) continue;
+                if (!util.sameLayer(p.layer, c.target.layer) || c.hit.has(p.__id)) continue;
+                if (math.distToSegmentSq(p.pos, before, head) > (SpiderCombo.hitRadius + p.rad) ** 2) continue;
+                c.hit.add(p.__id);
+                p.damage({
+                    amount: SpiderCombo.damage,
+                    damageType: GameConfig.DamageType.Player,
+                    gameSourceType: "kit_spider_web",
+                    weaponSourceType: "kit_spider_web",
+                    source: this,
+                    dir: c.dir,
+                });
+            }
+            this.warpTo(head);
+            if (prog >= SpiderCombo.distance) c.dashing = false;
+        }
+        if (c.t >= SpiderCombo.interval - 1e-6) {
+            if (c.step >= SpiderCombo.offsets.length - 1) {
+                this.spiderCombo = undefined;
+                this.setDirty();
+                return;
+            }
+            c.step++;
+            this.beginSpiderPortal();
+        }
     }
 
     /** Summoner: the blade minions take turns flying at the focused enemy, else the nearest one on screen */
