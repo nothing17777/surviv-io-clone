@@ -334,7 +334,7 @@ export const KitDefs: Record<string, KitDef> = {
  * (`speed`, `distance` long), hurting everyone the dash crosses once for `damage`. He can't move on his own for the
  * whole combo, and it leaves him where the last dash ended
  */
-const SpiderDashSpeed = 120;
+const SpiderDashSpeed = 80;
 const SpiderDashDistance = 32;
 /** how long one dash takes: the next portal is ready the moment it ends */
 const SpiderDashTime = SpiderDashDistance / SpiderDashSpeed;
