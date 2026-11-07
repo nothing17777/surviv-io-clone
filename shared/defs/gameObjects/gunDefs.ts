@@ -6,7 +6,7 @@ import { ChampionDefs, championSound } from "./championDefs.ts";
 import { CustomGuns, CustomWeaponsVersion } from "./customWeaponDefs.ts";
 import { BaseGunLengths, GunEffects, GunOverrides, HiddenCustomGuns, SwingShotBullets } from "./customWeaponEffects.ts";
 import type { BaseWeaponDef } from "./itemTypes.ts";
-import { SentryCharge, SentryNova, SpiderCombo, WolverineCombo, WolverineDash } from "./kitDefs.ts";
+import { SentryCharge, SentryNova, SpiderCombo, UltronCombo, WolverineCombo, WolverineDash } from "./kitDefs.ts";
 
 export interface GunDef extends BaseWeaponDef {
     type: "gun";
@@ -3932,6 +3932,53 @@ for (const [color, tracer] of Object.entries(orbColorTracer)) {
         tracerWidth: 0.35,
     });
 }
+// Ultron's Combo (see UltronCombo). The ring, the orbs and the portals are parked sprite shots that hurt no one
+// (Player.updateUltronCombo does the ring's damage, sets the orbs off and times the rest): the ring's fly out at the ring's speed,
+// the others sit for the `lifetime` they are fired with (an `age` makes the rest of it)
+const comboFx = (id: string, b: Partial<BulletDef>) =>
+    kitBullet(`bullet_kit_ultron_fx_${id}`, {
+        damage: 0,
+        noPlayerHit: true,
+        playerPierce: true,
+        noDistAdj: true,
+        noTracer: true,
+        tracerColor: "cw_poison",
+        tracerWidth: 0.3,
+        ...b,
+    });
+comboFx("ring", {
+    speed: UltronCombo.ring.speed,
+    distance: UltronCombo.ring.radius,
+    sprite: kitAsset("orb_green"),
+    spriteSize: 30,
+});
+const comboHover = { speed: 0.2, lifetime: 10 };
+comboFx("red", { ...comboHover, sprite: kitAsset("orb_red"), spriteSize: 44 });
+comboFx("blue", { ...comboHover, sprite: kitAsset("ultron_orb_blue"), spriteSize: 48 });
+comboFx("portal", { ...comboHover, sprite: kitAsset("ultron_portal"), spriteSize: 80, spin: 5 });
+// the real shots: a blast from each portal, then a piercing laser (the same beam as his skill 1)
+kitBullet("bullet_kit_ultron_combo_blast", {
+    damage: UltronCombo.blast.damage,
+    speed: 160,
+    distance: 60,
+    noTracer: true,
+    tracerColor: "cw_holy",
+    tracerWidth: 0.3,
+    sprite: kitAsset("ultron_blast"),
+    spriteSize: 110,
+});
+kitBullet("bullet_kit_ultron_combo_laser", {
+    damage: UltronCombo.laser.damage,
+    speed: 400,
+    distance: 60,
+    obstacleDamage: 40,
+    beam: true,
+    playerPierce: true,
+    pierceLoss: 0,
+    tracerColor: "cw_magic",
+    tracerWidth: 0.6,
+    trailSprite: kitAsset("star_wrath_proj"),
+});
 // the Summoner's blade minions
 kitBullet("bullet_kit_dagger", {
     // a spinning blade minion, not a magic beam: only the dagger sprite is drawn
@@ -4270,17 +4317,17 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
         extendedClip: 250,
         extendedReload: 250,
     }),
-    // Ultron energy blast: six coloured orbs in a wider cone, 80 energy, 5 s cooldown
+    // Ultron's Combo (skill 2): all his energy, 15 s cooldown. The gun is only the key and the cooldown, the
+    // player runs the whole combo (Player.updateUltronCombo). No headshots, so its damage is what UltronCombo says
     kitGun("kit_ultron_blast", "barrett", { damage: 0 }, {
-        name: "Energy Blast",
+        name: "Ultron Combo",
         fireMode: "single",
-        fireDelay: 7,
-        energyCost: 80,
-        bulletCount: 6,
-        fanShot: true,
-        shotSpread: 16,
+        fireDelay: UltronCombo.cooldown,
+        // any energy will do: the combo takes all of it
+        energyCost: 1,
+        headshotMult: 1,
+        shotSpread: 0,
         moveSpread: 0,
-        bulletTypes: ["red", "blue", "green", "yellow", "purple", "orange"].map((c) => `bullet_kit_ultron_orb_${c}`),
         maxClip: 250,
         maxReload: 250,
         extendedClip: 250,

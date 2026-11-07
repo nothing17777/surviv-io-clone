@@ -876,6 +876,12 @@ export class WeaponManager {
             this.player.startClawCombo(this.activeWeapon);
         }
 
+        // Ultron's Combo: the skill is a timeline the player runs, not a volley of bullets (see UltronCombo)
+        if (this.activeWeapon === "kit_ultron_blast") {
+            this.player.startUltronCombo();
+            return;
+        }
+
         // Sentry Charge: a 30 tile dash at Ahri's dash speed, flying for 2 s; it heals him whether or not it hits.
         // His body hits and drags along whoever he runs through for as long as the dash lasts
         if (this.activeWeapon === "kit_sentry_charge") {

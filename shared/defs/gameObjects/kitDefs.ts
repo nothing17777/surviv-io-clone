@@ -466,6 +466,42 @@ export const SentryNova = {
     cooldown: 8,
 };
 
+/**
+ * Ultron's Combo (his skill 2): all his energy, `cooldown` s. He hangs untargetable and rooted until it ends.
+ * A green ring expands from him to `ring.radius`: each enemy it crosses takes `ring.damage` once and is
+ * stunned until the combo is over, enemy projectiles it crosses are deleted, and the first enemy it hits (the
+ * closest) is marked orange. `orbs.count` red orbs then appear round the marked enemy, get a blue outline after
+ * `orbs.red` s and go off `orbs.blue` s later in a wide blast (`orbs.damage` each, full damage out to
+ * `orbs.blast.min` and none past `orbs.blast.max`). A portal opens at every blast; `portal.lead` s later they
+ * fire in turn, `portal.interval` s apart: each one a blast (`blast.damage`) and, `laser.delay` s after it, a
+ * piercing laser (`laser.damage`), and closes as the laser leaves. `Times` are seconds since the cast
+ */
+export const UltronCombo = {
+    cooldown: 15,
+    ring: { radius: 30, speed: 100, damage: 20, bullets: 64 },
+    /** how long the stun lasts past the end of the combo */
+    stunAfter: 0.5,
+    orbs: { count: 5, radius: 4.5, red: 0.5, blue: 0.3, damage: 10, blast: { min: 5, max: 9 } },
+    portal: { lead: 0.2, interval: 0.15 },
+    blast: { damage: 10 },
+    laser: { damage: 15, delay: 0.2 },
+};
+
+const ringEnd = UltronCombo.ring.radius / UltronCombo.ring.speed;
+const blueAt = ringEnd + UltronCombo.orbs.red;
+const boomAt = blueAt + UltronCombo.orbs.blue;
+/** when portal `i` fires its blast, and when its laser follows */
+const fireAt = (i: number) => boomAt + UltronCombo.portal.lead + i * UltronCombo.portal.interval;
+const laserAt = (i: number) => fireAt(i) + UltronCombo.laser.delay;
+export const UltronComboTimes = {
+    ringEnd,
+    blueAt,
+    boomAt,
+    fireAt,
+    laserAt,
+    end: laserAt(UltronCombo.orbs.count - 1) + 0.05,
+};
+
 export const UltronMinion ={ count: 4, health: 17.5, speedMult: 0.75, life: 15, explosion: "explosion_kit_minion" };
 
 /** Ultron's energy blast orbs, one per colour, and the laser each one's blast fires */
