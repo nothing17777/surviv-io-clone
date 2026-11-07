@@ -167,7 +167,9 @@ export class Champion {
 
     cast(i: number) {
         const p = this.player;
-        if (p.dead || p.downed || p.debuffs.silence > 0 || p.debuffs.airborne > 0 || this.buff("zhonya")) return;
+        // stunned (Spider-Man's Portal Combo, the Sentry's charge) or silenced: no casting
+        if (p.dead || p.downed || p.stunned || p.debuffs.silence > 0 || p.debuffs.airborne > 0) return;
+        if (this.buff("zhonya")) return;
         const key = AbilityKeys[i];
         // Spirit Rush: the second and third dash are free while it lasts
         if (this.id === "ahri" && key === "r" && this.ahriCharges > 0 && this.buff("ahri_r")) {
@@ -189,7 +191,7 @@ export class Champion {
 
     useItem() {
         const p = this.player;
-        if (!this.active || this.itemCooldown > 0 || p.dead) return;
+        if (!this.active || this.itemCooldown > 0 || p.dead || p.stunned) return;
         if (this.active.kind === "stridebreaker") {
             for (const e of p.enemiesWithin(5)) {
                 this.hit(e, 40, "item");

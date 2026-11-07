@@ -3959,18 +3959,6 @@ kitBullet("bullet_kit_whip", {
     trailSprite: kitAsset("spinal_tap_proj"),
 });
 
-// Spider-Man's passive: a white web ball at the nearest enemy, as far and fast as the web shooter, no swing
-kitBullet("bullet_kit_spider_auto", {
-    damage: 30,
-    speed: 120,
-    distance: 40,
-    tracerColor: "cw_white",
-    tracerWidth: 0.3,
-    tracerLength: 1.2,
-    sprite: kitAsset("web_ball"),
-    spriteSize: 28,
-});
-
 // Wolverine's Claw Combo (see Player.updateClawCombo, which does the hitting). The claw is only the picture: damage 0,
 // it flies through everyone, as far as the dash's streak and twice as fast, and is drawn the same size
 kitBullet("bullet_kit_wolverine_claw", {
@@ -4195,6 +4183,33 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
         },
         fireMode: "single",
         fireDelay: WolverineDash.cooldown,
+        energyCost: 0,
+        shotSpread: 0,
+        moveSpread: 0,
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
+    // Spider-Man's passive (see Player.updateAutoFire): a white web ball at the nearest enemy, as far and fast as
+    // the web shooter, no swing. It is a gun only for its sound: nothing ever holds it, and it fires no recoil or
+    // casings
+    kitGun("kit_spider_auto", "deagle", {
+        damage: 30,
+        speed: 120,
+        distance: 40,
+        tracerColor: "cw_white",
+        tracerWidth: 0.3,
+        tracerLength: 1.2,
+        sprite: kitAsset("web_ball"),
+        spriteSize: 28,
+    }, {
+        name: "Web Burst",
+        fireMode: "single",
+        bulletCount: 0,
+        mounted: true,
+        caseTiming: "reload",
+        sound: { shoot: "spider_auto_splatshot" },
         energyCost: 0,
         shotSpread: 0,
         moveSpread: 0,

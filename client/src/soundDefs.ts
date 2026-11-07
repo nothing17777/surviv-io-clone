@@ -48,6 +48,12 @@ const Sounds: Record<string, Record<string, SoundDef>> = {
             volume: 1,
             maxInstances: 4,
         },
+        // Spider-Man's auto web
+        spider_auto_splatshot: {
+            path: "audio/kits/spider_auto_splatshot.ogg",
+            volume: 1,
+            maxInstances: 4,
+        },
         m9_01: {
             path: "audio/guns/m9_01.mp3",
             volume: 1,

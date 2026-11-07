@@ -6075,13 +6075,14 @@ export class Player extends BaseGameObject {
             {
                 playerId: this.__id,
                 bulletType: a.bullet,
-                gameSourceType: "kit_spider_web",
+                gameSourceType: "kit_spider_auto",
                 damageType: GameConfig.DamageType.Player,
                 pos: v2.copy(this.pos),
                 dir: v2.normalizeSafe(v2.sub(target.pos, this.pos), this.dir),
                 layer: this.layer,
                 damageMult: 1,
-                shotFx: false,
+                // the shot sound of kit_spider_auto
+                shotFx: true,
                 reflectCount: 0,
             } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
         );
