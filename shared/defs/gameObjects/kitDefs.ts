@@ -328,27 +328,37 @@ export const KitDefs: Record<string, KitDef> = {
 /** Ultron's minions: bots that fight for their summoner, then blow up */
 /**
  * Spider-Man's second skill, the Portal Combo. It needs an enemy in his mark (like Wolverine's), who is stunned
- * for `stun` seconds the moment it starts. Then four portals open around the mark, one every `interval` seconds,
+ * for `stun` seconds the moment it starts. Then eight portals open around the mark (its four sides, twice), one every `interval` seconds,
  * on the sides `offsets` names (world y is up) and `startDist` away; each lasts `portalLife`, and `enter` seconds
  * after it opens he steps through and dashes straight across the mark to the same distance on the far side
  * (`speed`, `distance` long), hurting everyone the dash crosses once for `damage`. He can't move on his own for the
  * whole combo, and it leaves him where the last dash ended
  */
 export const SpiderCombo = {
-    cooldown: 12,
-    damage: 25,
-    stun: 4,
+    cooldown: 8,
+    damage: 10,
+    // the whole combo (offsets.length * interval): the mark stays stunned until it is over
+    stun: 8,
     interval: 1,
     portalLife: 0.7,
     enter: 0.3,
-    speed: 80,
-    distance: 16,
-    startDist: 8,
+    speed: 240,
+    distance: 32,
+    startDist: 16,
     hitRadius: 2.5,
     /** a portal this much slower than a bullet can be: it only sits where it was fired */
     parkSpeed: 0.2,
-    /** right, left, top, bottom of the mark */
-    offsets: [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }],
+    /** right, left, top, bottom of the mark, and then once more */
+    offsets: [
+        { x: 1, y: 0 },
+        { x: -1, y: 0 },
+        { x: 0, y: 1 },
+        { x: 0, y: -1 },
+        { x: 1, y: 0 },
+        { x: -1, y: 0 },
+        { x: 0, y: 1 },
+        { x: 0, y: -1 },
+    ],
 };
 
 /** Wolverine's dash: how far he goes */
