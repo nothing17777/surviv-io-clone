@@ -1099,9 +1099,10 @@ export class Player extends BaseGameObject {
             }
             return true;
         });
-        if (r >= SentryNova.radius && this.sentryNovaGrabbed.every((p) => (this.sentryNovaHits.get(p.__id)?.n ?? 0) >= SentryNova.hits)) {
-            this.sentryNovaActive = false;
-        }
+        const spent = this.sentryNovaGrabbed.every(
+            (p) => (this.sentryNovaHits.get(p.__id)?.n ?? 0) >= SentryNova.hits,
+        );
+        if (r >= SentryNova.radius && spent) this.sentryNovaActive = false;
     }
 
     /** a Sentry Charge hit: burn, bleed and stun, and every perk gone for a while */
