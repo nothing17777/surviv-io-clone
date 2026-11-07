@@ -509,6 +509,18 @@ export const ExplosionDefs: Record<string, ExplosionDef> = {
         explosionEffectType: "rounds",
         decalType: "",
     },
+    // Ultron's Combo: where its ring deletes a projectile. No damage; clients end the shots near it
+    explosion_kit_pop: {
+        type: "explosion",
+        damage: 0,
+        obstacleDamage: 0,
+        rad: { min: 0.5, max: 1 },
+        shrapnelCount: 0,
+        shrapnelType: "",
+        explosionEffectType: "rounds",
+        decalType: "",
+        ownerSafe: true,
+    },
     // Green Goblin's pumpkin bombs (and the bomb his Tricky Swap leaves behind): 25 dmg, and they set the
     // enemy burning for 3 s (see Player.damage). They never hurt the goblin or his team
     explosion_kit_pumpkin: {

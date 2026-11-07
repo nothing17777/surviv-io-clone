@@ -344,6 +344,7 @@ export class Player implements AbstractObject {
         wolverineMarked: boolean;
         hidden: boolean;
         webbed: boolean;
+        ultronMarked: boolean;
         vulnerable: boolean;
         excaliburActive: boolean;
         championIndex: number;
@@ -532,6 +533,7 @@ export class Player implements AbstractObject {
             wolverineMarked: false,
             hidden: false,
             webbed: false,
+            ultronMarked: false,
             vulnerable: false,
             excaliburActive: false,
             championIndex: 0,
@@ -634,6 +636,7 @@ export class Player implements AbstractObject {
             this.m_netData.wolverineMarked = data.wolverineMarked;
             this.m_netData.hidden = data.hidden;
             this.m_netData.webbed = data.webbed;
+            this.m_netData.ultronMarked = data.ultronMarked;
             this.m_netData.vulnerable = data.vulnerable;
             this.m_netData.excaliburActive = data.excaliburActive;
             this.m_netData.flying = data.flying;
@@ -2878,6 +2881,7 @@ export class Player implements AbstractObject {
     kitSigil: PIXI.Sprite | null = null;
     webbedSprite: PIXI.Sprite | null = null;
     vulnerableRing: PIXI.Graphics | null = null;
+    ultronReticle: PIXI.Graphics | null = null;
     kitDaggers: PIXI.Sprite[] = [];
     /** War Machine's right and left shoulder mounts */
     kitMounts: (PIXI.Graphics | undefined)[] = [];
@@ -3084,6 +3088,30 @@ export class Player implements AbstractObject {
             const s = (3.4 * px) / Math.max(tex.width, 1);
             this.webbedSprite.scale.set(s, s);
             this.webbedSprite.alpha = 0.85;
+        }
+        // an Ultron's Combo marks its target with a turning orange reticle
+        if (this.m_netData.ultronMarked || this.ultronReticle) {
+            if (!this.ultronReticle) {
+                this.ultronReticle = new PIXI.Graphics();
+                this.auraContainer.addChild(this.ultronReticle);
+            }
+            const reticle = this.ultronReticle;
+            reticle.visible = this.m_netData.ultronMarked && !dead;
+            if (reticle.visible) {
+                const r = 2.6 * px;
+                reticle.clear();
+                const pulse = 0.75 + 0.25 * Math.sin(this.kitTicker * 8);
+                reticle.lineStyle(0.28 * px, 0xff8a1f, pulse);
+                reticle.drawCircle(0, 0, r);
+                // four ticks pointing in, so it reads as a target
+                reticle.lineStyle(0.4 * px, 0xffb347, pulse);
+                for (let i = 0; i < 4; i++) {
+                    const a = (i * Math.PI) / 2;
+                    reticle.moveTo(Math.cos(a) * r * 0.55, Math.sin(a) * r * 0.55);
+                    reticle.lineTo(Math.cos(a) * r * 1.2, Math.sin(a) * r * 1.2);
+                }
+                reticle.rotation += dt * 2.5;
+            }
         }
         if (this.m_netData.vulnerable || this.vulnerableRing) {
             if (!this.vulnerableRing) {

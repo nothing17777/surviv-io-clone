@@ -18,6 +18,8 @@ import {
     KitDefs,
     SentryCharge,
     SentryNova,
+    UltronCombo,
+    UltronComboTimes,
     UltronMinion,
     WolverineCombo,
     SpiderCombo,
@@ -1127,6 +1129,263 @@ export class Player extends BaseGameObject {
             (p) => (this.sentryNovaHits.get(p.__id)?.n ?? 0) >= SentryNova.hits,
         );
         if (r >= SentryNova.radius && spent) this.sentryNovaActive = false;
+    }
+
+    /** Ultron's Combo: the one being run, if any (see UltronCombo) */
+    ultronCombo?: {
+        /** seconds since the cast */
+        time: number;
+        /** how far the ring has spread */
+        ring: number;
+        /** who the ring has hit, and the shots it has deleted (for the cap) */
+        hit: Set<number>;
+        deleted: number;
+        /** the marked enemy: the closest one the ring hit */
+        target?: Player;
+        /** the steps already done */
+        done: Set<string>;
+        /** the portals' axis: from Ultron to the marked enemy, set when the first portal opens */
+        axis: Vec2;
+        /** the red orbs' places round Ultron */
+        orbSpots: Vec2[];
+    };
+    /** marked by an Ultron's Combo: an orange target under them */
+    ultronMarked = false;
+
+    startUltronCombo() {
+        if (this.ultronCombo) return;
+        // the skill costs all his energy
+        this.energy = 0;
+        this.energyDirty = true;
+        const duration = UltronComboTimes.end + 0.05;
+        // he hangs in the air, untargetable, until it is over
+        this.startFlight({ duration, untargetable: duration, waveAt: 0, speedBonus: 0 }, "kit_ultron_blast");
+        this.ultronCombo = {
+            time: 0,
+            ring: 0,
+            hit: new Set(),
+            deleted: 0,
+            done: new Set(),
+            axis: v2.copy(this.dir),
+            orbSpots: [],
+        };
+        // the green ring: a circle of shots that spread as fast as the ring does
+        const n = UltronCombo.ring.bullets;
+        for (let i = 0; i < n; i++) {
+            const a = (i / n) * Math.PI * 2;
+            this.fireComboFx("ring", v2.copy(this.pos), v2.create(Math.cos(a), Math.sin(a)));
+        }
+        this.setDirty();
+    }
+
+    endUltronCombo() {
+        const c = this.ultronCombo;
+        if (!c) return;
+        this.ultronCombo = undefined;
+        if (c.target?.ultronMarked) {
+            c.target.ultronMarked = false;
+            c.target.setDirty();
+        }
+        // an early end (the ring found no one, he died, the target is gone) lets him down at once
+        if (this.flightTime > 0) {
+            this.flightTime = 0;
+            this.setDirty();
+        }
+    }
+
+    /**
+     * a sprite shot of Ultron's Combo that hurts no one: the ring, the orbs, the portals. `life` is how long it
+     * stays up, in seconds
+     */
+    fireComboFx(kind: "ring" | "red" | "blue" | "portal", pos: Vec2, dir: Vec2, life?: number) {
+        const type = `bullet_kit_ultron_fx_${kind}`;
+        const maxLife = GameObjectDefs.typeToDef(type, "bullet").lifetime ?? 0;
+        this.game.bulletBarn.fireBullet(
+            {
+                playerId: this.__id,
+                bulletType: type,
+                gameSourceType: "kit_ultron_blast",
+                damageType: GameConfig.DamageType.Player,
+                pos,
+                dir,
+                layer: this.layer,
+                damageMult: 1,
+                shotFx: false,
+                reflectCount: 0,
+                ghost: true,
+                // the parked shots live `lifetime` s less the age they are born with
+                age: life === undefined ? 0 : maxLife - Math.max(life, 0.02),
+            } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
+        );
+    }
+
+    /** a real shot of Ultron's Combo, from a portal at the marked enemy; it flies through walls so it always lands */
+    fireComboShot(type: string, from: Vec2, at: Vec2) {
+        this.game.bulletBarn.fireBullet(
+            {
+                playerId: this.__id,
+                bulletType: type,
+                gameSourceType: "kit_ultron_blast",
+                damageType: GameConfig.DamageType.Player,
+                pos: v2.copy(from),
+                dir: v2.normalizeSafe(v2.sub(at, from), this.dir),
+                layer: this.layer,
+                damageMult: 1,
+                shotFx: false,
+                reflectCount: 0,
+                ghost: true,
+            } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
+        );
+    }
+
+    /** where a portal of the combo opens: `side` 0 in front of the marked enemy, 1 to their left, 2 behind */
+    comboPortalPos(target: Vec2, axis: Vec2, side: 0 | 1 | 2) {
+        const d = UltronCombo.portal.distance;
+        // world y points up, so v2.perp is to the left of the way Ultron is looking at them
+        const way = side === 0 ? v2.mul(axis, -d) : side === 1 ? v2.mul(v2.perp(axis), d) : v2.mul(axis, d);
+        return v2.add(target, way);
+    }
+
+    /** Ultron's Combo, every tick: the ring, then the orbs, then the three portals, on the times UltronComboTimes gives */
+    updateUltronCombo(dt: number) {
+        const c = this.ultronCombo;
+        if (!c) return;
+        if (this.dead) {
+            this.endUltronCombo();
+            return;
+        }
+        const T = UltronComboTimes;
+        c.time += dt;
+        const due = (key: string, at: number) => {
+            // a hair of slack, so 0.1 s ticks adding up to 0.7999999 still count as 0.8
+            if (c.done.has(key) || c.time + 1e-6 < at) return false;
+            c.done.add(key);
+            return true;
+        };
+
+        // the ring
+        if (c.ring < UltronCombo.ring.radius) {
+            c.ring = Math.min(UltronCombo.ring.radius, c.time * UltronCombo.ring.speed);
+            this.updateUltronRing(c);
+        }
+        if (c.time < T.ringEnd) return;
+
+        // no one in the ring: nothing to chase
+        const target = c.target;
+        if (!target || target.dead) {
+            this.endUltronCombo();
+            return;
+        }
+
+        const count = UltronCombo.orbs.count;
+        if (due("orbs", T.ringEnd)) {
+            // red orbs in a circle round him; they will turn blue
+            const turn = Math.atan2(this.dir.y, this.dir.x);
+            for (let i = 0; i < count; i++) {
+                const a = turn + (i / count) * Math.PI * 2;
+                const way = v2.create(Math.cos(a), Math.sin(a));
+                c.orbSpots.push(v2.add(this.pos, v2.mul(way, UltronCombo.orbs.radius)));
+                this.fireComboFx("red", c.orbSpots[i], way, T.blueAt - c.time);
+            }
+        }
+        if (due("blue", T.blueAt)) {
+            // the blue outline: each orb stays up until its own shot is fired
+            for (let i = 0; i < count; i++) {
+                const fireAt = T.volleyAt + i * UltronCombo.volley.interval;
+                this.fireComboFx("blue", c.orbSpots[i], v2.copy(this.dir), fireAt - c.time);
+            }
+        }
+        if (due("portal1", T.portal1At)) {
+            c.axis = v2.normalizeSafe(v2.sub(target.pos, this.pos), this.dir);
+            const at = this.comboPortalPos(target.pos, c.axis, 0);
+            // it is gone as the last orb has gone through it
+            this.fireComboFx("portal", at, c.axis, T.volleyEnd + 0.03 - c.time);
+        }
+        for (let i = 0; i < count; i++) {
+            if (due(`shot${i}`, T.volleyAt + i * UltronCombo.volley.interval)) {
+                this.fireComboShot(
+                    "bullet_kit_ultron_combo_orb",
+                    this.comboPortalPos(target.pos, c.axis, 0),
+                    target.pos,
+                );
+            }
+        }
+        if (due("portal2", T.portal2At)) {
+            this.fireComboFx("portal", this.comboPortalPos(target.pos, c.axis, 1), c.axis, T.blastAt + 0.03 - c.time);
+        }
+        if (due("blast", T.blastAt)) {
+            this.fireComboShot(
+                "bullet_kit_ultron_combo_blast",
+                this.comboPortalPos(target.pos, c.axis, 1),
+                target.pos,
+            );
+        }
+        if (due("portal3", T.portal3At)) {
+            this.fireComboFx("portal", this.comboPortalPos(target.pos, c.axis, 2), c.axis, T.laserAt + 0.03 - c.time);
+        }
+        if (due("laser", T.laserAt)) {
+            this.fireComboShot(
+                "bullet_kit_ultron_combo_laser",
+                this.comboPortalPos(target.pos, c.axis, 2),
+                target.pos,
+            );
+        }
+        if (c.time >= T.end) this.endUltronCombo();
+    }
+
+    /** the combo's ring this tick: damage, stun and mark whoever it has reached, and delete enemy projectiles in it */
+    updateUltronRing(c: NonNullable<Player["ultronCombo"]>) {
+        const T = UltronComboTimes;
+        let nearest: Player | undefined;
+        let nearestDist = Infinity;
+        for (const p of this.game.playerBarn.livingPlayers) {
+            if (p === this || p.dead || p.teamId === this.teamId || !util.sameLayer(p.layer, this.layer)) continue;
+            if (c.hit.has(p.__id)) continue;
+            const dist = v2.length(v2.sub(p.pos, this.pos));
+            if (dist > c.ring + p.rad) continue;
+            c.hit.add(p.__id);
+            // stunned until the combo is over (and a moment after), before the damage so nothing knocks them back
+            p.stunTime = Math.max(p.stunTime, T.end + UltronCombo.stunAfter - c.time);
+            p.webPull = undefined;
+            p.setDirty();
+            p.damage({
+                amount: UltronCombo.ring.damage,
+                damageType: GameConfig.DamageType.Player,
+                gameSourceType: "kit_ultron_blast",
+                weaponSourceType: "kit_ultron_blast",
+                source: this,
+                dir: v2.normalizeSafe(v2.sub(p.pos, this.pos), this.dir),
+                hitsFlying: true,
+            });
+            if (dist < nearestDist) {
+                nearest = p;
+                nearestDist = dist;
+            }
+        }
+        // the ring spreads outward, so the first enemy it reaches is the closest one
+        if (nearest && !c.target) {
+            c.target = nearest;
+            nearest.ultronMarked = true;
+            nearest.setDirty();
+        }
+        // enemy projectiles inside it are deleted (clients end the shots near the pop)
+        for (const b of this.game.bulletBarn.bullets) {
+            if (!b.active || !b.alive) continue;
+            if (b.player === this || b.player?.teamId === this.teamId) continue;
+            if (b.bulletType.startsWith("bullet_kit_ultron_fx_")) continue;
+            if (v2.length(v2.sub(b.pos, this.pos)) > c.ring) continue;
+            b.alive = false;
+            b.active = false;
+            b.onHitFx = "";
+            if (c.deleted++ < 24) {
+                this.game.explosionBarn.addExplosion("explosion_kit_pop", v2.copy(b.pos), b.layer, {
+                    source: this,
+                    gameSourceType: "kit_ultron_blast",
+                    weaponSourceType: "kit_ultron_blast",
+                    damageType: GameConfig.DamageType.Player,
+                });
+            }
+        }
     }
 
     /** a Sentry Charge hit: burn, bleed and stun, and every perk gone for a while */
@@ -2651,6 +2910,12 @@ export class Player extends BaseGameObject {
         }
         if (this.activeJudgeRocket) v2.set(movement, v2.create(0, 0));
 
+        // Ultron's Combo roots him
+        if (this.ultronCombo) {
+            v2.set(movement, v2.create(0, 0));
+            this.webPull = undefined;
+        }
+
         // Sentry Charge's stun (and Wolverine's Claw Combo): no moving, and any slide he was on stops
         if (this.stunTime > 0 || this.clawCombo || this.spiderCombo) {
             v2.set(movement, v2.create(0, 0));
@@ -3529,6 +3794,7 @@ export class Player extends BaseGameObject {
                 damageType: GameConfig.DamageType.Player,
             });
         }
+        this.endUltronCombo();
         // a Wizard's marks go when the Wizard does
         for (const p of this.wizardMarks) {
             p.wizardMarked = false;
@@ -5820,6 +6086,7 @@ export class Player extends BaseGameObject {
         this.energyDirty = true;
         if (kit.fullBoost) this.boost = 100;
         this.endSentryDash();
+        this.endUltronCombo();
         // Green Goblin starts with his drone on his right, no upgrade running
         this.droneAngle = 0;
         this.dronePrev = undefined;
@@ -5878,6 +6145,7 @@ export class Player extends BaseGameObject {
     updateKit(dt: number) {
         const kit = KitDefs[this.kit];
         if (this.minionOwner) this.updateMinion(dt);
+        if (this.ultronCombo) this.updateUltronCombo(dt);
         if (this.kit === "default" || !kit || this.dead) return;
         if (kit.fullBoost && this.boost < 100) this.boost = 100;
         this.calmTime += dt;
