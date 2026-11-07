@@ -17,6 +17,7 @@ import {
     kitAura,
     KitDefs,
     SentryCharge,
+    SentryNova,
     UltronMinion,
     WolverineCombo,
     WolverineComboStep,
@@ -1021,6 +1022,87 @@ export class Player extends BaseGameObject {
         });
 
         if (this.sentryDashTime <= 0) this.endSentryDash();
+    }
+
+    sentryNovaRadius = 0;
+    sentryNovaActive = false;
+    sentryNovaHits = new Map<number, { n: number; t: number }>();
+    sentryNovaGrabbed: Player[] = [];
+    /** counts casts so clients can start the ring; wraps in 3 bits */
+    solarCasts = 0;
+    penGuardTime = 0;
+
+    get solarCast(): number {
+        return this.solarCasts & 7;
+    }
+
+    startSentryNova() {
+        this.sentryNovaActive = true;
+        this.sentryNovaRadius = 0;
+        this.sentryNovaHits.clear();
+        this.sentryNovaGrabbed = [];
+        this.penGuardTime = SentryNova.penGuardTime;
+        this.solarCasts++;
+        this.setDirty();
+    }
+
+    /**
+     * Sentry Solar Explosion, every tick: the ring grows; anyone inside it is hit (up to 5 times, 100 each) and,
+     * once hit, dragged outward on the wave front, walls stopping them
+     */
+    updateSentryNova(dt: number) {
+        if (this.penGuardTime > 0) this.penGuardTime -= dt;
+        if (!this.sentryNovaActive) return;
+        if (this.dead) {
+            this.sentryNovaActive = false;
+            return;
+        }
+        this.sentryNovaRadius = Math.min(SentryNova.radius, this.sentryNovaRadius + SentryNova.speed * dt);
+        const r = this.sentryNovaRadius;
+        for (const p of this.enemiesWithin(r)) {
+            let h = this.sentryNovaHits.get(p.__id);
+            if (!h) {
+                h = { n: 0, t: 0 };
+                this.sentryNovaHits.set(p.__id, h);
+                this.sentryNovaGrabbed.push(p);
+            }
+            h.t -= dt;
+            if (h.n >= SentryNova.hits || h.t > 0) continue;
+            h.n++;
+            h.t = SentryNova.hitEvery;
+            p.damage({
+                amount: SentryNova.damage,
+                damageType: GameConfig.DamageType.Player,
+                gameSourceType: "kit_sentry_solar",
+                weaponSourceType: "kit_sentry_solar",
+                source: this,
+                dir: v2.normalizeSafe(v2.sub(p.pos, this.pos), v2.create(1, 0)),
+            });
+        }
+        this.sentryNovaGrabbed = this.sentryNovaGrabbed.filter((p) => {
+            if (p.dead) return false;
+            const h = this.sentryNovaHits.get(p.__id)!;
+            if (h.n >= SentryNova.hits && h.t <= 0) return false;
+            const away = v2.normalizeSafe(v2.sub(p.pos, this.pos), v2.create(1, 0));
+            const want = r - p.rad;
+            if (want > v2.distance(p.pos, this.pos)) {
+                v2.set(p.pos, v2.add(this.pos, v2.mul(away, want)));
+                const objs = this.game.grid.intersectCollider(collider.createCircle(p.pos, p.rad + 1));
+                for (const obj of objs) {
+                    if (obj.__type !== ObjectType.Obstacle || !obj.collidable || obj.dead) continue;
+                    if (!util.sameLayer(obj.layer, p.layer)) continue;
+                    const hit = collider.intersectCircle(obj.collider, p.pos, p.rad);
+                    if (hit) v2.set(p.pos, v2.add(p.pos, v2.mul(hit.dir, hit.pen + 0.001)));
+                }
+                p.mapIndicator?.updatePosition(p.pos);
+                p.setPartDirty();
+            }
+            return true;
+        });
+        const spent = this.sentryNovaGrabbed.every(
+            (p) => (this.sentryNovaHits.get(p.__id)?.n ?? 0) >= SentryNova.hits,
+        );
+        if (r >= SentryNova.radius && spent) this.sentryNovaActive = false;
     }
 
     /** a Sentry Charge hit: burn, bleed and stun, and every perk gone for a while */
@@ -2623,6 +2705,7 @@ export class Player extends BaseGameObject {
         this.mapIndicator?.updatePosition(this.pos);
         this.updateSentryDash(dt);
         this.updateClawCombo(dt);
+        this.updateSentryNova(dt);
 
         // if we are the group leader and new players can still join the group
         // update the group spawn position to our current position every 1 second
@@ -3109,7 +3192,11 @@ export class Player extends BaseGameObject {
         // a kit's items can ignore part of the target's damage reduction, on top of the hit's own armor
         // penetration (Jeff: 10%, so a Sentry Charge that ignores 80% ignores 90%)
         const ignore = playerSource && playerSource !== this ? KitDefs[playerSource.kit]?.armorIgnore ?? 0 : 0;
-        const armorPen = ignore ? Math.max(0, (params.armorPenetration ?? 1) - ignore) : params.armorPenetration;
+        let armorPen = ignore ? Math.max(0, (params.armorPenetration ?? 1) - ignore) : params.armorPenetration;
+        // Solar Explosion: half of whatever armor the attacker ignores is given back
+        if (this.penGuardTime > 0 && armorPen !== undefined && armorPen < 1) {
+            armorPen = 1 - (1 - armorPen) * SentryNova.penGuard;
+        }
 
         const reduceDamage = (multi: number) => {
             if (armorPen !== undefined) {

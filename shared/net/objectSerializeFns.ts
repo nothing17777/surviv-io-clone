@@ -101,6 +101,8 @@ export interface ObjectsFullData {
         /** Green Goblin: where his main drone is round him, radians in [0, 2pi) */
         droneAngle: number;
         /** a training dummy: its health bar is drawn over it, so its health goes on the wire */
+        /** Sentry Solar Explosion cast counter (3 bits); a change starts the ring */
+        solarCast: number;
         dummy: boolean;
         /** the dummy's health as a fraction in [0, 1] */
         dummyHealth: number;
@@ -262,6 +264,7 @@ export const ObjectSerializeFns: {
             s.writeBoolean(data.charmed);
             s.writeBits(data.kitAura, 3);
             s.writeFloat(data.droneAngle, 0, Math.PI * 2, 8);
+            s.writeBits(data.solarCast, 3);
             s.writeBoolean(data.dummy);
             if (data.dummy) s.writeFloat(data.dummyHealth, 0, 1, 10);
             s.writeBoolean(data.wizardMarked);
@@ -351,6 +354,7 @@ export const ObjectSerializeFns: {
             data.charmed = s.readBoolean();
             data.kitAura = s.readBits(3);
             data.droneAngle = s.readFloat(0, Math.PI * 2, 8);
+            data.solarCast = s.readBits(3);
             data.dummy = s.readBoolean();
             data.dummyHealth = data.dummy ? s.readFloat(0, 1, 10) : 1;
             data.wizardMarked = s.readBoolean();

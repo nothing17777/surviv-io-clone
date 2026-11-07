@@ -6,7 +6,7 @@ import { ChampionDefs, championSound } from "./championDefs.ts";
 import { CustomGuns, CustomWeaponsVersion } from "./customWeaponDefs.ts";
 import { BaseGunLengths, GunEffects, GunOverrides, HiddenCustomGuns, SwingShotBullets } from "./customWeaponEffects.ts";
 import type { BaseWeaponDef } from "./itemTypes.ts";
-import { SentryCharge, WolverineCombo, WolverineDash } from "./kitDefs.ts";
+import { SentryCharge, SentryNova, WolverineCombo, WolverineDash } from "./kitDefs.ts";
 
 export interface GunDef extends BaseWeaponDef {
     type: "gun";
@@ -4075,6 +4075,23 @@ const GreenGoblinGunDefs: Record<string, GunDef> = Object.fromEntries([
 ]);
 
 const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
+    // Sentry Solar Explosion: no bullet, the wave is run by Player.updateSentryNova (see WeaponManager); 8 s cooldown
+    kitGun("kit_sentry_solar", "barrett", {
+        damage: 0,
+        noTracer: true,
+    }, {
+        name: "Solar Explosion",
+        fireMode: "single",
+        fireDelay: SentryNova.cooldown,
+        bulletCount: 0,
+        energyCost: 0,
+        shotSpread: 0,
+        moveSpread: 0,
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
     // Sentry Charge: a 30 tile dash at Ahri's dash speed behind a wide crescent that does 120, burns, bleeds and
     // stuns for 3 s, strips perks for 5 s, ignores 80% of armor and reaches flying / dodging targets. His own body
     // hits too (see Player.updateSentryDash) and everyone hit is dragged along for the dash. It heals him 30% of his max hp on

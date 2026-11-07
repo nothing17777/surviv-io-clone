@@ -4,6 +4,7 @@ import {
     isKitItem,
     KitDefs,
     SentryCharge,
+    SentryNova,
     SpiderDodgeTime,
 } from "../../../shared/defs/gameObjects/kitDefs.ts";
 import type { MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
@@ -894,6 +895,20 @@ export class WeaponManager {
             );
             this.player.health = Math.min(
                 this.player.health + this.player.maxHealth * SentryCharge.healPercent,
+                this.player.maxHealth,
+            );
+            this.player.setDirty();
+        }
+
+        // Sentry Solar Explosion: a ring bursts out of him, heals him, guards him against armor penetration and lifts him
+        if (this.activeWeapon === "kit_sentry_solar") {
+            this.player.startSentryNova();
+            this.player.startFlight(
+                { duration: SentryNova.flight, untargetable: 0, waveAt: 0, speedBonus: 0 },
+                this.activeWeapon,
+            );
+            this.player.health = Math.min(
+                this.player.health + this.player.maxHealth * SentryNova.heal,
                 this.player.maxHealth,
             );
             this.player.setDirty();
