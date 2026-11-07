@@ -2443,6 +2443,15 @@ export class Player extends BaseGameObject {
                 }
             }
 
+            // the web Spider-Man's Portal Combo put on them goes with the stun (they need not be a kit player)
+            if (this.webStunTime > 0) {
+                this.webStunTime -= dt;
+                if (this.webStunTime <= 0) {
+                    this.webStunTime = 0;
+                    this.setDirty();
+                }
+            }
+
             if (this.perkStripTime > 0) {
                 this.perkStripTime -= dt;
                 if (this.perkStripTime <= 0) this.restorePerks();
@@ -5940,10 +5949,6 @@ export class Player extends BaseGameObject {
         if (this.dodgeTime > 0) {
             this.dodgeTime = Math.max(0, this.dodgeTime - dt);
             if (this.dodgeTime === 0) this.setDirty();
-        }
-        if (this.webStunTime > 0) {
-            this.webStunTime = Math.max(0, this.webStunTime - dt);
-            if (this.webStunTime === 0) this.setDirty();
         }
         if (kit.mark) this.updateMark(kit.mark);
         if (kit.autoFire) this.updateAutoFire(dt, kit.autoFire);
