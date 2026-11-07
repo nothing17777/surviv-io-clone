@@ -339,6 +339,7 @@ export class Player implements AbstractObject {
         droneAngle: number;
         dummy: boolean;
         dummyHealth: number;
+        solarCast: number;
         wizardMarked: boolean;
         wolverineMarked: boolean;
         hidden: boolean;
@@ -525,6 +526,7 @@ export class Player implements AbstractObject {
             droneAngle: 0,
             dummy: false,
             dummyHealth: 1,
+            solarCast: 0,
             wizardMarked: false,
             wolverineMarked: false,
             hidden: false,
@@ -625,6 +627,7 @@ export class Player implements AbstractObject {
             this.m_netData.droneAngle = data.droneAngle;
             this.m_netData.dummy = data.dummy;
             this.m_netData.dummyHealth = data.dummyHealth;
+            this.m_netData.solarCast = data.solarCast;
             this.m_netData.wizardMarked = data.wizardMarked;
             this.m_netData.wolverineMarked = data.wolverineMarked;
             this.m_netData.hidden = data.hidden;
@@ -2887,6 +2890,10 @@ export class Player implements AbstractObject {
     kitTicker = 0;
     excaliburRing: PIXI.Graphics | null = null;
     flightGlow: PIXI.Graphics | null = null;
+    solarRing: PIXI.Graphics | null = null;
+    solarSeen = -1;
+    /** world units the Solar Explosion ring has grown; -1 when none is showing */
+    solarR = -1;
 
     /**
      * Kit visuals: the Summoner's blade minions circling the player, the Wizard's circle
@@ -2927,6 +2934,30 @@ export class Player implements AbstractObject {
                 this.flightGlow.beginFill(0xbdf1ff, 0.3);
                 this.flightGlow.drawCircle(0, 0, 1.8 * px * pulse);
                 this.flightGlow.endFill();
+            }
+        }
+        // Sentry's Solar Explosion: a yellow ring that grows to 100 world units at 220 units/s
+        if (this.solarSeen !== this.m_netData.solarCast) {
+            if (this.solarSeen >= 0) this.solarR = 0;
+            this.solarSeen = this.m_netData.solarCast;
+        }
+        if (this.solarR >= 0) {
+            if (!this.solarRing) {
+                this.solarRing = new PIXI.Graphics();
+                this.auraContainer.addChildAt(this.solarRing, 0);
+            }
+            this.solarR += 220 * dt;
+            const rr = Math.min(this.solarR, 100);
+            const fade = this.solarR > 100 ? Math.max(0, 1 - (this.solarR - 100) / 40) : 1;
+            this.solarRing.clear();
+            this.solarRing.beginFill(0xffd84a, 0.16 * fade);
+            this.solarRing.drawCircle(0, 0, rr * px);
+            this.solarRing.endFill();
+            this.solarRing.lineStyle(10, 0xfff2a0, 0.9 * fade);
+            this.solarRing.drawCircle(0, 0, rr * px);
+            if (fade <= 0) {
+                this.solarR = -1;
+                this.solarRing.clear();
             }
         }
         // War Machine's shoulder mounts (aura 4: the right one, 5: both), turning with the player's aim

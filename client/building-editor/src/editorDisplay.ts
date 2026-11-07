@@ -228,6 +228,7 @@ export class EditorDisplay {
             droneAngle: 0,
             dummy: false,
             dummyHealth: 1,
+            solarCast: 0,
             wizardMarked: false,
             vulnerable: false,
             excaliburActive: false,

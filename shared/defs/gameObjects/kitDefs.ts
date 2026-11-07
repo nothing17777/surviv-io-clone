@@ -277,6 +277,7 @@ export const KitDefs: Record<string, KitDef> = {
         outfit: "outfitKitSentry",
         // skill 1 is a gun used for its cooldown and its dash (see WeaponManager); slot 3 is plain fists
         primary: "kit_sentry_charge",
+        secondary: "kit_sentry_solar",
         melee: "fists",
         damageReduction: SentryBaseReduction + SentryBuild.damageReduction,
         revive: true,
@@ -404,6 +405,26 @@ export const SentryCharge = {
     hitRadius: 14,
     bodyRadius: 6,
     pullSpeedMult: 2,
+};
+
+/**
+ * Sentry skill 2, Solar Explosion: a piercing yellow ring grows from him at `speed` up to `radius` world units.
+ * Whoever it reaches is dragged outward on the wave front and hit up to `hits` times (`damage` each, one every
+ * `hitEvery` s). It heals `heal` of his max hp, halves the armor penetration of what hits him for `penGuardTime` s,
+ * and he flies for `flight` s
+ */
+export const SentryNova = {
+    speed: 220,
+    radius: 100,
+    hits: 5,
+    damage: 100,
+    hitEvery: 0.1,
+    heal: 0.4,
+    /** share of an attacker's armor penetration that is taken away */
+    penGuard: 0.5,
+    penGuardTime: 12,
+    flight: 5,
+    cooldown: 8,
 };
 
 export const UltronMinion ={ count: 4, health: 17.5, speedMult: 0.75, life: 15, explosion: "explosion_kit_minion" };

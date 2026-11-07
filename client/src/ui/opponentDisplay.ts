@@ -303,6 +303,7 @@ export class LoadoutDisplay {
             droneAngle: 0,
             dummy: false,
             dummyHealth: 1,
+            solarCast: 0,
             wizardMarked: false,
             wolverineMarked: false,
             hidden: false,
