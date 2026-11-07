@@ -328,37 +328,43 @@ export const KitDefs: Record<string, KitDef> = {
 /** Ultron's minions: bots that fight for their summoner, then blow up */
 /**
  * Spider-Man's second skill, the Portal Combo. It needs an enemy in his mark (like Wolverine's), who is stunned
- * for `stun` seconds the moment it starts. Then eight portals open around the mark (its four sides, twice), one every `interval` seconds,
+ * for `stun` seconds the moment it starts. Then eight portals open around the mark (its four sides, twice), one every `interval` seconds (as long as a dash takes),
  * on the sides `offsets` names (world y is up) and `startDist` away; each lasts `portalLife`, and `enter` seconds
  * after it opens he steps through and dashes straight across the mark to the same distance on the far side
  * (`speed`, `distance` long), hurting everyone the dash crosses once for `damage`. He can't move on his own for the
  * whole combo, and it leaves him where the last dash ended
  */
+const SpiderDashSpeed = 240;
+const SpiderDashDistance = 32;
+/** how long one dash takes: the next portal is ready the moment it ends */
+const SpiderDashTime = SpiderDashDistance / SpiderDashSpeed;
+/** right, left, top, bottom of the mark, and then once more */
+const SpiderOffsets = [
+    { x: 1, y: 0 },
+    { x: -1, y: 0 },
+    { x: 0, y: 1 },
+    { x: 0, y: -1 },
+    { x: 1, y: 0 },
+    { x: -1, y: 0 },
+    { x: 0, y: 1 },
+    { x: 0, y: -1 },
+];
 export const SpiderCombo = {
     cooldown: 8,
     damage: 10,
-    // the whole combo (offsets.length * interval): the mark stays stunned until it is over
-    stun: 8,
-    interval: 1,
-    portalLife: 0.7,
-    enter: 0.3,
-    speed: 240,
-    distance: 32,
+    // the whole combo (a dash per portal) and a moment more: the mark stays stunned until it is over
+    stun: SpiderDashTime * SpiderOffsets.length + 0.3,
+    // a portal opens as the last dash ends, he steps straight in, and it closes as he comes out the other side
+    interval: SpiderDashTime,
+    portalLife: SpiderDashTime,
+    enter: 0,
+    speed: SpiderDashSpeed,
+    distance: SpiderDashDistance,
     startDist: 16,
     hitRadius: 2.5,
     /** a portal this much slower than a bullet can be: it only sits where it was fired */
     parkSpeed: 0.2,
-    /** right, left, top, bottom of the mark, and then once more */
-    offsets: [
-        { x: 1, y: 0 },
-        { x: -1, y: 0 },
-        { x: 0, y: 1 },
-        { x: 0, y: -1 },
-        { x: 1, y: 0 },
-        { x: -1, y: 0 },
-        { x: 0, y: 1 },
-        { x: 0, y: -1 },
-    ],
+    offsets: SpiderOffsets,
 };
 
 /** Wolverine's dash: how far he goes */
