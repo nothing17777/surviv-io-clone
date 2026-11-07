@@ -20,7 +20,7 @@ import {
     UltronMinion,
     WolverineCombo,
     WolverineComboStep,
-    WolverineComboTime,
+    WolverineDash,
 } from "../../../../shared/defs/gameObjects/kitDefs.ts";
 import type { MeleeDef } from "../../../../shared/defs/gameObjects/meleeDefs.ts";
 import { PerkProperties } from "../../../../shared/defs/gameObjects/perkDefs.ts";
@@ -821,6 +821,10 @@ export class Player extends BaseGameObject {
     /** Wolverine's Claw Combo while it runs (see startClawCombo) */
     clawCombo?: {
         target: Player;
+        /** the skill that started it (the Claw Combo, or the one-claw dash), the side each claw comes from, and its damage */
+        gun: string;
+        offsets: Array<{ x: number; y: number }>;
+        damage: number;
         /** which claw is out, and the seconds since it left */
         step: number;
         t: number;
@@ -6185,10 +6189,15 @@ export class Player extends BaseGameObject {
         return !this.dead && !this.clawCombo && !!t && !t.dead && !t.untargetable;
     }
 
-    startClawCombo() {
+    /** `gun` is kit_wolverine_combo (ten claws) or kit_wolverine_dash (one claw, from below) */
+    startClawCombo(gun: string) {
         const target = this.markTarget!;
+        const dash = gun === "kit_wolverine_dash";
         this.clawCombo = {
             target,
+            gun,
+            offsets: dash ? WolverineDash.offsets : WolverineCombo.offsets,
+            damage: dash ? WolverineDash.damage : WolverineCombo.damage,
             step: 0,
             t: 0,
             start: v2.copy(this.pos),
@@ -6207,7 +6216,7 @@ export class Player extends BaseGameObject {
             {
                 playerId: this.__id,
                 bulletType,
-                gameSourceType: "kit_wolverine_combo",
+                gameSourceType: c.gun,
                 damageType: GameConfig.DamageType.Player,
                 pos: v2.copy(pos),
                 dir: c.dir,
@@ -6226,7 +6235,7 @@ export class Player extends BaseGameObject {
      */
     beginClawShot() {
         const c = this.clawCombo!;
-        const o = WolverineCombo.offsets[c.step];
+        const o = c.offsets[c.step];
         c.dir = v2.normalizeSafe(v2.create(-o.x, -o.y), v2.create(0, -1));
         c.start = v2.sub(c.target.pos, v2.mul(c.dir, WolverineCombo.startDist));
         c.end = v2.add(c.start, v2.mul(c.dir, WolverineCombo.distance));
@@ -6245,15 +6254,15 @@ export class Player extends BaseGameObject {
         });
     }
 
-    /** a claw lands: 10 dmg and a 2 s bleed (via damage()), and the mark is stunned for the rest of the combo */
-    clawHit(p: Player, dir: Vec2, stunFor: number) {
+    /** a claw lands: the skill's damage and its bleed (via damage()), and the mark is stunned for the rest of it */
+    clawHit(c: NonNullable<Player["clawCombo"]>, p: Player, stunFor: number) {
         p.damage({
-            amount: WolverineCombo.damage,
+            amount: c.damage,
             damageType: GameConfig.DamageType.Player,
-            gameSourceType: "kit_wolverine_combo",
-            weaponSourceType: "kit_wolverine_combo",
+            gameSourceType: c.gun,
+            weaponSourceType: c.gun,
             source: this,
-            dir,
+            dir: c.dir,
         });
         if (stunFor > 0) {
             p.stunTime = Math.max(p.stunTime, stunFor);
@@ -6289,14 +6298,14 @@ export class Player extends BaseGameObject {
         const prog = Math.min(c.t * WolverineCombo.speed, WolverineCombo.distance);
         const before = v2.add(c.start, v2.mul(c.dir, prevProg));
         const head = v2.add(c.start, v2.mul(c.dir, prog));
-        const left = Math.max(WolverineComboTime - (c.step * WolverineComboStep + c.t), 0);
+        const left = Math.max((c.offsets.length - c.step) * WolverineComboStep - c.t, 0);
 
         const victims = this.clawVictims(c);
         for (const p of victims) {
             if (c.shotHit.has(p.__id)) continue;
             if (math.distToSegmentSq(p.pos, before, head) > (WolverineCombo.hitRadius + p.rad) ** 2) continue;
             c.shotHit.add(p.__id);
-            this.clawHit(p, c.dir, left + 0.15);
+            this.clawHit(c, p, left + 0.15);
             c.grabbed.push(p);
         }
 
@@ -6319,7 +6328,7 @@ export class Player extends BaseGameObject {
 
         if (c.t >= WolverineComboStep - 1e-6) {
             this.leaveClaw();
-            if (c.step >= WolverineCombo.offsets.length - 1) {
+            if (c.step >= c.offsets.length - 1) {
                 this.endClawCombo();
                 return;
             }
