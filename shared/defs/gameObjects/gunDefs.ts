@@ -4231,6 +4231,8 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
         spriteSize: 28,
     }, {
         name: "Web Shooter",
+        // the same splat as his auto web
+        sound: { shoot: "spider_auto_splatshot" },
         fireMode: "single",
         // infinite: no ammo count, no reload
         energyCost: 0,
