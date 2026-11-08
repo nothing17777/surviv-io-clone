@@ -304,6 +304,7 @@ export class LoadoutDisplay {
             dummy: false,
             dummyHealth: 1,
             solarCast: 0,
+            ironSpinCast: 0,
             wizardMarked: false,
             wolverineMarked: false,
             hidden: false,

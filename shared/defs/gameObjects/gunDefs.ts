@@ -3768,25 +3768,9 @@ const kitGun = (id: string, base: string, bullet: Partial<BulletDef>, gun: DeepP
 };
 
 const ironAsset = (name: string) => `img/custom-weapons/fx/kit/${name}.png?v=${CustomWeaponsVersion}`;
-// Iron Man's effect shots: the spin's lasers and Blast Combo's drones are parked or streaking sprites that hurt
-// no one (Player.updateIronSpin / updateIronCombo do the damage); Blast Combo's lasers are real shots
+// Iron Man's effect shots: Blast Combo's drones are parked sprites that hurt no one (the Laser Spin beams are
+// drawn by the client, see IronManSpin); Blast Combo's lasers are real shots
 const ironBeam = { beam: true, speed: 500, noTracer: false, tracerColor: "cw_plasma" } as const;
-BulletDefs.bullet_kit_ironman_fx_spin = {
-    ...BulletDefs.bullet_ak47,
-    type: "bullet",
-    damage: 0,
-    obstacleDamage: 0,
-    falloff: 1,
-    variance: 0,
-    shrapnel: false,
-    ...ironBeam,
-    distance: IronManSpin.range,
-    tracerWidth: 1.4,
-    trailSprite: ironAsset("ironman_laser_yellow"),
-    noPlayerHit: true,
-    playerPierce: true,
-    noDistAdj: true,
-};
 BulletDefs.bullet_kit_ironman_fx_drone = {
     ...BulletDefs.bullet_ak47,
     type: "bullet",
@@ -3819,7 +3803,7 @@ for (const [id, c] of [["main", IronManCombo.main], ["small", IronManCombo.small
         ...ironBeam,
         distance: 60,
         tracerWidth: c.width,
-        trailSprite: ironAsset("ironman_laser_blue"),
+        trailSprite: "img/custom-weapons/fx/stardust_laser.png",
         playerPierce: true,
         pierceLoss: 0,
     };
@@ -3834,9 +3818,8 @@ const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
         distance: 80,
         falloff: 1,
         tracerColor: "cw_plasma",
-        // the laser image drawn twice as wide as the old one (0.9)
-        tracerWidth: 1.8,
-        trailSprite: ironAsset("ironman_laser_blue"),
+        tracerWidth: 0.9,
+        trailSprite: "img/custom-weapons/fx/stardust_laser.png",
     }, {
         name: "Repulsor Blast",
         fireMode: "single",
@@ -3850,8 +3833,8 @@ const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
         extendedClip: 250,
         extendedReload: 250,
     }),
-    // Laser Spin: fires nothing itself, Player.updateIronSpin sweeps the two lasers (and draws them with
-    // bullet_kit_ironman_fx_spin); 6 s cooldown, 30 energy
+    // Laser Spin: fires nothing itself, Player.updateIronSpin sweeps the two lasers (the client draws them);
+    // 6 s cooldown, 30 energy
     kitGun("kit_ironman_spin", "barrett", { damage: 0 }, {
         name: "Laser Spin",
         fireMode: "single",

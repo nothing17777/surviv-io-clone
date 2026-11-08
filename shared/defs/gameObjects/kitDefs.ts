@@ -510,7 +510,7 @@ export const UltronComboTimes = {
  * `range` long, hurts everyone it sweeps past once (`damage`, and they burn for `burn` s) and destroys every
  * obstacle it touches
  */
-export const IronManSpin = { cooldown: 6, energy: 30, range: 40, damage: 30, burn: 3, time: 0.6, beamRadius: 0.8 };
+export const IronManSpin = { cooldown: 6, energy: 30, range: 40, damage: 30, burn: 3, time: 0.3, beamRadius: 0.4, width: 0.7 };
 
 /**
  * Iron Man skill 3, Blast Combo (a melee-slot ability, needs the marked enemy): the target is stunned and Iron Man
@@ -525,8 +525,8 @@ export const IronManCombo = {
     duration: 2,
     fireAt: 0.6,
     droneEnd: 0.9,
-    main: { damage: 50, width: 3.6 },
-    small: { damage: 10, width: 1.8 },
+    main: { damage: 50, width: 1.8 },
+    small: { damage: 10, width: 0.9 },
     drones: [
         { side: -6, fwd: 3 },
         { side: -3, fwd: 1 },
