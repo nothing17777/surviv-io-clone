@@ -4392,10 +4392,10 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
         extendedClip: 250,
         extendedReload: 250,
     }),
-    // Ultron laser: a lasting purple beam while held, 12 dmg per 0.5 s, through enemies not walls,
+    // Ultron laser: a lasting purple beam while held, 6 dmg per 0.1 s (each hit also gives him 4 energy), through enemies not walls,
     // 25 energy per second
     kitGun("kit_ultron_laser", "m249", {
-        damage: 1.5,
+        damage: 6,
         speed: 400,
         // 1.5x range, and it tears through obstacles
         distance: 52.5,
