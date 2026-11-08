@@ -13,6 +13,7 @@ import {
     SentryNova,
     SpiderCombo,
     UltronCombo,
+    WizardCrystals,
     WolverineCombo,
     WolverineDash,
 } from "./kitDefs.ts";
@@ -3788,6 +3789,28 @@ BulletDefs.bullet_kit_ironman_fx_sound = {
     noPlayerHit: true,
     noDistAdj: true,
 };
+// a mini crystal of Crystal Burst lying on the field: a parked sprite (Player.updateWizardShards does the rest)
+BulletDefs.bullet_kit_wizard_fx_shard = {
+    ...BulletDefs.bullet_ak47,
+    type: "bullet",
+    damage: 0,
+    obstacleDamage: 0,
+    falloff: 1,
+    variance: 0,
+    shrapnel: false,
+    speed: 0.2,
+    lifetime: 10,
+    distance: 10,
+    noTracer: true,
+    tracerColor: "cw_star",
+    tracerWidth: 0.3,
+    sprite: ironAsset("wizard_crystal"),
+    spriteSize: 28,
+    spin: 2,
+    noPlayerHit: true,
+    playerPierce: true,
+    noDistAdj: true,
+};
 BulletDefs.bullet_kit_ironman_fx_drone = {
     ...BulletDefs.bullet_ak47,
     type: "bullet",
@@ -4476,6 +4499,50 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
         extendedClip: 250,
         extendedReload: 250,
     }),
+    // Wizard Crystal Burst: a spinning crystal then two spinning circles, 45 / 30 dmg and bleeding, 40 energy,
+    // 5 s cooldown. The crystal's burst is Player.burstWizardCrystal
+    kitGun("kit_wizard_crystals", "famas", { damage: 0 }, {
+        name: "Crystal Burst",
+        fireMode: "burst",
+        burstCount: 3,
+        burstDelay: 0.22,
+        fireDelay: WizardCrystals.cooldown,
+        energyCost: WizardCrystals.energy,
+        caseTiming: "reload",
+        shotSpread: 0,
+        moveSpread: 0,
+        bulletTypes: [
+            kitBullet("bullet_kit_wizard_crystal_main", {
+                damage: WizardCrystals.crystal,
+                speed: 50,
+                distance: 50,
+                noTracer: true,
+                tracerColor: "cw_star",
+                tracerWidth: 0.2,
+                sprite: kitAsset("wizard_crystal"),
+                spriteSize: 56,
+                spin: 8,
+            }),
+            ...[0, 1].map((i) =>
+                kitBullet(`bullet_kit_wizard_crystal_circle_${i}`, {
+                    damage: WizardCrystals.circle,
+                    speed: 50,
+                    distance: 50,
+                    noTracer: true,
+                    tracerColor: "cw_star",
+                    tracerWidth: 0.2,
+                    sprite: kitAsset("wizard_circle"),
+                    spriteSize: 52,
+                    spin: -10,
+                })
+            ),
+        ],
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
+    // Wizard Stun Wave: nothing to fire, the player runs the ring (Player.updateWizardWave); 9 s cooldown
     // Wizard star blast: 9 bolts one after another within a second, starting spread out and closing
     // in, then homing, 7 dmg each, 100 energy, 3 s cooldown
     kitGun("kit_wizard_stars", "famas", { damage: 0 }, {

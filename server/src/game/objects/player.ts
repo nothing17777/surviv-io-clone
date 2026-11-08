@@ -22,6 +22,8 @@ import {
     SentryNova,
     SpiderCombo,
     UltronCombo,
+    WizardCrystals,
+    WizardWave,
     UltronComboTimes,
     UltronMinion,
     WolverineCombo,
@@ -64,6 +66,7 @@ import { QuestManager } from "../questManager.ts";
 import { NoOpSocket } from "../socket.ts";
 import { WeaponManager } from "../weaponManager.ts";
 import type { Building } from "./building.ts";
+import type { Bullet } from "./bullet.ts";
 import { BaseGameObject, type DamageParams, type GameObject } from "./gameObject.ts";
 import type { Loot } from "./loot.ts";
 import type { MapIndicator } from "./mapIndicator.ts";
@@ -1552,6 +1555,144 @@ export class Player extends BaseGameObject {
                 });
             }
         }
+    }
+
+    /** Wizard's Crystal Burst: the mini crystals lying on the field, and the parked sprite showing each */
+    wizardShards: { pos: Vec2; time: number; layer: number; bullet?: Bullet }[] = [];
+    /** Wizard's Stun Wave while it spreads: how far it has got and who it has hit */
+    wizardWave?: { r: number; hit: Set<number>; deleted: number };
+    /** counts Stun Wave casts so clients can draw the ring; wraps in 3 bits */
+    wizardWaveCasts = 0;
+
+    get wizardWaveCast(): number {
+        return this.wizardWaveCasts & 7;
+    }
+
+    /** the crystal hit something at `at`: mini crystals go down round it, `shardRadius` tiles out */
+    burstWizardCrystal(at: Vec2, layer: number) {
+        const C = WizardCrystals;
+        this.game.explosionBarn.addExplosion("explosion_kit_pop", v2.copy(at), layer, {
+            source: this,
+            gameSourceType: "kit_wizard_crystals",
+            weaponSourceType: "kit_wizard_crystals",
+            damageType: GameConfig.DamageType.Player,
+        });
+        const start = Math.random() * Math.PI * 2;
+        for (let i = 0; i < C.shards; i++) {
+            const a = start + (i * Math.PI * 2) / C.shards;
+            const pos = v2.add(at, v2.create(Math.cos(a) * C.shardRadius, Math.sin(a) * C.shardRadius));
+            this.game.map.clampToMapBounds(pos);
+            const type = "bullet_kit_wizard_fx_shard";
+            const maxLife = GameObjectDefs.typeToDef(type, "bullet").lifetime ?? 0;
+            const bullet = this.game.bulletBarn.fireBullet(
+                {
+                    playerId: this.__id,
+                    bulletType: type,
+                    gameSourceType: "kit_wizard_crystals",
+                    damageType: GameConfig.DamageType.Player,
+                    pos: v2.copy(pos),
+                    dir: v2.create(1, 0),
+                    layer,
+                    damageMult: 1,
+                    shotFx: false,
+                    reflectCount: 0,
+                    ghost: true,
+                    age: maxLife - C.shardLife,
+                } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
+            );
+            this.wizardShards.push({ pos, time: C.shardLife, layer, bullet });
+        }
+    }
+
+    /** every tick: a shard goes off on the first enemy to touch it, or just goes when its time is up */
+    updateWizardShards(dt: number) {
+        const C = WizardCrystals;
+        this.wizardShards = this.wizardShards.filter((sh) => {
+            sh.time -= dt;
+            const hitter = this.dead || sh.time <= 0
+                ? undefined
+                : this.game.playerBarn.livingPlayers.find((p) =>
+                    !p.dead && p !== this && p.teamId !== this.teamId && !p.untargetable
+                    && util.sameLayer(p.layer, sh.layer)
+                    && v2.length(v2.sub(p.pos, sh.pos)) <= C.shardTouch + p.rad
+                );
+            if (!hitter && sh.time > 0 && !this.dead) return true;
+            // the sprite goes with it (its slot may have been reused by now, so check it is still this one)
+            const b = sh.bullet;
+            const same = b && b.active && b.player === this && b.bulletType === "bullet_kit_wizard_fx_shard"
+                && v2.length(v2.sub(b.pos, sh.pos)) < 0.5;
+            if (b && same) {
+                b.alive = false;
+                b.active = false;
+            }
+            if (hitter) {
+                this.game.explosionBarn.addExplosion("explosion_kit_wizard_shard", v2.copy(sh.pos), sh.layer, {
+                    source: this,
+                    gameSourceType: "kit_wizard_crystals",
+                    weaponSourceType: "bullet_kit_wizard_crystal_shard",
+                    damageType: GameConfig.DamageType.Player,
+                });
+            }
+            return false;
+        });
+    }
+
+    startWizardWave() {
+        this.wizardWave = { r: 0, hit: new Set(), deleted: 0 };
+        this.wizardWaveCasts++;
+        this.setDirty();
+    }
+
+    /**
+     * Stun Wave, every tick: the ring grows to the radius of his circle; each enemy it reaches takes 30 and is
+     * stunned 3 s, and enemy shots inside it are deleted (clients end them near the pop)
+     */
+    updateWizardWave(dt: number) {
+        const w = this.wizardWave;
+        if (!w) return;
+        if (this.dead) {
+            this.wizardWave = undefined;
+            return;
+        }
+        const max = KitDefs.wizard.aura!.radius;
+        w.r = Math.min(max, w.r + WizardWave.speed * dt);
+        for (const p of this.game.playerBarn.livingPlayers) {
+            if (
+                p === this || p.dead || p.teamId === this.teamId || w.hit.has(p.__id)
+                || !util.sameLayer(p.layer, this.layer) || v2.length(v2.sub(p.pos, this.pos)) > w.r
+            ) continue;
+            w.hit.add(p.__id);
+            p.damage({
+                amount: WizardWave.damage,
+                damageType: GameConfig.DamageType.Player,
+                gameSourceType: "kit_wizard_wave",
+                weaponSourceType: "kit_wizard_wave",
+                source: this,
+                dir: v2.normalizeSafe(v2.sub(p.pos, this.pos), v2.create(1, 0)),
+                hitsFlying: true,
+            });
+            p.stunTime = Math.max(p.stunTime, WizardWave.stun);
+            p.webPull = undefined;
+            p.setDirty();
+        }
+        for (const b of this.game.bulletBarn.bullets) {
+            if (!b.active || !b.alive) continue;
+            if (b.player === this || b.player?.teamId === this.teamId) continue;
+            if (b.bulletType.includes("_fx_")) continue;
+            if (v2.length(v2.sub(b.pos, this.pos)) > w.r) continue;
+            b.alive = false;
+            b.active = false;
+            b.onHitFx = "";
+            if (w.deleted++ < 24) {
+                this.game.explosionBarn.addExplosion("explosion_kit_pop", v2.copy(b.pos), b.layer, {
+                    source: this,
+                    gameSourceType: "kit_wizard_wave",
+                    weaponSourceType: "kit_wizard_wave",
+                    damageType: GameConfig.DamageType.Player,
+                });
+            }
+        }
+        if (w.r >= max) this.wizardWave = undefined;
     }
 
     /** a Sentry Charge hit: burn, bleed and stun, and every perk gone for a while */
@@ -3810,6 +3951,8 @@ export class Player extends BaseGameObject {
             // Ultron's orb lasers: orange burns, red bleeds, purple poisons, 3s each
             else if (weap === "bullet_kit_ultron_orb_laser_orange") this.applyBurn(3, playerSource, src);
             else if (weap === "bullet_kit_ultron_orb_laser_red") this.applyBleed(3, playerSource);
+            // Wizard's crystal, circles and mini crystals all bleed
+            else if (weap.startsWith("bullet_kit_wizard_crystal_")) this.applyBleed(WizardCrystals.bleed, playerSource);
             else if (weap === "bullet_kit_ultron_orb_laser_purple") this.applyPoison(3, playerSource);
             else if ((src === "kit_ultron_blast" || src === "kit_wizard_stars") && params.dir && !this.webPull) {
                 // slight knockback, moved like a short slide so walls still stop it
@@ -3977,6 +4120,8 @@ export class Player extends BaseGameObject {
         this.endUltronCombo();
         this.endIronCombo();
         this.ironSpin = undefined;
+        this.wizardWave = undefined;
+        this.wizardShards = [];
         // a Wizard's marks go when the Wizard does
         for (const p of this.wizardMarks) {
             p.wizardMarked = false;
@@ -6271,6 +6416,8 @@ export class Player extends BaseGameObject {
         this.endUltronCombo();
         this.endIronCombo();
         this.ironSpin = undefined;
+        this.wizardWave = undefined;
+        this.wizardShards = [];
         // Green Goblin starts with his drone on his right, no upgrade running
         this.droneAngle = 0;
         this.dronePrev = undefined;
@@ -6332,6 +6479,8 @@ export class Player extends BaseGameObject {
         if (this.ultronCombo) this.updateUltronCombo(dt);
         if (this.ironCombo) this.updateIronCombo(dt);
         if (this.ironSpin) this.updateIronSpin(dt);
+        if (this.wizardWave) this.updateWizardWave(dt);
+        if (this.wizardShards.length) this.updateWizardShards(dt);
         if (this.kit === "default" || !kit || this.dead) return;
         if (kit.fullBoost && this.boost < 100) this.boost = 100;
         this.calmTime += dt;

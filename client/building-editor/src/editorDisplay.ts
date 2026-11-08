@@ -230,6 +230,7 @@ export class EditorDisplay {
             dummyHealth: 1,
             solarCast: 0,
             ironSpinCast: 0,
+            wizardWaveCast: 0,
             wizardMarked: false,
             wolverineMarked: false,
             hidden: false,

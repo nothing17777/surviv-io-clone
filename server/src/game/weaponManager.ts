@@ -444,6 +444,7 @@ export class WeaponManager {
             }
             // Green Goblin's Tricky Swap
             if (this.activeWeapon === "kit_goblin_swap") this.player.goblinSwap();
+            if (this.activeWeapon === "kit_wizard_wave") this.player.startWizardWave();
             if (this.activeWeapon === "kit_wizard_enhance") {
                 this.player.kitEnhanceTime = 9;
                 this.player.setDirty();

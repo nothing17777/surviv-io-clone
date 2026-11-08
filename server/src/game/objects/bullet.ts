@@ -885,6 +885,10 @@ export class Bullet {
                 if (col.type == "player" && this.onHitFx?.startsWith("explosion_cw")) {
                     this.pos = v2.copy(col.player!.pos);
                 }
+                // Wizard's crystal bursts into mini crystals on whatever it touches
+                if (this.bulletType === "bullet_kit_wizard_crystal_main" && this.player && !this.player.dead) {
+                    this.player.burstWizardCrystal(v2.copy(this.pos), this.layer);
+                }
                 this.alive = false;
                 break;
             }
