@@ -11,7 +11,7 @@ import { CustomWeaponsVersion } from "../../../shared/defs/gameObjects/customWea
 import { SwingArcs } from "../../../shared/defs/gameObjects/customWeaponEffects.ts";
 import type { BoostDef, HealDef } from "./../../../shared/defs/gameObjects/gearDefs.ts";
 import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
-import { KitDefs } from "../../../shared/defs/gameObjects/kitDefs.ts";
+import { IronManSpin, KitDefs } from "../../../shared/defs/gameObjects/kitDefs.ts";
 import { type MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
 import type { CookImg, ThrowableDef, ThrowableHandImgKey } from "../../../shared/defs/gameObjects/throwableDefs.ts";
 import type { ObstacleDef } from "../../../shared/defs/mapObjects/obstacles/obstacleDefs.ts";
@@ -340,6 +340,7 @@ export class Player implements AbstractObject {
         dummy: boolean;
         dummyHealth: number;
         solarCast: number;
+        ironSpinCast: number;
         wizardMarked: boolean;
         wolverineMarked: boolean;
         hidden: boolean;
@@ -529,6 +530,7 @@ export class Player implements AbstractObject {
             dummy: false,
             dummyHealth: 1,
             solarCast: 0,
+            ironSpinCast: 0,
             wizardMarked: false,
             wolverineMarked: false,
             hidden: false,
@@ -632,6 +634,7 @@ export class Player implements AbstractObject {
             this.m_netData.dummy = data.dummy;
             this.m_netData.dummyHealth = data.dummyHealth;
             this.m_netData.solarCast = data.solarCast;
+            this.m_netData.ironSpinCast = data.ironSpinCast;
             this.m_netData.wizardMarked = data.wizardMarked;
             this.m_netData.wolverineMarked = data.wolverineMarked;
             this.m_netData.hidden = data.hidden;
@@ -2898,6 +2901,11 @@ export class Player implements AbstractObject {
     kitTicker = 0;
     excaliburRing: PIXI.Graphics | null = null;
     flightGlow: PIXI.Graphics | null = null;
+    ironBeams: PIXI.Graphics | null = null;
+    ironSpinSeen = -1;
+    /** seconds into the Laser Spin and the first beam's angle at the cast; -1 when none is showing */
+    ironSpinT = -1;
+    ironSpinA0 = 0;
     solarRing: PIXI.Graphics | null = null;
     solarSeen = -1;
     /** world units the Solar Explosion ring has grown; -1 when none is showing */
@@ -2942,6 +2950,37 @@ export class Player implements AbstractObject {
                 this.flightGlow.beginFill(0xbdf1ff, 0.3);
                 this.flightGlow.drawCircle(0, 0, 1.8 * px * pulse);
                 this.flightGlow.endFill();
+            }
+        }
+        // Iron Man's Laser Spin: two clean beams turning a full circle (drawn fresh every frame, no trail)
+        if (this.ironSpinSeen !== this.m_netData.ironSpinCast) {
+            if (this.ironSpinSeen >= 0) {
+                this.ironSpinT = 0;
+                this.ironSpinA0 = Math.atan2(this.m_netData.m_dir.y, this.m_netData.m_dir.x) + Math.PI / 2;
+            }
+            this.ironSpinSeen = this.m_netData.ironSpinCast;
+        }
+        if (this.ironSpinT >= 0) {
+            if (!this.ironBeams) {
+                this.ironBeams = new PIXI.Graphics();
+                this.auraContainer.addChild(this.ironBeams);
+            }
+            this.ironSpinT += dt;
+            const g = this.ironBeams;
+            g.clear();
+            if (this.ironSpinT >= IronManSpin.time || dead) {
+                this.ironSpinT = -1;
+            } else {
+                const a = this.ironSpinA0 + (this.ironSpinT / IronManSpin.time) * Math.PI * 2;
+                const layers = [[IronManSpin.width * 2, 0xffa81a, 0.45], [IronManSpin.width, 0xfff2a0, 1]] as const;
+                for (const [w, color, alpha] of layers) {
+                    g.lineStyle(w * px, color, alpha);
+                    for (let beam = 0; beam < 2; beam++) {
+                        const b = a + beam * Math.PI;
+                        g.moveTo(0, 0);
+                        g.lineTo(Math.cos(b) * IronManSpin.range * px, Math.sin(b) * IronManSpin.range * px);
+                    }
+                }
             }
         }
         // Sentry's Solar Explosion: a yellow ring that grows to 100 world units at 220 units/s

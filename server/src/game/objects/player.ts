@@ -1139,7 +1139,7 @@ export class Player extends BaseGameObject {
     ironCombo?: { time: number; target: Player; fired: boolean; drones: Vec2[] };
 
     /** a sprite shot of Iron Man's that hurts no one: a streak of the spin, or a drone parked for `life` s */
-    fireIronFx(kind: "spin" | "drone", pos: Vec2, dir: Vec2, life?: number) {
+    fireIronFx(kind: "drone", pos: Vec2, dir: Vec2, life?: number) {
         const type = `bullet_kit_ironman_fx_${kind}`;
         const maxLife = GameObjectDefs.typeToDef(type, "bullet").lifetime ?? 0;
         this.game.bulletBarn.fireBullet(
@@ -1160,7 +1160,16 @@ export class Player extends BaseGameObject {
         );
     }
 
+    /** counts Laser Spin casts so clients can draw the beams; wraps in 3 bits */
+    ironSpinCasts = 0;
+
+    get ironSpinCast(): number {
+        return this.ironSpinCasts & 7;
+    }
+
     startIronSpin() {
+        this.ironSpinCasts++;
+        this.setDirty();
         this.ironSpin = { time: 0, angle: Math.atan2(this.dir.y, this.dir.x) + Math.PI / 2, hit: new Set() };
     }
 
@@ -1219,11 +1228,6 @@ export class Player extends BaseGameObject {
         }
         s.angle += sweep;
         s.time += step;
-        // the streaks everyone sees
-        for (let beam = 0; beam < 2; beam++) {
-            const a = s.angle + beam * Math.PI;
-            this.fireIronFx("spin", v2.copy(this.pos), v2.create(Math.cos(a), Math.sin(a)));
-        }
         if (s.time >= IronManSpin.time) this.ironSpin = undefined;
     }
 
