@@ -4524,6 +4524,8 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
                 tracerWidth: 0.2,
                 sprite: kitAsset("wizard_crystal"),
                 spriteSize: 112,
+                // as wide as it is drawn, so it lands on anyone it passes close to
+                hitRadius: 3,
                 spin: 8,
             }),
             ...[0, 1].map((i) =>
@@ -4536,6 +4538,7 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
                     tracerWidth: 0.2,
                     sprite: kitAsset("wizard_circle"),
                     spriteSize: 104,
+                    hitRadius: 2.8,
                     spin: -10,
                 })
             ),
