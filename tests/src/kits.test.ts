@@ -125,52 +125,52 @@ test("Ultron: minions, orb blast and laser cost energy and hit", () => {
     expect(me.minions.every((m) => m.dead)).toBeTruthy();
 });
 
-test("Summoner: daggers attack nearby enemies, the whip sets their focus", () => {
-    const { game, me, enemy } = setup("summoner", v2.create(6, 0));
+test("Summoner: four blade minions dash at enemies, the whip sets their focus", () => {
+    const { game, me, enemy } = setup("summoner", v2.create(22, 0));
     expect(me.maxHealth).toBe(150);
-    for (let i = 0; i < 20; i++) game.step(0.05);
+    // anyone on screen, not just close by: they dash once a second, 8 each
+    for (let i = 0; i < 40; i++) game.step(0.05);
+    expect(me.daggerMinions.length).toBe(4);
     expect(enemy.health).toBeLessThan(100);
-
-    // anyone on screen, not just close by
-    const far = setup("summoner", v2.create(22, 0));
-    for (let i = 0; i < 20; i++) far.game.step(0.05);
-    expect(far.enemy.health).toBeLessThan(100);
+    // and never go further from him than 35
+    for (const m of me.daggerMinions) expect(v2.length(v2.sub(m.pos, me.pos))).toBeLessThanOrEqual(35.01);
 
     const whip = setup("summoner", v2.create(20, 0));
-    // the whip pulls focus once in reach
     whip.enemy.pos = v2.add(whip.me.pos, v2.create(8, 0));
     whip.game.grid.updateObject(whip.enemy);
-    // the daggers would kill them before the whip lands
     whip.enemy.maxHealth = 1e6;
     whip.enemy.health = 1e6;
     use(whip.game, whip.me, Slot.Melee, 10, true);
     expect(whip.me.summonerFocusId).toBe(whip.enemy.__id);
 });
 
-test("Summoner: the whip leaves its target vulnerable, taking 10 more from each minion hit for 4 s", () => {
+test("Summoner: a minion's dash ignores armor and damage reduction, a marked target takes 5 more", () => {
     const { game, me, enemy } = setup("summoner", v2.create(60, 0));
     enemy.maxHealth = 1e6;
     enemy.health = 1e6;
-    const hit = (amount: number) => {
+    enemy.shield = 0;
+    enemy.chest = "chest04";
+    enemy.helmet = "helmet04";
+    const hit = (source: string, amount: number) => {
         const before = enemy.health;
         enemy.damage({
             amount,
             damageType: GameConfig.DamageType.Player,
             dir: v2.create(1, 0),
             source: me,
-            gameSourceType: "kit_summoner_whip",
+            gameSourceType: source,
         });
         return before - enemy.health;
     };
-    const dagger = hit(30);
+    expect(hit("kit_summoner_dagger", 8)).toBeCloseTo(8, 5);
     expect(enemy.vulnerable).toBe(false);
-    // a lash, softer than a dagger
-    hit(14);
+    // the whip's lash marks it
+    hit("kit_summoner_whip", 14);
     expect(enemy.vulnerable).toBe(true);
-    expect(hit(30)).toBeCloseTo(dagger + 10, 5);
+    expect(hit("kit_summoner_dagger", 8)).toBeCloseTo(13, 5);
     for (let i = 0; i < 81; i++) game.step(0.05);
     expect(enemy.vulnerable).toBe(false);
-    expect(hit(30)).toBeCloseTo(dagger, 5);
+    expect(hit("kit_summoner_dagger", 8)).toBeCloseTo(8, 5);
 });
 
 test("Wizard: circle feeds energy, the blast and Crystal Burst fire", () => {

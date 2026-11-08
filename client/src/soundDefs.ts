@@ -48,6 +48,12 @@ const Sounds: Record<string, Record<string, SoundDef>> = {
             volume: 1,
             maxInstances: 4,
         },
+        // a Summoner minion's dash landing
+        summoner_dash: {
+            path: "audio/kits/summoner_dash.ogg",
+            volume: 1,
+            maxInstances: 4,
+        },
         // Iron Man's three skills
         ironman_laser: {
             path: "audio/kits/ironman_laser.ogg",

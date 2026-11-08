@@ -231,6 +231,7 @@ export class EditorDisplay {
             solarCast: 0,
             ironSpinCast: 0,
             wizardWaveCast: 0,
+            daggerOffsets: [],
             wizardMarked: false,
             wolverineMarked: false,
             hidden: false,

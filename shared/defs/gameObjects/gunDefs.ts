@@ -4103,25 +4103,11 @@ kitBullet("bullet_kit_ultron_combo_laser", {
     tracerWidth: 0.6,
     trailSprite: kitAsset("star_wrath_proj"),
 });
-// the Summoner's blade minions
-kitBullet("bullet_kit_dagger", {
-    // a spinning blade minion, not a magic beam: only the dagger sprite is drawn
-    damage: 30,
-    speed: 55,
-    // chases its target until it lands (it ends if they die or leave)
-    distance: 1000,
-    spin: 14,
-    noTracer: true,
-    tracerColor: "cw_magic",
-    tracerWidth: 0.12,
-    sprite: kitAsset("enchanted_dagger"),
-    // screen px across at zoom 1 (the Christmas Ultimatum tree is 80); the same size as the circle's swords
-    spriteSize: 55,
-});
 // the Summoner's whip: a chain that lashes out 36 tiles from the hand
 kitBullet("bullet_kit_whip", {
     damage: 14,
-    speed: 70,
+    // twice as fast as it was
+    speed: 140,
     distance: 36,
     beam: true,
     tracerColor: "cw_white",
@@ -4494,6 +4480,21 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
                 })
             ),
         ],
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
+    // a Summoner minion's dash: the key for its sound and damage rules (see Player.updateDaggers), never held
+    kitGun("kit_summoner_dagger", "barrett", { damage: 0 }, {
+        name: "Minion Dash",
+        fireMode: "single",
+        bulletCount: 0,
+        // true damage: no headshot roll
+        headshotMult: 1,
+        caseTiming: "reload",
+        sound: { shoot: "summoner_dash" },
+        energyCost: 0,
         maxClip: 250,
         maxReload: 250,
         extendedClip: 250,

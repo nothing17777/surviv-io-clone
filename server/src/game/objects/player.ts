@@ -767,8 +767,14 @@ export class Player extends BaseGameObject {
     /** Wizard: seconds left of the enhanced circle */
     kitEnhanceTime = 0;
     regenPulseTimer = 0;
-    daggerTimer = 0;
-    daggerIndex = 0;
+    /** Summoner: his blade minions (see KitDef.daggers); phase 0 waits and drifts, 1 dashes at the target, 2 dashes back */
+    daggerMinions: { pos: Vec2; phase: number; timer: number; hit: Set<number> }[] = [];
+    daggerClock = 0;
+
+    /** where each blade minion is, relative to the Summoner: what clients draw */
+    get daggerOffsets(): Vec2[] {
+        return this.dead ? [] : this.daggerMinions.map((m) => v2.sub(m.pos, this.pos));
+    }
     /** Summoner: the enemy the whip last hit, which the daggers go after first */
     summonerFocusId = 0;
     /** Spider-Man: swinging to where the web hit */
@@ -3783,17 +3789,12 @@ export class Player extends BaseGameObject {
         // a kit's items on all the damage it deals (Sentry Artifact)
         if (playerSource && playerSource !== this) finalDamage *= KitDefs[playerSource.kit]?.damageMult ?? 1;
 
-        // vulnerable to the Summoner: each minion hit (a dagger hits as hard as its damage, the whip softer) lands harder
-        const daggerDamage = KitDefs.summoner.daggers!.damage;
-        if (
-            this.vulnerable && params.gameSourceType === "kit_summoner_whip"
-            && finalDamage >= daggerDamage - 0.01
-        ) {
-            finalDamage += KitDefs.summoner.vulnerable!.extraDamage;
-        }
+        // vulnerable to the Summoner (marked by the whip): each minion dash lands harder
+        const trueHit = params.gameSourceType === "kit_summoner_dagger";
+        if (this.vulnerable && trueHit) finalDamage += KitDefs.summoner.vulnerable!.extraDamage;
 
         // Excalibur: 50% less damage taken while actively firing it
-        if (this.excaliburActive) finalDamage *= 0.5;
+        if (this.excaliburActive && !trueHit) finalDamage *= 0.5;
 
         // a kit's items can ignore part of the target's damage reduction, on top of the hit's own armor
         // penetration (Jeff: 10%, so a Sentry Charge that ignores 80% ignores 90%)
@@ -3803,6 +3804,9 @@ export class Player extends BaseGameObject {
         if (this.penGuardTime > 0 && armorPen !== undefined && armorPen < 1) {
             armorPen = 1 - (1 - armorPen) * SentryNova.penGuard;
         }
+
+        // a minion's dash ignores every armor and damage reduction
+        if (trueHit) armorPen = 0;
 
         const reduceDamage = (multi: number) => {
             if (armorPen !== undefined) {
@@ -3867,7 +3871,7 @@ export class Player extends BaseGameObject {
             }
         }
 
-        if (this.champ) finalDamage = this.champ.onTakeDamage(params, finalDamage, playerSource);
+        if (this.champ && !trueHit) finalDamage = this.champ.onTakeDamage(params, finalDamage, playerSource);
 
         // the super hacker has 10,000 health: kept as 100 (the network only sends 0-100), everything hits it for 1%
         if (this.botBrain?.level === "super_hacker") finalDamage *= GameConfig.player.health / 10000;
@@ -3962,7 +3966,7 @@ export class Player extends BaseGameObject {
                     time: 0.12,
                 };
             } else if (
-                src === "kit_summoner_whip" && params.amount! < (KitDefs.summoner.daggers?.damage ?? 30) - 0.01
+                src === "kit_summoner_whip"
             ) {
                 // the whip's lash (it hits softer than a dagger) sets the minions' target and leaves them vulnerable
                 playerSource.summonerFocusId = this.__id;
@@ -4122,6 +4126,7 @@ export class Player extends BaseGameObject {
         this.ironSpin = undefined;
         this.wizardWave = undefined;
         this.wizardShards = [];
+        this.daggerMinions = [];
         // a Wizard's marks go when the Wizard does
         for (const p of this.wizardMarks) {
             p.wizardMarked = false;
@@ -6418,6 +6423,7 @@ export class Player extends BaseGameObject {
         this.ironSpin = undefined;
         this.wizardWave = undefined;
         this.wizardShards = [];
+        this.daggerMinions = [];
         // Green Goblin starts with his drone on his right, no upgrade running
         this.droneAngle = 0;
         this.dronePrev = undefined;
@@ -7218,40 +7224,113 @@ export class Player extends BaseGameObject {
         }
     }
 
-    /** Summoner: the blade minions take turns flying at the focused enemy, else the nearest one on screen */
-    updateDaggers(dt: number, d: NonNullable<(typeof KitDefs)[string]["daggers"]>) {
-        this.daggerTimer -= dt;
-        if (this.daggerTimer > 0) return;
-        // anyone the Summoner can see: the view reaches about `zoom` from him (28 at 1x)
-        const near = this.enemiesWithin(Math.max(d.range, this.zoom));
-        if (!near.length) return;
-        // at most one every 0.05 s: a big swarm firing every tick would flood clients with bullets
-        this.daggerTimer = Math.max(d.interval / d.count, 0.05);
-        const focus = near.find((p) => p.__id === this.summonerFocusId);
-        const target = focus
-            ?? near.reduce((a, b) => (v2.length(v2.sub(a.pos, this.pos)) < v2.length(v2.sub(b.pos, this.pos)) ? a : b));
-        // each dagger leaves from its spot on the circle round the player (the client draws them there)
-        const ang = ((this.daggerIndex++ % d.count) / d.count) * Math.PI * 2 + this.game.now * 0.002;
-        const out = v2.create(Math.cos(ang), Math.sin(ang));
-        const from = v2.add(this.pos, v2.mul(out, 4));
+    /** the sound of a minion's dash landing: a shot with nothing in it, so clients play the gun's `shoot` sound */
+    fireDashSound(at: Vec2) {
         this.game.bulletBarn.fireBullet(
             {
                 playerId: this.__id,
-                bulletType: "bullet_kit_dagger",
-                gameSourceType: "kit_summoner_whip",
+                bulletType: "bullet_kit_ironman_fx_sound",
+                gameSourceType: "kit_summoner_dagger",
                 damageType: GameConfig.DamageType.Player,
-                pos: from,
-                // it leaves outward from its spot and swoops round onto them (the bullet turns gradually)
-                dir: v2.normalizeSafe(v2.add(out, v2.mul(v2.normalizeSafe(v2.sub(target.pos, from), out), 0.4)), out),
-                // locks on: it turns to follow them until it lands
-                homingTargetId: target.__id,
+                pos: v2.copy(at),
+                dir: v2.copy(this.dir),
                 layer: this.layer,
                 damageMult: 1,
-                distance: Math.max(d.range, this.zoom) * 2,
-                shotFx: false,
+                shotFx: true,
                 reflectCount: 0,
+                ghost: true,
             } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
         );
+    }
+
+    /**
+     * Summoner: the blade minions. They circle him until an enemy he can see (the whip's mark first, else the
+     * nearest) is there; then each waits `dashFrom` from it, and once a second (they take turns, a quarter second
+     * apart) dashes through it and straight back. A dash hurts every enemy it crosses once, for true damage
+     */
+    updateDaggers(dt: number, d: NonNullable<(typeof KitDefs)[string]["daggers"]>) {
+        if (this.daggerMinions.length !== d.count) {
+            this.daggerMinions = Array.from({ length: d.count }, (_, i) => ({
+                pos: v2.copy(this.pos),
+                phase: 0,
+                timer: (i * d.dashEvery) / d.count,
+                hit: new Set<number>(),
+            }));
+        }
+        this.daggerClock += dt;
+        const near = this.enemiesWithin(Math.max(d.range, this.zoom));
+        const focus = near.find((p) => p.__id === this.summonerFocusId);
+        const target = focus
+            ?? (near.length
+                ? near.reduce((a, b) => (v2.length(v2.sub(a.pos, this.pos)) < v2.length(v2.sub(b.pos, this.pos)) ? a : b))
+                : undefined);
+        const foes = this.enemiesWithin(d.leash + d.dashFrom + 4);
+        const toTarget = target ? v2.normalizeSafe(v2.sub(target.pos, this.pos), this.dir) : this.dir;
+
+        this.daggerMinions.forEach((m, i) => {
+            // where it waits: round the Summoner, or `dashFrom` from the target on its own side of it
+            let home: Vec2;
+            if (target) {
+                const away = v2.rotate(v2.mul(toTarget, -1), (i - (d.count - 1) / 2) * 0.55);
+                home = v2.add(target.pos, v2.mul(away, d.dashFrom));
+            } else {
+                const ang = (i / d.count) * Math.PI * 2 + this.daggerClock * 2;
+                home = v2.add(this.pos, v2.create(Math.cos(ang) * 4, Math.sin(ang) * 4));
+            }
+            // never further from him than the leash
+            const out = v2.sub(home, this.pos);
+            if (v2.length(out) > d.leash) home = v2.add(this.pos, v2.mul(v2.normalizeSafe(out), d.leash));
+            const step = (to: Vec2, speed: number) => {
+                const delta = v2.sub(to, m.pos);
+                const dist = v2.length(delta);
+                const move = Math.min(dist, speed * dt);
+                if (dist > 1e-6) m.pos = v2.add(m.pos, v2.mul(delta, move / dist));
+                return dist - move;
+            };
+
+            m.timer -= dt;
+            if (m.phase === 0) {
+                // it drifts after its spot, or is simply there if the Summoner has outrun it
+                if (v2.length(v2.sub(m.pos, this.pos)) > d.leash) m.pos = v2.copy(home);
+                const left = step(home, target ? d.dashSpeed * 0.6 : 40);
+                if (target && m.timer <= 0 && left < 2.5) {
+                    m.phase = 1;
+                    m.hit.clear();
+                    m.timer = d.dashEvery;
+                }
+            } else if (m.phase === 1) {
+                if (!target || target.dead) {
+                    m.phase = 2;
+                } else {
+                    const dir = v2.normalizeSafe(v2.sub(target.pos, m.pos), toTarget);
+                    const from = v2.copy(m.pos);
+                    // it flies through them and a little way on
+                    const goal = v2.add(target.pos, v2.mul(dir, 2));
+                    const left = step(goal, d.dashSpeed);
+                    for (const p of foes) {
+                        if (m.hit.has(p.__id) || p.dead) continue;
+                        if (math.distToSegmentSq(p.pos, from, m.pos) > (p.rad + d.hitRadius) ** 2) continue;
+                        m.hit.add(p.__id);
+                        p.damage({
+                            amount: d.damage,
+                            damageType: GameConfig.DamageType.Player,
+                            gameSourceType: "kit_summoner_dagger",
+                            weaponSourceType: "kit_summoner_dagger",
+                            source: this,
+                            dir,
+                        });
+                        this.fireDashSound(m.pos);
+                    }
+                    if (left < 0.05) m.phase = 2;
+                }
+            } else if (step(home, d.dashSpeed) < 0.5) {
+                m.phase = 0;
+            }
+            // and never past the leash
+            const rel = v2.sub(m.pos, this.pos);
+            if (v2.length(rel) > d.leash) m.pos = v2.add(this.pos, v2.mul(v2.normalizeSafe(rel), d.leash));
+        });
+        this.setDirty();
     }
 
     /** Wizard: each enemy in the circle feeds energy, shield and health; enhanced, it marks them */

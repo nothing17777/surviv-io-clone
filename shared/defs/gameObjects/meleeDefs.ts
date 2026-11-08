@@ -1548,7 +1548,7 @@ Object.assign(
         kitMelee("kit_summoner_whip", "Spinal Tap", {
             damage: 0,
             autoAttack: true,
-            attack: { offset: { x: 1, y: 0 }, rad: 0.5, cooldownTime: 0.55 },
+            attack: { offset: { x: 1, y: 0 }, rad: 0.5, cooldownTime: 0.3 },
         }),
         // abilities in the melee slot: using it is the "swing"
         kitMelee("kit_ultron_minions", "Minion Spawn", {

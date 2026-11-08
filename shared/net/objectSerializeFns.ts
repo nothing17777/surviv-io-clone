@@ -1,5 +1,5 @@
 import { type Action, type Anim, GameConfig, HasteType } from "../gameConfig.ts";
-import type { Vec2 } from "../utils/v2.ts";
+import { v2, type Vec2 } from "../utils/v2.ts";
 import { BitSizes, type BitStream, Constants } from "./net.ts";
 
 export enum ObjectType {
@@ -100,13 +100,15 @@ export interface ObjectsFullData {
         kitAura: number;
         /** Green Goblin: where his main drone is round him, radians in [0, 2pi) */
         droneAngle: number;
-        /** a training dummy: its health bar is drawn over it, so its health goes on the wire */
         /** Sentry Solar Explosion cast counter (3 bits); a change starts the ring */
         solarCast: number;
         /** Iron Man Laser Spin cast counter (3 bits); a change starts the beams */
         ironSpinCast: number;
         /** Wizard Stun Wave cast counter (3 bits); a change starts the ring */
         wizardWaveCast: number;
+        /** Summoner: where each blade minion is, relative to him (the minions are not objects of their own) */
+        daggerOffsets: Vec2[];
+        /** a training dummy: its health bar is drawn over it, so its health goes on the wire */
         dummy: boolean;
         /** the dummy's health as a fraction in [0, 1] */
         dummyHealth: number;
@@ -275,6 +277,11 @@ export const ObjectSerializeFns: {
             s.writeBits(data.solarCast, 3);
             s.writeBits(data.ironSpinCast, 3);
             s.writeBits(data.wizardWaveCast, 3);
+            s.writeBits(data.daggerOffsets.length, 3);
+            for (const o of data.daggerOffsets) {
+                s.writeFloat(o.x, -48, 48, 10);
+                s.writeFloat(o.y, -48, 48, 10);
+            }
             s.writeBoolean(data.dummy);
             if (data.dummy) s.writeFloat(data.dummyHealth, 0, 1, 10);
             s.writeBoolean(data.wizardMarked);
@@ -369,6 +376,10 @@ export const ObjectSerializeFns: {
             data.solarCast = s.readBits(3);
             data.ironSpinCast = s.readBits(3);
             data.wizardWaveCast = s.readBits(3);
+            data.daggerOffsets = [];
+            for (let n = s.readBits(3); n > 0; n--) {
+                data.daggerOffsets.push(v2.create(s.readFloat(-48, 48, 10), s.readFloat(-48, 48, 10)));
+            }
             data.dummy = s.readBoolean();
             data.dummyHealth = data.dummy ? s.readFloat(0, 1, 10) : 1;
             data.wizardMarked = s.readBoolean();
