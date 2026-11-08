@@ -347,6 +347,7 @@ export class Player implements AbstractObject {
         wolverineMarked: boolean;
         hidden: boolean;
         webbed: boolean;
+        wizardStunned: boolean;
         ultronMarked: boolean;
         vulnerable: boolean;
         excaliburActive: boolean;
@@ -539,6 +540,7 @@ export class Player implements AbstractObject {
             wolverineMarked: false,
             hidden: false,
             webbed: false,
+            wizardStunned: false,
             ultronMarked: false,
             vulnerable: false,
             excaliburActive: false,
@@ -645,6 +647,7 @@ export class Player implements AbstractObject {
             this.m_netData.wolverineMarked = data.wolverineMarked;
             this.m_netData.hidden = data.hidden;
             this.m_netData.webbed = data.webbed;
+            this.m_netData.wizardStunned = data.wizardStunned;
             this.m_netData.ultronMarked = data.ultronMarked;
             this.m_netData.vulnerable = data.vulnerable;
             this.m_netData.excaliburActive = data.excaliburActive;
@@ -2889,6 +2892,7 @@ export class Player implements AbstractObject {
     kitCircle: PIXI.Sprite | null = null;
     kitSigil: PIXI.Sprite | null = null;
     webbedSprite: PIXI.Sprite | null = null;
+    wizardStunRing: PIXI.Graphics | null = null;
     vulnerableRing: PIXI.Graphics | null = null;
     ultronReticle: PIXI.Graphics | null = null;
     kitDaggers: PIXI.Sprite[] = [];
@@ -3168,6 +3172,24 @@ export class Player implements AbstractObject {
             const s = (3.4 * px) / Math.max(tex.width, 1);
             this.webbedSprite.scale.set(s, s);
             this.webbedSprite.alpha = 0.85;
+        }
+        // stunned by the Wizard's wave: a glowing green outline round them for as long as it lasts
+        if (this.m_netData.wizardStunned || this.wizardStunRing) {
+            if (!this.wizardStunRing) {
+                this.wizardStunRing = new PIXI.Graphics();
+                this.auraContainer.addChild(this.wizardStunRing);
+            }
+            const on = this.m_netData.wizardStunned && !dead;
+            this.wizardStunRing.visible = on;
+            if (on) {
+                const pulse = 1 + 0.06 * Math.sin(this.kitTicker * 12);
+                const g = this.wizardStunRing;
+                g.clear();
+                g.lineStyle(0.55 * px, 0x38ff6a, 0.25);
+                g.drawCircle(0, 0, 1.25 * px * pulse);
+                g.lineStyle(0.25 * px, 0x7dffa0, 0.95);
+                g.drawCircle(0, 0, 1.1 * px * pulse);
+            }
         }
         // an Ultron's Combo marks its target with a turning orange reticle
         if (this.m_netData.ultronMarked || this.ultronReticle) {

@@ -855,6 +855,13 @@ export class Player extends BaseGameObject {
     /** seconds left of the web stun Spider-Man's Portal Combo put on this player (see `webbed`) */
     webStunTime = 0;
 
+    /** stunned by the Wizard's Stun Wave: shown with a green outline while it lasts */
+    wizardStunTime = 0;
+
+    get wizardStunned() {
+        return this.wizardStunTime > 0 && !this.dead;
+    }
+
     get webbed() {
         return this.webStunTime > 0 && !this.dead;
     }
@@ -1644,6 +1651,7 @@ export class Player extends BaseGameObject {
     }
 
     startWizardWave() {
+        this.fireIronSound("kit_wizard_crystals");
         this.wizardWave = { r: 0, hit: new Set(), deleted: 0 };
         this.wizardWaveCasts++;
         this.setDirty();
@@ -1678,6 +1686,7 @@ export class Player extends BaseGameObject {
                 hitsFlying: true,
             });
             p.stunTime = Math.max(p.stunTime, WizardWave.stun);
+            p.wizardStunTime = Math.max(p.wizardStunTime, WizardWave.stun);
             p.webPull = undefined;
             p.setDirty();
         }
@@ -3005,6 +3014,14 @@ export class Player extends BaseGameObject {
             if (this.vulnerableTime > 0) {
                 this.vulnerableTime -= dt;
                 if (this.vulnerableTime <= 0) this.setDirty();
+            }
+
+            if (this.wizardStunTime > 0) {
+                this.wizardStunTime -= dt;
+                if (this.wizardStunTime <= 0) {
+                    this.wizardStunTime = 0;
+                    this.setDirty();
+                }
             }
 
             if (this.stunTime > 0) {

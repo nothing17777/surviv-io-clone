@@ -48,6 +48,12 @@ const Sounds: Record<string, Record<string, SoundDef>> = {
             volume: 1,
             maxInstances: 4,
         },
+        // all three of the Wizard's skills
+        wizard_cast: {
+            path: "audio/kits/wizard_cast.ogg",
+            volume: 1,
+            maxInstances: 4,
+        },
         // a Summoner minion's dash landing
         summoner_dash: {
             path: "audio/kits/summoner_dash.ogg",

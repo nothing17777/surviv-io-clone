@@ -4443,12 +4443,13 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
         extendedClip: 250,
         extendedReload: 250,
     }),
-    // Wizard magic blast: a flaming laser to max range plus 3 homing bolts in a cone, 50 energy, 1.2 s cooldown
+    // Wizard magic blast: a flaming laser to max range plus 3 homing bolts in a cone, 50 energy, 0.9 s cooldown
     kitGun("kit_wizard_blast", "famas", { damage: 0 }, {
         name: "Magic Blast",
         fireMode: "single",
-        fireDelay: 1.6,
+        fireDelay: 0.9,
         energyCost: 50,
+        sound: { shoot: "wizard_cast" },
         bulletCount: 4,
         shotAngles: [0, -15, 0, 15],
         bulletTypes: [
@@ -4510,6 +4511,7 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
         fireDelay: WizardCrystals.cooldown,
         energyCost: WizardCrystals.energy,
         caseTiming: "reload",
+        sound: { shoot: "wizard_cast" },
         shotSpread: 0,
         moveSpread: 0,
         bulletTypes: [
@@ -4521,7 +4523,7 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
                 tracerColor: "cw_star",
                 tracerWidth: 0.2,
                 sprite: kitAsset("wizard_crystal"),
-                spriteSize: 56,
+                spriteSize: 112,
                 spin: 8,
             }),
             ...[0, 1].map((i) =>
@@ -4533,7 +4535,7 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
                     tracerColor: "cw_star",
                     tracerWidth: 0.2,
                     sprite: kitAsset("wizard_circle"),
-                    spriteSize: 52,
+                    spriteSize: 104,
                     spin: -10,
                 })
             ),
