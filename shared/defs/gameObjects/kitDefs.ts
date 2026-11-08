@@ -513,8 +513,8 @@ export const UltronComboTimes = {
 export const IronManSpin = { cooldown: 6, energy: 30, range: 40, damage: 30, burn: 3, time: 0.3, beamRadius: 0.4, width: 0.7 };
 
 /**
- * Iron Man skill 3, Blast Combo (a melee-slot ability, needs the marked enemy): the target is stunned and Iron Man
- * can do nothing else for `duration` s. Four drones appear `side` tiles to his left and right, `fwd` tiles toward
+ * Iron Man skill 3, Blast Combo (a melee-slot ability, needs the marked enemy): the target is stunned for `duration` s and Iron Man
+ * can do nothing else until the drones go (`droneEnd`). Four drones appear `side` tiles to his left and right, `fwd` tiles toward
  * the target, so they curve in round it; at `fireAt` s all four and he fire a laser at it (his is `mainWidth` x
  * the drones') and the drones go at `droneEnd`
  */

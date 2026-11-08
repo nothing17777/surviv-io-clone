@@ -3771,6 +3771,23 @@ const ironAsset = (name: string) => `img/custom-weapons/fx/kit/${name}.png?v=${C
 // Iron Man's effect shots: Blast Combo's drones are parked sprites that hurt no one (the Laser Spin beams are
 // drawn by the client, see IronManSpin); Blast Combo's lasers are real shots
 const ironBeam = { beam: true, speed: 500, noTracer: false, tracerColor: "cw_plasma" } as const;
+// carries a skill's sound: a shot with nothing to see (the skill's own effects are drawn separately)
+BulletDefs.bullet_kit_ironman_fx_sound = {
+    ...BulletDefs.bullet_ak47,
+    type: "bullet",
+    damage: 0,
+    obstacleDamage: 0,
+    falloff: 1,
+    variance: 0,
+    shrapnel: false,
+    speed: 100,
+    distance: 0.1,
+    noTracer: true,
+    tracerColor: "cw_plasma",
+    tracerWidth: 0.1,
+    noPlayerHit: true,
+    noDistAdj: true,
+};
 BulletDefs.bullet_kit_ironman_fx_drone = {
     ...BulletDefs.bullet_ak47,
     type: "bullet",
@@ -3810,9 +3827,11 @@ for (const [id, c] of [["main", IronManCombo.main], ["small", IronManCombo.small
 }
 
 const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
-    // Iron Man repulsor: a wide cyan laser, 40 dmg, 1.4 shots/s, 10 energy a shot, no extra cooldown
+    // Iron Man repulsor: a wide cyan piercing laser, 50 dmg, 1.4 shots/s, 10 energy a shot, no extra cooldown
     kitGun("kit_ironman_blast", "sv98", {
-        damage: 40,
+        damage: 50,
+        playerPierce: true,
+        pierceLoss: 0,
         beam: true,
         speed: 400,
         distance: 80,
@@ -3841,6 +3860,7 @@ const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
         fireDelay: IronManSpin.cooldown,
         energyCost: IronManSpin.energy,
         bulletCount: 0,
+        caseTiming: "reload",
         sound: { shoot: "ironman_laser" },
         shotSpread: 0,
         moveSpread: 0,
@@ -3854,6 +3874,7 @@ const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
         name: "Blast Combo",
         fireMode: "single",
         bulletCount: 0,
+        caseTiming: "reload",
         sound: { shoot: "ironman_laser" },
         energyCost: 0,
         maxClip: 250,

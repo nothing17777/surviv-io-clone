@@ -1167,7 +1167,27 @@ export class Player extends BaseGameObject {
         return this.ironSpinCasts & 7;
     }
 
+    /** the sound of one of Iron Man's skills: a shot with nothing in it, so clients play the gun's `shoot` sound */
+    fireIronSound(gun: string) {
+        this.game.bulletBarn.fireBullet(
+            {
+                playerId: this.__id,
+                bulletType: "bullet_kit_ironman_fx_sound",
+                gameSourceType: gun,
+                damageType: GameConfig.DamageType.Player,
+                pos: v2.copy(this.pos),
+                dir: v2.copy(this.dir),
+                layer: this.layer,
+                damageMult: 1,
+                shotFx: true,
+                reflectCount: 0,
+                ghost: true,
+            } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
+        );
+    }
+
     startIronSpin() {
+        this.fireIronSound("kit_ironman_spin");
         this.ironSpinCasts++;
         this.setDirty();
         this.ironSpin = { time: 0, angle: Math.atan2(this.dir.y, this.dir.x) + Math.PI / 2, hit: new Set() };
@@ -1252,10 +1272,11 @@ export class Player extends BaseGameObject {
         for (const d of drones) this.fireIronFx("drone", v2.copy(d), toward, C.droneEnd);
     }
 
-    endIronCombo() {
+    endIronCombo(done = false) {
         const c = this.ironCombo;
         if (!c) return;
         this.ironCombo = undefined;
+        if (done) return;
         // cut short (he died, the target went): the target is let go of what is left of its stun
         const left = IronManCombo.duration - c.time;
         if (left > 0 && !c.target.dead) {
@@ -1275,7 +1296,7 @@ export class Player extends BaseGameObject {
         c.time += dt;
         if (!c.fired && c.time + 1e-6 >= C.fireAt) {
             c.fired = true;
-            const shoot = (type: string, from: Vec2) =>
+            const shoot = (type: string, from: Vec2, shotFx = false) =>
                 this.game.bulletBarn.fireBullet(
                     {
                         playerId: this.__id,
@@ -1286,15 +1307,16 @@ export class Player extends BaseGameObject {
                         dir: v2.normalizeSafe(v2.sub(c.target.pos, from), this.dir),
                         layer: this.layer,
                         damageMult: 1,
-                        shotFx: false,
+                        shotFx,
                         reflectCount: 0,
                         ghost: true,
                     } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
                 );
             for (const d of c.drones) shoot("bullet_kit_ironman_combo_small", d);
-            shoot("bullet_kit_ironman_combo_main", this.pos);
+            shoot("bullet_kit_ironman_combo_main", this.pos, true);
         }
-        if (c.time >= C.duration) this.endIronCombo();
+        // he is free once the drones are gone; the target stays stunned for the full `duration`
+        if (c.time >= C.droneEnd) this.endIronCombo(true);
     }
 
     /** Ultron's Combo: the one being run, if any (see UltronCombo) */
