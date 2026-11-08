@@ -48,6 +48,12 @@ const Sounds: Record<string, Record<string, SoundDef>> = {
             volume: 1,
             maxInstances: 4,
         },
+        // Iron Man's three skills
+        ironman_laser: {
+            path: "audio/kits/ironman_laser.ogg",
+            volume: 1,
+            maxInstances: 4,
+        },
         // Spider-Man's auto web
         spider_auto_splatshot: {
             path: "audio/kits/spider_auto_splatshot.ogg",

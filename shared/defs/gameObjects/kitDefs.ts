@@ -179,8 +179,11 @@ export const KitDefs: Record<string, KitDef> = {
         chest: "chest04",
         outfit: "outfitKitIronman",
         primary: "kit_ironman_blast",
-        secondary: "kit_ironman_rockets",
-        melee: "kit_ironman_fists",
+        // skill 1 Repulsor Blast, skill 2 Laser Spin (guns); skill 3 Blast Combo is a melee-slot ability that needs
+        // the marked enemy (the nearest one within 40)
+        secondary: "kit_ironman_spin",
+        melee: "kit_ironman_combo",
+        mark: { range: 40 },
         energy: { max: 100, perSecond: 10, heal: 1, healCost: 5, shieldRegen: 1, shieldCost: 3 },
         calmRegen: { rate: 5, after: 5 },
     },
@@ -500,6 +503,36 @@ export const UltronComboTimes = {
     fireAt,
     laserAt,
     end: laserAt(UltronCombo.orbs.count - 1) + 0.05,
+};
+
+/**
+ * Iron Man skill 2, Laser Spin: two piercing lasers, one out to each side, spin a full turn in `time` s. Each is
+ * `range` long, hurts everyone it sweeps past once (`damage`, and they burn for `burn` s) and destroys every
+ * obstacle it touches
+ */
+export const IronManSpin = { cooldown: 6, energy: 30, range: 40, damage: 30, burn: 3, time: 0.6, beamRadius: 0.8 };
+
+/**
+ * Iron Man skill 3, Blast Combo (a melee-slot ability, needs the marked enemy): the target is stunned and Iron Man
+ * can do nothing else for `duration` s. Four drones appear `side` tiles to his left and right, `fwd` tiles toward
+ * the target, so they curve in round it; at `fireAt` s all four and he fire a laser at it (his is `mainWidth` x
+ * the drones') and the drones go at `droneEnd`
+ */
+export const IronManCombo = {
+    cooldown: 10,
+    energy: 50,
+    range: 40,
+    duration: 2,
+    fireAt: 0.6,
+    droneEnd: 0.9,
+    main: { damage: 50, width: 3.6 },
+    small: { damage: 10, width: 1.8 },
+    drones: [
+        { side: -6, fwd: 3 },
+        { side: -3, fwd: 1 },
+        { side: 3, fwd: 1 },
+        { side: 6, fwd: 3 },
+    ],
 };
 
 export const UltronMinion ={ count: 4, health: 17.5, speedMult: 0.75, life: 15, explosion: "explosion_kit_minion" };

@@ -15,6 +15,8 @@ import {
     dronePos,
     isKitItem,
     kitAura,
+    IronManCombo,
+    IronManSpin,
     KitDefs,
     SentryCharge,
     SentryNova,
@@ -1129,6 +1131,166 @@ export class Player extends BaseGameObject {
             (p) => (this.sentryNovaHits.get(p.__id)?.n ?? 0) >= SentryNova.hits,
         );
         if (r >= SentryNova.radius && spent) this.sentryNovaActive = false;
+    }
+
+    /** Iron Man's Laser Spin while it runs (see IronManSpin): the angle of the first laser and who each has hit */
+    ironSpin?: { time: number; angle: number; hit: Set<string> };
+    /** Iron Man's Blast Combo while it runs (see IronManCombo) */
+    ironCombo?: { time: number; target: Player; fired: boolean; drones: Vec2[] };
+
+    /** a sprite shot of Iron Man's that hurts no one: a streak of the spin, or a drone parked for `life` s */
+    fireIronFx(kind: "spin" | "drone", pos: Vec2, dir: Vec2, life?: number) {
+        const type = `bullet_kit_ironman_fx_${kind}`;
+        const maxLife = GameObjectDefs.typeToDef(type, "bullet").lifetime ?? 0;
+        this.game.bulletBarn.fireBullet(
+            {
+                playerId: this.__id,
+                bulletType: type,
+                gameSourceType: "kit_ironman_combo_laser",
+                damageType: GameConfig.DamageType.Player,
+                pos,
+                dir,
+                layer: this.layer,
+                damageMult: 1,
+                shotFx: false,
+                reflectCount: 0,
+                ghost: true,
+                age: life === undefined ? 0 : maxLife - Math.max(life, 0.02),
+            } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
+        );
+    }
+
+    startIronSpin() {
+        this.ironSpin = { time: 0, angle: Math.atan2(this.dir.y, this.dir.x) + Math.PI / 2, hit: new Set() };
+    }
+
+    /**
+     * Laser Spin, every tick: the two lasers turn, and everything they pass over is hit; enemies once per laser
+     * (30 and burning), every obstacle destroyed. The sweep is sampled every 1.5 degrees so a long tick can't
+     * skip anyone
+     */
+    updateIronSpin(dt: number) {
+        const s = this.ironSpin;
+        if (!s) return;
+        const step = Math.min(dt, IronManSpin.time - s.time);
+        if (this.dead || step <= 0) {
+            this.ironSpin = undefined;
+            return;
+        }
+        const sweep = (Math.PI * 2 / IronManSpin.time) * step;
+        const samples = Math.max(1, Math.ceil(sweep / (Math.PI / 120)));
+        const enemies = this.enemiesWithin(IronManSpin.range + 3);
+        const objs = this.game.grid.intersectCollider(collider.createCircle(this.pos, IronManSpin.range + 2));
+        for (let k = 1; k <= samples; k++) {
+            const angle = s.angle + sweep * (k / samples);
+            for (let beam = 0; beam < 2; beam++) {
+                const a = angle + beam * Math.PI;
+                const dir = v2.create(Math.cos(a), Math.sin(a));
+                const end = v2.add(this.pos, v2.mul(dir, IronManSpin.range));
+                for (const p of enemies) {
+                    const key = `${p.__id}:${beam}`;
+                    if (s.hit.has(key) || p.dead) continue;
+                    if (math.distToSegmentSq(p.pos, this.pos, end) > (p.rad + IronManSpin.beamRadius) ** 2) continue;
+                    s.hit.add(key);
+                    p.damage({
+                        amount: IronManSpin.damage,
+                        damageType: GameConfig.DamageType.Player,
+                        gameSourceType: "kit_ironman_spin",
+                        weaponSourceType: "kit_ironman_spin",
+                        source: this,
+                        dir,
+                        hitsFlying: true,
+                    });
+                }
+                for (const obj of objs) {
+                    if (obj.__type !== ObjectType.Obstacle || obj.dead || !obj.destructible) continue;
+                    if (!util.sameLayer(obj.layer, this.layer)) continue;
+                    if (!collider.intersectSegment(obj.collider, this.pos, end)) continue;
+                    obj.kill({
+                        amount: obj.health,
+                        damageType: GameConfig.DamageType.Player,
+                        gameSourceType: "kit_ironman_spin",
+                        weaponSourceType: "kit_ironman_spin",
+                        source: this,
+                        dir,
+                    });
+                }
+            }
+        }
+        s.angle += sweep;
+        s.time += step;
+        // the streaks everyone sees
+        for (let beam = 0; beam < 2; beam++) {
+            const a = s.angle + beam * Math.PI;
+            this.fireIronFx("spin", v2.copy(this.pos), v2.create(Math.cos(a), Math.sin(a)));
+        }
+        if (s.time >= IronManSpin.time) this.ironSpin = undefined;
+    }
+
+    /** the Blast Combo needs a marked enemy who can be hit, and only one runs at a time */
+    canStartIronCombo() {
+        const t = this.markTarget;
+        return !this.dead && !this.ironCombo && !!t && !t.dead && !t.untargetable;
+    }
+
+    startIronCombo() {
+        const target = this.markTarget!;
+        const C = IronManCombo;
+        const toward = v2.normalizeSafe(v2.sub(target.pos, this.pos), this.dir);
+        const side = v2.perp(toward);
+        const drones = C.drones.map((d) =>
+            v2.add(this.pos, v2.add(v2.mul(side, d.side), v2.mul(toward, d.fwd)))
+        );
+        target.stunTime = Math.max(target.stunTime, C.duration);
+        target.webPull = undefined;
+        target.setDirty();
+        this.ironCombo = { time: 0, target, fired: false, drones };
+        for (const d of drones) this.fireIronFx("drone", v2.copy(d), toward, C.droneEnd);
+    }
+
+    endIronCombo() {
+        const c = this.ironCombo;
+        if (!c) return;
+        this.ironCombo = undefined;
+        // cut short (he died, the target went): the target is let go of what is left of its stun
+        const left = IronManCombo.duration - c.time;
+        if (left > 0 && !c.target.dead) {
+            c.target.stunTime = Math.max(0, c.target.stunTime - left);
+            c.target.setDirty();
+        }
+    }
+
+    updateIronCombo(dt: number) {
+        const c = this.ironCombo;
+        if (!c) return;
+        if (this.dead || c.target.dead) {
+            this.endIronCombo();
+            return;
+        }
+        const C = IronManCombo;
+        c.time += dt;
+        if (!c.fired && c.time + 1e-6 >= C.fireAt) {
+            c.fired = true;
+            const shoot = (type: string, from: Vec2) =>
+                this.game.bulletBarn.fireBullet(
+                    {
+                        playerId: this.__id,
+                        bulletType: type,
+                        gameSourceType: "kit_ironman_combo_laser",
+                        damageType: GameConfig.DamageType.Player,
+                        pos: v2.copy(from),
+                        dir: v2.normalizeSafe(v2.sub(c.target.pos, from), this.dir),
+                        layer: this.layer,
+                        damageMult: 1,
+                        shotFx: false,
+                        reflectCount: 0,
+                        ghost: true,
+                    } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
+                );
+            for (const d of c.drones) shoot("bullet_kit_ironman_combo_small", d);
+            shoot("bullet_kit_ironman_combo_main", this.pos);
+        }
+        if (c.time >= C.duration) this.endIronCombo();
     }
 
     /** Ultron's Combo: the one being run, if any (see UltronCombo) */
@@ -2904,7 +3066,7 @@ export class Player extends BaseGameObject {
         }
 
         // Sentry Charge's stun (and Wolverine's Claw Combo): no moving, and any slide he was on stops
-        if (this.stunTime > 0 || this.clawCombo || this.spiderCombo) {
+        if (this.stunTime > 0 || this.clawCombo || this.spiderCombo || this.ironCombo) {
             v2.set(movement, v2.create(0, 0));
             this.webPull = undefined;
         }
@@ -3326,7 +3488,7 @@ export class Player extends BaseGameObject {
         // Weapon stuff
         //
         // stunned (or mid Claw Combo): no shooting, swinging, reloading or item use
-        if (this.stunTime > 0 || this.clawCombo || this.spiderCombo) {
+        if (this.stunTime > 0 || this.clawCombo || this.spiderCombo || this.ironCombo) {
             this.shootStart = false;
             this.shootHold = false;
             this.cancelAction();
@@ -3616,7 +3778,7 @@ export class Player extends BaseGameObject {
             else if (src === "kit_wolverine_combo") {
                 this.applyBleed(WolverineCombo.bleed, playerSource);
             } // Iron Man: rockets burn, the repulsor blast bleeds
-            else if (src === "kit_ironman_rockets" || src === "kit_warmachine_barrage") {
+            else if (src === "kit_ironman_rockets" || src === "kit_ironman_spin" || src === "kit_warmachine_barrage") {
                 this.applyBurn(4, playerSource, src);
             } else if (src === "kit_ironman_blast") this.applyBleed(4, playerSource);
             // Ultron's orb lasers: orange burns, red bleeds, purple poisons, 3s each
@@ -3782,6 +3944,8 @@ export class Player extends BaseGameObject {
             });
         }
         this.endUltronCombo();
+        this.endIronCombo();
+        this.ironSpin = undefined;
         // a Wizard's marks go when the Wizard does
         for (const p of this.wizardMarks) {
             p.wizardMarked = false;
@@ -6074,6 +6238,8 @@ export class Player extends BaseGameObject {
         if (kit.fullBoost) this.boost = 100;
         this.endSentryDash();
         this.endUltronCombo();
+        this.endIronCombo();
+        this.ironSpin = undefined;
         // Green Goblin starts with his drone on his right, no upgrade running
         this.droneAngle = 0;
         this.dronePrev = undefined;
@@ -6133,6 +6299,8 @@ export class Player extends BaseGameObject {
         const kit = KitDefs[this.kit];
         if (this.minionOwner) this.updateMinion(dt);
         if (this.ultronCombo) this.updateUltronCombo(dt);
+        if (this.ironCombo) this.updateIronCombo(dt);
+        if (this.ironSpin) this.updateIronSpin(dt);
         if (this.kit === "default" || !kit || this.dead) return;
         if (kit.fullBoost && this.boost < 100) this.boost = 100;
         this.calmTime += dt;
@@ -6529,7 +6697,7 @@ export class Player extends BaseGameObject {
 
     /** Wolverine: the nearest enemy within range is marked; during a Claw Combo it stays on whoever it is hitting */
     updateMark(m: NonNullable<(typeof KitDefs)[string]["mark"]>) {
-        const locked = this.clawCombo?.target ?? this.spiderCombo?.target;
+        const locked = this.clawCombo?.target ?? this.spiderCombo?.target ?? this.ironCombo?.target;
         if (locked) {
             this.setMarkTarget(locked);
             return;
