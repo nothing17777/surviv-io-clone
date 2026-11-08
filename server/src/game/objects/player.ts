@@ -3837,6 +3837,11 @@ export class Player extends BaseGameObject {
                 if (this.charmDuration <= 0) this.setDirty();
                 this.charmDuration = Math.max(this.charmDuration, 4);
             }
+            // Ultron's laser: every hit on an enemy gives him 4 energy
+            if (src === "kit_ultron_laser" && playerSource !== this && playerSource.maxEnergy > 0) {
+                playerSource.energy = Math.min(playerSource.energy + 4, playerSource.maxEnergy);
+                playerSource.energyDirty = true;
+            }
             // Sentry Charge: burn, bleed, stun and no perks for the target
             if (src === "kit_sentry_charge") {
                 this.applySentryHit(playerSource);
