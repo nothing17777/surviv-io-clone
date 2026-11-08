@@ -306,8 +306,8 @@ export const KitDefs: Record<string, KitDef> = {
         chest: "chest04",
         outfit: "outfitKitWizard",
         primary: "kit_wizard_blast",
-        secondary: "kit_wizard_stars",
-        melee: "kit_wizard_enhance",
+        secondary: "kit_wizard_crystals",
+        melee: "kit_wizard_wave",
         energy: { max: 300, perSecond: 20, heal: 0, healCost: 0, shieldRegen: 0, shieldCost: 0 },
         // radius is also the drawn circle's radius on the client, so enemies inside it are the ones marked
         aura: { radius: 32, damage: 10, energy: 10, shield: 2, health: 2, enhanceTime: 6 },
@@ -534,6 +534,31 @@ export const IronManCombo = {
         { side: 6, fwd: 3 },
     ],
 };
+
+/**
+ * Wizard skill 2, Crystal Burst: a spinning crystal then two spinning circles, one after the other. Each bleeds
+ * for `bleed` s. The crystal bursts on whatever it hits into `shards` mini crystals, spread `shardRadius` tiles
+ * round the burst so the one who took the crystal isn't also on a shard. They lie there `shardLife` s and go off
+ * (`shard` dmg and bleeding) on the first enemy to touch them
+ */
+export const WizardCrystals = {
+    cooldown: 5,
+    energy: 40,
+    crystal: 45,
+    circle: 30,
+    shard: 15,
+    bleed: 4,
+    shards: 5,
+    shardRadius: 7,
+    shardLife: 5,
+    shardTouch: 1.5,
+};
+
+/**
+ * Wizard skill 3, Stun Wave: a green ring spreads from him at `speed` tiles/s out to the radius of his circle
+ * (KitDefs.wizard.aura). Enemies it reaches take `damage` and are stunned `stun` s, and enemy shots inside it go
+ */
+export const WizardWave = { cooldown: 9, energy: 50, damage: 30, stun: 3, speed: 90 };
 
 export const UltronMinion ={ count: 4, health: 17.5, speedMult: 0.75, life: 15, explosion: "explosion_kit_minion" };
 

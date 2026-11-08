@@ -173,41 +173,42 @@ test("Summoner: the whip leaves its target vulnerable, taking 10 more from each 
     expect(hit(30)).toBeCloseTo(dagger, 5);
 });
 
-test("Wizard: circle feeds energy, enhance marks enemies, spells fire", () => {
+test("Wizard: circle feeds energy, the blast and Crystal Burst fire", () => {
     const { game, me, enemy } = setup("wizard", v2.create(8, 0));
     me.energy = 0;
     for (let i = 0; i < 20; i++) game.step(0.05);
     expect(me.energy).toBeGreaterThan(20);
 
     me.energy = 300;
-    use(game, me, Slot.Melee, 1);
-    expect(me.kitEnhanceTime).toBeGreaterThan(0);
-    game.step(0.05);
-    expect(enemy.wizardMarked).toBeTruthy();
-
     use(game, me, Slot.Primary, 1);
     for (let i = 0; i < 10; i++) game.step(0.05);
     expect(enemy.health).toBeLessThan(100);
 
-    const stars = setup("wizard", v2.create(12, 0));
-    stars.me.energy = 300;
-    use(stars.game, stars.me, Slot.Secondary, 30, true);
-    expect(stars.enemy.health).toBeLessThan(100);
+    expect(KitDefs.wizard.secondary).toBe("kit_wizard_crystals");
+    const gun = GameObjectDefs.typeToDef("kit_wizard_crystals", "gun");
+    expect(gun.fireDelay).toBe(5);
+    expect(gun.energyCost).toBe(40);
+    const crystals = setup("wizard", v2.create(12, 0));
+    crystals.me.energy = 300;
+    use(crystals.game, crystals.me, Slot.Secondary, 30, true);
+    expect(crystals.enemy.health).toBeLessThan(100);
+    expect(crystals.enemy.bleeding).toBeTruthy();
 });
 
-test("Wizard: the enhanced circle marks enemies inside its drawn radius and no one outside", () => {
+test("Wizard: the Stun Wave hurts and stuns enemies inside his circle and no one outside", () => {
     const radius = KitDefs.wizard.aura!.radius;
+    expect(KitDefs.wizard.melee).toBe("kit_wizard_wave");
     const inside = setup("wizard", v2.create(radius - 4, 0));
     inside.me.energy = 300;
     use(inside.game, inside.me, Slot.Melee, 1);
-    inside.game.step(0.05);
-    expect(inside.enemy.wizardMarked).toBeTruthy();
+    for (let i = 0; i < 10; i++) inside.game.step(0.05);
+    expect(inside.enemy.stunTime).toBeGreaterThan(2);
 
     const outside = setup("wizard", v2.create(radius + 6, 0));
     outside.me.energy = 300;
     use(outside.game, outside.me, Slot.Melee, 1);
-    outside.game.step(0.05);
-    expect(outside.enemy.wizardMarked).toBeFalsy();
+    for (let i = 0; i < 10; i++) outside.game.step(0.05);
+    expect(outside.enemy.stunTime).toBe(0);
 });
 
 test("Ultron: shield recovery is 2 per second for 3 energy per second", () => {
@@ -260,11 +261,7 @@ test("Iron Man: in flight he is faster, walks through walls, and the Wizard's ci
 
     const wizard = setup("wizard", v2.create(8, 0));
     wizard.enemy.flightTime = 5;
-    wizard.me.energy = 300;
-    use(wizard.game, wizard.me, Slot.Melee, 1);
-    wizard.game.step(0.05);
-    expect(wizard.enemy.wizardMarked).toBeFalsy();
-    // but the circle still burns him
+    // the circle still burns him
     const hp = wizard.enemy.health + wizard.enemy.shield;
     for (let i = 0; i < 10; i++) wizard.game.step(0.05);
     expect(wizard.enemy.health + wizard.enemy.shield).toBeLessThan(hp);

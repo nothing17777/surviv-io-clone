@@ -11,7 +11,7 @@ import { CustomWeaponsVersion } from "../../../shared/defs/gameObjects/customWea
 import { SwingArcs } from "../../../shared/defs/gameObjects/customWeaponEffects.ts";
 import type { BoostDef, HealDef } from "./../../../shared/defs/gameObjects/gearDefs.ts";
 import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
-import { IronManSpin, KitDefs } from "../../../shared/defs/gameObjects/kitDefs.ts";
+import { IronManSpin, KitDefs, WizardWave } from "../../../shared/defs/gameObjects/kitDefs.ts";
 import { type MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
 import type { CookImg, ThrowableDef, ThrowableHandImgKey } from "../../../shared/defs/gameObjects/throwableDefs.ts";
 import type { ObstacleDef } from "../../../shared/defs/mapObjects/obstacles/obstacleDefs.ts";
@@ -341,6 +341,7 @@ export class Player implements AbstractObject {
         dummyHealth: number;
         solarCast: number;
         ironSpinCast: number;
+        wizardWaveCast: number;
         wizardMarked: boolean;
         wolverineMarked: boolean;
         hidden: boolean;
@@ -531,6 +532,7 @@ export class Player implements AbstractObject {
             dummyHealth: 1,
             solarCast: 0,
             ironSpinCast: 0,
+            wizardWaveCast: 0,
             wizardMarked: false,
             wolverineMarked: false,
             hidden: false,
@@ -635,6 +637,7 @@ export class Player implements AbstractObject {
             this.m_netData.dummyHealth = data.dummyHealth;
             this.m_netData.solarCast = data.solarCast;
             this.m_netData.ironSpinCast = data.ironSpinCast;
+            this.m_netData.wizardWaveCast = data.wizardWaveCast;
             this.m_netData.wizardMarked = data.wizardMarked;
             this.m_netData.wolverineMarked = data.wolverineMarked;
             this.m_netData.hidden = data.hidden;
@@ -2901,6 +2904,10 @@ export class Player implements AbstractObject {
     kitTicker = 0;
     excaliburRing: PIXI.Graphics | null = null;
     flightGlow: PIXI.Graphics | null = null;
+    wizardWave: PIXI.Sprite | null = null;
+    wizardWaveSeen = -1;
+    /** world units the Stun Wave has spread; -1 when none is showing */
+    wizardWaveR = -1;
     ironBeams: PIXI.Graphics | null = null;
     ironSpinSeen = -1;
     /** seconds into the Laser Spin and the first beam's angle at the cast; -1 when none is showing */
@@ -2950,6 +2957,33 @@ export class Player implements AbstractObject {
                 this.flightGlow.beginFill(0xbdf1ff, 0.3);
                 this.flightGlow.drawCircle(0, 0, 1.8 * px * pulse);
                 this.flightGlow.endFill();
+            }
+        }
+        // Wizard's Stun Wave: a green ring spreading to the radius of his circle at 90 world units a second
+        if (this.wizardWaveSeen !== this.m_netData.wizardWaveCast) {
+            if (this.wizardWaveSeen >= 0) this.wizardWaveR = 0;
+            this.wizardWaveSeen = this.m_netData.wizardWaveCast;
+        }
+        if (this.wizardWaveR >= 0) {
+            if (!this.wizardWave) {
+                this.wizardWave = PIXI.Sprite.from("img/custom-weapons/fx/kit/wizard_circle.png");
+                this.wizardWave.anchor.set(0.5, 0.5);
+                this.auraContainer.addChild(this.wizardWave);
+            }
+            const maxR = KitDefs.wizard.aura!.radius;
+            this.wizardWaveR += WizardWave.speed * dt;
+            const rr = Math.min(this.wizardWaveR, maxR);
+            // it fades over the last fifth of a second once it has spread all the way
+            const fade = this.wizardWaveR > maxR ? Math.max(0, 1 - (this.wizardWaveR - maxR) / (WizardWave.speed * 0.2)) : 1;
+            const tex = this.wizardWave.texture;
+            const sc = (2 * Math.max(rr, 0.1) * px) / Math.max(tex.width, 1);
+            this.wizardWave.scale.set(sc, sc);
+            this.wizardWave.rotation += dt * 6;
+            this.wizardWave.alpha = 0.85 * fade;
+            this.wizardWave.visible = !dead;
+            if (fade <= 0) {
+                this.wizardWaveR = -1;
+                this.wizardWave.visible = false;
             }
         }
         // Iron Man's Laser Spin: two clean beams turning a full circle (drawn fresh every frame, no trail)

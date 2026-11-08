@@ -1563,6 +1563,12 @@ Object.assign(
             sound: { swing: "ironman_laser" },
             attack: { offset: { x: 0, y: 0 }, rad: 0.1, cooldownTime: 10 },
         }),
+        // Wizard's Stun Wave (see Player.startWizardWave)
+        kitMelee("kit_wizard_wave", "Stun Wave", {
+            damage: 0,
+            energyCost: 50,
+            attack: { offset: { x: 0, y: 0 }, rad: 0.1, cooldownTime: 9 },
+        }),
         kitMelee("kit_wizard_enhance", "Enhance Circle", {
             damage: 0,
             energyCost: 100,

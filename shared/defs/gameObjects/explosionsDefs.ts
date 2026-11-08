@@ -548,6 +548,18 @@ export const ExplosionDefs: Record<string, ExplosionDef> = {
         decalType: "decal_frag_small_explosion",
         ownerSafe: true,
     },
+    // Wizard's mini crystals: 15 dmg to whoever touched one, and they bleed (see Player.damage)
+    explosion_kit_wizard_shard: {
+        type: "explosion",
+        damage: 15,
+        obstacleDamage: 0,
+        rad: { min: 2, max: 3 },
+        shrapnelCount: 0,
+        shrapnelType: "",
+        explosionEffectType: "frag",
+        decalType: "",
+        ownerSafe: true,
+    },
     // Ultron's minions blow up after 20 s or when destroyed: 25 dmg
     explosion_kit_minion: {
         type: "explosion",
