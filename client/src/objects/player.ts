@@ -342,6 +342,7 @@ export class Player implements AbstractObject {
         solarCast: number;
         ironSpinCast: number;
         wizardWaveCast: number;
+        daggerOffsets: Vec2[];
         wizardMarked: boolean;
         wolverineMarked: boolean;
         hidden: boolean;
@@ -533,6 +534,7 @@ export class Player implements AbstractObject {
             solarCast: 0,
             ironSpinCast: 0,
             wizardWaveCast: 0,
+            daggerOffsets: [],
             wizardMarked: false,
             wolverineMarked: false,
             hidden: false,
@@ -638,6 +640,7 @@ export class Player implements AbstractObject {
             this.m_netData.solarCast = data.solarCast;
             this.m_netData.ironSpinCast = data.ironSpinCast;
             this.m_netData.wizardWaveCast = data.wizardWaveCast;
+            this.m_netData.daggerOffsets = data.daggerOffsets;
             this.m_netData.wizardMarked = data.wizardMarked;
             this.m_netData.wolverineMarked = data.wolverineMarked;
             this.m_netData.hidden = data.hidden;
@@ -2889,6 +2892,7 @@ export class Player implements AbstractObject {
     vulnerableRing: PIXI.Graphics | null = null;
     ultronReticle: PIXI.Graphics | null = null;
     kitDaggers: PIXI.Sprite[] = [];
+    kitDaggerSeen: boolean[] = [];
     /** War Machine's right and left shoulder mounts */
     kitMounts: (PIXI.Graphics | undefined)[] = [];
     /**
@@ -3208,20 +3212,31 @@ export class Player implements AbstractObject {
                 ring.rotation += dt * 2;
             }
         }
-        const daggers = aura === 1 ? KitDefs.summoner.daggers!.count : 0;
-        while (this.kitDaggers.length < daggers) {
+        // Summoner's blade minions: drawn where the server has them, smoothed between updates, pointing the way they fly
+        const offsets = aura === 1 ? this.m_netData.daggerOffsets : [];
+        while (this.kitDaggers.length < offsets.length) {
             const d = PIXI.Sprite.from(`img/custom-weapons/fx/kit/enchanted_dagger.png?v=${CustomWeaponsVersion}`);
             d.anchor.set(0.5, 0.5);
             this.container.addChild(d);
             this.kitDaggers.push(d);
         }
         this.kitDaggers.forEach((d, i) => {
-            d.visible = i < daggers;
+            d.visible = i < offsets.length;
             if (!d.visible) return;
-            const ang = (i / daggers) * Math.PI * 2 + this.kitTicker * 2;
-            d.position.set(Math.cos(ang) * 4 * px, Math.sin(ang) * 4 * px);
-            d.rotation = ang + Math.PI / 2;
-            // the same size as the flying sword (bullet_kit_dagger's spriteSize)
+            const to = offsets[i];
+            if (!this.kitDaggerSeen[i]) {
+                d.position.set(to.x * px, to.y * px);
+                this.kitDaggerSeen[i] = true;
+            }
+            const k = 1 - Math.exp(-dt * 40);
+            const nx = d.position.x + (to.x * px - d.position.x) * k;
+            const ny = d.position.y + (to.y * px - d.position.y) * k;
+            const mx = nx - d.position.x;
+            const my = ny - d.position.y;
+            // the blade points the way it moves; at rest, away from him
+            if (mx * mx + my * my > 0.25) d.rotation = Math.atan2(my, mx) + Math.PI / 2;
+            else d.rotation = Math.atan2(ny, nx) + Math.PI / 2;
+            d.position.set(nx, ny);
             const s = 55 / Math.max(d.texture.width, 1);
             d.scale.set(s, s);
         });

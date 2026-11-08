@@ -43,9 +43,23 @@ export interface KitDef {
     autoFire?: { bullet: string; range: number; rate: number; dodgeRate: number };
     /** Summoner: this much hp every `every` seconds */
     regenPulse?: { amount: number; every: number };
-    /** Summoner: orbiting blade minions that attack enemies within `range` of the player */
-    daggers?: { count: number; damage: number; range: number; interval: number; leash: number };
-    /** Summoner: the whip leaves its target taking `extraDamage` more from each minion hit for `duration` seconds */
+    /**
+     * Summoner: `count` blade minions that circle him, can't be hit and only go when he does. They never go more than
+     * `leash` from him. An enemy he can see (at least `range` out) gets dashed at by each of them once every
+     * `dashEvery` s (staggered): the minion waits `dashFrom` away, dashes through them at `dashSpeed` (hitting
+     * within `hitRadius`, `damage`, ignoring every armor and damage reduction) and dashes back
+     */
+    daggers?: {
+        count: number;
+        damage: number;
+        range: number;
+        leash: number;
+        dashFrom: number;
+        dashEvery: number;
+        dashSpeed: number;
+        hitRadius: number;
+    };
+    /** Summoner: the whip leaves its target taking `extraDamage` more from each minion dash for `duration` seconds */
     vulnerable?: { extraDamage: number; duration: number };
     /** Wizard: a circle around the player that burns enemies inside for `damage`/s; per enemy inside, per second: energy, shield, hp */
     aura?: { radius: number; damage: number; energy: number; shield: number; health: number; enhanceTime: number };
@@ -295,8 +309,8 @@ export const KitDefs: Record<string, KitDef> = {
         outfit: "outfitKitSummoner",
         melee: "kit_summoner_whip",
         regenPulse: { amount: 20, every: 5 },
-        daggers: { count: 4, damage: 30, range: 13, interval: 1.2, leash: 40 },
-        vulnerable: { extraDamage: 10, duration: 4 },
+        daggers: { count: 4, damage: 8, range: 13, leash: 35, dashFrom: 5, dashEvery: 1, dashSpeed: 90, hitRadius: 1.5 },
+        vulnerable: { extraDamage: 5, duration: 4 },
     },
     wizard: {
         name: "Wizard",
