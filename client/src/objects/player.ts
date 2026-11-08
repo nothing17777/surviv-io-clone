@@ -2893,6 +2893,9 @@ export class Player implements AbstractObject {
     ultronReticle: PIXI.Graphics | null = null;
     kitDaggers: PIXI.Sprite[] = [];
     kitDaggerSeen: boolean[] = [];
+    /** the streaks the blade minions leave when they dash: world-unit segments that fade out */
+    kitDaggerTrail: { a: Vec2; b: Vec2; life: number }[] = [];
+    kitDaggerTrailGfx: PIXI.Graphics | null = null;
     /** War Machine's right and left shoulder mounts */
     kitMounts: (PIXI.Graphics | undefined)[] = [];
     /**
@@ -3220,6 +3223,10 @@ export class Player implements AbstractObject {
             this.container.addChild(d);
             this.kitDaggers.push(d);
         }
+        if (!this.kitDaggerTrailGfx) {
+            this.kitDaggerTrailGfx = new PIXI.Graphics();
+            this.container.addChild(this.kitDaggerTrailGfx);
+        }
         this.kitDaggers.forEach((d, i) => {
             d.visible = i < offsets.length;
             if (!d.visible) return;
@@ -3228,18 +3235,31 @@ export class Player implements AbstractObject {
                 d.position.set(to.x * px, to.y * px);
                 this.kitDaggerSeen[i] = true;
             }
-            const k = 1 - Math.exp(-dt * 40);
+            const k = 1 - Math.exp(-dt * 60);
             const nx = d.position.x + (to.x * px - d.position.x) * k;
             const ny = d.position.y + (to.y * px - d.position.y) * k;
             const mx = nx - d.position.x;
             const my = ny - d.position.y;
+            const moved = Math.hypot(mx, my) / px;
+            // a dash (or a quick flight) leaves a bright streak behind the blade
+            if (moved > 0.35) {
+                this.kitDaggerTrail.push({ a: v2.create(d.position.x, d.position.y), b: v2.create(nx, ny), life: 1 });
+            }
             // the blade points the way it moves; at rest, away from him
-            if (mx * mx + my * my > 0.25) d.rotation = Math.atan2(my, mx) + Math.PI / 2;
-            else d.rotation = Math.atan2(ny, nx) + Math.PI / 2;
+            if (moved > 0.05) d.rotation = Math.atan2(my, mx) + Math.PI / 2;
+            else if (Math.abs(nx) + Math.abs(ny) > 1) d.rotation = Math.atan2(ny, nx) + Math.PI / 2;
             d.position.set(nx, ny);
             const s = 55 / Math.max(d.texture.width, 1);
             d.scale.set(s, s);
         });
+        const trail = this.kitDaggerTrailGfx;
+        trail.clear();
+        this.kitDaggerTrail = this.kitDaggerTrail.filter((t) => (t.life -= dt * 5) > 0);
+        for (const t of this.kitDaggerTrail) {
+            trail.lineStyle(0.8 * px, 0xcfeaff, 0.55 * t.life);
+            trail.moveTo(t.a.x, t.a.y);
+            trail.lineTo(t.b.x, t.b.y);
+        }
     }
 
     debuffDots: PIXI.Graphics | null = null;

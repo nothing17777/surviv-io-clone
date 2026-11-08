@@ -7271,7 +7271,8 @@ export class Player extends BaseGameObject {
             // where it waits: round the Summoner, or `dashFrom` from the target on its own side of it
             let home: Vec2;
             if (target) {
-                const away = v2.rotate(v2.mul(toTarget, -1), (i - (d.count - 1) / 2) * 0.55);
+                // spread right round it, so they dash in from every side
+                const away = v2.rotate(v2.mul(toTarget, -1), ((i + 0.5) / d.count) * Math.PI * 2);
                 home = v2.add(target.pos, v2.mul(away, d.dashFrom));
             } else {
                 const ang = (i / d.count) * Math.PI * 2 + this.daggerClock * 2;
@@ -7292,7 +7293,7 @@ export class Player extends BaseGameObject {
             if (m.phase === 0) {
                 // it drifts after its spot, or is simply there if the Summoner has outrun it
                 if (v2.length(v2.sub(m.pos, this.pos)) > d.leash) m.pos = v2.copy(home);
-                const left = step(home, target ? d.dashSpeed * 0.6 : 40);
+                const left = step(home, target ? d.dashSpeed * 1.3 : 40);
                 if (target && m.timer <= 0 && left < 2.5) {
                     m.phase = 1;
                     m.hit.clear();
@@ -7309,7 +7310,11 @@ export class Player extends BaseGameObject {
                     const left = step(goal, d.dashSpeed);
                     for (const p of foes) {
                         if (m.hit.has(p.__id) || p.dead) continue;
-                        if (math.distToSegmentSq(p.pos, from, m.pos) > (p.rad + d.hitRadius) ** 2) continue;
+                        // (a minion that didn't move this tick is a point, which distToSegmentSq can't take)
+                        const reach = v2.length(v2.sub(m.pos, from)) > 1e-6
+                            ? math.distToSegmentSq(p.pos, from, m.pos)
+                            : v2.lengthSqr(v2.sub(p.pos, m.pos));
+                        if (!(reach <= (p.rad + d.hitRadius) ** 2)) continue;
                         m.hit.add(p.__id);
                         p.damage({
                             amount: d.damage,
