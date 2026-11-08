@@ -347,6 +347,7 @@ export class Player implements AbstractObject {
         wolverineMarked: boolean;
         hidden: boolean;
         webbed: boolean;
+        wizardStunned: boolean;
         ultronMarked: boolean;
         vulnerable: boolean;
         excaliburActive: boolean;
@@ -539,6 +540,7 @@ export class Player implements AbstractObject {
             wolverineMarked: false,
             hidden: false,
             webbed: false,
+            wizardStunned: false,
             ultronMarked: false,
             vulnerable: false,
             excaliburActive: false,
@@ -645,6 +647,7 @@ export class Player implements AbstractObject {
             this.m_netData.wolverineMarked = data.wolverineMarked;
             this.m_netData.hidden = data.hidden;
             this.m_netData.webbed = data.webbed;
+            this.m_netData.wizardStunned = data.wizardStunned;
             this.m_netData.ultronMarked = data.ultronMarked;
             this.m_netData.vulnerable = data.vulnerable;
             this.m_netData.excaliburActive = data.excaliburActive;
@@ -2889,10 +2892,14 @@ export class Player implements AbstractObject {
     kitCircle: PIXI.Sprite | null = null;
     kitSigil: PIXI.Sprite | null = null;
     webbedSprite: PIXI.Sprite | null = null;
+    wizardStunRing: PIXI.Graphics | null = null;
     vulnerableRing: PIXI.Graphics | null = null;
     ultronReticle: PIXI.Graphics | null = null;
     kitDaggers: PIXI.Sprite[] = [];
     kitDaggerSeen: boolean[] = [];
+    /** the streaks the blade minions leave when they dash: world-unit segments that fade out */
+    kitDaggerTrail: { a: Vec2; b: Vec2; life: number }[] = [];
+    kitDaggerTrailGfx: PIXI.Graphics | null = null;
     /** War Machine's right and left shoulder mounts */
     kitMounts: (PIXI.Graphics | undefined)[] = [];
     /**
@@ -3166,6 +3173,24 @@ export class Player implements AbstractObject {
             this.webbedSprite.scale.set(s, s);
             this.webbedSprite.alpha = 0.85;
         }
+        // stunned by the Wizard's wave: a glowing green outline round them for as long as it lasts
+        if (this.m_netData.wizardStunned || this.wizardStunRing) {
+            if (!this.wizardStunRing) {
+                this.wizardStunRing = new PIXI.Graphics();
+                this.auraContainer.addChild(this.wizardStunRing);
+            }
+            const on = this.m_netData.wizardStunned && !dead;
+            this.wizardStunRing.visible = on;
+            if (on) {
+                const pulse = 1 + 0.06 * Math.sin(this.kitTicker * 12);
+                const g = this.wizardStunRing;
+                g.clear();
+                g.lineStyle(0.55 * px, 0x38ff6a, 0.25);
+                g.drawCircle(0, 0, 1.25 * px * pulse);
+                g.lineStyle(0.25 * px, 0x7dffa0, 0.95);
+                g.drawCircle(0, 0, 1.1 * px * pulse);
+            }
+        }
         // an Ultron's Combo marks its target with a turning orange reticle
         if (this.m_netData.ultronMarked || this.ultronReticle) {
             if (!this.ultronReticle) {
@@ -3220,6 +3245,10 @@ export class Player implements AbstractObject {
             this.container.addChild(d);
             this.kitDaggers.push(d);
         }
+        if (!this.kitDaggerTrailGfx) {
+            this.kitDaggerTrailGfx = new PIXI.Graphics();
+            this.container.addChild(this.kitDaggerTrailGfx);
+        }
         this.kitDaggers.forEach((d, i) => {
             d.visible = i < offsets.length;
             if (!d.visible) return;
@@ -3228,18 +3257,31 @@ export class Player implements AbstractObject {
                 d.position.set(to.x * px, to.y * px);
                 this.kitDaggerSeen[i] = true;
             }
-            const k = 1 - Math.exp(-dt * 40);
+            const k = 1 - Math.exp(-dt * 60);
             const nx = d.position.x + (to.x * px - d.position.x) * k;
             const ny = d.position.y + (to.y * px - d.position.y) * k;
             const mx = nx - d.position.x;
             const my = ny - d.position.y;
+            const moved = Math.hypot(mx, my) / px;
+            // a dash (or a quick flight) leaves a bright streak behind the blade
+            if (moved > 0.35) {
+                this.kitDaggerTrail.push({ a: v2.create(d.position.x, d.position.y), b: v2.create(nx, ny), life: 1 });
+            }
             // the blade points the way it moves; at rest, away from him
-            if (mx * mx + my * my > 0.25) d.rotation = Math.atan2(my, mx) + Math.PI / 2;
-            else d.rotation = Math.atan2(ny, nx) + Math.PI / 2;
+            if (moved > 0.05) d.rotation = Math.atan2(my, mx) + Math.PI / 2;
+            else if (Math.abs(nx) + Math.abs(ny) > 1) d.rotation = Math.atan2(ny, nx) + Math.PI / 2;
             d.position.set(nx, ny);
             const s = 55 / Math.max(d.texture.width, 1);
             d.scale.set(s, s);
         });
+        const trail = this.kitDaggerTrailGfx;
+        trail.clear();
+        this.kitDaggerTrail = this.kitDaggerTrail.filter((t) => (t.life -= dt * 5) > 0);
+        for (const t of this.kitDaggerTrail) {
+            trail.lineStyle(0.8 * px, 0xcfeaff, 0.55 * t.life);
+            trail.moveTo(t.a.x, t.a.y);
+            trail.lineTo(t.b.x, t.b.y);
+        }
     }
 
     debuffDots: PIXI.Graphics | null = null;
