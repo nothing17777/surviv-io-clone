@@ -217,56 +217,30 @@ test("Ultron: shield recovery is 2 per second for 3 energy per second", () => {
     expect(KitDefs.wizard.shield).toBe(100);
 });
 
-test("Iron Man: the rockets fly him for 1.5 s, untargetable, with a second wave 0.75 s in", () => {
-    const { game, me, enemy } = setup("ironman", v2.create(30, 0));
+test("Iron Man: Laser Spin burns and destroys what the two lasers sweep over", () => {
+    expect(KitDefs.ironman.secondary).toBe("kit_ironman_spin");
+    expect(KitDefs.ironman.melee).toBe("kit_ironman_combo");
+    const spin = GameObjectDefs.typeToDef("kit_ironman_spin", "gun");
+    expect(spin.fireDelay).toBe(6);
+    expect(spin.energyCost).toBe(30);
+    const { game, me, enemy } = setup("ironman", v2.create(20, 0));
     me.energy = 100;
-    const wave = vi.spyOn(me.weaponManager, "fireRingWave");
-    expect(me.flying).toBe(false);
+    const health = enemy.health + enemy.shield;
     use(game, me, Slot.Secondary, 1);
-    expect(me.flying).toBe(true);
-    expect(me.flightTime).toBeCloseTo(1.5, 5);
+    for (let i = 0; i < 20; i++) game.step(0.05);
+    // the lasers start out to his left and right and turn a full circle, so one of them crosses the enemy
+    expect(enemy.health + enemy.shield).toBeLessThan(health);
+});
 
-    // nothing hits him in the air, not a bullet's damage and not an explosion's
-    const health = me.health;
-    const shield = me.shield;
-    me.damage({
-        amount: 50,
-        damageType: GameConfig.DamageType.Player,
-        dir: v2.create(1, 0),
-        source: enemy,
-        gameSourceType: "ak47",
-    });
-    me.damage({
-        amount: 50,
-        damageType: GameConfig.DamageType.Player,
-        dir: v2.create(1, 0),
-        source: enemy,
-        isExplosion: true,
-    });
-    expect(me.health).toBe(health);
-    expect(me.shield).toBe(shield);
-
-    // the first wave is the shot itself; the second one is due 0.75 s in, even holding another weapon
-    me.weaponManager.setCurWeapIndex(Slot.Primary, true);
-    for (let i = 0; i < 4; i++) game.step(0.05);
-    expect(wave).not.toHaveBeenCalled();
-    for (let i = 0; i < 8; i++) game.step(0.05);
-    expect(wave).toHaveBeenCalledTimes(1);
-    expect(wave).toHaveBeenCalledWith("kit_ironman_rockets");
-    expect(me.flying).toBe(true);
-
-    // landed after 1.5 s, and he can be hurt again
-    for (let i = 0; i < 18; i++) game.step(0.05);
-    expect(me.flying).toBe(false);
-    me.damage({
-        amount: 20,
-        damageType: GameConfig.DamageType.Player,
-        dir: v2.create(1, 0),
-        source: enemy,
-        gameSourceType: "ak47",
-    });
-    expect(me.health + me.shield).toBeLessThan(health + shield);
-    expect(wave).toHaveBeenCalledTimes(1);
+test("Iron Man: Blast Combo stuns the marked enemy for 2 s and roots him", () => {
+    const { game, me, enemy } = setup("ironman", v2.create(20, 0));
+    me.energy = 100;
+    game.step(0.05);
+    use(game, me, Slot.Melee, 1);
+    expect(enemy.stunTime).toBeGreaterThan(1.5);
+    expect(me.ironCombo).toBeDefined();
+    for (let i = 0; i < 50; i++) game.step(0.05);
+    expect(me.ironCombo).toBeUndefined();
 });
 
 test("Iron Man: in flight he is faster, walks through walls, and the Wizard's circle can't mark him", () => {

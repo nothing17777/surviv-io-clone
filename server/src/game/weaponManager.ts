@@ -432,11 +432,13 @@ export class WeaponManager {
             && (player.shootStart || (player.shootHold && itemDef.autoAttack))
             && weapon.cooldown < 0
             && (this.activeWeapon !== "kit_spider_dodge" || this.player.canStartSpiderCombo())
+            && (this.activeWeapon !== "kit_ironman_combo" || this.player.canStartIronCombo())
             && this.payEnergy(itemDef.energyCost)
         ) {
             this.player.cancelAction();
             // abilities in the melee slot
             if (this.activeWeapon === "kit_ultron_minions") this.player.spawnMinions();
+            if (this.activeWeapon === "kit_ironman_combo") this.player.startIronCombo();
             if (this.activeWeapon === "kit_spider_dodge") {
                 this.player.startSpiderCombo();
             }
@@ -875,6 +877,9 @@ export class WeaponManager {
         if (this.activeWeapon === "kit_wolverine_combo" || this.activeWeapon === "kit_wolverine_dash") {
             this.player.startClawCombo(this.activeWeapon);
         }
+
+        // Iron Man's Laser Spin: the player runs the two lasers (see IronManSpin)
+        if (this.activeWeapon === "kit_ironman_spin") this.player.startIronSpin();
 
         // Ultron's Combo: the skill is a timeline the player runs, not a volley of bullets (see UltronCombo)
         if (this.activeWeapon === "kit_ultron_blast") {

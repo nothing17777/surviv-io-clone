@@ -6,7 +6,16 @@ import { ChampionDefs, championSound } from "./championDefs.ts";
 import { CustomGuns, CustomWeaponsVersion } from "./customWeaponDefs.ts";
 import { BaseGunLengths, GunEffects, GunOverrides, HiddenCustomGuns, SwingShotBullets } from "./customWeaponEffects.ts";
 import type { BaseWeaponDef } from "./itemTypes.ts";
-import { SentryCharge, SentryNova, SpiderCombo, UltronCombo, WolverineCombo, WolverineDash } from "./kitDefs.ts";
+import {
+    IronManCombo,
+    IronManSpin,
+    SentryCharge,
+    SentryNova,
+    SpiderCombo,
+    UltronCombo,
+    WolverineCombo,
+    WolverineDash,
+} from "./kitDefs.ts";
 
 export interface GunDef extends BaseWeaponDef {
     type: "gun";
@@ -3758,8 +3767,66 @@ const kitGun = (id: string, base: string, bullet: Partial<BulletDef>, gun: DeepP
     return [id, util.mergeDeep(def, gun)];
 };
 
+const ironAsset = (name: string) => `img/custom-weapons/fx/kit/${name}.png?v=${CustomWeaponsVersion}`;
+// Iron Man's effect shots: the spin's lasers and Blast Combo's drones are parked or streaking sprites that hurt
+// no one (Player.updateIronSpin / updateIronCombo do the damage); Blast Combo's lasers are real shots
+const ironBeam = { beam: true, speed: 500, noTracer: false, tracerColor: "cw_plasma" } as const;
+BulletDefs.bullet_kit_ironman_fx_spin = {
+    ...BulletDefs.bullet_ak47,
+    type: "bullet",
+    damage: 0,
+    obstacleDamage: 0,
+    falloff: 1,
+    variance: 0,
+    shrapnel: false,
+    ...ironBeam,
+    distance: IronManSpin.range,
+    tracerWidth: 1.4,
+    trailSprite: ironAsset("ironman_laser_yellow"),
+    noPlayerHit: true,
+    playerPierce: true,
+    noDistAdj: true,
+};
+BulletDefs.bullet_kit_ironman_fx_drone = {
+    ...BulletDefs.bullet_ak47,
+    type: "bullet",
+    damage: 0,
+    obstacleDamage: 0,
+    falloff: 1,
+    variance: 0,
+    shrapnel: false,
+    speed: 0.2,
+    lifetime: 10,
+    distance: 10,
+    noTracer: true,
+    tracerColor: "cw_plasma",
+    tracerWidth: 0.3,
+    sprite: ironAsset("ironman_drone"),
+    spriteSize: 40,
+    noPlayerHit: true,
+    playerPierce: true,
+    noDistAdj: true,
+};
+for (const [id, c] of [["main", IronManCombo.main], ["small", IronManCombo.small]] as const) {
+    BulletDefs[`bullet_kit_ironman_combo_${id}`] = {
+        ...BulletDefs.bullet_ak47,
+        type: "bullet",
+        damage: c.damage,
+        obstacleDamage: 0,
+        falloff: 1,
+        variance: 0,
+        shrapnel: false,
+        ...ironBeam,
+        distance: 60,
+        tracerWidth: c.width,
+        trailSprite: ironAsset("ironman_laser_blue"),
+        playerPierce: true,
+        pierceLoss: 0,
+    };
+}
+
 const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
-    // Iron Man repulsor: a wide cyan laser, 40 dmg, 1.4 shots/s, 5 energy a shot, no extra cooldown
+    // Iron Man repulsor: a wide cyan laser, 40 dmg, 1.4 shots/s, 10 energy a shot, no extra cooldown
     kitGun("kit_ironman_blast", "sv98", {
         damage: 40,
         beam: true,
@@ -3767,15 +3834,45 @@ const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
         distance: 80,
         falloff: 1,
         tracerColor: "cw_plasma",
-        tracerWidth: 0.9,
-        trailSprite: "img/custom-weapons/fx/stardust_laser.png",
+        // the laser image drawn twice as wide as the old one (0.9)
+        tracerWidth: 1.8,
+        trailSprite: ironAsset("ironman_laser_blue"),
     }, {
         name: "Repulsor Blast",
         fireMode: "single",
         fireDelay: 0.714,
         energyCost: 10,
+        sound: { shoot: "ironman_laser" },
         shotSpread: 0,
         moveSpread: 0,
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
+    // Laser Spin: fires nothing itself, Player.updateIronSpin sweeps the two lasers (and draws them with
+    // bullet_kit_ironman_fx_spin); 6 s cooldown, 30 energy
+    kitGun("kit_ironman_spin", "barrett", { damage: 0 }, {
+        name: "Laser Spin",
+        fireMode: "single",
+        fireDelay: IronManSpin.cooldown,
+        energyCost: IronManSpin.energy,
+        bulletCount: 0,
+        sound: { shoot: "ironman_laser" },
+        shotSpread: 0,
+        moveSpread: 0,
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
+    // the source of Blast Combo's lasers (the skill itself is the melee kit_ironman_combo); never held
+    kitGun("kit_ironman_combo_laser", "barrett", { damage: 0 }, {
+        name: "Blast Combo",
+        fireMode: "single",
+        bulletCount: 0,
+        sound: { shoot: "ironman_laser" },
+        energyCost: 0,
         maxClip: 250,
         maxReload: 250,
         extendedClip: 250,

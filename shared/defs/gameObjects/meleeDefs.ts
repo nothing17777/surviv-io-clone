@@ -1556,6 +1556,13 @@ Object.assign(
             energyCost: 45,
             attack: { offset: { x: 0, y: 0 }, rad: 0.1, cooldownTime: 8 },
         }),
+        // Iron Man's Blast Combo: needs the marked enemy (see Player.startIronCombo)
+        kitMelee("kit_ironman_combo", "Blast Combo", {
+            damage: 0,
+            energyCost: 50,
+            sound: { swing: "ironman_laser" },
+            attack: { offset: { x: 0, y: 0 }, rad: 0.1, cooldownTime: 10 },
+        }),
         kitMelee("kit_wizard_enhance", "Enhance Circle", {
             damage: 0,
             energyCost: 100,
