@@ -4103,19 +4103,6 @@ kitBullet("bullet_kit_ultron_combo_laser", {
     tracerWidth: 0.6,
     trailSprite: kitAsset("star_wrath_proj"),
 });
-// the Summoner's whip: a chain that lashes out 36 tiles from the hand
-kitBullet("bullet_kit_whip", {
-    damage: 14,
-    // twice as fast as it was
-    speed: 140,
-    distance: 36,
-    beam: true,
-    tracerColor: "cw_white",
-    // a rainbow lash that arcs onto the target with sparkles, as tall as its image needs
-    tracerWidth: 1.6,
-    trailSprite: kitAsset("spinal_tap_proj"),
-});
-
 // Wolverine's Claw Combo (see Player.updateClawCombo, which does the hitting). The claw is only the picture: damage 0,
 // it flies through everyone, as far as the dash's streak and twice as fast, and is drawn the same size
 kitBullet("bullet_kit_wolverine_claw", {
@@ -4486,6 +4473,39 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
         extendedClip: 250,
         extendedReload: 250,
     }),
+    // the Summoner's three whips (see Player.updateWhips): chains that lash out from the hand, 10 dmg each, fired
+    // automatically in turn. The guns are only the shot's sound and source, never held; each one's mark is in KitDefs
+    ...(
+        [
+            ["kit_summoner_whip", "Spinal Tap", "spinal_tap_proj", 1.6, "cw_white"],
+            ["kit_summoner_whip_blue", "Frost Lash", "whip_blue", 0.7, "cw_bubble"],
+            ["kit_summoner_whip_fire", "Ember Lash", "whip_fire", 0.8, "cw_flame"],
+        ] as const
+    ).map(([id, name, img, width, tracer]) =>
+        kitGun(id, "deagle", {
+            damage: 10,
+            speed: 140,
+            distance: 36,
+            beam: true,
+            tracerColor: tracer,
+            tracerWidth: width,
+            trailSprite: kitAsset(img),
+        }, {
+            name,
+            fireMode: "single",
+            bulletCount: 0,
+            mounted: true,
+            caseTiming: "reload",
+            sound: { shoot: "spider_auto_splatshot" },
+            energyCost: 0,
+            shotSpread: 0,
+            moveSpread: 0,
+            maxClip: 250,
+            maxReload: 250,
+            extendedClip: 250,
+            extendedReload: 250,
+        })
+    ),
     // a Summoner minion's dash: the key for its sound and damage rules (see Player.updateDaggers), never held
     kitGun("kit_summoner_dagger", "barrett", { damage: 0 }, {
         name: "Minion Dash",

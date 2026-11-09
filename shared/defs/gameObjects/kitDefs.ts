@@ -59,8 +59,12 @@ export interface KitDef {
         dashSpeed: number;
         hitRadius: number;
     };
-    /** Summoner: the whip leaves its target taking `extraDamage` more from each minion dash for `duration` seconds */
-    vulnerable?: { extraDamage: number; duration: number };
+    /**
+     * Summoner: whips fired automatically at the nearest enemy within `range`, `rate` a second, one after another
+     * (each is a gun, for its shot and source). A hit marks the enemy for `duration` seconds: minion hits do
+     * `extra` more damage and/or set them burning for `burn` seconds. Different whips' marks stack
+     */
+    whips?: { range: number; rate: number; duration: number; list: { gun: string; extra?: number; burn?: number }[] };
     /** Wizard: a circle around the player that burns enemies inside for `damage`/s; per enemy inside, per second: energy, shield, hp */
     aura?: { radius: number; damage: number; energy: number; shield: number; health: number; enhanceTime: number };
     /** War Machine: the shield refills for free, `rate`/s, or `calmRate`/s once `after` s have gone by unhurt */
@@ -307,7 +311,7 @@ export const KitDefs: Record<string, KitDef> = {
         helmet: "",
         chest: "",
         outfit: "outfitKitSummoner",
-        melee: "kit_summoner_whip",
+        melee: "fists",
         regenPulse: { amount: 20, every: 5 },
         daggers: {
             count: 4,
@@ -319,7 +323,16 @@ export const KitDefs: Record<string, KitDef> = {
             dashSpeed: 55,
             hitRadius: 1.5,
         },
-        vulnerable: { extraDamage: 5, duration: 4 },
+        whips: {
+            range: 30,
+            rate: 1.5,
+            duration: 4,
+            list: [
+                { gun: "kit_summoner_whip", extra: 6 },
+                { gun: "kit_summoner_whip_blue", extra: 4 },
+                { gun: "kit_summoner_whip_fire", burn: 4 },
+            ],
+        },
     },
     wizard: {
         name: "Wizard",

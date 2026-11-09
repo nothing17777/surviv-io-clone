@@ -167,7 +167,7 @@ test("Summoner: a minion's dash ignores armor and damage reduction, a marked tar
     // the whip's lash marks it
     hit("kit_summoner_whip", 14);
     expect(enemy.vulnerable).toBe(true);
-    expect(hit("kit_summoner_dagger", 8)).toBeCloseTo(13, 5);
+    expect(hit("kit_summoner_dagger", 8)).toBeCloseTo(14, 5);
     for (let i = 0; i < 81; i++) game.step(0.05);
     expect(enemy.vulnerable).toBe(false);
     expect(hit("kit_summoner_dagger", 8)).toBeCloseTo(8, 5);

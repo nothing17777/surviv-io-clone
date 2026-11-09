@@ -994,7 +994,7 @@ export class Player extends BaseGameObject {
     get hasDebuff() {
         const d = this.debuffs;
         return this.burnDuration > 0 || this.bleedDotDuration > 0 || this.poisonDuration > 0
-            || this.charmDuration > 0 || this.vulnerableTime > 0 || this.stunTime > 0
+            || this.charmDuration > 0 || this.vulnerable || this.stunTime > 0
             || this.strippedPerks.length > 0 || d.root > 0 || d.slow > 0 || d.silence > 0 || d.airborne > 0;
     }
 
@@ -1762,11 +1762,20 @@ export class Player extends BaseGameObject {
     // Charm (Aphrodite Crossbow): attacks half as fast
     charmDuration = 0;
 
-    /** Summoner's whip: seconds left taking extra damage from each minion hit */
-    vulnerableTime = 0;
+    /** Summoner's whips: seconds left of each whip's mark (index = its place in KitDefs.summoner.whips.list) */
+    whipMarks: number[] = [0, 0, 0];
+    /** the whip fired next, and seconds until it is */
+    whipIdx = 0;
+    whipTimer = 0;
 
     get vulnerable() {
-        return this.vulnerableTime > 0;
+        return this.whipMarks.some((t) => t > 0);
+    }
+
+    /** the extra damage a Summoner's minion hit does to this enemy, from all the whips that marked it */
+    whipExtraDamage() {
+        const list = KitDefs.summoner.whips!.list;
+        return this.whipMarks.reduce((sum, t, i) => sum + (t > 0 ? list[i].extra ?? 0 : 0), 0);
     }
 
     get charmed() {
@@ -3016,9 +3025,9 @@ export class Player extends BaseGameObject {
                 if (this.charmDuration <= 0) this.setDirty();
             }
 
-            if (this.vulnerableTime > 0) {
-                this.vulnerableTime -= dt;
-                if (this.vulnerableTime <= 0) this.setDirty();
+            if (this.vulnerable) {
+                this.whipMarks = this.whipMarks.map((t) => Math.max(t - dt, 0));
+                if (!this.vulnerable) this.setDirty();
             }
 
             if (this.wizardStunTime > 0) {
@@ -3823,7 +3832,7 @@ export class Player extends BaseGameObject {
 
         // vulnerable to the Summoner (marked by the whip): each minion dash lands harder
         const trueHit = params.gameSourceType === "kit_summoner_dagger";
-        if (this.vulnerable && trueHit) finalDamage += KitDefs.summoner.vulnerable!.extraDamage;
+        if (this.vulnerable && trueHit) finalDamage += this.whipExtraDamage();
 
         // Excalibur: 50% less damage taken while actively firing it
         if (this.excaliburActive && !trueHit) finalDamage *= 0.5;
@@ -3999,13 +4008,18 @@ export class Player extends BaseGameObject {
                     speed: 20,
                     time: 0.12,
                 };
-            } else if (
-                src === "kit_summoner_whip"
-            ) {
-                // the whip's lash (it hits softer than a dagger) sets the minions' target and leaves them vulnerable
+            } else if (KitDefs.summoner.whips!.list.some((w) => w.gun === src)) {
+                // a whip's lash sets the minions' target and marks it, each whip its own mark (they stack)
+                const w = KitDefs.summoner.whips!;
                 playerSource.summonerFocusId = this.__id;
                 if (!this.vulnerable) this.setDirty();
-                this.vulnerableTime = KitDefs.summoner.vulnerable!.duration;
+                this.whipMarks[w.list.findIndex((x) => x.gun === src)] = w.duration;
+            } else if (src === "kit_summoner_dagger") {
+                // a minion hit on an enemy a fire whip marked sets them burning
+                const w = KitDefs.summoner.whips!;
+                w.list.forEach((x, i) => {
+                    if (x.burn && this.whipMarks[i] > 0) this.applyBurn(x.burn, playerSource, x.gun);
+                });
             } else if (src === "pg_acid_shotgun") this.applyPoison(4, playerSource);
             else if (src === "pg_frozen_dragon") this.applyBurn(2, playerSource);
             else if (src === "pg_photon_sniper_rifle") this.applyBurn(4, playerSource, src);
@@ -6590,6 +6604,7 @@ export class Player extends BaseGameObject {
         if (kit.mounts) this.updateMounts(dt, kit.mounts);
         if (kit.drone) this.updateDrone(dt, kit.drone);
         if (kit.daggers) this.updateDaggers(dt, kit.daggers);
+        if (kit.whips) this.updateWhips(dt, kit.whips);
         if (kit.aura) this.updateAura(dt, kit.aura);
         if (kit.cleanse) this.updateCleanse(dt, kit.cleanse);
         if (kit.items?.length) this.updateItemTriggers(dt, kit);
@@ -6692,7 +6707,7 @@ export class Player extends BaseGameObject {
         this.bleedDotDuration = 0;
         this.poisonDuration = 0;
         this.charmDuration = 0;
-        this.vulnerableTime = 0;
+        this.whipMarks = [0, 0, 0];
         this.stunTime = 0;
         const d = this.debuffs;
         d.root =
@@ -6726,6 +6741,35 @@ export class Player extends BaseGameObject {
                 layer: this.layer,
                 damageMult: 1,
                 // the shot sound of kit_spider_auto
+                shotFx: true,
+                reflectCount: 0,
+            } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
+        );
+    }
+
+    /** Summoner: the next of his whips at the nearest enemy in range, every 1/rate seconds */
+    updateWhips(dt: number, w: NonNullable<(typeof KitDefs)[string]["whips"]>) {
+        this.whipTimer -= dt;
+        if (this.whipTimer > 0) return;
+        const near = this.enemiesWithin(w.range);
+        if (!near.length) return;
+        // carry the leftover so the rate holds at the 0.1 s test tick too
+        this.whipTimer = Math.max(this.whipTimer + 1 / w.rate, 0);
+        const target = near.reduce((x, y) =>
+            v2.length(v2.sub(x.pos, this.pos)) < v2.length(v2.sub(y.pos, this.pos)) ? x : y
+        );
+        const gun = w.list[this.whipIdx % w.list.length].gun;
+        this.whipIdx = (this.whipIdx + 1) % w.list.length;
+        this.game.bulletBarn.fireBullet(
+            {
+                playerId: this.__id,
+                bulletType: `bullet_${gun}`,
+                gameSourceType: gun,
+                damageType: GameConfig.DamageType.Player,
+                pos: v2.copy(this.pos),
+                dir: v2.normalizeSafe(v2.sub(target.pos, this.pos), this.dir),
+                layer: this.layer,
+                damageMult: 1,
                 shotFx: true,
                 reflectCount: 0,
             } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
