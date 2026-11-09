@@ -46,7 +46,7 @@ export interface KitDef {
     /**
      * Summoner: `count` blade minions that circle him, can't be hit and only go when he does. They never go more than
      * `leash` from him. An enemy he can see (at least `range` out) gets dashed at by each of them once every
-     * `dashEvery` s (staggered): the minion waits `dashFrom` away, dashes through them at `dashSpeed` (hitting
+     * `dashEvery` s (staggered): the minion waits `dashFrom` away, runs at them at `dashSpeed` (hitting
      * within `hitRadius`, `damage`, ignoring every armor and damage reduction) and dashes back
      */
     daggers?: {
@@ -314,7 +314,7 @@ export const KitDefs: Record<string, KitDef> = {
             damage: 8,
             range: 13,
             leash: 35,
-            dashFrom: 5,
+            dashFrom: 10,
             dashEvery: 1,
             dashSpeed: 55,
             hitRadius: 1.5,

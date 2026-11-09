@@ -775,10 +775,6 @@ export class Player extends BaseGameObject {
     get daggerOffsets(): Vec2[] {
         return this.dead ? [] : this.daggerMinions.map((m) => v2.sub(m.pos, this.pos));
     }
-    /** which blade minions are mid-dash (flying at or back from a target) */
-    get daggerDashing(): boolean[] {
-        return this.dead ? [] : this.daggerMinions.map((m) => m.phase !== 0);
-    }
     /** Summoner: the enemy the whip last hit, which the daggers go after first */
     summonerFocusId = 0;
     /** Spider-Man: swinging to where the web hit */
@@ -7288,8 +7284,8 @@ export class Player extends BaseGameObject {
 
     /**
      * Summoner: the blade minions. They circle him until an enemy he can see (the whip's mark first, else the
-     * nearest) is there; then each waits `dashFrom` from it, and once a second (they take turns, a quarter second
-     * apart) dashes through it and straight back. A dash hurts every enemy it crosses once, for true damage
+     * nearest) is there; then each hovers `dashFrom` from it, and once a second (they take turns, a quarter second
+     * apart) runs at it and straight back. A dash hurts every enemy it crosses once, for true damage
      */
     updateDaggers(dt: number, d: NonNullable<(typeof KitDefs)[string]["daggers"]>) {
         if (this.daggerMinions.length !== d.count) {
@@ -7301,7 +7297,8 @@ export class Player extends BaseGameObject {
             }));
         }
         this.daggerClock += dt;
-        const near = this.enemiesWithin(Math.max(d.range, this.zoom));
+        // they only go after what is inside the radius they are allowed to roam (the leash)
+        const near = this.enemiesWithin(d.leash);
         const focus = near.find((p) => p.__id === this.summonerFocusId);
         const target = focus
             ?? (near.length
@@ -7351,8 +7348,11 @@ export class Player extends BaseGameObject {
                 } else {
                     const dir = v2.normalizeSafe(v2.sub(target.pos, m.pos), toTarget);
                     const from = v2.copy(m.pos);
-                    // it flies through them and a little way on
-                    const goal = v2.add(target.pos, v2.mul(dir, 2));
+                    // it runs at them, and back as soon as it connects
+                    let goal = v2.copy(target.pos);
+                    // (a goal past the leash is cut back to it, or the dash could never finish)
+                    const rel = v2.sub(goal, this.pos);
+                    if (v2.length(rel) > d.leash) goal = v2.add(this.pos, v2.mul(v2.normalizeSafe(rel), d.leash));
                     const left = step(goal, d.dashSpeed);
                     for (const p of foes) {
                         if (m.hit.has(p.__id) || p.dead) continue;
@@ -7371,6 +7371,7 @@ export class Player extends BaseGameObject {
                             dir,
                         });
                         this.fireDashSound(m.pos);
+                        m.phase = 2;
                     }
                     if (left < 0.05) m.phase = 2;
                 }
