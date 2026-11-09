@@ -307,7 +307,6 @@ export class LoadoutDisplay {
             ironSpinCast: 0,
             wizardWaveCast: 0,
             daggerOffsets: [],
-            daggerDashing: [],
             wizardMarked: false,
             wolverineMarked: false,
             hidden: false,

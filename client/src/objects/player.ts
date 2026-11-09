@@ -343,7 +343,6 @@ export class Player implements AbstractObject {
         ironSpinCast: number;
         wizardWaveCast: number;
         daggerOffsets: Vec2[];
-        daggerDashing: boolean[];
         wizardMarked: boolean;
         wolverineMarked: boolean;
         hidden: boolean;
@@ -538,7 +537,6 @@ export class Player implements AbstractObject {
             ironSpinCast: 0,
             wizardWaveCast: 0,
             daggerOffsets: [],
-            daggerDashing: [],
             wizardMarked: false,
             wolverineMarked: false,
             hidden: false,
@@ -647,7 +645,6 @@ export class Player implements AbstractObject {
             this.m_netData.ironSpinCast = data.ironSpinCast;
             this.m_netData.wizardWaveCast = data.wizardWaveCast;
             this.m_netData.daggerOffsets = data.daggerOffsets;
-            this.m_netData.daggerDashing = data.daggerDashing;
             this.m_netData.wizardMarked = data.wizardMarked;
             this.m_netData.wolverineMarked = data.wolverineMarked;
             this.m_netData.hidden = data.hidden;
@@ -2904,10 +2901,6 @@ export class Player implements AbstractObject {
     ultronReticle: PIXI.Graphics | null = null;
     kitDaggers: PIXI.Sprite[] = [];
     kitDaggerSeen: boolean[] = [];
-    /** the beam streak each blade minion trails while dashing */
-    kitDaggerStreaks: PIXI.Sprite[] = [];
-    kitDaggerStreakLife: number[] = [];
-    kitDaggerStreakRot: number[] = [];
     /** War Machine's right and left shoulder mounts */
     kitMounts: (PIXI.Graphics | undefined)[] = [];
     /**
@@ -3269,22 +3262,9 @@ export class Player implements AbstractObject {
             this.container.addChild(d);
             this.kitDaggers.push(d);
         }
-        const dashing = this.m_netData.daggerDashing;
         this.kitDaggers.forEach((d, i) => {
             d.visible = i < offsets.length;
-            if (!this.kitDaggerStreaks[i]) {
-                const st = PIXI.Sprite.from(`img/custom-weapons/fx/kit/summoner_dash.png?v=${CustomWeaponsVersion}`);
-                st.anchor.set(1, 0.5);
-                st.visible = false;
-                this.container.addChildAt(st, this.container.getChildIndex(d));
-                this.kitDaggerStreaks[i] = st;
-                this.kitDaggerStreakLife[i] = 0;
-            }
-            const st = this.kitDaggerStreaks[i];
-            if (!d.visible) {
-                st.visible = false;
-                return;
-            }
+            if (!d.visible) return;
             // world offsets are y-up; the container is y-down
             const tx = offsets[i].x * px;
             const ty = -offsets[i].y * px;
@@ -3304,22 +3284,6 @@ export class Player implements AbstractObject {
             d.position.set(nx, ny);
             const s = 55 / Math.max(d.texture.width, 1);
             d.scale.set(s, s);
-            // a dash draws the beam streak trailing the blade, then it fades
-            if (dashing[i] && moved > 0.05) {
-                this.kitDaggerStreakLife[i] = 1;
-                this.kitDaggerStreakRot[i] = Math.atan2(my, mx);
-            } else {
-                this.kitDaggerStreakLife[i] = Math.max(0, this.kitDaggerStreakLife[i] - dt * 8);
-            }
-            const life = this.kitDaggerStreakLife[i];
-            st.visible = life > 0;
-            if (st.visible) {
-                st.position.set(nx, ny);
-                st.rotation = this.kitDaggerStreakRot[i] ?? 0;
-                st.alpha = life;
-                const len = 7 * px;
-                st.scale.set(len / Math.max(st.texture.width, 1), (2.2 * px) / Math.max(st.texture.height, 1));
-            }
         });
     }
 
