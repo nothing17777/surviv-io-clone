@@ -343,6 +343,7 @@ export class Player implements AbstractObject {
         ironSpinCast: number;
         wizardWaveCast: number;
         daggerOffsets: Vec2[];
+        daggerDashing: boolean[];
         wizardMarked: boolean;
         wolverineMarked: boolean;
         hidden: boolean;
@@ -537,6 +538,7 @@ export class Player implements AbstractObject {
             ironSpinCast: 0,
             wizardWaveCast: 0,
             daggerOffsets: [],
+            daggerDashing: [],
             wizardMarked: false,
             wolverineMarked: false,
             hidden: false,
@@ -645,6 +647,7 @@ export class Player implements AbstractObject {
             this.m_netData.ironSpinCast = data.ironSpinCast;
             this.m_netData.wizardWaveCast = data.wizardWaveCast;
             this.m_netData.daggerOffsets = data.daggerOffsets;
+            this.m_netData.daggerDashing = data.daggerDashing;
             this.m_netData.wizardMarked = data.wizardMarked;
             this.m_netData.wolverineMarked = data.wolverineMarked;
             this.m_netData.hidden = data.hidden;
@@ -1563,7 +1566,7 @@ export class Player implements AbstractObject {
         this.vanish = !this.m_netData.hidden
             ? 1
             : isActivePlayer
-                || playerBarn.getPlayerInfo(this.__id).teamId == playerBarn.getPlayerInfo(activeId).teamId
+                    || playerBarn.getPlayerInfo(this.__id).teamId == playerBarn.getPlayerInfo(activeId).teamId
             ? 0.35
             : 0;
 
@@ -2901,9 +2904,10 @@ export class Player implements AbstractObject {
     ultronReticle: PIXI.Graphics | null = null;
     kitDaggers: PIXI.Sprite[] = [];
     kitDaggerSeen: boolean[] = [];
-    /** the streaks the blade minions leave when they dash: world-unit segments that fade out */
-    kitDaggerTrail: { a: Vec2; b: Vec2; life: number }[] = [];
-    kitDaggerTrailGfx: PIXI.Graphics | null = null;
+    /** the beam streak each blade minion trails while dashing */
+    kitDaggerStreaks: PIXI.Sprite[] = [];
+    kitDaggerStreakLife: number[] = [];
+    kitDaggerStreakRot: number[] = [];
     /** War Machine's right and left shoulder mounts */
     kitMounts: (PIXI.Graphics | undefined)[] = [];
     /**
@@ -2989,7 +2993,9 @@ export class Player implements AbstractObject {
             this.wizardWaveR += WizardWave.speed * dt;
             const rr = Math.min(this.wizardWaveR, maxR);
             // it fades over the last fifth of a second once it has spread all the way
-            const fade = this.wizardWaveR > maxR ? Math.max(0, 1 - (this.wizardWaveR - maxR) / (WizardWave.speed * 0.2)) : 1;
+            const fade = this.wizardWaveR > maxR
+                ? Math.max(0, 1 - (this.wizardWaveR - maxR) / (WizardWave.speed * 0.2))
+                : 1;
             const tex = this.wizardWave.texture;
             const sc = (2 * Math.max(rr, 0.1) * px) / Math.max(tex.width, 1);
             this.wizardWave.scale.set(sc, sc);
@@ -3263,43 +3269,58 @@ export class Player implements AbstractObject {
             this.container.addChild(d);
             this.kitDaggers.push(d);
         }
-        if (!this.kitDaggerTrailGfx) {
-            this.kitDaggerTrailGfx = new PIXI.Graphics();
-            this.container.addChild(this.kitDaggerTrailGfx);
-        }
+        const dashing = this.m_netData.daggerDashing;
         this.kitDaggers.forEach((d, i) => {
             d.visible = i < offsets.length;
-            if (!d.visible) return;
-            const to = offsets[i];
+            if (!this.kitDaggerStreaks[i]) {
+                const st = PIXI.Sprite.from(`img/custom-weapons/fx/kit/summoner_dash.png?v=${CustomWeaponsVersion}`);
+                st.anchor.set(1, 0.5);
+                st.visible = false;
+                this.container.addChildAt(st, this.container.getChildIndex(d));
+                this.kitDaggerStreaks[i] = st;
+                this.kitDaggerStreakLife[i] = 0;
+            }
+            const st = this.kitDaggerStreaks[i];
+            if (!d.visible) {
+                st.visible = false;
+                return;
+            }
+            // world offsets are y-up; the container is y-down
+            const tx = offsets[i].x * px;
+            const ty = -offsets[i].y * px;
             if (!this.kitDaggerSeen[i]) {
-                d.position.set(to.x * px, to.y * px);
+                d.position.set(tx, ty);
                 this.kitDaggerSeen[i] = true;
             }
             const k = 1 - Math.exp(-dt * 60);
-            const nx = d.position.x + (to.x * px - d.position.x) * k;
-            const ny = d.position.y + (to.y * px - d.position.y) * k;
+            const nx = d.position.x + (tx - d.position.x) * k;
+            const ny = d.position.y + (ty - d.position.y) * k;
             const mx = nx - d.position.x;
             const my = ny - d.position.y;
             const moved = Math.hypot(mx, my) / px;
-            // a dash (or a quick flight) leaves a bright streak behind the blade
-            if (moved > 0.35) {
-                this.kitDaggerTrail.push({ a: v2.create(d.position.x, d.position.y), b: v2.create(nx, ny), life: 1 });
-            }
             // the blade points the way it moves; at rest, away from him
             if (moved > 0.05) d.rotation = Math.atan2(my, mx) + Math.PI / 2;
             else if (Math.abs(nx) + Math.abs(ny) > 1) d.rotation = Math.atan2(ny, nx) + Math.PI / 2;
             d.position.set(nx, ny);
             const s = 55 / Math.max(d.texture.width, 1);
             d.scale.set(s, s);
+            // a dash draws the beam streak trailing the blade, then it fades
+            if (dashing[i] && moved > 0.05) {
+                this.kitDaggerStreakLife[i] = 1;
+                this.kitDaggerStreakRot[i] = Math.atan2(my, mx);
+            } else {
+                this.kitDaggerStreakLife[i] = Math.max(0, this.kitDaggerStreakLife[i] - dt * 8);
+            }
+            const life = this.kitDaggerStreakLife[i];
+            st.visible = life > 0;
+            if (st.visible) {
+                st.position.set(nx, ny);
+                st.rotation = this.kitDaggerStreakRot[i] ?? 0;
+                st.alpha = life;
+                const len = 7 * px;
+                st.scale.set(len / Math.max(st.texture.width, 1), (2.2 * px) / Math.max(st.texture.height, 1));
+            }
         });
-        const trail = this.kitDaggerTrailGfx;
-        trail.clear();
-        this.kitDaggerTrail = this.kitDaggerTrail.filter((t) => (t.life -= dt * 5) > 0);
-        for (const t of this.kitDaggerTrail) {
-            trail.lineStyle(0.8 * px, 0xcfeaff, 0.55 * t.life);
-            trail.moveTo(t.a.x, t.a.y);
-            trail.lineTo(t.b.x, t.b.y);
-        }
     }
 
     debuffDots: PIXI.Graphics | null = null;
