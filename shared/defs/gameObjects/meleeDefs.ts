@@ -1479,25 +1479,6 @@ const KitMeleeDefs: Record<string, MeleeDef> = {
         noPotatoSwap: true,
         damage: 35,
     }),
-    // War Machine's gauntlets: a copy of Iron Man's
-    kit_warmachine_fists: defineMeleeSkin("fists", {
-        name: "Repulsor Gauntlets",
-        noPotatoSwap: true,
-        damage: 35,
-    }),
-    // Green Goblin's Tricky Swap: swaps places with the main drone and leaves a pumpkin bomb where he stood,
-    // 6 s cooldown
-    kit_goblin_swap: defineMeleeSkin("fists", {
-        name: "Tricky Swap",
-        noPotatoSwap: true,
-        damage: 0,
-        attack: { offset: { x: 0, y: 0 }, rad: 0.1, cooldownTime: 6 },
-        lootImg: {
-            sprite: `img/custom-weapons/loot/kit_goblin_swap.png?v=${CustomWeaponsVersion}`,
-            scale: 0.3,
-            tint: 0xffffff,
-        },
-    }),
     // Spider-Man's Portal Combo (see Player.startSpiderCombo): needs a marked enemy, 12 s cooldown. The id stays
     // "kit_spider_dodge" so it keeps its item sprite
     kit_spider_dodge: defineMeleeSkin("fists", {

@@ -26,7 +26,7 @@ export interface BulletDef {
     lifetime?: number;
     /** flies through its owner and their teammates, even after a bounce */
     noSelfDamage?: boolean;
-    /** never collides with players: only its own timer sets it off (the goblin's swap bomb) */
+    /** never collides with players: only its own timer sets it off */
     noPlayerHit?: boolean;
     useExplosiveRoundsAlt?: boolean;
     /** goes through players and obstacles, like a laser */

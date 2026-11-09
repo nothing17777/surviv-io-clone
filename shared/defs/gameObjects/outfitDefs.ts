@@ -1072,22 +1072,6 @@ const SkinDefs: Record<string, OutfitDef> = {
         },
         lootImg: { sprite: "loot-shirt-01.img", tint: 0xd01818 },
     }),
-    outfitKitWarmachine: defineOutfitSkin("outfitBase", {
-        name: "War Machine",
-        noDropOnDeath: true,
-        rarity: Rarity.Common,
-        skinImg: {
-            baseTint: 0xc8cad0,
-            baseSprite: "player-base-01.img",
-            handTint: 0xa8aab0,
-            handSprite: "player-hands-01.img",
-            footTint: 0xa8aab0,
-            footSprite: "player-feet-01.img",
-            backpackTint: 0x8c8e94,
-            backpackSprite: "player-circle-base-01.img",
-        },
-        lootImg: { sprite: "loot-shirt-01.img", tint: 0xc8cad0 },
-    }),
     // a yellow circle, lighter and greener than Wolverine's gold so the two read apart
     outfitKitSentry: defineOutfitSkin("outfitBase", {
         name: "Sentry",
@@ -1104,22 +1088,6 @@ const SkinDefs: Record<string, OutfitDef> = {
             backpackSprite: "player-circle-base-01.img",
         },
         lootImg: { sprite: "loot-shirt-01.img", tint: 0xfff04a },
-    }),
-    outfitKitGreengoblin: defineOutfitSkin("outfitBase", {
-        name: "Green Goblin",
-        noDropOnDeath: true,
-        rarity: Rarity.Common,
-        skinImg: {
-            baseTint: 0x3fb54a,
-            baseSprite: "player-base-01.img",
-            handTint: 0x2f9a3a,
-            handSprite: "player-hands-01.img",
-            footTint: 0x2f9a3a,
-            footSprite: "player-feet-01.img",
-            backpackTint: 0x237a2c,
-            backpackSprite: "player-circle-base-01.img",
-        },
-        lootImg: { sprite: "loot-shirt-01.img", tint: 0x3fb54a },
     }),
     outfitRed: defineOutfitSkin("outfitBase", {
         name: "Target Practice",

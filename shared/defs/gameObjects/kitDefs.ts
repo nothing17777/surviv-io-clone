@@ -67,48 +67,6 @@ export interface KitDef {
     whips?: { range: number; rate: number; duration: number; list: { gun: string; extra?: number; burn?: number }[] };
     /** Wizard: a circle around the player that burns enemies inside for `damage`/s; per enemy inside, per second: energy, shield, hp */
     aura?: { radius: number; damage: number; energy: number; shield: number; health: number; enhanceTime: number };
-    /** War Machine: the shield refills for free, `rate`/s, or `calmRate`/s once `after` s have gone by unhurt */
-    armorRegen?: { rate: number; calmRate: number; after: number };
-    /**
-     * War Machine: shoulder-mounted guns that fire `bullet` (shot sound and source `gun`) at the nearest enemy
-     * within `range`, `rate` shots/s each. The right mount is always on; the left one runs for `secondDuration`
-     * seconds after the skill. `back` and `side` place a mount behind and to the right (or left) of the player
-     */
-    mounts?: {
-        gun: string;
-        bullet: string;
-        range: number;
-        rate: number;
-        /** shots/s each while the Missile Barrage flight is on */
-        flyingRate: number;
-        back: number;
-        side: number;
-        secondDuration: number;
-    };
-    /**
-     * Green Goblin: a drone circling the player counter clockwise at `radius`, `turnRate` rad/s, its point leading.
-     * An enemy it touches takes `damage` and bleeds for `bleed` s (and can't be hit again by it for `hitCooldown` s).
-     * Golden Upgrade (`upgrade.duration` s) adds `speedBonus` move speed and `subDrones` more drones, evenly spaced
-     * round the same circle, that each throw a pumpkin bomb off their tip every `bombEvery` s. Tricky Swap trades
-     * places with the main drone and leaves a bomb that goes off `swapBombFuse` s later
-     */
-    drone?: {
-        radius: number;
-        turnRate: number;
-        damage: number;
-        bleed: number;
-        /** how far from the drone's centre an enemy's edge can be and still be hit */
-        hitRadius: number;
-        hitCooldown: number;
-        /** how far the tip is from the drone's centre (the drawn triangle's size) */
-        tip: number;
-        /** the pumpkin bomb the sub drones throw (and Tricky Swap leaves): gun id for the damage source, bullets */
-        bombGun: string;
-        bomb: string;
-        swapBomb: string;
-        upgrade: { duration: number; speedBonus: number; subDrones: number; bombEvery: number };
-        swapBombFuse: number;
-    };
     /** Wolverine and Spider-Man: the nearest enemy within `range` is marked (a sigil under them), which their combos need */
     mark?: { range: number };
     /** Sentry: takes this fraction less damage from everything (a hit's armor penetration cuts it too) */
@@ -232,57 +190,6 @@ export const KitDefs: Record<string, KitDef> = {
         melee: "kit_ultron_minions",
         energy: { max: 200, perSecond: 20, heal: 0, healCost: 0, shieldRegen: 2, shieldCost: 3 },
         calmRegen: { rate: 5, after: 5 },
-    },
-    warmachine: {
-        name: "War Machine",
-        health: 50,
-        shield: 150,
-        helmet: "helmet04",
-        chest: "chest04",
-        outfit: "outfitKitWarmachine",
-        // skill 1 (Second Fire) and skill 2 (Missile Barrage) are guns that fire nothing or the rockets; left
-        // click on the slot to use them. Slot 3 is Iron Man's gauntlets
-        primary: "kit_warmachine_secondfire",
-        secondary: "kit_warmachine_barrage",
-        melee: "kit_warmachine_fists",
-        armorRegen: { rate: 2, calmRate: 8, after: 5 },
-        mounts: {
-            gun: "kit_warmachine_mount",
-            bullet: "bullet_kit_warmachine_mount",
-            range: 30,
-            rate: 5,
-            flyingRate: 10,
-            back: 0.6,
-            side: 1,
-            secondDuration: 10,
-        },
-    },
-    greengoblin: {
-        name: "Green Goblin",
-        health: 150,
-        helmet: "helmet04",
-        chest: "chest04",
-        outfit: "outfitKitGreengoblin",
-        // skills 1 and 2 are guns used for their cooldowns (left click on the slot); skill 3 is a melee
-        primary: "kit_goblin_pumpkin",
-        secondary: "kit_goblin_upgrade",
-        melee: "kit_goblin_swap",
-        regen: 1,
-        calmRegen: { rate: 4, after: 5 },
-        drone: {
-            radius: 25,
-            turnRate: 4.2,
-            damage: 25,
-            bleed: 4,
-            hitRadius: 1.2,
-            hitCooldown: 1,
-            tip: 1.4,
-            bombGun: "kit_goblin_pumpkin",
-            bomb: "bullet_kit_goblin_pumpkin",
-            swapBomb: "bullet_kit_goblin_trap",
-            upgrade: { duration: 8, speedBonus: 4, subDrones: 2, bombEvery: 2 },
-            swapBombFuse: 0.5,
-        },
     },
     sentry: {
         name: "Sentry",
@@ -619,21 +526,13 @@ export const UltronMinion = { count: 4, health: 17.5, speedMult: 0.75, life: 15,
 export const UltronOrbColors = ["red", "blue", "green", "yellow", "purple", "orange"] as const;
 
 /**
- * the kit's player aura id sent to clients: 0 none, 1 summoner daggers, 2 wizard circle, 3 enhanced,
- * 4 War Machine's right shoulder mount, 5 both mounts, 6 Green Goblin's drone, 7 the drone and its two sub drones.
- * The field is 3 bits on the wire, so 7 is the last id
+ * the kit's player aura id sent to clients: 0 none, 1 summoner daggers, 2 wizard circle, 3 enhanced.
+ * The field is 3 bits on the wire
  */
 export function kitAura(kit: string, enhanced: boolean) {
     if (kit === "summoner") return 1;
     if (kit === "wizard") return enhanced ? 3 : 2;
-    if (kit === "warmachine") return enhanced ? 5 : 4;
-    if (kit === "greengoblin") return enhanced ? 7 : 6;
     return 0;
-}
-
-/** where a Green Goblin drone is: `angle` round the player (counter clockwise from +x, world y up) */
-export function dronePos(center: { x: number; y: number }, radius: number, angle: number) {
-    return { x: center.x + Math.cos(angle) * radius, y: center.y + Math.sin(angle) * radius };
 }
 
 export function isKitItem(type: string) {

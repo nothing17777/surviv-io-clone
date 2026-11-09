@@ -134,7 +134,7 @@ Two Caddy hosts: `api-52-180-66-249.sslip.io` → 127.0.0.1:8000 (API) and
 forwards to the game server on 8001).
 
 ```sh
-curl -X POST https://api-52-180-66-249.sslip.io/api/find_game_v2 -H 'content-type: application/json' -d '{"version":1045,"region":"local","zones":["local"],"playerCount":1,"autoFill":true,"gameModeIdx":0}'
+curl -X POST https://api-52-180-66-249.sslip.io/api/find_game_v2 -H 'content-type: application/json' -d '{"version":1046,"region":"local","zones":["local"],"playerCount":1,"autoFill":true,"gameModeIdx":0}'
 ```
 
 Use the current `protocolVersion` from `shared/gameConfig.ts`. A success +

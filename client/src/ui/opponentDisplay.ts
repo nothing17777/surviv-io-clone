@@ -300,7 +300,6 @@ export class LoadoutDisplay {
             burning: false,
             charmed: false,
             kitAura: 0,
-            droneAngle: 0,
             dummy: false,
             dummyHealth: 1,
             solarCast: 0,

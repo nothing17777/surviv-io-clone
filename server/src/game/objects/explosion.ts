@@ -218,7 +218,7 @@ export class ExplosionBarn {
             // hacker bots phase through blasts the way they phase through bullets
             if (!isSourceTeammate && obj.botBrain?.phaseExplosion(explosion)) return;
 
-            // Green Goblin's bombs only ever hurt his enemies
+            // an owner-safe explosion only ever hurts the owner's enemies
             if (def.ownerSafe && isSourceTeammate) return;
 
             if (def.healTeam && isSourceTeammate) {

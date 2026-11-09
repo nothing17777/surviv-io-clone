@@ -249,7 +249,7 @@ export class Bullet {
     /** seconds this shot flew before the bounce that made this segment (BulletDef.lifetime) */
     age = 0;
 
-    /** never hits its owner or their teammates (Green Goblin's pumpkin bombs) */
+    /** never hits its owner or their teammates */
     noSelfDamage = false;
     noPlayerHit = false;
 
