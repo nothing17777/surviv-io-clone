@@ -1,6 +1,6 @@
 import { SwingShots } from "../../../shared/defs/gameObjects/customWeaponEffects.ts";
 import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
-import { isKitItem, KitDefs, SentryCharge, SentryNova } from "../../../shared/defs/gameObjects/kitDefs.ts";
+import { isKitItem, KitDefs, SentryCharge, SentryNova, SummonerRod } from "../../../shared/defs/gameObjects/kitDefs.ts";
 import type { MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
 import { PerkProperties } from "../../../shared/defs/gameObjects/perkDefs.ts";
 import { type ThrowableDef, ThrowableDefs } from "../../../shared/defs/gameObjects/throwableDefs.ts";
@@ -817,6 +817,8 @@ export class WeaponManager {
             (this.activeWeapon === "kit_wolverine_combo" || this.activeWeapon === "kit_wolverine_dash")
             && !this.player.canStartClawCombo()
         ) return;
+        // the Rod of Discord costs hp, and never the last of it
+        if (this.activeWeapon === "kit_summoner_rod" && this.player.health <= SummonerRod.cost) return;
         // only one Judge rocket in the air at a time
         if (this.activeWeapon === "pg_judge") {
             const live = this.player.activeJudgeRocket;
@@ -864,6 +866,9 @@ export class WeaponManager {
         if (this.activeWeapon === "kit_wolverine_combo" || this.activeWeapon === "kit_wolverine_dash") {
             this.player.startClawCombo(this.activeWeapon);
         }
+
+        // Summoner's Rod of Discord: he pays hp and appears at the cursor
+        if (this.activeWeapon === "kit_summoner_rod") this.player.teleportToCursor();
 
         // Summoner's Bundle of Potions: the player runs the buffs
         if (this.activeWeapon === "kit_summoner_potions") this.player.startPotions();

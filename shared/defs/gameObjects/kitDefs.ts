@@ -220,6 +220,7 @@ export const KitDefs: Record<string, KitDef> = {
         outfit: "outfitKitSummoner",
         // skill 1 is a gun used for its cooldown (see WeaponManager)
         primary: "kit_summoner_potions",
+        secondary: "kit_summoner_rod",
         melee: "fists",
         regenPulse: { amount: 20, every: 5 },
         daggers: {
@@ -405,6 +406,9 @@ export const SentryCharge = {
  * hit), is immune to burning, regenerates `regen` hp/s and runs `speed` faster; using it also heals `heal` hp
  */
 export const SummonerPotions = { cooldown: 20, duration: 12, heal: 30, reduction: 0.1, flat: 4, regen: 2, speed: 20 };
+
+/** Summoner skill 2, Rod of Discord: teleports him to the cursor for `cost` hp (never the last of it) */
+export const SummonerRod = { cooldown: 1.5, cost: 30 };
 
 export const SentryNova = {
     speed: 220,

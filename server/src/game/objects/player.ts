@@ -21,6 +21,7 @@ import {
     SentryNova,
     SpiderCombo,
     SummonerPotions,
+    SummonerRod,
     UltronCombo,
     UltronComboTimes,
     UltronMinion,
@@ -1766,6 +1767,17 @@ export class Player extends BaseGameObject {
 
     get potions() {
         return this.potionTime > 0;
+    }
+
+    /** Summoner's Rod of Discord: pay hp, appear where the cursor is (kept inside the map) */
+    teleportToCursor() {
+        this.health -= SummonerRod.cost;
+        const to = v2.add(this.pos, v2.mul(this.dir, this.toMouseLen));
+        this.game.map.clampToMapBounds(to, this.rad);
+        v2.set(this.pos, to);
+        this.setPartDirty();
+        this.game.grid.updateObject(this);
+        this.setDirty();
     }
 
     startPotions() {
