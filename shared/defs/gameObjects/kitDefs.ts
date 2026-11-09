@@ -314,7 +314,7 @@ export const KitDefs: Record<string, KitDef> = {
             damage: 8,
             range: 13,
             leash: 35,
-            dashFrom: 3,
+            dashFrom: 10,
             dashEvery: 1,
             dashSpeed: 55,
             hitRadius: 1.5,
