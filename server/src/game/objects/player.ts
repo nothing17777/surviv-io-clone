@@ -3972,8 +3972,11 @@ export class Player extends BaseGameObject {
             // Ultron's orb lasers: orange burns, red bleeds, purple poisons, 3s each
             else if (weap === "bullet_kit_ultron_orb_laser_orange") this.applyBurn(3, playerSource, src);
             else if (weap === "bullet_kit_ultron_orb_laser_red") this.applyBleed(3, playerSource);
-            // Wizard's crystal, circles and mini crystals all bleed
-            else if (weap.startsWith("bullet_kit_wizard_crystal_")) this.applyBleed(WizardCrystals.bleed, playerSource);
+            // Wizard's crystal, circles and mini crystals all bleed (their hits arrive as the gun, `kit_wizard_crystals`;
+            // the burst's own pop deals nothing and doesn't)
+            else if (src === "kit_wizard_crystals" && (params.amount ?? 0) > 0) {
+                this.applyBleed(WizardCrystals.bleed, playerSource);
+            }
             else if (weap === "bullet_kit_ultron_orb_laser_purple") this.applyPoison(3, playerSource);
             else if ((src === "kit_ultron_blast" || src === "kit_wizard_stars") && params.dir && !this.webPull) {
                 // slight knockback, moved like a short slide so walls still stop it
