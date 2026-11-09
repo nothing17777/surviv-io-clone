@@ -368,7 +368,7 @@ test("kit regen: a hit the shield soaks up still ends the calm", () => {
 });
 
 test("kit shield and health sustain numbers", () => {
-    expect(KitDefs.ironman.energy).toMatchObject({ heal: 1, shieldRegen: 1 });
+    expect(KitDefs.ironman.energy).toMatchObject({ heal: 1, shieldRegen: 2 });
     expect(KitDefs.ultron.energy).toMatchObject({ shieldRegen: 2 });
     expect(KitDefs.wolverine.health).toBe(200);
     expect(KitDefs.wizard.aura).toMatchObject({ shield: 2, health: 2 });

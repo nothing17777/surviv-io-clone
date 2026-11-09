@@ -3770,6 +3770,8 @@ export class Player extends BaseGameObject {
         if (this.debug.godMode) return;
         if (this._health < 0) this._health = 0;
         if (this.dead) return;
+        // a champion held in stasis by Guardian Angel takes nothing at all: not the gas, a burn or a bleed either
+        if (this.stasis) return;
         // at the start of his flight Iron Man can't be hit; the gas, damage over time and the Wizard's circle
         // still get through
         if (

@@ -818,6 +818,7 @@ export class Champion {
 
     update(dt: number) {
         // Death's Dance pays out what it put off, over 3 s
+        if (this.deferredDamage > 0 && this.player.stasis) this.deferredDamage = 0;
         if (this.deferredDamage > 0) {
             const bite = Math.min(this.deferredDamage, (this.deferredDamage / 3) * dt + 0.01);
             this.deferredDamage -= bite;
