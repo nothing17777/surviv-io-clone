@@ -7301,7 +7301,8 @@ export class Player extends BaseGameObject {
             }));
         }
         this.daggerClock += dt;
-        const near = this.enemiesWithin(Math.max(d.range, this.zoom));
+        // they only go after what is inside the radius they are allowed to roam (the leash)
+        const near = this.enemiesWithin(d.leash);
         const focus = near.find((p) => p.__id === this.summonerFocusId);
         const target = focus
             ?? (near.length
@@ -7352,7 +7353,10 @@ export class Player extends BaseGameObject {
                     const dir = v2.normalizeSafe(v2.sub(target.pos, m.pos), toTarget);
                     const from = v2.copy(m.pos);
                     // it flies through them and a little way on
-                    const goal = v2.add(target.pos, v2.mul(dir, 2));
+                    let goal = v2.add(target.pos, v2.mul(dir, 2));
+                    // (a goal past the leash is cut back to it, or the dash could never finish)
+                    const rel = v2.sub(goal, this.pos);
+                    if (v2.length(rel) > d.leash) goal = v2.add(this.pos, v2.mul(v2.normalizeSafe(rel), d.leash));
                     const left = step(goal, d.dashSpeed);
                     for (const p of foes) {
                         if (m.hit.has(p.__id) || p.dead) continue;
