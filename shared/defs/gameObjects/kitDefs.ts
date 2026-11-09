@@ -187,7 +187,7 @@ export const KitDefs: Record<string, KitDef> = {
     },
     ironman: {
         name: "Iron Man",
-        health: 200,
+        health: 100,
         shield: 100,
         helmet: "helmet04",
         chest: "chest04",
@@ -198,12 +198,12 @@ export const KitDefs: Record<string, KitDef> = {
         secondary: "kit_ironman_spin",
         melee: "kit_ironman_combo",
         mark: { range: 40 },
-        energy: { max: 100, perSecond: 10, heal: 1, healCost: 5, shieldRegen: 1, shieldCost: 3 },
+        energy: { max: 100, perSecond: 10, heal: 1, healCost: 5, shieldRegen: 2, shieldCost: 3 },
         calmRegen: { rate: 5, after: 5 },
     },
     spiderman: {
         name: "Spider-Man",
-        health: 250,
+        health: 200,
         helmet: "helmet04",
         chest: "chest04",
         outfit: "outfitKitSpiderman",
