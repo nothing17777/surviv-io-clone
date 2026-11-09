@@ -874,6 +874,9 @@ export class WeaponManager {
             this.player.startClawCombo(this.activeWeapon);
         }
 
+        // Summoner's Bundle of Potions: the player runs the buffs
+        if (this.activeWeapon === "kit_summoner_potions") this.player.startPotions();
+
         // Iron Man's Laser Spin: the player runs the two lasers (see IronManSpin)
         if (this.activeWeapon === "kit_ironman_spin") this.player.startIronSpin();
 

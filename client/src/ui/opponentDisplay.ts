@@ -315,6 +315,7 @@ export class LoadoutDisplay {
             wizardStunned: false,
             ultronMarked: false,
             vulnerable: false,
+            potions: false,
             excaliburActive: false,
             flying: false,
             championIndex: 0,

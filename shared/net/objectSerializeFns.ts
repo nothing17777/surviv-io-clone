@@ -128,6 +128,7 @@ export interface ObjectsFullData {
         ultronMarked: boolean;
         /** hit by the Summoner's whip: a rainbow circle under them while minion hits land harder */
         vulnerable: boolean;
+        potions: boolean;
         /** Excalibur: a dim yellow circle under them while it halves their damage taken */
         excaliburActive: boolean;
         /** Iron Man's flight: untargetable and through walls */
@@ -296,6 +297,7 @@ export const ObjectSerializeFns: {
             s.writeBoolean(data.wizardStunned);
             s.writeBoolean(data.ultronMarked);
             s.writeBoolean(data.vulnerable);
+            s.writeBoolean(data.potions);
             s.writeBoolean(data.excaliburActive);
             s.writeBoolean(data.flying);
             s.writeBits(data.championIndex, 4);
@@ -396,6 +398,7 @@ export const ObjectSerializeFns: {
             data.wizardStunned = s.readBoolean();
             data.ultronMarked = s.readBoolean();
             data.vulnerable = s.readBoolean();
+            data.potions = s.readBoolean();
             data.excaliburActive = s.readBoolean();
             data.flying = s.readBoolean();
             data.championIndex = s.readBits(4);

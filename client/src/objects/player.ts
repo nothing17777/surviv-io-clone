@@ -351,6 +351,7 @@ export class Player implements AbstractObject {
         wizardStunned: boolean;
         ultronMarked: boolean;
         vulnerable: boolean;
+        potions: boolean;
         excaliburActive: boolean;
         championIndex: number;
         champCastSeq: number;
@@ -545,6 +546,7 @@ export class Player implements AbstractObject {
             wizardStunned: false,
             ultronMarked: false,
             vulnerable: false,
+            potions: false,
             excaliburActive: false,
             championIndex: 0,
             champCastSeq: 0,
@@ -653,6 +655,7 @@ export class Player implements AbstractObject {
             this.m_netData.wizardStunned = data.wizardStunned;
             this.m_netData.ultronMarked = data.ultronMarked;
             this.m_netData.vulnerable = data.vulnerable;
+            this.m_netData.potions = data.potions;
             this.m_netData.excaliburActive = data.excaliburActive;
             this.m_netData.flying = data.flying;
             this.m_netData.championIndex = data.championIndex;
@@ -2900,6 +2903,8 @@ export class Player implements AbstractObject {
     vulnerableRing: PIXI.Graphics | null = null;
     ultronReticle: PIXI.Graphics | null = null;
     kitDaggers: PIXI.Sprite[] = [];
+    /** a ring at the radius the Summoner's blades may roam */
+    summonerRange: PIXI.Graphics | null = null;
     kitDaggerSeen: boolean[] = [];
     /** War Machine's right and left shoulder mounts */
     kitMounts: (PIXI.Graphics | undefined)[] = [];
@@ -3253,6 +3258,16 @@ export class Player implements AbstractObject {
                 }
                 ring.rotation += dt * 2;
             }
+        }
+        // the radius the blades may roam, a thin ring round the Summoner
+        if (aura === 1 || this.summonerRange) {
+            if (!this.summonerRange) {
+                this.summonerRange = new PIXI.Graphics();
+                this.auraContainer.addChildAt(this.summonerRange, 0);
+                this.summonerRange.lineStyle(0.18 * px, 0xb39ddb, 0.55);
+                this.summonerRange.drawCircle(0, 0, KitDefs.summoner.daggers!.leash * px);
+            }
+            this.summonerRange.visible = aura === 1;
         }
         // Summoner's blade minions: drawn where the server has them, smoothed between updates, pointing the way they fly
         const offsets = aura === 1 ? this.m_netData.daggerOffsets : [];

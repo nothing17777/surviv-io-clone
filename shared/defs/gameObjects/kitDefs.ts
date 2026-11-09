@@ -311,6 +311,8 @@ export const KitDefs: Record<string, KitDef> = {
         helmet: "",
         chest: "",
         outfit: "outfitKitSummoner",
+        // skill 1 is a gun used for its cooldown (see WeaponManager)
+        primary: "kit_summoner_potions",
         melee: "fists",
         regenPulse: { amount: 20, every: 5 },
         daggers: {
@@ -491,6 +493,12 @@ export const SentryCharge = {
  * `hitEvery` s). It heals `heal` of his max hp, halves the armor penetration of what hits him for `penGuardTime` s,
  * and he flies for `flight` s
  */
+/**
+ * Summoner skill 1, Bundle of Potions: for `duration` s he takes `reduction` less damage (then `flat` less from each
+ * hit), is immune to burning, regenerates `regen` hp/s and runs `speed` faster; using it also heals `heal` hp
+ */
+export const SummonerPotions = { cooldown: 20, duration: 12, heal: 30, reduction: 0.1, flat: 4, regen: 2, speed: 20 };
+
 export const SentryNova = {
     speed: 220,
     radius: 100,

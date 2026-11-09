@@ -21,6 +21,7 @@ import {
     SentryCharge,
     SentryNova,
     SpiderCombo,
+    SummonerPotions,
     UltronCombo,
     UltronComboTimes,
     UltronMinion,
@@ -1772,6 +1773,22 @@ export class Player extends BaseGameObject {
         return this.whipMarks.some((t) => t > 0);
     }
 
+    /** Summoner's Bundle of Potions: seconds left of its buffs (see SummonerPotions) */
+    potionTime = 0;
+
+    get potions() {
+        return this.potionTime > 0;
+    }
+
+    startPotions() {
+        const p = SummonerPotions;
+        if (!this.potions) this.setDirty();
+        this.potionTime = p.duration;
+        this.burnDuration = 0;
+        this.health = math.min(this.health + p.heal, this.maxHealth);
+        this.setDirty();
+    }
+
     /** the extra damage a Summoner's minion hit does to this enemy, from all the whips that marked it */
     whipExtraDamage() {
         const list = KitDefs.summoner.whips!.list;
@@ -1801,6 +1818,8 @@ export class Player extends BaseGameObject {
     burnWeapon = "pg_frozen_dragon";
 
     applyBurn(duration: number, source?: Player, weapon = "pg_frozen_dragon") {
+        // the potions make him immune to fire
+        if (this.potionTime > 0) return;
         if (this.burnDuration <= 0) this.setDirty();
         this.burnWeapon = weapon;
         this.burnDuration = Math.max(this.burnDuration, duration);
@@ -3859,6 +3878,15 @@ export class Player extends BaseGameObject {
         // Sentry: less damage from everything, and an armor-ignoring hit cuts that too
         const sentryReduction = KitDefs[this.kit]?.damageReduction;
         if (sentryReduction) reduceDamage(sentryReduction);
+
+        // Summoner's potions: 10% less, then 4 less from each hit (not from the gas or a bleed's ticks)
+        if (this.potionTime > 0) {
+            reduceDamage(SummonerPotions.reduction);
+            if (
+                finalDamage > 0 && params.damageType !== GameConfig.DamageType.Bleeding
+                && params.damageType !== GameConfig.DamageType.Gas
+            ) finalDamage = Math.max(finalDamage - SummonerPotions.flat, 0);
+        }
 
         // Conquest's Wall is a layer of its own on top of that; every hit that comes in (not the gas or a bleed)
         // wears it down
@@ -6588,6 +6616,11 @@ export class Player extends BaseGameObject {
         const cooling = this.abilityCooldowns.some((c) => c > 0) || this.champCooldowns.some((c) => c > 0);
         if (cooling || this.wasCooling) this.energyDirty = true;
         this.wasCooling = cooling;
+        if (this.potionTime > 0) {
+            this.potionTime = Math.max(this.potionTime - dt, 0);
+            this.health = math.min(this.health + SummonerPotions.regen * dt, this.maxHealth);
+            if (this.potionTime === 0) this.setDirty();
+        }
         if (kit.regenPulse) {
             this.regenPulseTimer += dt;
             if (this.regenPulseTimer >= kit.regenPulse.every) {
@@ -6708,6 +6741,7 @@ export class Player extends BaseGameObject {
         this.poisonDuration = 0;
         this.charmDuration = 0;
         this.whipMarks = [0, 0, 0];
+        this.potionTime = 0;
         this.stunTime = 0;
         const d = this.debuffs;
         d.root =
@@ -7601,6 +7635,7 @@ export class Player extends BaseGameObject {
         else if (this.botBrain?.level === "scripter") this.speed *= 1.3;
 
         this.speed += KitDefs[this.kit]?.speedBonus ?? 0;
+        if (this.potionTime > 0) this.speed += SummonerPotions.speed;
         // Green Goblin's Golden Upgrade
         if (this.kitEnhanceTime > 0) this.speed += KitDefs[this.kit]?.drone?.upgrade.speedBonus ?? 0;
         if (this.champ) this.speed = this.champ.speed(this.speed);

@@ -12,6 +12,7 @@ import {
     SentryCharge,
     SentryNova,
     SpiderCombo,
+    SummonerPotions,
     UltronCombo,
     WizardCrystals,
     WolverineCombo,
@@ -4506,6 +4507,22 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
             extendedReload: 250,
         })
     ),
+    // Summoner skill 1, Bundle of Potions: fires nothing, Player.startPotions does it (see WeaponManager); 20 s cooldown
+    kitGun("kit_summoner_potions", "barrett", {}, {
+        name: "Bundle of Potions",
+        fireMode: "single",
+        fireDelay: SummonerPotions.cooldown,
+        energyCost: 0,
+        bulletCount: 0,
+        mounted: true,
+        caseTiming: "reload",
+        shotSpread: 0,
+        moveSpread: 0,
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
     // a Summoner minion's dash: the key for its sound and damage rules (see Player.updateDaggers), never held
     kitGun("kit_summoner_dagger", "barrett", { damage: 0 }, {
         name: "Minion Dash",
