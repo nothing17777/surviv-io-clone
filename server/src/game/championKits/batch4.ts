@@ -112,13 +112,22 @@ const cleanse = (c: Champion) => {
 
 type Stat = "moveSpeed" | "attackSpeed" | "damage" | "damageReduction";
 /** a timed self buff: raises the stats now and takes them off again, and flags `name` in c.buffs */
+const applied = new WeakMap<Champion, Map<string, Array<[Stat, number]>>>();
 function temp(c: Champion, name: string, secs: number, stats: Partial<Record<Stat, number>>) {
+    let mine = applied.get(c);
+    if (!mine) applied.set(c, (mine = new Map()));
+    // take off whatever this buff last put on, so recasting refreshes it instead of stacking it —
+    // and so a revert dropped because the champion died can't leave the stat inflated for good
+    const off = () => {
+        for (const [k, v] of mine!.get(name) ?? []) c.stats[k] -= v;
+        mine!.delete(name);
+    };
+    off();
     c.buffs[name] = secs;
     const list = Object.entries(stats) as Array<[Stat, number]>;
     for (const [k, v] of list) c.stats[k] += v;
-    c.later(secs, () => {
-        for (const [k, v] of list) c.stats[k] -= v;
-    });
+    mine.set(name, list);
+    c.later(secs, off);
 }
 
 /** a marker the clients play a hit effect on, where no projectile flies (a trap, a landing, a clone) */

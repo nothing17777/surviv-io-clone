@@ -7,6 +7,7 @@ import { type MapDefKey, MapDefs } from "../../../shared/defs/mapDefs.ts";
 import { GameConfig, type TeamMode } from "../../../shared/gameConfig.ts";
 import { defaultPrivateLoadout, type PrivateLoadout } from "../../../shared/types/api.ts";
 import en from "../en.json";
+import { openChampionPicker } from "./championPicker.ts";
 
 /**
  * Helpers for the map + team size pickers on the main menu and the party menu,
@@ -331,6 +332,16 @@ export function fillItemPicker(prefix: string, slot: string, type: string, value
             $(`#${prefix}-${slot}-img`).attr({ src, title: itemDesc(id) }).toggle(!!src);
             sel.attr("title", itemDesc(id));
         });
+        // the kit list has 170+ League champions in it: a search + icon grid beats scrolling the dropdown
+        if (slot === "kit") {
+            $("<a>", { class: "btn-hollow champ-browse-btn", href: "#", text: "⚔️" })
+                .attr("title", "Browse champions")
+                .on("click", (e) => {
+                    e.preventDefault();
+                    openChampionPicker(sel);
+                })
+                .insertAfter(sel);
+        }
     }
     sel.val(value);
     sel.attr("title", itemDesc(value));

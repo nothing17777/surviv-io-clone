@@ -7370,6 +7370,102 @@ input [type="image"]:focus {
     width: 40px;
 }
 
+.champ-browse-btn {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 0 10px;
+}
+
+#champ-picker-overlay {
+    align-items: center;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    inset: 0;
+    justify-content: center;
+    position: fixed;
+    z-index: 10000;
+}
+
+.champ-picker-box {
+    background: #0a1428;
+    border: 1px solid #785a28;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    height: 80vh;
+    max-width: 900px;
+    padding: 14px;
+    width: 92vw;
+}
+
+.champ-picker-head {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.champ-picker-head input {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid #785a28;
+    border-radius: 4px;
+    color: #ffffff;
+    flex: 1;
+    font-size: 15px;
+    padding: 8px 10px;
+}
+
+.champ-picker-close {
+    cursor: pointer;
+    flex: 0 0 auto;
+    font-size: 22px;
+    line-height: 1;
+    padding: 0 6px;
+}
+
+.champ-picker-grid {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(auto-fill, 86px);
+    overflow-y: auto;
+}
+
+.champ-picker-item {
+    align-items: center;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.champ-picker-item:hover, .champ-picker-item.selected {
+    background: rgba(200, 155, 60, 0.25);
+}
+
+.champ-picker-item img {
+    border: 1px solid #785a28;
+    border-radius: 6px;
+    height: 64px;
+    object-fit: cover;
+    width: 64px;
+}
+
+.champ-picker-item span {
+    font-size: 11px;
+    line-height: 1.2;
+    word-break: break-word;
+}
+
+.champ-picker-empty {
+    color: #999999;
+    padding: 20px;
+    text-align: center;
+    width: 100%;
+}
+
 .team-vs-bot select {
     width: 60%;
     margin: 2px 0;
