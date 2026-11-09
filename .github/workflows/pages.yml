@@ -1,0 +1,63 @@
+name: Deploy client to GitHub Pages
+
+on:
+    push:
+        branches: [main]
+    workflow_dispatch:
+
+# only one Pages deploy at a time; a newer push supersedes a queued one
+concurrency:
+    group: pages
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+    pages: write
+    id-token: write
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 11
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: pnpm
+
+            - run: pnpm install --frozen-lockfile
+
+            # Pages serves this repo at https://<user>.github.io/<repo>/, so the build
+            # needs that prefix. Set a custom domain in the Pages settings and this
+            # becomes "/" instead — the repo variable lets you change it without a code edit.
+            - name: Build client
+              env:
+                  VITE_BASE: ${{ vars.PAGES_BASE || format('/{0}/', github.event.repository.name) }}
+                  # a static build can't read the server's config file, so point it
+                  # at the separately hosted API + game server (see config.ts)
+                  SURVIV_API_URL: ${{ vars.SURVIV_API_URL }}
+                  SURVIV_GAME_ADDRESS: ${{ vars.SURVIV_GAME_ADDRESS }}
+              run: cd client && pnpm build
+
+            # without this, Pages runs the output through Jekyll, which drops files
+            # and directories whose names start with an underscore
+            - run: touch client/dist/.nojekyll
+
+            - uses: actions/upload-pages-artifact@v3
+              with:
+                  path: client/dist
+
+    deploy:
+        needs: build
+        runs-on: ubuntu-latest
+        environment:
+            name: github-pages
+            url: ${{ steps.deployment.outputs.page_url }}
+        steps:
+            - id: deployment
+              uses: actions/deploy-pages@v4
