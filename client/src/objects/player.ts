@@ -11,7 +11,7 @@ import { CustomWeaponsVersion } from "../../../shared/defs/gameObjects/customWea
 import { SwingArcs } from "../../../shared/defs/gameObjects/customWeaponEffects.ts";
 import type { BoostDef, HealDef } from "./../../../shared/defs/gameObjects/gearDefs.ts";
 import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
-import { KitDefs } from "../../../shared/defs/gameObjects/kitDefs.ts";
+import { IronManSpin, KitDefs, WizardWave } from "../../../shared/defs/gameObjects/kitDefs.ts";
 import { type MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
 import type { CookImg, ThrowableDef, ThrowableHandImgKey } from "../../../shared/defs/gameObjects/throwableDefs.ts";
 import type { ObstacleDef } from "../../../shared/defs/mapObjects/obstacles/obstacleDefs.ts";
@@ -211,6 +211,8 @@ export class Player implements AbstractObject {
     footRContainer = new PIXI.Container();
 
     bodyContainer = new PIXI.Container();
+    /** how much of the player shows: 1, or dim / 0 while Wolverine's Claw Combo hides him */
+    vanish = 1;
 
     /** the glowing aura a Terraria sword leaves on each swing */
     swingArc = new PIXI.Sprite();
@@ -335,7 +337,19 @@ export class Player implements AbstractObject {
         charmed: boolean;
         kitAura: number;
         droneAngle: number;
+        dummy: boolean;
+        dummyHealth: number;
+        solarCast: number;
+        ironSpinCast: number;
+        wizardWaveCast: number;
+        daggerOffsets: Vec2[];
         wizardMarked: boolean;
+        wolverineMarked: boolean;
+        hidden: boolean;
+        webbed: boolean;
+        stasis: boolean;
+        wizardStunned: boolean;
+        ultronMarked: boolean;
         vulnerable: boolean;
         excaliburActive: boolean;
         championIndex: number;
@@ -517,7 +531,19 @@ export class Player implements AbstractObject {
             charmed: false,
             kitAura: 0,
             droneAngle: 0,
+            dummy: false,
+            dummyHealth: 1,
+            solarCast: 0,
+            ironSpinCast: 0,
+            wizardWaveCast: 0,
+            daggerOffsets: [],
             wizardMarked: false,
+            wolverineMarked: false,
+            hidden: false,
+            webbed: false,
+            stasis: false,
+            wizardStunned: false,
+            ultronMarked: false,
             vulnerable: false,
             excaliburActive: false,
             championIndex: 0,
@@ -613,7 +639,19 @@ export class Player implements AbstractObject {
             this.m_netData.charmed = data.charmed;
             this.m_netData.kitAura = data.kitAura;
             this.m_netData.droneAngle = data.droneAngle;
+            this.m_netData.dummy = data.dummy;
+            this.m_netData.dummyHealth = data.dummyHealth;
+            this.m_netData.solarCast = data.solarCast;
+            this.m_netData.ironSpinCast = data.ironSpinCast;
+            this.m_netData.wizardWaveCast = data.wizardWaveCast;
+            this.m_netData.daggerOffsets = data.daggerOffsets;
             this.m_netData.wizardMarked = data.wizardMarked;
+            this.m_netData.wolverineMarked = data.wolverineMarked;
+            this.m_netData.hidden = data.hidden;
+            this.m_netData.webbed = data.webbed;
+            this.m_netData.stasis = data.stasis;
+            this.m_netData.wizardStunned = data.wizardStunned;
+            this.m_netData.ultronMarked = data.ultronMarked;
             this.m_netData.vulnerable = data.vulnerable;
             this.m_netData.excaliburActive = data.excaliburActive;
             this.m_netData.flying = data.flying;
@@ -1150,6 +1188,7 @@ export class Player implements AbstractObject {
         this.updateSubmersion(dt, map);
         this.updateFrozenState(dt);
         this.updateDebuffDots(dt);
+        this.updateDummyBar();
         this.updateKitVisuals(dt);
 
         // Play a footstep if we've moved enough
@@ -1520,7 +1559,15 @@ export class Player implements AbstractObject {
             || (activePlayer.layer & 1) == 1
             || (this.layer & 1) == 0;
 
-        this.auraContainer.visible = Boolean(!this.m_netData.m_dead && auraLayerMatch);
+        // Wolverine's Claw Combo: only his team sees him, and even they only dimly
+        this.vanish = !this.m_netData.hidden
+            ? 1
+            : isActivePlayer
+                || playerBarn.getPlayerInfo(this.__id).teamId == playerBarn.getPlayerInfo(activeId).teamId
+            ? 0.35
+            : 0;
+
+        this.auraContainer.visible = Boolean(!this.m_netData.m_dead && auraLayerMatch && this.vanish > 0);
 
         renderer.addPIXIObj(
             this.container,
@@ -1537,7 +1584,8 @@ export class Player implements AbstractObject {
         const screenScale = camera.m_pixels(1);
         this.container.position.set(screenPos.x, screenPos.y);
         this.container.scale.set(screenScale, screenScale);
-        this.container.visible = !this.m_netData.m_dead;
+        this.container.visible = !this.m_netData.m_dead && this.vanish > 0;
+        this.container.alpha = this.vanish;
         this.auraContainer.position.set(screenPos.x, screenPos.y);
         this.auraContainer.scale.set(screenScale, screenScale);
 
@@ -2846,8 +2894,16 @@ export class Player implements AbstractObject {
 
     kitCircle: PIXI.Sprite | null = null;
     kitSigil: PIXI.Sprite | null = null;
+    webbedSprite: PIXI.Sprite | null = null;
+    stasisRing: PIXI.Graphics | null = null;
+    wizardStunRing: PIXI.Graphics | null = null;
     vulnerableRing: PIXI.Graphics | null = null;
+    ultronReticle: PIXI.Graphics | null = null;
     kitDaggers: PIXI.Sprite[] = [];
+    kitDaggerSeen: boolean[] = [];
+    /** the streaks the blade minions leave when they dash: world-unit segments that fade out */
+    kitDaggerTrail: { a: Vec2; b: Vec2; life: number }[] = [];
+    kitDaggerTrailGfx: PIXI.Graphics | null = null;
     /** War Machine's right and left shoulder mounts */
     kitMounts: (PIXI.Graphics | undefined)[] = [];
     /**
@@ -2863,6 +2919,19 @@ export class Player implements AbstractObject {
     kitTicker = 0;
     excaliburRing: PIXI.Graphics | null = null;
     flightGlow: PIXI.Graphics | null = null;
+    wizardWave: PIXI.Sprite | null = null;
+    wizardWaveSeen = -1;
+    /** world units the Stun Wave has spread; -1 when none is showing */
+    wizardWaveR = -1;
+    ironBeams: PIXI.Graphics | null = null;
+    ironSpinSeen = -1;
+    /** seconds into the Laser Spin and the first beam's angle at the cast; -1 when none is showing */
+    ironSpinT = -1;
+    ironSpinA0 = 0;
+    solarRing: PIXI.Graphics | null = null;
+    solarSeen = -1;
+    /** world units the Solar Explosion ring has grown; -1 when none is showing */
+    solarR = -1;
 
     /**
      * Kit visuals: the Summoner's blade minions circling the player, the Wizard's circle
@@ -2903,6 +2972,88 @@ export class Player implements AbstractObject {
                 this.flightGlow.beginFill(0xbdf1ff, 0.3);
                 this.flightGlow.drawCircle(0, 0, 1.8 * px * pulse);
                 this.flightGlow.endFill();
+            }
+        }
+        // Wizard's Stun Wave: a green ring spreading to the radius of his circle at 90 world units a second
+        if (this.wizardWaveSeen !== this.m_netData.wizardWaveCast) {
+            if (this.wizardWaveSeen >= 0) this.wizardWaveR = 0;
+            this.wizardWaveSeen = this.m_netData.wizardWaveCast;
+        }
+        if (this.wizardWaveR >= 0) {
+            if (!this.wizardWave) {
+                this.wizardWave = PIXI.Sprite.from("img/custom-weapons/fx/kit/wizard_circle.png");
+                this.wizardWave.anchor.set(0.5, 0.5);
+                this.auraContainer.addChild(this.wizardWave);
+            }
+            const maxR = KitDefs.wizard.aura!.radius;
+            this.wizardWaveR += WizardWave.speed * dt;
+            const rr = Math.min(this.wizardWaveR, maxR);
+            // it fades over the last fifth of a second once it has spread all the way
+            const fade = this.wizardWaveR > maxR ? Math.max(0, 1 - (this.wizardWaveR - maxR) / (WizardWave.speed * 0.2)) : 1;
+            const tex = this.wizardWave.texture;
+            const sc = (2 * Math.max(rr, 0.1) * px) / Math.max(tex.width, 1);
+            this.wizardWave.scale.set(sc, sc);
+            this.wizardWave.rotation += dt * 6;
+            this.wizardWave.alpha = 0.85 * fade;
+            this.wizardWave.visible = !dead;
+            if (fade <= 0) {
+                this.wizardWaveR = -1;
+                this.wizardWave.visible = false;
+            }
+        }
+        // Iron Man's Laser Spin: two clean beams turning a full circle (drawn fresh every frame, no trail)
+        if (this.ironSpinSeen !== this.m_netData.ironSpinCast) {
+            if (this.ironSpinSeen >= 0) {
+                this.ironSpinT = 0;
+                this.ironSpinA0 = Math.atan2(this.m_netData.m_dir.y, this.m_netData.m_dir.x) + Math.PI / 2;
+            }
+            this.ironSpinSeen = this.m_netData.ironSpinCast;
+        }
+        if (this.ironSpinT >= 0) {
+            if (!this.ironBeams) {
+                this.ironBeams = new PIXI.Graphics();
+                this.auraContainer.addChild(this.ironBeams);
+            }
+            this.ironSpinT += dt;
+            const g = this.ironBeams;
+            g.clear();
+            if (this.ironSpinT >= IronManSpin.time || dead) {
+                this.ironSpinT = -1;
+            } else {
+                const a = this.ironSpinA0 + (this.ironSpinT / IronManSpin.time) * Math.PI * 2;
+                const layers = [[IronManSpin.width * 2, 0xffa81a, 0.45], [IronManSpin.width, 0xfff2a0, 1]] as const;
+                for (const [w, color, alpha] of layers) {
+                    g.lineStyle(w * px, color, alpha);
+                    for (let beam = 0; beam < 2; beam++) {
+                        const b = a + beam * Math.PI;
+                        g.moveTo(0, 0);
+                        g.lineTo(Math.cos(b) * IronManSpin.range * px, Math.sin(b) * IronManSpin.range * px);
+                    }
+                }
+            }
+        }
+        // Sentry's Solar Explosion: a yellow ring that grows to 100 world units at 220 units/s
+        if (this.solarSeen !== this.m_netData.solarCast) {
+            if (this.solarSeen >= 0) this.solarR = 0;
+            this.solarSeen = this.m_netData.solarCast;
+        }
+        if (this.solarR >= 0) {
+            if (!this.solarRing) {
+                this.solarRing = new PIXI.Graphics();
+                this.auraContainer.addChildAt(this.solarRing, 0);
+            }
+            this.solarR += 220 * dt;
+            const rr = Math.min(this.solarR, 100);
+            const fade = this.solarR > 100 ? Math.max(0, 1 - (this.solarR - 100) / 40) : 1;
+            this.solarRing.clear();
+            this.solarRing.beginFill(0xffd84a, 0.16 * fade);
+            this.solarRing.drawCircle(0, 0, rr * px);
+            this.solarRing.endFill();
+            this.solarRing.lineStyle(10, 0xfff2a0, 0.9 * fade);
+            this.solarRing.drawCircle(0, 0, rr * px);
+            if (fade <= 0) {
+                this.solarR = -1;
+                this.solarRing.clear();
             }
         }
         // War Machine's shoulder mounts (aura 4: the right one, 5: both), turning with the player's aim
@@ -2998,17 +3149,89 @@ export class Player implements AbstractObject {
                 this.kitCircle.rotation += dt * (aura === 3 ? 1.2 : 0.3);
             }
         }
-        if (this.m_netData.wizardMarked || this.kitSigil) {
+        const marked = this.m_netData.wizardMarked || this.m_netData.wolverineMarked;
+        if (marked || this.kitSigil) {
             if (!this.kitSigil) {
                 this.kitSigil = PIXI.Sprite.from("img/custom-weapons/fx/kit/dark_sigil.png");
                 this.kitSigil.anchor.set(0.5, 0.5);
                 this.auraContainer.addChild(this.kitSigil);
             }
-            this.kitSigil.visible = this.m_netData.wizardMarked && !dead;
+            this.kitSigil.visible = marked && !dead;
+            // Wolverine's mark is red; the Wizard's stays dark
+            this.kitSigil.tint = this.m_netData.wolverineMarked ? 0xff3a3a : 0xffffff;
             const tex = this.kitSigil.texture;
             const s = (3.2 * px) / Math.max(tex.width, 1);
             this.kitSigil.scale.set(s, s);
             this.kitSigil.rotation -= dt * 0.8;
+        }
+        // Spider-Man's Portal Combo: the webbing over whoever it stunned
+        if (this.m_netData.webbed || this.webbedSprite) {
+            if (!this.webbedSprite) {
+                this.webbedSprite = PIXI.Sprite.from("img/custom-weapons/fx/kit/spider_stun.png");
+                this.webbedSprite.anchor.set(0.5, 0.5);
+                this.auraContainer.addChild(this.webbedSprite);
+            }
+            this.webbedSprite.visible = this.m_netData.webbed && !dead;
+            const tex = this.webbedSprite.texture;
+            const s = (3.4 * px) / Math.max(tex.width, 1);
+            this.webbedSprite.scale.set(s, s);
+            this.webbedSprite.alpha = 0.85;
+        }
+        // stunned by the Wizard's wave: a glowing green outline round them for as long as it lasts
+        if (this.m_netData.wizardStunned || this.wizardStunRing) {
+            if (!this.wizardStunRing) {
+                this.wizardStunRing = new PIXI.Graphics();
+                this.auraContainer.addChild(this.wizardStunRing);
+            }
+            const on = this.m_netData.wizardStunned && !dead;
+            this.wizardStunRing.visible = on;
+            if (on) {
+                const pulse = 1 + 0.06 * Math.sin(this.kitTicker * 12);
+                const g = this.wizardStunRing;
+                g.clear();
+                g.lineStyle(0.55 * px, 0x38ff6a, 0.25);
+                g.drawCircle(0, 0, 1.25 * px * pulse);
+                g.lineStyle(0.25 * px, 0x7dffa0, 0.95);
+                g.drawCircle(0, 0, 1.1 * px * pulse);
+            }
+        }
+        // an Ultron's Combo marks its target with a turning orange reticle
+        if (this.m_netData.ultronMarked || this.ultronReticle) {
+            if (!this.ultronReticle) {
+                this.ultronReticle = new PIXI.Graphics();
+                this.auraContainer.addChild(this.ultronReticle);
+            }
+            const reticle = this.ultronReticle;
+            reticle.visible = this.m_netData.ultronMarked && !dead;
+            if (reticle.visible) {
+                const r = 2.6 * px;
+                reticle.clear();
+                const pulse = 0.75 + 0.25 * Math.sin(this.kitTicker * 8);
+                reticle.lineStyle(0.28 * px, 0xff8a1f, pulse);
+                reticle.drawCircle(0, 0, r);
+                // four ticks pointing in, so it reads as a target
+                reticle.lineStyle(0.4 * px, 0xffb347, pulse);
+                for (let i = 0; i < 4; i++) {
+                    const a = (i * Math.PI) / 2;
+                    reticle.moveTo(Math.cos(a) * r * 0.55, Math.sin(a) * r * 0.55);
+                    reticle.lineTo(Math.cos(a) * r * 1.2, Math.sin(a) * r * 1.2);
+                }
+                reticle.rotation += dt * 2.5;
+            }
+        }
+        // Guardian Angel: a yellow circle outlines the champion while it holds them in stasis
+        if (this.m_netData.stasis || this.stasisRing) {
+            if (!this.stasisRing) {
+                this.stasisRing = new PIXI.Graphics();
+                this.auraContainer.addChild(this.stasisRing);
+            }
+            const ring = this.stasisRing;
+            ring.visible = this.m_netData.stasis && !dead;
+            if (ring.visible) {
+                ring.clear();
+                ring.lineStyle(0.35 * px, 0xffd600, 0.95);
+                ring.drawCircle(0, 0, 2.6 * px);
+            }
         }
         if (this.m_netData.vulnerable || this.vulnerableRing) {
             if (!this.vulnerableRing) {
@@ -3032,29 +3255,86 @@ export class Player implements AbstractObject {
                 ring.rotation += dt * 2;
             }
         }
-        const daggers = aura === 1 ? KitDefs.summoner.daggers!.count : 0;
-        while (this.kitDaggers.length < daggers) {
+        // Summoner's blade minions: drawn where the server has them, smoothed between updates, pointing the way they fly
+        const offsets = aura === 1 ? this.m_netData.daggerOffsets : [];
+        while (this.kitDaggers.length < offsets.length) {
             const d = PIXI.Sprite.from(`img/custom-weapons/fx/kit/enchanted_dagger.png?v=${CustomWeaponsVersion}`);
             d.anchor.set(0.5, 0.5);
             this.container.addChild(d);
             this.kitDaggers.push(d);
         }
+        if (!this.kitDaggerTrailGfx) {
+            this.kitDaggerTrailGfx = new PIXI.Graphics();
+            this.container.addChild(this.kitDaggerTrailGfx);
+        }
         this.kitDaggers.forEach((d, i) => {
-            d.visible = i < daggers;
+            d.visible = i < offsets.length;
             if (!d.visible) return;
-            const ang = (i / daggers) * Math.PI * 2 + this.kitTicker * 2;
-            d.position.set(Math.cos(ang) * 4 * px, Math.sin(ang) * 4 * px);
-            d.rotation = ang + Math.PI / 2;
-            // the same size as the flying sword (bullet_kit_dagger's spriteSize)
+            const to = offsets[i];
+            if (!this.kitDaggerSeen[i]) {
+                d.position.set(to.x * px, to.y * px);
+                this.kitDaggerSeen[i] = true;
+            }
+            const k = 1 - Math.exp(-dt * 60);
+            const nx = d.position.x + (to.x * px - d.position.x) * k;
+            const ny = d.position.y + (to.y * px - d.position.y) * k;
+            const mx = nx - d.position.x;
+            const my = ny - d.position.y;
+            const moved = Math.hypot(mx, my) / px;
+            // a dash (or a quick flight) leaves a bright streak behind the blade
+            if (moved > 0.35) {
+                this.kitDaggerTrail.push({ a: v2.create(d.position.x, d.position.y), b: v2.create(nx, ny), life: 1 });
+            }
+            // the blade points the way it moves; at rest, away from him
+            if (moved > 0.05) d.rotation = Math.atan2(my, mx) + Math.PI / 2;
+            else if (Math.abs(nx) + Math.abs(ny) > 1) d.rotation = Math.atan2(ny, nx) + Math.PI / 2;
+            d.position.set(nx, ny);
             const s = 55 / Math.max(d.texture.width, 1);
             d.scale.set(s, s);
         });
+        const trail = this.kitDaggerTrailGfx;
+        trail.clear();
+        this.kitDaggerTrail = this.kitDaggerTrail.filter((t) => (t.life -= dt * 5) > 0);
+        for (const t of this.kitDaggerTrail) {
+            trail.lineStyle(0.8 * px, 0xcfeaff, 0.55 * t.life);
+            trail.moveTo(t.a.x, t.a.y);
+            trail.lineTo(t.b.x, t.b.y);
+        }
     }
 
     debuffDots: PIXI.Graphics | null = null;
     debuffTicker = 0;
 
     /** a pulsing red dot over the head while bleeding, green while poisoned, orange while burning */
+    dummyBar: PIXI.Graphics | null = null;
+
+    /** the training dummy's health bar, over its head and above any debuff dots */
+    updateDummyBar() {
+        if (!this.m_netData.dummy) return;
+        if (!this.dummyBar) {
+            this.dummyBar = new PIXI.Graphics();
+            this.container.addChild(this.dummyBar);
+        }
+        const g = this.dummyBar;
+        g.clear();
+        g.visible = !this.m_netData.m_dead;
+        if (!g.visible) return;
+        const w = 64;
+        const h = 9;
+        const t = Math.max(0, Math.min(1, this.m_netData.dummyHealth));
+        const y = -66;
+        g.lineStyle(2, 0x000000, 0.8);
+        g.beginFill(0x2b2b2b, 0.85);
+        g.drawRect(-w / 2, y, w, h);
+        g.endFill();
+        g.lineStyle(0);
+        // green down to red as it takes damage
+        const color = t > 0.5 ? 0x4caf50 : t > 0.25 ? 0xffb300 : 0xe53935;
+        g.beginFill(color, 0.95);
+        g.drawRect(-w / 2, y, w * t, h);
+        g.endFill();
+    }
+
     updateDebuffDots(dt: number) {
         const colors: number[] = [];
         if (!this.m_netData.m_dead) {

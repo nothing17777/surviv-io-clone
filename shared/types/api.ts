@@ -98,12 +98,21 @@ export const defaultPrivateLoadout: PrivateLoadout = {
     painkiller: 4,
 };
 
-export const BotLevels = ["beginner", "intermediate", "advanced", "hacker", "scripter", "super_hacker"] as const;
+export const BotLevels = [
+    "beginner",
+    "intermediate",
+    "advanced",
+    "hacker",
+    "scripter",
+    "super_hacker",
+    "dummy",
+] as const;
 export type BotLevel = (typeof BotLevels)[number];
 
 /** how a level reads in menus */
 export function botLevelName(level: BotLevel): string {
     if (level === "super_hacker") return "Super Hacker";
+    if (level === "dummy") return "Training Dummy";
     return `${level[0].toUpperCase()}${level.slice(1)}`;
 }
 
@@ -111,6 +120,9 @@ export function botLevelName(level: BotLevel): string {
 export function isHackerLevel(level: BotLevel | undefined): boolean {
     return level === "hacker" || level === "super_hacker";
 }
+
+/** the training dummy: stands still, never fights back, and has this much health (shown as a bar over its head) */
+export const TrainingDummyHealth = 5000;
 
 export const MaxPrivateBots = 16;
 
@@ -153,6 +165,19 @@ export const zBotSettings = z.object({
 });
 export type BotSettings = z.infer<typeof zBotSettings>;
 
+/** the dummy holds still and does nothing, so none of its settings do anything */
+const dummyBotSettings: BotSettings = {
+    chase: false,
+    loot: false,
+    heal: false,
+    boost: false,
+    throwables: false,
+    melee: false,
+    accuracy: 0,
+    dodge: 0,
+    kit: null,
+};
+
 export const zBotSettingsByLevel = z.object({
     beginner: zBotSettings,
     intermediate: zBotSettings,
@@ -160,6 +185,8 @@ export const zBotSettingsByLevel = z.object({
     hacker: zBotSettings,
     scripter: zBotSettings,
     super_hacker: zBotSettings,
+    // saved settings from before the dummy existed don't have it
+    dummy: zBotSettings.default(() => ({ ...dummyBotSettings })),
 });
 export type BotSettingsByLevel = z.infer<typeof zBotSettingsByLevel>;
 
@@ -171,6 +198,7 @@ const levelAimDodge: Record<BotLevel, [number, number]> = {
     hacker: [100, 90],
     scripter: [100, 99],
     super_hacker: [100, 100],
+    dummy: [0, 0],
 };
 
 export function defaultBotSettings(): BotSettingsByLevel {
@@ -193,6 +221,7 @@ export function defaultBotSettings(): BotSettingsByLevel {
     settings.hacker.kit = { ...defaultPrivateLoadout, primary: "m249", secondary: "awc", melee: "pan" };
     settings.scripter.kit = { ...defaultPrivateLoadout, primary: "m249", secondary: "awc", melee: "pan" };
     settings.super_hacker.kit = { ...defaultPrivateLoadout, primary: "m249", secondary: "awc", melee: "pan" };
+    settings.dummy = { ...dummyBotSettings };
     return settings;
 }
 

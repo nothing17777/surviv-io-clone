@@ -5,6 +5,7 @@ import { ChampionDefs, championSound } from "./championDefs.ts";
 import { CustomMelees, CustomWeaponsVersion } from "./customWeaponDefs.ts";
 import { MeleeEffects, MeleeOverrides } from "./customWeaponEffects.ts";
 import type { BaseLoadoutItem, BaseWeaponDef } from "./itemTypes.ts";
+import { SpiderCombo } from "./kitDefs.ts";
 
 export interface MeleeDef extends BaseWeaponDef, BaseLoadoutItem {
     type: "melee";
@@ -1497,12 +1498,13 @@ const KitMeleeDefs: Record<string, MeleeDef> = {
             tint: 0xffffff,
         },
     }),
-    // Spider-Man's Sudden Dodge: untargetable for 2 s and faster auto webs, 8 s cooldown
+    // Spider-Man's Portal Combo (see Player.startSpiderCombo): needs a marked enemy, 12 s cooldown. The id stays
+    // "kit_spider_dodge" so it keeps its item sprite
     kit_spider_dodge: defineMeleeSkin("fists", {
-        name: "Sudden Dodge",
+        name: "Portal Combo",
         noPotatoSwap: true,
         damage: 0,
-        attack: { offset: { x: 0, y: 0 }, rad: 0.1, cooldownTime: 8 },
+        attack: { offset: { x: 0, y: 0 }, rad: 0.1, cooldownTime: SpiderCombo.cooldown },
     }),
     kit_wolverine_claws: defineMeleeSkin("katana", {
         name: "Adamantium Claws",
@@ -1546,13 +1548,26 @@ Object.assign(
         kitMelee("kit_summoner_whip", "Spinal Tap", {
             damage: 0,
             autoAttack: true,
-            attack: { offset: { x: 1, y: 0 }, rad: 0.5, cooldownTime: 0.55 },
+            attack: { offset: { x: 1, y: 0 }, rad: 0.5, cooldownTime: 0.3 },
         }),
         // abilities in the melee slot: using it is the "swing"
         kitMelee("kit_ultron_minions", "Minion Spawn", {
             damage: 0,
             energyCost: 45,
             attack: { offset: { x: 0, y: 0 }, rad: 0.1, cooldownTime: 8 },
+        }),
+        // Iron Man's Blast Combo: needs the marked enemy (see Player.startIronCombo)
+        kitMelee("kit_ironman_combo", "Blast Combo", {
+            damage: 0,
+            energyCost: 50,
+            sound: { swing: "ironman_laser" },
+            attack: { offset: { x: 0, y: 0 }, rad: 0.1, cooldownTime: 10 },
+        }),
+        // Wizard's Stun Wave (see Player.startWizardWave)
+        kitMelee("kit_wizard_wave", "Stun Wave", {
+            damage: 0,
+            energyCost: 50,
+            attack: { offset: { x: 0, y: 0 }, rad: 0.1, cooldownTime: 9 },
         }),
         kitMelee("kit_wizard_enhance", "Enhance Circle", {
             damage: 0,

@@ -1,5 +1,5 @@
 import { type GameObjectDef, type LootDef, WeaponTypeToDefs } from "../../../../shared/defs/gameObjectDefs.ts";
-import { ChampionDefs } from "../../../../shared/defs/gameObjects/championDefs.ts";
+import { ChampionDefs, ItemDefs } from "../../../../shared/defs/gameObjects/championDefs.ts";
 import { EmotesDefs } from "../../../../shared/defs/gameObjects/emoteDefs.ts";
 import {
     type BackpackDef,
@@ -11,7 +11,25 @@ import {
     SCOPE_LEVELS,
 } from "../../../../shared/defs/gameObjects/gearDefs.ts";
 import type { GunDef } from "../../../../shared/defs/gameObjects/gunDefs.ts";
-import { dronePos, isKitItem, kitAura, KitDefs, UltronMinion } from "../../../../shared/defs/gameObjects/kitDefs.ts";
+import {
+    dronePos,
+    isKitItem,
+    kitAura,
+    IronManCombo,
+    IronManSpin,
+    KitDefs,
+    SentryCharge,
+    SentryNova,
+    SpiderCombo,
+    UltronCombo,
+    WizardCrystals,
+    WizardWave,
+    UltronComboTimes,
+    UltronMinion,
+    WolverineCombo,
+    WolverineComboStep,
+    WolverineDash,
+} from "../../../../shared/defs/gameObjects/kitDefs.ts";
 import type { MeleeDef } from "../../../../shared/defs/gameObjects/meleeDefs.ts";
 import { PerkProperties } from "../../../../shared/defs/gameObjects/perkDefs.ts";
 import type { RoleDef } from "../../../../shared/defs/gameObjects/roleDefs.ts";
@@ -48,6 +66,7 @@ import { QuestManager } from "../questManager.ts";
 import { NoOpSocket } from "../socket.ts";
 import { WeaponManager } from "../weaponManager.ts";
 import type { Building } from "./building.ts";
+import type { Bullet } from "./bullet.ts";
 import { BaseGameObject, type DamageParams, type GameObject } from "./gameObject.ts";
 import type { Loot } from "./loot.ts";
 import type { MapIndicator } from "./mapIndicator.ts";
@@ -686,12 +705,22 @@ export class Player extends BaseGameObject {
         return this._health;
     }
 
+    /** the training dummy: every client sees its health bar, so it goes out with the full data */
+    get dummy(): boolean {
+        return this.botBrain?.level === "dummy";
+    }
+
+    get dummyHealth(): number {
+        return math.clamp(this._health / this.maxHealth, 0, 1);
+    }
+
     set health(health: number) {
         health = math.clamp(health, 0, this.maxHealth);
         if (this._health === health) return;
         this._health = health;
         this.healthDirty = true;
         this.setGroupStatuses();
+        if (this.dummy) this.setDirty();
 
         if (this.obstacleOutfit) {
             const healthT = math.clamp(this._health / this.maxHealth, 0, 1);
@@ -738,8 +767,14 @@ export class Player extends BaseGameObject {
     /** Wizard: seconds left of the enhanced circle */
     kitEnhanceTime = 0;
     regenPulseTimer = 0;
-    daggerTimer = 0;
-    daggerIndex = 0;
+    /** Summoner: his blade minions (see KitDef.daggers); phase 0 waits and drifts, 1 dashes at the target, 2 dashes back */
+    daggerMinions: { pos: Vec2; phase: number; timer: number; hit: Set<number> }[] = [];
+    daggerClock = 0;
+
+    /** where each blade minion is, relative to the Summoner: what clients draw */
+    get daggerOffsets(): Vec2[] {
+        return this.dead ? [] : this.daggerMinions.map((m) => v2.sub(m.pos, this.pos));
+    }
     /** Summoner: the enemy the whip last hit, which the daggers go after first */
     summonerFocusId = 0;
     /** Spider-Man: swinging to where the web hit */
@@ -784,9 +819,79 @@ export class Player extends BaseGameObject {
         return this.flightTime > 0 && !this.dead;
     }
 
-    /** the start of Iron Man's flight (or Spider-Man's dodge), when nothing can hit or target him */
+    /** the start of Iron Man's flight (or Spider-Man's dodge, or Wolverine's Claw Combo), when nothing can hit or target him */
     get untargetable() {
-        return (this.flying && this.flightTime > this.flightHittableAt) || (this.dodgeTime > 0 && !this.dead);
+        return (this.flying && this.flightTime > this.flightHittableAt) || (this.dodgeTime > 0 && !this.dead)
+            || this.hidden;
+    }
+
+    /** Wolverine: the enemy in his mark (the nearest one within range), and every Wolverine that has this player marked */
+    markTarget?: Player;
+    markedBy = new Set<Player>();
+
+    get wolverineMarked() {
+        return this.markedBy.size > 0 && !this.dead;
+    }
+
+    /** Wolverine's Claw Combo while it runs (see startClawCombo) */
+    clawCombo?: {
+        target: Player;
+        /** the skill that started it (the Claw Combo, or the one-claw dash), the side each claw comes from, and its damage */
+        gun: string;
+        offsets: Array<{ x: number; y: number }>;
+        damage: number;
+        /** which claw is out, and the seconds since it left */
+        step: number;
+        t: number;
+        start: Vec2;
+        dir: Vec2;
+        /** the far end of the latest claw: where he comes out */
+        end: Vec2;
+        /** whoever the claw has hit, and who it is dragging along */
+        shotHit: Set<number>;
+        grabbed: Player[];
+    };
+
+    /** seconds left of a champion's Guardian Angel stasis (drawn as a yellow circle) */
+    stasisTime = 0;
+
+    get stasis() {
+        return this.stasisTime > 0 && !this.dead;
+    }
+
+    /** seconds left of the web stun Spider-Man's Portal Combo put on this player (see `webbed`) */
+    webStunTime = 0;
+
+    /** stunned by the Wizard's Stun Wave: shown with a green outline while it lasts */
+    wizardStunTime = 0;
+
+    get wizardStunned() {
+        return this.wizardStunTime > 0 && !this.dead;
+    }
+
+    get webbed() {
+        return this.webStunTime > 0 && !this.dead;
+    }
+
+    /** Spider-Man's Portal Combo while it runs (see startSpiderCombo) */
+    spiderCombo?: {
+        target: Player;
+        /** which portal is out, and the seconds since it opened */
+        step: number;
+        t: number;
+        /** the portal, the way he dashes through it, and whether he is mid-dash (and the seconds into it) */
+        portal: Vec2;
+        dir: Vec2;
+        dashing: boolean;
+        entered: boolean;
+        dashT: number;
+        /** who this dash has already hurt */
+        hit: Set<number>;
+    };
+
+    /** hidden for the whole Claw Combo: unseen by anyone but his team, and nothing can hit or target him */
+    get hidden() {
+        return !!this.clawCombo && !this.dead;
     }
 
     startFlight(flight: { duration: number; untargetable: number; waveAt: number; speedBonus: number }, gun: string) {
@@ -857,6 +962,793 @@ export class Player extends BaseGameObject {
         });
     }
     eclipseHitCount = 0;
+
+    /** Sentry Charge's stun: seconds left with no movement and no actions */
+    stunTime = 0;
+    /** the perks a Sentry Charge took away, and the seconds until they come back */
+    strippedPerks: Array<Player["_perks"][0]> = [];
+    perkStripTime = 0;
+    /** Sentry: his once-per-game revive has gone off */
+    sentryReviveUsed = false;
+    /** Sentry: seconds until he can remove a debuff again */
+    cleanseCooldown = 0;
+
+    /** kit items that fire when health is low (Sentry's Conquest and Rescue): seconds until each can fire again */
+    itemCooldowns: Record<string, number> = {};
+    /** max HP an item adds for a while (Conquest's +30%, as a share), and the seconds it has left */
+    itemMaxHealthMult = 0;
+    itemMaxHealthTime = 0;
+    /** Conquest's Wall: the share of damage it cuts right now, the seconds left, and how it wears down */
+    wallReduction = 0;
+    wallTime = 0;
+    wallRule?: { perHit: number; floor: number };
+    /** Rescue's shield: how much it granted (what goes when it runs out) and the seconds left */
+    itemShield = 0;
+    itemShieldTime = 0;
+
+    get stunned() {
+        return this.stunTime > 0 && !this.dead;
+    }
+
+    /** anything the Sentry's cleanse takes off him */
+    get hasDebuff() {
+        const d = this.debuffs;
+        return this.burnDuration > 0 || this.bleedDotDuration > 0 || this.poisonDuration > 0
+            || this.charmDuration > 0 || this.vulnerableTime > 0 || this.stunTime > 0
+            || this.strippedPerks.length > 0 || d.root > 0 || d.slow > 0 || d.silence > 0 || d.airborne > 0;
+    }
+
+    /** Sentry Charge: seconds of dash left, which way he is going, who it has hit and who it is carrying along */
+    sentryDashTime = 0;
+    sentryDashDir = v2.create(1, 0);
+    sentryDashHit = new Set<number>();
+    sentryDashGrabbed: Player[] = [];
+
+    startSentryDash(dir: Vec2, time: number) {
+        this.sentryDashTime = time;
+        v2.set(this.sentryDashDir, v2.normalizeSafe(dir, v2.create(1, 0)));
+        this.sentryDashHit.clear();
+        this.sentryDashGrabbed = [];
+    }
+
+    endSentryDash() {
+        this.sentryDashTime = 0;
+        this.sentryDashGrabbed = [];
+    }
+
+    /**
+     * Sentry Charge, every tick of the dash: his body hits anyone it runs into (the crescent ahead of him does
+     * the same with a wider reach, and nobody is hit twice), and everyone hit is reeled in to just in front of
+     * him and carried along until the dash is over. Walls stop whoever is being carried, and one that gets
+     * stuck behind a wall is let go
+     */
+    updateSentryDash(dt: number) {
+        if (this.sentryDashTime <= 0) return;
+        if (this.dead || this.stunTime > 0) {
+            this.endSentryDash();
+            return;
+        }
+        this.sentryDashTime -= dt;
+
+        // sweep along the path he just ran, so a long tick can't skip someone
+        const ran = v2.distance(this.posOld, this.pos);
+        for (const p of this.enemiesWithin(SentryCharge.bodyRadius + 3 + ran)) {
+            if (this.sentryDashHit.has(p.__id)) continue;
+            if (math.distToSegmentSq(p.pos, this.posOld, this.pos) > (SentryCharge.bodyRadius + p.rad) ** 2) continue;
+            // the guard in damage() records the hit, so the crescent can't hit this player again
+            p.damage({
+                amount: SentryCharge.damage,
+                damageType: GameConfig.DamageType.Player,
+                gameSourceType: "kit_sentry_charge",
+                weaponSourceType: "kit_sentry_charge",
+                source: this,
+                dir: this.sentryDashDir,
+                armorPenetration: SentryCharge.armorPen,
+                hitsFlying: true,
+            });
+        }
+
+        const pull = SentryCharge.speed * SentryCharge.pullSpeedMult * dt;
+        this.sentryDashGrabbed = this.sentryDashGrabbed.filter((p) => {
+            if (p.dead || p.stunTime <= 0) return false;
+            const hold = v2.add(this.pos, v2.mul(this.sentryDashDir, this.rad + p.rad + 0.3));
+            const to = v2.sub(hold, p.pos);
+            const dist = v2.length(to);
+            if (dist > 0.001) {
+                v2.set(p.pos, v2.add(p.pos, v2.mul(to, Math.min(dist, pull) / dist)));
+            }
+            const objs = this.game.grid.intersectCollider(
+                collider.createCircle(p.pos, p.rad + 1),
+            );
+            for (const obj of objs) {
+                if (obj.__type !== ObjectType.Obstacle || !obj.collidable || obj.dead) continue;
+                if (!util.sameLayer(obj.layer, p.layer)) continue;
+                const hit = collider.intersectCircle(obj.collider, p.pos, p.rad);
+                if (hit) v2.set(p.pos, v2.add(p.pos, v2.mul(hit.dir, hit.pen + 0.001)));
+            }
+            p.mapIndicator?.updatePosition(p.pos);
+            p.setPartDirty();
+            // pinned behind a wall while the Sentry flies on: let go
+            return v2.length(v2.sub(hold, p.pos)) <= 4;
+        });
+
+        if (this.sentryDashTime <= 0) this.endSentryDash();
+    }
+
+    sentryNovaRadius = 0;
+    sentryNovaActive = false;
+    sentryNovaHits = new Map<number, { n: number; t: number }>();
+    sentryNovaGrabbed: Player[] = [];
+    /** counts casts so clients can start the ring; wraps in 3 bits */
+    solarCasts = 0;
+    penGuardTime = 0;
+
+    get solarCast(): number {
+        return this.solarCasts & 7;
+    }
+
+    startSentryNova() {
+        this.sentryNovaActive = true;
+        this.sentryNovaRadius = 0;
+        this.sentryNovaHits.clear();
+        this.sentryNovaGrabbed = [];
+        this.penGuardTime = SentryNova.penGuardTime;
+        this.solarCasts++;
+        this.setDirty();
+    }
+
+    /**
+     * Sentry Solar Explosion, every tick: the ring grows; anyone inside it is hit (up to 5 times, 100 each) and,
+     * once hit, dragged outward on the wave front, walls stopping them
+     */
+    updateSentryNova(dt: number) {
+        if (this.penGuardTime > 0) this.penGuardTime -= dt;
+        if (!this.sentryNovaActive) return;
+        if (this.dead) {
+            this.sentryNovaActive = false;
+            return;
+        }
+        this.sentryNovaRadius = Math.min(SentryNova.radius, this.sentryNovaRadius + SentryNova.speed * dt);
+        const r = this.sentryNovaRadius;
+        for (const p of this.enemiesWithin(r)) {
+            let h = this.sentryNovaHits.get(p.__id);
+            if (!h) {
+                h = { n: 0, t: 0 };
+                this.sentryNovaHits.set(p.__id, h);
+                this.sentryNovaGrabbed.push(p);
+            }
+            h.t -= dt;
+            if (h.n >= SentryNova.hits || h.t > 0) continue;
+            h.n++;
+            h.t = SentryNova.hitEvery;
+            p.damage({
+                amount: SentryNova.damage,
+                damageType: GameConfig.DamageType.Player,
+                gameSourceType: "kit_sentry_solar",
+                weaponSourceType: "kit_sentry_solar",
+                source: this,
+                dir: v2.normalizeSafe(v2.sub(p.pos, this.pos), v2.create(1, 0)),
+            });
+        }
+        this.sentryNovaGrabbed = this.sentryNovaGrabbed.filter((p) => {
+            if (p.dead) return false;
+            const h = this.sentryNovaHits.get(p.__id)!;
+            if (h.n >= SentryNova.hits && h.t <= 0) return false;
+            const away = v2.normalizeSafe(v2.sub(p.pos, this.pos), v2.create(1, 0));
+            const want = r - p.rad;
+            if (want > v2.distance(p.pos, this.pos)) {
+                v2.set(p.pos, v2.add(this.pos, v2.mul(away, want)));
+                const objs = this.game.grid.intersectCollider(collider.createCircle(p.pos, p.rad + 1));
+                for (const obj of objs) {
+                    if (obj.__type !== ObjectType.Obstacle || !obj.collidable || obj.dead) continue;
+                    if (!util.sameLayer(obj.layer, p.layer)) continue;
+                    const hit = collider.intersectCircle(obj.collider, p.pos, p.rad);
+                    if (hit) v2.set(p.pos, v2.add(p.pos, v2.mul(hit.dir, hit.pen + 0.001)));
+                }
+                p.mapIndicator?.updatePosition(p.pos);
+                p.setPartDirty();
+            }
+            return true;
+        });
+        const spent = this.sentryNovaGrabbed.every(
+            (p) => (this.sentryNovaHits.get(p.__id)?.n ?? 0) >= SentryNova.hits,
+        );
+        if (r >= SentryNova.radius && spent) this.sentryNovaActive = false;
+    }
+
+    /** Iron Man's Laser Spin while it runs (see IronManSpin): the angle of the first laser and who each has hit */
+    ironSpin?: { time: number; angle: number; hit: Set<string> };
+    /** Iron Man's Blast Combo while it runs (see IronManCombo) */
+    ironCombo?: { time: number; target: Player; fired: boolean; drones: Vec2[] };
+
+    /** a sprite shot of Iron Man's that hurts no one: a streak of the spin, or a drone parked for `life` s */
+    fireIronFx(kind: "drone", pos: Vec2, dir: Vec2, life?: number) {
+        const type = `bullet_kit_ironman_fx_${kind}`;
+        const maxLife = GameObjectDefs.typeToDef(type, "bullet").lifetime ?? 0;
+        this.game.bulletBarn.fireBullet(
+            {
+                playerId: this.__id,
+                bulletType: type,
+                gameSourceType: "kit_ironman_combo_laser",
+                damageType: GameConfig.DamageType.Player,
+                pos,
+                dir,
+                layer: this.layer,
+                damageMult: 1,
+                shotFx: false,
+                reflectCount: 0,
+                ghost: true,
+                age: life === undefined ? 0 : maxLife - Math.max(life, 0.02),
+            } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
+        );
+    }
+
+    /** counts Laser Spin casts so clients can draw the beams; wraps in 3 bits */
+    ironSpinCasts = 0;
+
+    get ironSpinCast(): number {
+        return this.ironSpinCasts & 7;
+    }
+
+    /** the sound of one of Iron Man's skills: a shot with nothing in it, so clients play the gun's `shoot` sound */
+    fireIronSound(gun: string) {
+        this.game.bulletBarn.fireBullet(
+            {
+                playerId: this.__id,
+                bulletType: "bullet_kit_ironman_fx_sound",
+                gameSourceType: gun,
+                damageType: GameConfig.DamageType.Player,
+                pos: v2.copy(this.pos),
+                dir: v2.copy(this.dir),
+                layer: this.layer,
+                damageMult: 1,
+                shotFx: true,
+                reflectCount: 0,
+                ghost: true,
+            } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
+        );
+    }
+
+    startIronSpin() {
+        this.fireIronSound("kit_ironman_spin");
+        this.ironSpinCasts++;
+        this.setDirty();
+        this.ironSpin = { time: 0, angle: Math.atan2(this.dir.y, this.dir.x) + Math.PI / 2, hit: new Set() };
+    }
+
+    /**
+     * Laser Spin, every tick: the two lasers turn, and everything they pass over is hit; enemies once per laser
+     * (30 and burning), every obstacle destroyed. The sweep is sampled every 1.5 degrees so a long tick can't
+     * skip anyone
+     */
+    updateIronSpin(dt: number) {
+        const s = this.ironSpin;
+        if (!s) return;
+        const step = Math.min(dt, IronManSpin.time - s.time);
+        if (this.dead || step <= 0) {
+            this.ironSpin = undefined;
+            return;
+        }
+        const sweep = (Math.PI * 2 / IronManSpin.time) * step;
+        const samples = Math.max(1, Math.ceil(sweep / (Math.PI / 120)));
+        const enemies = this.enemiesWithin(IronManSpin.range + 3);
+        const objs = this.game.grid.intersectCollider(collider.createCircle(this.pos, IronManSpin.range + 2));
+        for (let k = 1; k <= samples; k++) {
+            const angle = s.angle + sweep * (k / samples);
+            for (let beam = 0; beam < 2; beam++) {
+                const a = angle + beam * Math.PI;
+                const dir = v2.create(Math.cos(a), Math.sin(a));
+                const end = v2.add(this.pos, v2.mul(dir, IronManSpin.range));
+                for (const p of enemies) {
+                    const key = `${p.__id}:${beam}`;
+                    if (s.hit.has(key) || p.dead) continue;
+                    if (math.distToSegmentSq(p.pos, this.pos, end) > (p.rad + IronManSpin.beamRadius) ** 2) continue;
+                    s.hit.add(key);
+                    p.damage({
+                        amount: IronManSpin.damage,
+                        damageType: GameConfig.DamageType.Player,
+                        gameSourceType: "kit_ironman_spin",
+                        weaponSourceType: "kit_ironman_spin",
+                        source: this,
+                        dir,
+                        hitsFlying: true,
+                    });
+                }
+                for (const obj of objs) {
+                    if (obj.__type !== ObjectType.Obstacle || obj.dead || !obj.destructible) continue;
+                    if (!util.sameLayer(obj.layer, this.layer)) continue;
+                    if (!collider.intersectSegment(obj.collider, this.pos, end)) continue;
+                    obj.kill({
+                        amount: obj.health,
+                        damageType: GameConfig.DamageType.Player,
+                        gameSourceType: "kit_ironman_spin",
+                        weaponSourceType: "kit_ironman_spin",
+                        source: this,
+                        dir,
+                    });
+                }
+            }
+        }
+        s.angle += sweep;
+        s.time += step;
+        if (s.time >= IronManSpin.time) this.ironSpin = undefined;
+    }
+
+    /** the Blast Combo needs a marked enemy who can be hit, and only one runs at a time */
+    canStartIronCombo() {
+        const t = this.markTarget;
+        return !this.dead && !this.ironCombo && !!t && !t.dead && !t.untargetable;
+    }
+
+    startIronCombo() {
+        const target = this.markTarget!;
+        const C = IronManCombo;
+        const toward = v2.normalizeSafe(v2.sub(target.pos, this.pos), this.dir);
+        const side = v2.perp(toward);
+        const drones = C.drones.map((d) =>
+            v2.add(this.pos, v2.add(v2.mul(side, d.side), v2.mul(toward, d.fwd)))
+        );
+        target.stunTime = Math.max(target.stunTime, C.duration);
+        target.webPull = undefined;
+        target.setDirty();
+        this.ironCombo = { time: 0, target, fired: false, drones };
+        for (const d of drones) this.fireIronFx("drone", v2.copy(d), toward, C.droneEnd);
+    }
+
+    endIronCombo(done = false) {
+        const c = this.ironCombo;
+        if (!c) return;
+        this.ironCombo = undefined;
+        if (done) return;
+        // cut short (he died, the target went): the target is let go of what is left of its stun
+        const left = IronManCombo.duration - c.time;
+        if (left > 0 && !c.target.dead) {
+            c.target.stunTime = Math.max(0, c.target.stunTime - left);
+            c.target.setDirty();
+        }
+    }
+
+    updateIronCombo(dt: number) {
+        const c = this.ironCombo;
+        if (!c) return;
+        if (this.dead || c.target.dead) {
+            this.endIronCombo();
+            return;
+        }
+        const C = IronManCombo;
+        c.time += dt;
+        if (!c.fired && c.time + 1e-6 >= C.fireAt) {
+            c.fired = true;
+            const shoot = (type: string, from: Vec2, shotFx = false) =>
+                this.game.bulletBarn.fireBullet(
+                    {
+                        playerId: this.__id,
+                        bulletType: type,
+                        gameSourceType: "kit_ironman_combo_laser",
+                        damageType: GameConfig.DamageType.Player,
+                        pos: v2.copy(from),
+                        dir: v2.normalizeSafe(v2.sub(c.target.pos, from), this.dir),
+                        layer: this.layer,
+                        damageMult: 1,
+                        shotFx,
+                        reflectCount: 0,
+                        ghost: true,
+                    } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
+                );
+            for (const d of c.drones) shoot("bullet_kit_ironman_combo_small", d);
+            shoot("bullet_kit_ironman_combo_main", this.pos, true);
+        }
+        // he is free once the drones are gone; the target stays stunned for the full `duration`
+        if (c.time >= C.droneEnd) this.endIronCombo(true);
+    }
+
+    /** Ultron's Combo: the one being run, if any (see UltronCombo) */
+    ultronCombo?: {
+        /** seconds since the cast */
+        time: number;
+        /** how far the ring has spread */
+        ring: number;
+        /** who the ring has hit, and the shots it has deleted (for the cap) */
+        hit: Set<number>;
+        deleted: number;
+        /** the marked enemy: the closest one the ring hit */
+        target?: Player;
+        /** the steps already done */
+        done: Set<string>;
+        /** where the red orbs hang round the marked enemy, then go off, and where the portals open */
+        spots: Vec2[];
+    };
+    /** marked by an Ultron's Combo: an orange target under them */
+    ultronMarked = false;
+
+    startUltronCombo() {
+        if (this.ultronCombo) return;
+        // the skill costs all his energy
+        this.energy = 0;
+        this.energyDirty = true;
+        const duration = UltronComboTimes.end + 0.05;
+        // he hangs in the air, untargetable, until it is over
+        this.startFlight({ duration, untargetable: duration, waveAt: 0, speedBonus: 0 }, "kit_ultron_blast");
+        this.ultronCombo = {
+            time: 0,
+            ring: 0,
+            hit: new Set(),
+            deleted: 0,
+            done: new Set(),
+            spots: [],
+        };
+        // the green ring: a circle of shots that spread as fast as the ring does
+        const n = UltronCombo.ring.bullets;
+        for (let i = 0; i < n; i++) {
+            const a = (i / n) * Math.PI * 2;
+            this.fireComboFx("ring", v2.copy(this.pos), v2.create(Math.cos(a), Math.sin(a)));
+        }
+        this.setDirty();
+    }
+
+    endUltronCombo() {
+        const c = this.ultronCombo;
+        if (!c) return;
+        this.ultronCombo = undefined;
+        if (c.target?.ultronMarked) {
+            c.target.ultronMarked = false;
+            c.target.setDirty();
+        }
+        // an early end (the ring found no one, he died, the target is gone) lets him down at once
+        if (this.flightTime > 0) {
+            this.flightTime = 0;
+            this.setDirty();
+        }
+    }
+
+    /**
+     * a sprite shot of Ultron's Combo that hurts no one: the ring, the orbs, the portals. `life` is how long it
+     * stays up, in seconds
+     */
+    fireComboFx(kind: "ring" | "red" | "blue" | "portal", pos: Vec2, dir: Vec2, life?: number) {
+        const type = `bullet_kit_ultron_fx_${kind}`;
+        const maxLife = GameObjectDefs.typeToDef(type, "bullet").lifetime ?? 0;
+        this.game.bulletBarn.fireBullet(
+            {
+                playerId: this.__id,
+                bulletType: type,
+                gameSourceType: "kit_ultron_blast",
+                damageType: GameConfig.DamageType.Player,
+                pos,
+                dir,
+                layer: this.layer,
+                damageMult: 1,
+                shotFx: false,
+                reflectCount: 0,
+                ghost: true,
+                // the parked shots live `lifetime` s less the age they are born with
+                age: life === undefined ? 0 : maxLife - Math.max(life, 0.02),
+            } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
+        );
+    }
+
+    /** a real shot of Ultron's Combo, from a portal at the marked enemy; it flies through walls so it always lands */
+    fireComboShot(type: string, from: Vec2, at: Vec2) {
+        this.game.bulletBarn.fireBullet(
+            {
+                playerId: this.__id,
+                bulletType: type,
+                gameSourceType: "kit_ultron_blast",
+                damageType: GameConfig.DamageType.Player,
+                pos: v2.copy(from),
+                dir: v2.normalizeSafe(v2.sub(at, from), this.dir),
+                layer: this.layer,
+                damageMult: 1,
+                shotFx: false,
+                reflectCount: 0,
+                ghost: true,
+            } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
+        );
+    }
+
+    /** Ultron's Combo, every tick: the ring, then the orbs, then the three portals, on the times UltronComboTimes gives */
+    updateUltronCombo(dt: number) {
+        const c = this.ultronCombo;
+        if (!c) return;
+        if (this.dead) {
+            this.endUltronCombo();
+            return;
+        }
+        const T = UltronComboTimes;
+        c.time += dt;
+        const due = (key: string, at: number) => {
+            // a hair of slack, so 0.1 s ticks adding up to 0.7999999 still count as 0.8
+            if (c.done.has(key) || c.time + 1e-6 < at) return false;
+            c.done.add(key);
+            return true;
+        };
+
+        // the ring
+        if (c.ring < UltronCombo.ring.radius) {
+            c.ring = Math.min(UltronCombo.ring.radius, c.time * UltronCombo.ring.speed);
+            this.updateUltronRing(c);
+        }
+        if (c.time < T.ringEnd) return;
+
+        // no one in the ring: nothing to chase
+        const target = c.target;
+        if (!target || target.dead) {
+            this.endUltronCombo();
+            return;
+        }
+
+        const count = UltronCombo.orbs.count;
+        if (due("orbs", T.ringEnd)) {
+            // red orbs drop in a circle round the marked enemy; one of them is on Ultron's side of them
+            const back = v2.normalizeSafe(v2.sub(this.pos, target.pos), this.dir);
+            const turn = Math.atan2(back.y, back.x);
+            for (let i = 0; i < count; i++) {
+                const a = turn + (i / count) * Math.PI * 2;
+                const way = v2.create(Math.cos(a), Math.sin(a));
+                c.spots.push(v2.add(target.pos, v2.mul(way, UltronCombo.orbs.radius)));
+                this.fireComboFx("red", c.spots[i], way, T.blueAt - c.time);
+            }
+        }
+        if (due("blue", T.blueAt)) {
+            // the blue outline: they go off when it has been up for orbs.blue s
+            for (const spot of c.spots) this.fireComboFx("blue", spot, v2.copy(this.dir), T.boomAt - c.time);
+        }
+        if (due("boom", T.boomAt)) {
+            for (let i = 0; i < count; i++) {
+                this.game.explosionBarn.addExplosion("explosion_kit_ultron_orb", v2.copy(c.spots[i]), this.layer, {
+                    source: this,
+                    gameSourceType: "kit_ultron_blast",
+                    weaponSourceType: "kit_ultron_blast",
+                    damageType: GameConfig.DamageType.Player,
+                });
+                // a portal opens where each one went off, and closes as its laser has left
+                this.fireComboFx(
+                    "portal",
+                    c.spots[i],
+                    v2.normalizeSafe(v2.sub(target.pos, c.spots[i]), this.dir),
+                    T.laserAt(i) + 0.03 - c.time,
+                );
+            }
+        }
+        // the portals fire in turn: a blast, then a laser
+        for (let i = 0; i < count; i++) {
+            if (due(`blast${i}`, T.fireAt(i))) {
+                this.fireComboShot("bullet_kit_ultron_combo_blast", c.spots[i], target.pos);
+            }
+            if (due(`laser${i}`, T.laserAt(i))) {
+                this.fireComboShot("bullet_kit_ultron_combo_laser", c.spots[i], target.pos);
+            }
+        }
+        if (c.time >= T.end) this.endUltronCombo();
+    }
+
+    /** the combo's ring this tick: damage, stun and mark whoever it has reached, and delete enemy projectiles in it */
+    updateUltronRing(c: NonNullable<Player["ultronCombo"]>) {
+        const T = UltronComboTimes;
+        let nearest: Player | undefined;
+        let nearestDist = Infinity;
+        for (const p of this.game.playerBarn.livingPlayers) {
+            if (p === this || p.dead || p.teamId === this.teamId || !util.sameLayer(p.layer, this.layer)) continue;
+            if (c.hit.has(p.__id)) continue;
+            const dist = v2.length(v2.sub(p.pos, this.pos));
+            if (dist > c.ring + p.rad) continue;
+            c.hit.add(p.__id);
+            // stunned until the combo is over (and a moment after), before the damage so nothing knocks them back
+            p.stunTime = Math.max(p.stunTime, T.end + UltronCombo.stunAfter - c.time);
+            p.webPull = undefined;
+            p.setDirty();
+            p.damage({
+                amount: UltronCombo.ring.damage,
+                damageType: GameConfig.DamageType.Player,
+                gameSourceType: "kit_ultron_blast",
+                weaponSourceType: "kit_ultron_blast",
+                source: this,
+                dir: v2.normalizeSafe(v2.sub(p.pos, this.pos), this.dir),
+                hitsFlying: true,
+            });
+            if (dist < nearestDist) {
+                nearest = p;
+                nearestDist = dist;
+            }
+        }
+        // the ring spreads outward, so the first enemy it reaches is the closest one
+        if (nearest && !c.target) {
+            c.target = nearest;
+            nearest.ultronMarked = true;
+            nearest.setDirty();
+        }
+        // enemy projectiles inside it are deleted (clients end the shots near the pop)
+        for (const b of this.game.bulletBarn.bullets) {
+            if (!b.active || !b.alive) continue;
+            if (b.player === this || b.player?.teamId === this.teamId) continue;
+            if (b.bulletType.startsWith("bullet_kit_ultron_fx_")) continue;
+            if (v2.length(v2.sub(b.pos, this.pos)) > c.ring) continue;
+            b.alive = false;
+            b.active = false;
+            b.onHitFx = "";
+            if (c.deleted++ < 24) {
+                this.game.explosionBarn.addExplosion("explosion_kit_pop", v2.copy(b.pos), b.layer, {
+                    source: this,
+                    gameSourceType: "kit_ultron_blast",
+                    weaponSourceType: "kit_ultron_blast",
+                    damageType: GameConfig.DamageType.Player,
+                });
+            }
+        }
+    }
+
+    /** Wizard's Crystal Burst: the mini crystals lying on the field, and the parked sprite showing each */
+    wizardShards: { pos: Vec2; time: number; layer: number; bullet?: Bullet }[] = [];
+    /** Wizard's Stun Wave while it spreads: how far it has got and who it has hit */
+    wizardWave?: { r: number; hit: Set<number>; deleted: number };
+    /** counts Stun Wave casts so clients can draw the ring; wraps in 3 bits */
+    wizardWaveCasts = 0;
+
+    get wizardWaveCast(): number {
+        return this.wizardWaveCasts & 7;
+    }
+
+    /** the crystal hit something at `at`: mini crystals go down round it, `shardRadius` tiles out */
+    burstWizardCrystal(at: Vec2, layer: number) {
+        const C = WizardCrystals;
+        this.game.explosionBarn.addExplosion("explosion_kit_pop", v2.copy(at), layer, {
+            source: this,
+            gameSourceType: "kit_wizard_crystals",
+            weaponSourceType: "kit_wizard_crystals",
+            damageType: GameConfig.DamageType.Player,
+        });
+        const start = Math.random() * Math.PI * 2;
+        for (let i = 0; i < C.shards; i++) {
+            const a = start + (i * Math.PI * 2) / C.shards;
+            const pos = v2.add(at, v2.create(Math.cos(a) * C.shardRadius, Math.sin(a) * C.shardRadius));
+            this.game.map.clampToMapBounds(pos);
+            const type = "bullet_kit_wizard_fx_shard";
+            const maxLife = GameObjectDefs.typeToDef(type, "bullet").lifetime ?? 0;
+            const bullet = this.game.bulletBarn.fireBullet(
+                {
+                    playerId: this.__id,
+                    bulletType: type,
+                    gameSourceType: "kit_wizard_crystals",
+                    damageType: GameConfig.DamageType.Player,
+                    pos: v2.copy(pos),
+                    dir: v2.create(1, 0),
+                    layer,
+                    damageMult: 1,
+                    shotFx: false,
+                    reflectCount: 0,
+                    ghost: true,
+                    age: maxLife - C.shardLife,
+                } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
+            );
+            this.wizardShards.push({ pos, time: C.shardLife, layer, bullet });
+        }
+    }
+
+    /** every tick: a shard goes off on the first enemy to touch it, or just goes when its time is up */
+    updateWizardShards(dt: number) {
+        const C = WizardCrystals;
+        this.wizardShards = this.wizardShards.filter((sh) => {
+            sh.time -= dt;
+            const hitter = this.dead || sh.time <= 0
+                ? undefined
+                : this.game.playerBarn.livingPlayers.find((p) =>
+                    !p.dead && p !== this && p.teamId !== this.teamId && !p.untargetable
+                    && util.sameLayer(p.layer, sh.layer)
+                    && v2.length(v2.sub(p.pos, sh.pos)) <= C.shardTouch + p.rad
+                );
+            if (!hitter && sh.time > 0 && !this.dead) return true;
+            // the sprite goes with it (its slot may have been reused by now, so check it is still this one)
+            const b = sh.bullet;
+            const same = b && b.active && b.player === this && b.bulletType === "bullet_kit_wizard_fx_shard"
+                && v2.length(v2.sub(b.pos, sh.pos)) < 0.5;
+            if (b && same) {
+                b.alive = false;
+                b.active = false;
+            }
+            if (hitter) {
+                this.game.explosionBarn.addExplosion("explosion_kit_wizard_shard", v2.copy(sh.pos), sh.layer, {
+                    source: this,
+                    gameSourceType: "kit_wizard_crystals",
+                    weaponSourceType: "bullet_kit_wizard_crystal_shard",
+                    damageType: GameConfig.DamageType.Player,
+                });
+            }
+            return false;
+        });
+    }
+
+    startWizardWave() {
+        this.fireIronSound("kit_wizard_crystals");
+        this.wizardWave = { r: 0, hit: new Set(), deleted: 0 };
+        this.wizardWaveCasts++;
+        this.setDirty();
+    }
+
+    /**
+     * Stun Wave, every tick: the ring grows to the radius of his circle; each enemy it reaches takes 30 and is
+     * stunned 3 s, and enemy shots inside it are deleted (clients end them near the pop)
+     */
+    updateWizardWave(dt: number) {
+        const w = this.wizardWave;
+        if (!w) return;
+        if (this.dead) {
+            this.wizardWave = undefined;
+            return;
+        }
+        const max = KitDefs.wizard.aura!.radius;
+        w.r = Math.min(max, w.r + WizardWave.speed * dt);
+        for (const p of this.game.playerBarn.livingPlayers) {
+            if (
+                p === this || p.dead || p.teamId === this.teamId || w.hit.has(p.__id)
+                || !util.sameLayer(p.layer, this.layer) || v2.length(v2.sub(p.pos, this.pos)) > w.r
+            ) continue;
+            w.hit.add(p.__id);
+            p.damage({
+                amount: WizardWave.damage,
+                damageType: GameConfig.DamageType.Player,
+                gameSourceType: "kit_wizard_wave",
+                weaponSourceType: "kit_wizard_wave",
+                source: this,
+                dir: v2.normalizeSafe(v2.sub(p.pos, this.pos), v2.create(1, 0)),
+                hitsFlying: true,
+            });
+            p.stunTime = Math.max(p.stunTime, WizardWave.stun);
+            p.wizardStunTime = Math.max(p.wizardStunTime, WizardWave.stun);
+            p.webPull = undefined;
+            p.setDirty();
+        }
+        for (const b of this.game.bulletBarn.bullets) {
+            if (!b.active || !b.alive) continue;
+            if (b.player === this || b.player?.teamId === this.teamId) continue;
+            if (b.bulletType.includes("_fx_")) continue;
+            if (v2.length(v2.sub(b.pos, this.pos)) > w.r) continue;
+            b.alive = false;
+            b.active = false;
+            b.onHitFx = "";
+            if (w.deleted++ < 24) {
+                this.game.explosionBarn.addExplosion("explosion_kit_pop", v2.copy(b.pos), b.layer, {
+                    source: this,
+                    gameSourceType: "kit_wizard_wave",
+                    weaponSourceType: "kit_wizard_wave",
+                    damageType: GameConfig.DamageType.Player,
+                });
+            }
+        }
+        if (w.r >= max) this.wizardWave = undefined;
+    }
+
+    /** a Sentry Charge hit: burn, bleed and stun, and every perk gone for a while */
+    applySentryHit(source: Player) {
+        this.applyBurn(SentryCharge.debuff, source, "kit_sentry_charge");
+        this.applyBleed(SentryCharge.debuff, source);
+        this.stunTime = Math.max(this.stunTime, SentryCharge.debuff);
+        this.webPull = undefined;
+        this.stripPerks(SentryCharge.perkStrip);
+        // mid-dash, whoever is hit is carried along with him
+        if (source.sentryDashTime > 0 && !source.sentryDashGrabbed.includes(this)) {
+            source.sentryDashGrabbed.push(this);
+        }
+        this.setDirty();
+    }
+
+    stripPerks(time: number) {
+        for (const perk of [...this.perks]) {
+            this.strippedPerks.push({ ...perk });
+            this.removePerk(perk.type);
+        }
+        this.perkStripTime = Math.max(this.perkStripTime, time);
+    }
+
+    restorePerks() {
+        for (const perk of this.strippedPerks) {
+            if (!this.hasPerk(perk.type)) {
+                this.addPerk(perk.type, perk.droppable, perk.replaceOnDeath, perk.isFromRole);
+            }
+        }
+        this.strippedPerks = [];
+        this.perkStripTime = 0;
+        this.setDirty();
+    }
 
     // Judge rocket
     activeJudgeRocket?: any;
@@ -2131,6 +3023,44 @@ export class Player extends BaseGameObject {
                 if (this.vulnerableTime <= 0) this.setDirty();
             }
 
+            if (this.wizardStunTime > 0) {
+                this.wizardStunTime -= dt;
+                if (this.wizardStunTime <= 0) {
+                    this.wizardStunTime = 0;
+                    this.setDirty();
+                }
+            }
+
+            if (this.stunTime > 0) {
+                this.stunTime -= dt;
+                if (this.stunTime <= 0) {
+                    this.stunTime = 0;
+                    this.setDirty();
+                }
+            }
+
+            if (this.stasisTime > 0) {
+                this.stasisTime -= dt;
+                if (this.stasisTime <= 0) {
+                    this.stasisTime = 0;
+                    this.setDirty();
+                }
+            }
+
+            // the web Spider-Man's Portal Combo put on them goes with the stun (they need not be a kit player)
+            if (this.webStunTime > 0) {
+                this.webStunTime -= dt;
+                if (this.webStunTime <= 0) {
+                    this.webStunTime = 0;
+                    this.setDirty();
+                }
+            }
+
+            if (this.perkStripTime > 0) {
+                this.perkStripTime -= dt;
+                if (this.perkStripTime <= 0) this.restorePerks();
+            }
+
             // Power Fists: 10 shield per second while held, up to 200
             const shieldCap = this.maxShield || 200;
             if (this.weapons[this.curWeapIdx]?.type === "pg_power_fists" && this.shield < shieldCap) {
@@ -2334,6 +3264,18 @@ export class Player extends BaseGameObject {
         }
         if (this.activeJudgeRocket) v2.set(movement, v2.create(0, 0));
 
+        // Ultron's Combo roots him
+        if (this.ultronCombo) {
+            v2.set(movement, v2.create(0, 0));
+            this.webPull = undefined;
+        }
+
+        // Sentry Charge's stun (and Wolverine's Claw Combo): no moving, and any slide he was on stops
+        if (this.stunTime > 0 || this.clawCombo || this.spiderCombo || this.ironCombo) {
+            v2.set(movement, v2.create(0, 0));
+            this.webPull = undefined;
+        }
+
         // Spider-Man swinging to where his web hit
         if (this.webPull) {
             const to = v2.sub(this.webPull.target, this.pos);
@@ -2404,6 +3346,10 @@ export class Player extends BaseGameObject {
         }
 
         this.mapIndicator?.updatePosition(this.pos);
+        this.updateSentryDash(dt);
+        this.updateClawCombo(dt);
+        this.updateSpiderCombo(dt);
+        this.updateSentryNova(dt);
 
         // if we are the group leader and new players can still join the group
         // update the group spawn position to our current position every 1 second
@@ -2746,6 +3692,12 @@ export class Player extends BaseGameObject {
         //
         // Weapon stuff
         //
+        // stunned (or mid Claw Combo): no shooting, swinging, reloading or item use
+        if (this.stunTime > 0 || this.clawCombo || this.spiderCombo || this.ironCombo) {
+            this.shootStart = false;
+            this.shootHold = false;
+            this.cancelAction();
+        }
         this.weaponManager.update(dt);
 
         this.shotSlowdownTimer -= dt;
@@ -2818,6 +3770,8 @@ export class Player extends BaseGameObject {
         if (this.debug.godMode) return;
         if (this._health < 0) this._health = 0;
         if (this.dead) return;
+        // a champion held in stasis by Guardian Angel takes nothing at all: not the gas, a burn or a bleed either
+        if (this.stasis) return;
         // at the start of his flight Iron Man can't be hit; the gas, damage over time and the Wizard's circle
         // still get through
         if (
@@ -2831,6 +3785,12 @@ export class Player extends BaseGameObject {
         const playerSource = params.source?.__type === ObjectType.Player
             ? (params.source as Player)
             : undefined;
+
+        // Sentry Charge hits each player once per dash, whether the crescent or his body gets there first
+        if (params.gameSourceType === "kit_sentry_charge" && playerSource && playerSource !== this) {
+            if (playerSource.sentryDashHit.has(this.__id)) return;
+            playerSource.sentryDashHit.add(this.__id);
+        }
 
         // teammates can't deal damage to each other
         if (playerSource && params.source !== this) {
@@ -2860,25 +3820,51 @@ export class Player extends BaseGameObject {
         if (playerSource?.champ && playerSource !== this) {
             finalDamage = playerSource.champ.onDealDamage(this, params, finalDamage);
         }
+        // a kit's items on all the damage it deals (Sentry Artifact)
+        if (playerSource && playerSource !== this) finalDamage *= KitDefs[playerSource.kit]?.damageMult ?? 1;
 
-        // vulnerable to the Summoner: each minion hit (a dagger hits as hard as its damage, the whip softer) lands harder
-        const daggerDamage = KitDefs.summoner.daggers!.damage;
-        if (
-            this.vulnerable && params.gameSourceType === "kit_summoner_whip"
-            && finalDamage >= daggerDamage - 0.01
-        ) {
-            finalDamage += KitDefs.summoner.vulnerable!.extraDamage;
-        }
+        // vulnerable to the Summoner (marked by the whip): each minion dash lands harder
+        const trueHit = params.gameSourceType === "kit_summoner_dagger";
+        if (this.vulnerable && trueHit) finalDamage += KitDefs.summoner.vulnerable!.extraDamage;
 
         // Excalibur: 50% less damage taken while actively firing it
-        if (this.excaliburActive) finalDamage *= 0.5;
+        if (this.excaliburActive && !trueHit) finalDamage *= 0.5;
+
+        // a kit's items can ignore part of the target's damage reduction, on top of the hit's own armor
+        // penetration (Jeff: 10%, so a Sentry Charge that ignores 80% ignores 90%)
+        const ignore = playerSource && playerSource !== this ? KitDefs[playerSource.kit]?.armorIgnore ?? 0 : 0;
+        let armorPen = ignore ? Math.max(0, (params.armorPenetration ?? 1) - ignore) : params.armorPenetration;
+        // Solar Explosion: half of whatever armor the attacker ignores is given back
+        if (this.penGuardTime > 0 && armorPen !== undefined && armorPen < 1) {
+            armorPen = 1 - (1 - armorPen) * SentryNova.penGuard;
+        }
+
+        // a minion's dash ignores every armor and damage reduction
+        if (trueHit) armorPen = 0;
 
         const reduceDamage = (multi: number) => {
-            if (params.armorPenetration !== undefined) {
-                multi *= params.armorPenetration;
+            if (armorPen !== undefined) {
+                multi *= armorPen;
             }
             finalDamage -= finalDamage * multi;
         };
+
+        // Sentry: less damage from everything, and an armor-ignoring hit cuts that too
+        const sentryReduction = KitDefs[this.kit]?.damageReduction;
+        if (sentryReduction) reduceDamage(sentryReduction);
+
+        // Conquest's Wall is a layer of its own on top of that; every hit that comes in (not the gas or a bleed)
+        // wears it down
+        if (this.wallTime > 0) {
+            reduceDamage(this.wallReduction);
+            if (
+                this.wallRule && (params.amount ?? 0) > 0
+                && params.damageType !== GameConfig.DamageType.Bleeding
+                && params.damageType !== GameConfig.DamageType.Gas
+            ) {
+                this.wallReduction = Math.max(this.wallRule.floor, this.wallReduction - this.wallRule.perHit);
+            }
+        }
 
         // ignore armor for gas and bleeding damage
         if (
@@ -2919,7 +3905,7 @@ export class Player extends BaseGameObject {
             }
         }
 
-        if (this.champ) finalDamage = this.champ.onTakeDamage(params, finalDamage, playerSource);
+        if (this.champ && !trueHit) finalDamage = this.champ.onTakeDamage(params, finalDamage, playerSource);
 
         // the super hacker has 10,000 health: kept as 100 (the network only sends 0-100), everything hits it for 1%
         if (this.botBrain?.level === "super_hacker") finalDamage *= GameConfig.player.health / 10000;
@@ -2937,6 +3923,14 @@ export class Player extends BaseGameObject {
                 this.shield = 0;
             }
             this.shieldDirty = true;
+            this.setDirty();
+        }
+
+        // Sentry: the hit that would take him to 0 leaves him at full health instead, once per game
+        if (finalDamage > 0 && this._health - finalDamage <= 0 && KitDefs[this.kit]?.revive && !this.sentryReviveUsed) {
+            this.sentryReviveUsed = true;
+            this.health = this.maxHealth;
+            finalDamage = 0;
             this.setDirty();
         }
 
@@ -2985,13 +3979,21 @@ export class Player extends BaseGameObject {
             const weap = params.weaponSourceType ?? "";
             if (src === "pg_nanobots_rifle" || src === "kit_wolverine_claws" || src === "kit_wolverine_dash") {
                 this.applyBleed(4, playerSource);
+            } // Wolverine's Claw Combo: every claw bleeds
+            else if (src === "kit_wolverine_combo") {
+                this.applyBleed(WolverineCombo.bleed, playerSource);
             } // Iron Man: rockets burn, the repulsor blast bleeds
-            else if (src === "kit_ironman_rockets" || src === "kit_warmachine_barrage") {
+            else if (src === "kit_ironman_rockets" || src === "kit_ironman_spin" || src === "kit_warmachine_barrage") {
                 this.applyBurn(4, playerSource, src);
             } else if (src === "kit_ironman_blast") this.applyBleed(4, playerSource);
             // Ultron's orb lasers: orange burns, red bleeds, purple poisons, 3s each
             else if (weap === "bullet_kit_ultron_orb_laser_orange") this.applyBurn(3, playerSource, src);
             else if (weap === "bullet_kit_ultron_orb_laser_red") this.applyBleed(3, playerSource);
+            // Wizard's crystal, circles and mini crystals all bleed (their hits arrive as the gun, `kit_wizard_crystals`;
+            // the burst's own pop deals nothing and doesn't)
+            else if (src === "kit_wizard_crystals" && (params.amount ?? 0) > 0) {
+                this.applyBleed(WizardCrystals.bleed, playerSource);
+            }
             else if (weap === "bullet_kit_ultron_orb_laser_purple") this.applyPoison(3, playerSource);
             else if ((src === "kit_ultron_blast" || src === "kit_wizard_stars") && params.dir && !this.webPull) {
                 // slight knockback, moved like a short slide so walls still stop it
@@ -3001,7 +4003,7 @@ export class Player extends BaseGameObject {
                     time: 0.12,
                 };
             } else if (
-                src === "kit_summoner_whip" && params.amount! < (KitDefs.summoner.daggers?.damage ?? 30) - 0.01
+                src === "kit_summoner_whip"
             ) {
                 // the whip's lash (it hits softer than a dagger) sets the minions' target and leaves them vulnerable
                 playerSource.summonerFocusId = this.__id;
@@ -3018,6 +4020,15 @@ export class Player extends BaseGameObject {
             else if (src === "pg_aphrodite_crossbow") {
                 if (this.charmDuration <= 0) this.setDirty();
                 this.charmDuration = Math.max(this.charmDuration, 4);
+            }
+            // Ultron's laser: every hit on an enemy gives him 4 energy
+            if (src === "kit_ultron_laser" && playerSource !== this && playerSource.maxEnergy > 0) {
+                playerSource.energy = Math.min(playerSource.energy + 4, playerSource.maxEnergy);
+                playerSource.energyDirty = true;
+            }
+            // Sentry Charge: burn, bleed, stun and no perks for the target
+            if (src === "kit_sentry_charge") {
+                this.applySentryHit(playerSource);
             }
             // Engineer Exoskeleton heals its user the damage it deals
             if (src === "pg_engineer_exoskeleton" && !playerSource.dead) {
@@ -3147,12 +4158,25 @@ export class Player extends BaseGameObject {
                 damageType: GameConfig.DamageType.Player,
             });
         }
+        this.endUltronCombo();
+        this.endIronCombo();
+        this.ironSpin = undefined;
+        this.wizardWave = undefined;
+        this.wizardShards = [];
+        this.daggerMinions = [];
         // a Wizard's marks go when the Wizard does
         for (const p of this.wizardMarks) {
             p.wizardMarked = false;
             p.setDirty();
         }
         this.wizardMarks.clear();
+        // a Wolverine's mark and combo end with either of them
+        this.endClawCombo();
+        this.spiderCombo = undefined;
+        this.webStunTime = 0;
+        this.stasisTime = 0;
+        this.setMarkTarget(undefined);
+        for (const w of [...this.markedBy]) w.setMarkTarget(undefined);
         this.flightTime = 0;
         this.dodgeTime = 0;
         if (this.downed) this.downed = false;
@@ -5431,12 +6455,22 @@ export class Player extends BaseGameObject {
         this.sustainShieldTime = 0;
         this.energyDirty = true;
         if (kit.fullBoost) this.boost = 100;
+        this.endSentryDash();
+        this.endUltronCombo();
+        this.endIronCombo();
+        this.ironSpin = undefined;
+        this.wizardWave = undefined;
+        this.wizardShards = [];
+        this.daggerMinions = [];
         // Green Goblin starts with his drone on his right, no upgrade running
         this.droneAngle = 0;
         this.dronePrev = undefined;
         this.droneHits.clear();
         this.droneBombTimer = 0;
         this.kitEnhanceTime = 0;
+        this.sentryReviveUsed = false;
+        this.cleanseCooldown = 0;
+        this.resetItemTriggers();
         this.champ = ChampionDefs[kitId] ? new Champion(this, kitId) : undefined;
         // a champion's adrenaline is pinned full, so recheck the floor now it is one
         this.recalculateMinBoost();
@@ -5467,6 +6501,10 @@ export class Player extends BaseGameObject {
         this.sustainShieldTime = 0;
         this.energyDirty = true;
         this.kitEnhanceTime = 0;
+        this.endClawCombo();
+        this.spiderCombo = undefined;
+        this.setMarkTarget(undefined);
+        this.resetItemTriggers();
         this.outfit = this.loadout.outfit;
         for (
             const slot of [GameConfig.WeaponSlot.Primary, GameConfig.WeaponSlot.Secondary, GameConfig.WeaponSlot.Melee]
@@ -5482,6 +6520,11 @@ export class Player extends BaseGameObject {
     updateKit(dt: number) {
         const kit = KitDefs[this.kit];
         if (this.minionOwner) this.updateMinion(dt);
+        if (this.ultronCombo) this.updateUltronCombo(dt);
+        if (this.ironCombo) this.updateIronCombo(dt);
+        if (this.ironSpin) this.updateIronSpin(dt);
+        if (this.wizardWave) this.updateWizardWave(dt);
+        if (this.wizardShards.length) this.updateWizardShards(dt);
         if (this.kit === "default" || !kit || this.dead) return;
         if (kit.fullBoost && this.boost < 100) this.boost = 100;
         this.calmTime += dt;
@@ -5545,11 +6588,119 @@ export class Player extends BaseGameObject {
             this.dodgeTime = Math.max(0, this.dodgeTime - dt);
             if (this.dodgeTime === 0) this.setDirty();
         }
+        if (kit.mark) this.updateMark(kit.mark);
         if (kit.autoFire) this.updateAutoFire(dt, kit.autoFire);
         if (kit.mounts) this.updateMounts(dt, kit.mounts);
         if (kit.drone) this.updateDrone(dt, kit.drone);
         if (kit.daggers) this.updateDaggers(dt, kit.daggers);
         if (kit.aura) this.updateAura(dt, kit.aura);
+        if (kit.cleanse) this.updateCleanse(dt, kit.cleanse);
+        if (kit.items?.length) this.updateItemTriggers(dt, kit);
+    }
+
+    /** every item effect off and every cooldown ready, for a fresh kit (max HP and shield are set by the caller) */
+    resetItemTriggers() {
+        this.itemCooldowns = {};
+        this.itemMaxHealthMult = 0;
+        this.itemMaxHealthTime = 0;
+        this.wallReduction = 0;
+        this.wallTime = 0;
+        this.wallRule = undefined;
+        this.itemShield = 0;
+        this.itemShieldTime = 0;
+    }
+
+    /** max HP from the kit's build plus whatever an item adds for now; health can't stay above it */
+    updateKitMaxHealth(kit: (typeof KitDefs)[string]) {
+        const base = kit.healthBase ?? kit.health;
+        this.maxHealth = Math.round(base * (1 + (kit.healthMult ?? 0) + this.itemMaxHealthMult));
+        this.health = Math.min(this._health, this.maxHealth);
+        this.healthDirty = true;
+    }
+
+    /** Rescue's shield is over: what it granted and hasn't been spent goes, and the bar goes back to the kit's own */
+    endItemShield(kit: (typeof KitDefs)[string]) {
+        this.shield = Math.max(0, this.shield - this.itemShield);
+        this.itemShield = 0;
+        this.itemShieldTime = 0;
+        this.maxShield = kit.shield ?? 0;
+        this.shieldDirty = true;
+        this.energyDirty = true;
+        this.setDirty();
+    }
+
+    /** the kit's items that fire by themselves when health is low: Conquest and Rescue */
+    updateItemTriggers(dt: number, kit: (typeof KitDefs)[string]) {
+        for (const id of Object.keys(this.itemCooldowns)) {
+            this.itemCooldowns[id] = Math.max(0, this.itemCooldowns[id] - dt);
+        }
+        if (this.itemMaxHealthTime > 0) {
+            this.itemMaxHealthTime -= dt;
+            if (this.itemMaxHealthTime <= 0) {
+                this.itemMaxHealthMult = 0;
+                this.itemMaxHealthTime = 0;
+                this.updateKitMaxHealth(kit);
+                this.setDirty();
+            }
+        }
+        if (this.wallTime > 0) {
+            this.wallTime -= dt;
+            if (this.wallTime <= 0) {
+                this.wallTime = 0;
+                this.wallReduction = 0;
+                this.wallRule = undefined;
+            }
+        }
+        if (this.itemShieldTime > 0) {
+            this.itemShieldTime -= dt;
+            if (this.itemShieldTime <= 0) this.endItemShield(kit);
+        }
+
+        for (const id of kit.items ?? []) {
+            const t = ItemDefs[id]?.trigger;
+            if (!t || (this.itemCooldowns[id] ?? 0) > 0 || this.health >= this.maxHealth * t.below) continue;
+            this.itemCooldowns[id] = t.cooldown;
+            // max HP first, so the heal and the shield are shares of the bigger number
+            if (t.maxHealthMult) {
+                this.itemMaxHealthMult = t.maxHealthMult;
+                this.itemMaxHealthTime = t.duration;
+                this.updateKitMaxHealth(kit);
+            }
+            if (t.heal) this.health = Math.min(this._health + t.heal * this.maxHealth, this.maxHealth);
+            if (t.shield) {
+                const granted = t.shield * this.maxHealth;
+                this.shield += granted;
+                this.itemShield += granted;
+                this.itemShieldTime = t.duration;
+                // the shield bar is full when it comes up
+                this.maxShield = Math.max(this.maxShield, this.shield);
+                this.shieldDirty = true;
+                this.energyDirty = true;
+            }
+            if (t.wall) {
+                this.wallReduction = t.wall.start;
+                this.wallTime = t.duration;
+                this.wallRule = { perHit: t.wall.perHit, floor: t.wall.floor };
+            }
+            this.setDirty();
+        }
+    }
+
+    /** Sentry: any debuff on him comes off at once, then the next removal waits out the cooldown */
+    updateCleanse(dt: number, c: NonNullable<(typeof KitDefs)[string]["cleanse"]>) {
+        this.cleanseCooldown = Math.max(0, this.cleanseCooldown - dt);
+        if (this.cleanseCooldown > 0 || !this.hasDebuff) return;
+        this.cleanseCooldown = c.cooldown;
+        this.burnDuration = 0;
+        this.bleedDotDuration = 0;
+        this.poisonDuration = 0;
+        this.charmDuration = 0;
+        this.vulnerableTime = 0;
+        this.stunTime = 0;
+        const d = this.debuffs;
+        d.root = d.slow = d.silence = d.airborne = 0;
+        this.restorePerks();
+        this.setDirty();
     }
 
     /** Spider-Man: a web ball at the nearest enemy in range, every 1/rate seconds */
@@ -5567,13 +6718,14 @@ export class Player extends BaseGameObject {
             {
                 playerId: this.__id,
                 bulletType: a.bullet,
-                gameSourceType: "kit_spider_web",
+                gameSourceType: "kit_spider_auto",
                 damageType: GameConfig.DamageType.Player,
                 pos: v2.copy(this.pos),
                 dir: v2.normalizeSafe(v2.sub(target.pos, this.pos), this.dir),
                 layer: this.layer,
                 damageMult: 1,
-                shotFx: false,
+                // the shot sound of kit_spider_auto
+                shotFx: true,
                 reflectCount: 0,
             } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
         );
@@ -5767,40 +6919,461 @@ export class Player extends BaseGameObject {
         );
     }
 
-    /** Summoner: the blade minions take turns flying at the focused enemy, else the nearest one on screen */
-    updateDaggers(dt: number, d: NonNullable<(typeof KitDefs)[string]["daggers"]>) {
-        this.daggerTimer -= dt;
-        if (this.daggerTimer > 0) return;
-        // anyone the Summoner can see: the view reaches about `zoom` from him (28 at 1x)
-        const near = this.enemiesWithin(Math.max(d.range, this.zoom));
-        if (!near.length) return;
-        // at most one every 0.05 s: a big swarm firing every tick would flood clients with bullets
-        this.daggerTimer = Math.max(d.interval / d.count, 0.05);
-        const focus = near.find((p) => p.__id === this.summonerFocusId);
-        const target = focus
-            ?? near.reduce((a, b) => (v2.length(v2.sub(a.pos, this.pos)) < v2.length(v2.sub(b.pos, this.pos)) ? a : b));
-        // each dagger leaves from its spot on the circle round the player (the client draws them there)
-        const ang = ((this.daggerIndex++ % d.count) / d.count) * Math.PI * 2 + this.game.now * 0.002;
-        const out = v2.create(Math.cos(ang), Math.sin(ang));
-        const from = v2.add(this.pos, v2.mul(out, 4));
+    /** Wolverine: the nearest enemy within range is marked; during a Claw Combo it stays on whoever it is hitting */
+    updateMark(m: NonNullable<(typeof KitDefs)[string]["mark"]>) {
+        const locked = this.clawCombo?.target ?? this.spiderCombo?.target ?? this.ironCombo?.target;
+        if (locked) {
+            this.setMarkTarget(locked);
+            return;
+        }
+        const near = this.enemiesWithin(m.range);
+        this.setMarkTarget(
+            near.length
+                ? near.reduce((a, b) => (v2.distance(a.pos, this.pos) <= v2.distance(b.pos, this.pos) ? a : b))
+                : undefined,
+        );
+    }
+
+    setMarkTarget(next?: Player) {
+        if (next === this.markTarget) return;
+        if (this.markTarget) {
+            this.markTarget.markedBy.delete(this);
+            this.markTarget.setDirty();
+        }
+        this.markTarget = next;
+        if (next) {
+            next.markedBy.add(this);
+            next.setDirty();
+        }
+    }
+
+    /** the Claw Combo needs a marked enemy who can be hit, and only one runs at a time */
+    canStartClawCombo() {
+        const t = this.markTarget;
+        return !this.dead && !this.clawCombo && !!t && !t.dead && !t.untargetable;
+    }
+
+    /** `gun` is kit_wolverine_combo (ten claws) or kit_wolverine_dash (one claw, from below) */
+    startClawCombo(gun: string) {
+        const target = this.markTarget!;
+        const dash = gun === "kit_wolverine_dash";
+        this.clawCombo = {
+            target,
+            gun,
+            offsets: dash ? WolverineDash.offsets : WolverineCombo.offsets,
+            damage: dash ? WolverineDash.damage : WolverineCombo.damage,
+            step: 0,
+            t: 0,
+            start: v2.copy(this.pos),
+            dir: v2.create(0, -1),
+            end: v2.copy(this.pos),
+            shotHit: new Set(),
+            grabbed: [],
+        };
+        this.webPull = undefined;
+        this.beginClawShot();
+        this.setDirty();
+    }
+
+    private fireClawBullet(c: NonNullable<Player["clawCombo"]>, bulletType: string, pos: Vec2, extra: object) {
+        return this.game.bulletBarn.fireBullet(
+            {
+                playerId: this.__id,
+                bulletType,
+                gameSourceType: c.gun,
+                damageType: GameConfig.DamageType.Player,
+                pos: v2.copy(pos),
+                dir: c.dir,
+                layer: c.target.layer,
+                damageMult: 1,
+                shotFx: false,
+                reflectCount: 0,
+                ...extra,
+            } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
+        );
+    }
+
+    /**
+     * The claw at `step`: it starts off to one side of the mark and is aimed straight through it, so it hits
+     * and drags the mark to its far end. Its shot sound alternates between the two the gun has (shotAlt)
+     */
+    beginClawShot() {
+        const c = this.clawCombo!;
+        const o = c.offsets[c.step];
+        c.dir = v2.normalizeSafe(v2.create(-o.x, -o.y), v2.create(0, -1));
+        c.start = v2.sub(c.target.pos, v2.mul(c.dir, WolverineCombo.startDist));
+        c.end = v2.add(c.start, v2.mul(c.dir, WolverineCombo.distance));
+        c.t = 0;
+        c.shotHit = new Set();
+        c.grabbed = [];
+        this.fireClawBullet(c, "bullet_kit_wolverine_claw", c.start, { shotFx: true, shotAlt: c.step % 2 === 1 });
+    }
+
+    /** the claw has flown its length: it stays where it ended for a moment (for show, it hurts nobody) */
+    leaveClaw() {
+        const c = this.clawCombo!;
+        this.fireClawBullet(c, "bullet_kit_wolverine_claw_rest", c.end, {
+            clipDistance: true,
+            distance: WolverineCombo.clawSpeed * WolverineCombo.linger,
+        });
+    }
+
+    /** a claw lands: the skill's damage and its bleed (via damage()), and the mark is stunned for the rest of it */
+    clawHit(c: NonNullable<Player["clawCombo"]>, p: Player, stunFor: number) {
+        p.damage({
+            amount: c.damage,
+            damageType: GameConfig.DamageType.Player,
+            gameSourceType: c.gun,
+            weaponSourceType: c.gun,
+            source: this,
+            dir: c.dir,
+        });
+        if (stunFor > 0) {
+            p.stunTime = Math.max(p.stunTime, stunFor);
+            p.webPull = undefined;
+            p.setDirty();
+        }
+    }
+
+    /** an enemy a Claw Combo can hit: alive, not hidden or dodging, on the same layer as the mark */
+    private clawVictims(c: NonNullable<Player["clawCombo"]>): Player[] {
+        return this.game.playerBarn.livingPlayers.filter(
+            (p) =>
+                p !== this && !p.dead && !p.untargetable && p.teamId !== this.teamId
+                && util.sameLayer(p.layer, c.target.layer),
+        );
+    }
+
+    /**
+     * Every tick of a Claw Combo: the claw in flight hits everyone its path crosses, once, and drags them along
+     * to its far end (they are only ever pushed forward, so the mark stays put until the claw gets to it); and
+     * when a claw has flown its length it stays a moment and the next one is called down around wherever the
+     * mark now is. If the mark dies the combo is over
+     */
+    updateClawCombo(dt: number) {
+        const c = this.clawCombo;
+        if (!c) return;
+        if (this.dead || c.target.dead) {
+            this.endClawCombo();
+            return;
+        }
+        const prevProg = Math.min(c.t * WolverineCombo.speed, WolverineCombo.distance);
+        c.t += dt;
+        const prog = Math.min(c.t * WolverineCombo.speed, WolverineCombo.distance);
+        const before = v2.add(c.start, v2.mul(c.dir, prevProg));
+        const head = v2.add(c.start, v2.mul(c.dir, prog));
+        const left = Math.max((c.offsets.length - c.step) * WolverineComboStep - c.t, 0);
+
+        const victims = this.clawVictims(c);
+        for (const p of victims) {
+            if (c.shotHit.has(p.__id)) continue;
+            if (math.distToSegmentSq(p.pos, before, head) > (WolverineCombo.hitRadius + p.rad) ** 2) continue;
+            c.shotHit.add(p.__id);
+            this.clawHit(c, p, left + 0.15);
+            c.grabbed.push(p);
+        }
+
+        // drag: whoever the claw has hit is reeled in to just ahead of it, and walls stop them
+        const pull = WolverineCombo.speed * 2 * dt;
+        c.grabbed = c.grabbed.filter((p) => {
+            if (p.dead) return false;
+            const hold = v2.add(head, v2.mul(c.dir, this.rad + p.rad + 0.3));
+            const to = v2.sub(hold, p.pos);
+            const dist = v2.length(to);
+            if (dist > 0.001 && v2.dot(to, c.dir) > 0) {
+                v2.set(p.pos, v2.add(p.pos, v2.mul(to, Math.min(dist, pull) / dist)));
+            }
+            this.pushOutOfWalls(p);
+            this.game.map.clampToMapBounds(p.pos, p.rad);
+            p.mapIndicator?.updatePosition(p.pos);
+            p.setPartDirty();
+            return true;
+        });
+
+        if (c.t >= WolverineComboStep - 1e-6) {
+            this.leaveClaw();
+            if (c.step >= c.offsets.length - 1) {
+                this.endClawCombo();
+                return;
+            }
+            c.step++;
+            this.beginClawShot();
+        }
+    }
+
+    private pushOutOfWalls(p: Player) {
+        const objs = this.game.grid.intersectCollider(collider.createCircle(p.pos, p.rad + 1));
+        for (const obj of objs) {
+            if (obj.__type !== ObjectType.Obstacle || !obj.collidable || obj.dead) continue;
+            if (!util.sameLayer(obj.layer, p.layer)) continue;
+            const hit = collider.intersectCircle(obj.collider, p.pos, p.rad);
+            if (hit) v2.set(p.pos, v2.add(p.pos, v2.mul(hit.dir, hit.pen + 0.001)));
+        }
+    }
+
+    /** the combo is over (or its mark died, or he did): he comes out at the far end of the last claw */
+    endClawCombo() {
+        const c = this.clawCombo;
+        if (!c) return;
+        this.clawCombo = undefined;
+        if (!this.dead) {
+            const to = v2.copy(c.end);
+            this.game.map.clampToMapBounds(to, this.rad);
+            v2.set(this.pos, to);
+            this.pushOutOfWalls(this);
+            v2.set(this.posOld, this.pos);
+            this.mapIndicator?.updatePosition(this.pos);
+            this.setPartDirty();
+            this.game.grid.updateObject(this);
+        }
+        this.setDirty();
+    }
+
+    /** the Portal Combo needs a marked enemy who can be hit, and Spider-Man can't be in another combo */
+    canStartSpiderCombo() {
+        const t = this.markTarget;
+        return !this.dead && !this.spiderCombo && !this.clawCombo && !!t && !t.dead && !t.untargetable;
+    }
+
+    /** the mark is webbed up and stunned for the whole combo, and the first portal opens around it */
+    startSpiderCombo() {
+        const target = this.markTarget!;
+        this.spiderCombo = {
+            target,
+            step: 0,
+            t: 0,
+            portal: v2.copy(target.pos),
+            dir: v2.create(1, 0),
+            dashing: false,
+            entered: false,
+            dashT: 0,
+            hit: new Set(),
+        };
+        this.webPull = undefined;
+        target.stunTime = Math.max(target.stunTime, SpiderCombo.stun);
+        target.webStunTime = SpiderCombo.stun;
+        target.webPull = undefined;
+        target.setDirty();
+        this.beginSpiderPortal();
+        this.setDirty();
+    }
+
+    private fireSpiderBullet(bulletType: string, pos: Vec2, dir: Vec2, extra: object) {
+        const c = this.spiderCombo!;
+        return this.game.bulletBarn.fireBullet(
+            {
+                playerId: this.__id,
+                bulletType,
+                gameSourceType: "kit_spider_web",
+                damageType: GameConfig.DamageType.Player,
+                pos: v2.copy(pos),
+                dir,
+                layer: c.target.layer,
+                damageMult: 1,
+                shotFx: false,
+                reflectCount: 0,
+                ...extra,
+            } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
+        );
+    }
+
+    /** the portal at `step` opens beside the mark; it is only the picture, and goes away by itself */
+    private beginSpiderPortal() {
+        const c = this.spiderCombo!;
+        const o = SpiderCombo.offsets[c.step];
+        c.dir = v2.normalizeSafe(v2.create(-o.x, -o.y), v2.create(-1, 0));
+        c.portal = v2.add(c.target.pos, v2.mul(v2.create(o.x, o.y), SpiderCombo.startDist));
+        this.game.map.clampToMapBounds(c.portal, this.rad);
+        c.t = 0;
+        c.entered = false;
+        c.dashing = false;
+        c.dashT = 0;
+        c.hit = new Set();
+        this.fireSpiderBullet("bullet_kit_spider_portal", c.portal, c.dir, {
+            clipDistance: true,
+            distance: SpiderCombo.parkSpeed * SpiderCombo.portalLife,
+        });
+    }
+
+    /** he is put at `to` (the portal or the end of the dash), the way a Claw Combo ends */
+    private warpTo(to: Vec2) {
+        const pos = v2.copy(to);
+        this.game.map.clampToMapBounds(pos, this.rad);
+        v2.set(this.pos, pos);
+        this.pushOutOfWalls(this);
+        v2.set(this.posOld, this.pos);
+        this.mapIndicator?.updatePosition(this.pos);
+        this.setPartDirty();
+        this.game.grid.updateObject(this);
+    }
+
+    /**
+     * Every tick of a Portal Combo: a portal opens every second; shortly after, he steps through and dashes
+     * across the mark, hurting everyone the dash crosses once. If the mark or he dies the combo is over
+     */
+    updateSpiderCombo(dt: number) {
+        const c = this.spiderCombo;
+        if (!c) return;
+        if (this.dead || c.target.dead) {
+            this.spiderCombo = undefined;
+            return;
+        }
+        c.t += dt;
+        if (!c.entered && c.t >= SpiderCombo.enter) {
+            c.entered = true;
+            c.dashing = true;
+            c.dashT = 0;
+            this.warpTo(c.portal);
+            const horizontal = Math.abs(c.dir.x) > Math.abs(c.dir.y);
+            const dirName = horizontal ? (c.dir.x > 0 ? "r" : "l") : (c.dir.y > 0 ? "t" : "b");
+            this.fireSpiderBullet(`bullet_kit_spider_slash_${dirName}`, c.portal, c.dir, {});
+        }
+        if (c.dashing) {
+            const prevProg = Math.min(c.dashT * SpiderCombo.speed, SpiderCombo.distance);
+            c.dashT += dt;
+            const prog = Math.min(c.dashT * SpiderCombo.speed, SpiderCombo.distance);
+            const before = v2.add(c.portal, v2.mul(c.dir, prevProg));
+            const head = v2.add(c.portal, v2.mul(c.dir, prog));
+            for (const p of this.game.playerBarn.livingPlayers) {
+                if (p === this || p.dead || p.untargetable || p.teamId === this.teamId) continue;
+                if (!util.sameLayer(p.layer, c.target.layer) || c.hit.has(p.__id)) continue;
+                if (math.distToSegmentSq(p.pos, before, head) > (SpiderCombo.hitRadius + p.rad) ** 2) continue;
+                c.hit.add(p.__id);
+                p.damage({
+                    amount: SpiderCombo.damage,
+                    damageType: GameConfig.DamageType.Player,
+                    gameSourceType: "kit_spider_web",
+                    weaponSourceType: "kit_spider_web",
+                    source: this,
+                    dir: c.dir,
+                });
+            }
+            this.warpTo(head);
+            if (prog >= SpiderCombo.distance) c.dashing = false;
+        }
+        if (c.t >= SpiderCombo.interval - 1e-6) {
+            if (c.step >= SpiderCombo.offsets.length - 1) {
+                this.spiderCombo = undefined;
+                this.setDirty();
+                return;
+            }
+            c.step++;
+            this.beginSpiderPortal();
+        }
+    }
+
+    /** the sound of a minion's dash landing: a shot with nothing in it, so clients play the gun's `shoot` sound */
+    fireDashSound(at: Vec2) {
         this.game.bulletBarn.fireBullet(
             {
                 playerId: this.__id,
-                bulletType: "bullet_kit_dagger",
-                gameSourceType: "kit_summoner_whip",
+                bulletType: "bullet_kit_ironman_fx_sound",
+                gameSourceType: "kit_summoner_dagger",
                 damageType: GameConfig.DamageType.Player,
-                pos: from,
-                // it leaves outward from its spot and swoops round onto them (the bullet turns gradually)
-                dir: v2.normalizeSafe(v2.add(out, v2.mul(v2.normalizeSafe(v2.sub(target.pos, from), out), 0.4)), out),
-                // locks on: it turns to follow them until it lands
-                homingTargetId: target.__id,
+                pos: v2.copy(at),
+                dir: v2.copy(this.dir),
                 layer: this.layer,
                 damageMult: 1,
-                distance: Math.max(d.range, this.zoom) * 2,
-                shotFx: false,
+                shotFx: true,
                 reflectCount: 0,
+                ghost: true,
             } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
         );
+    }
+
+    /**
+     * Summoner: the blade minions. They circle him until an enemy he can see (the whip's mark first, else the
+     * nearest) is there; then each waits `dashFrom` from it, and once a second (they take turns, a quarter second
+     * apart) dashes through it and straight back. A dash hurts every enemy it crosses once, for true damage
+     */
+    updateDaggers(dt: number, d: NonNullable<(typeof KitDefs)[string]["daggers"]>) {
+        if (this.daggerMinions.length !== d.count) {
+            this.daggerMinions = Array.from({ length: d.count }, (_, i) => ({
+                pos: v2.copy(this.pos),
+                phase: 0,
+                timer: (i * d.dashEvery) / d.count,
+                hit: new Set<number>(),
+            }));
+        }
+        this.daggerClock += dt;
+        const near = this.enemiesWithin(Math.max(d.range, this.zoom));
+        const focus = near.find((p) => p.__id === this.summonerFocusId);
+        const target = focus
+            ?? (near.length
+                ? near.reduce((a, b) => (v2.length(v2.sub(a.pos, this.pos)) < v2.length(v2.sub(b.pos, this.pos)) ? a : b))
+                : undefined);
+        const foes = this.enemiesWithin(d.leash + d.dashFrom + 4);
+        const toTarget = target ? v2.normalizeSafe(v2.sub(target.pos, this.pos), this.dir) : this.dir;
+
+        this.daggerMinions.forEach((m, i) => {
+            // where it waits: round the Summoner, or `dashFrom` from the target on its own side of it
+            let home: Vec2;
+            if (target) {
+                // spread right round it, so they dash in from every side
+                const away = v2.rotate(v2.mul(toTarget, -1), ((i + 0.5) / d.count) * Math.PI * 2);
+                home = v2.add(target.pos, v2.mul(away, d.dashFrom));
+            } else {
+                const ang = (i / d.count) * Math.PI * 2 + this.daggerClock * 2;
+                home = v2.add(this.pos, v2.create(Math.cos(ang) * 4, Math.sin(ang) * 4));
+            }
+            // never further from him than the leash
+            const out = v2.sub(home, this.pos);
+            if (v2.length(out) > d.leash) home = v2.add(this.pos, v2.mul(v2.normalizeSafe(out), d.leash));
+            const step = (to: Vec2, speed: number) => {
+                const delta = v2.sub(to, m.pos);
+                const dist = v2.length(delta);
+                const move = Math.min(dist, speed * dt);
+                if (dist > 1e-6) m.pos = v2.add(m.pos, v2.mul(delta, move / dist));
+                return dist - move;
+            };
+
+            m.timer -= dt;
+            if (m.phase === 0) {
+                // it drifts after its spot, or is simply there if the Summoner has outrun it
+                if (v2.length(v2.sub(m.pos, this.pos)) > d.leash) m.pos = v2.copy(home);
+                const left = step(home, target ? d.dashSpeed * 1.3 : 40);
+                if (target && m.timer <= 0 && left < 2.5) {
+                    m.phase = 1;
+                    m.hit.clear();
+                    m.timer = d.dashEvery;
+                }
+            } else if (m.phase === 1) {
+                if (!target || target.dead) {
+                    m.phase = 2;
+                } else {
+                    const dir = v2.normalizeSafe(v2.sub(target.pos, m.pos), toTarget);
+                    const from = v2.copy(m.pos);
+                    // it flies through them and a little way on
+                    const goal = v2.add(target.pos, v2.mul(dir, 2));
+                    const left = step(goal, d.dashSpeed);
+                    for (const p of foes) {
+                        if (m.hit.has(p.__id) || p.dead) continue;
+                        // (a minion that didn't move this tick is a point, which distToSegmentSq can't take)
+                        const reach = v2.length(v2.sub(m.pos, from)) > 1e-6
+                            ? math.distToSegmentSq(p.pos, from, m.pos)
+                            : v2.lengthSqr(v2.sub(p.pos, m.pos));
+                        if (!(reach <= (p.rad + d.hitRadius) ** 2)) continue;
+                        m.hit.add(p.__id);
+                        p.damage({
+                            amount: d.damage,
+                            damageType: GameConfig.DamageType.Player,
+                            gameSourceType: "kit_summoner_dagger",
+                            weaponSourceType: "kit_summoner_dagger",
+                            source: this,
+                            dir,
+                        });
+                        this.fireDashSound(m.pos);
+                    }
+                    if (left < 0.05) m.phase = 2;
+                }
+            } else if (step(home, d.dashSpeed) < 0.5) {
+                m.phase = 0;
+            }
+            // and never past the leash
+            const rel = v2.sub(m.pos, this.pos);
+            if (v2.length(rel) > d.leash) m.pos = v2.add(this.pos, v2.mul(v2.normalizeSafe(rel), d.leash));
+        });
+        this.setDirty();
     }
 
     /** Wizard: each enemy in the circle feeds energy, shield and health; enhanced, it marks them */

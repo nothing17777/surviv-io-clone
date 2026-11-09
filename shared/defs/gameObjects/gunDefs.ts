@@ -8,6 +8,17 @@ import { ChampionDefs, championSound } from "./championDefs.ts";
 import { CustomGuns, CustomWeaponsVersion } from "./customWeaponDefs.ts";
 import { BaseGunLengths, GunEffects, GunOverrides, HiddenCustomGuns, SwingShotBullets } from "./customWeaponEffects.ts";
 import type { BaseWeaponDef } from "./itemTypes.ts";
+import {
+    IronManCombo,
+    IronManSpin,
+    SentryCharge,
+    SentryNova,
+    SpiderCombo,
+    UltronCombo,
+    WizardCrystals,
+    WolverineCombo,
+    WolverineDash,
+} from "./kitDefs.ts";
 
 export interface GunDef extends BaseWeaponDef {
     type: "gun";
@@ -120,7 +131,7 @@ export interface GunDef extends BaseWeaponDef {
     energyCost?: number;
     /** a kit's energy each reload costs; no reload without it */
     reloadEnergy?: number;
-    /** fired from a body-mounted gun (War Machine): no hand recoil or fire delay for the shooter */
+    /** fired from a body-mounted gun (War Machine, Wolverine's claws): no hand recoil or fire delay for the shooter */
     mounted?: boolean;
     /** multiplies the volume of this gun's shot sound (default 1) */
     shotVolume?: number;
@@ -3759,10 +3770,93 @@ const kitGun = (id: string, base: string, bullet: Partial<BulletDef>, gun: DeepP
     return [id, util.mergeDeep(def, gun)];
 };
 
+const ironAsset = (name: string) => `img/custom-weapons/fx/kit/${name}.png?v=${CustomWeaponsVersion}`;
+// Iron Man's effect shots: Blast Combo's drones are parked sprites that hurt no one (the Laser Spin beams are
+// drawn by the client, see IronManSpin); Blast Combo's lasers are real shots
+const ironBeam = { beam: true, speed: 500, noTracer: false, tracerColor: "cw_plasma" } as const;
+// carries a skill's sound: a shot with nothing to see (the skill's own effects are drawn separately)
+BulletDefs.bullet_kit_ironman_fx_sound = {
+    ...BulletDefs.bullet_ak47,
+    type: "bullet",
+    damage: 0,
+    obstacleDamage: 0,
+    falloff: 1,
+    variance: 0,
+    shrapnel: false,
+    speed: 100,
+    distance: 0.1,
+    noTracer: true,
+    tracerColor: "cw_plasma",
+    tracerWidth: 0.1,
+    noPlayerHit: true,
+    noDistAdj: true,
+};
+// a mini crystal of Crystal Burst lying on the field: a parked sprite (Player.updateWizardShards does the rest)
+BulletDefs.bullet_kit_wizard_fx_shard = {
+    ...BulletDefs.bullet_ak47,
+    type: "bullet",
+    damage: 0,
+    obstacleDamage: 0,
+    falloff: 1,
+    variance: 0,
+    shrapnel: false,
+    speed: 0.2,
+    lifetime: 10,
+    distance: 10,
+    noTracer: true,
+    tracerColor: "cw_star",
+    tracerWidth: 0.3,
+    sprite: ironAsset("wizard_crystal"),
+    spriteSize: 28,
+    spin: 2,
+    noPlayerHit: true,
+    playerPierce: true,
+    noDistAdj: true,
+};
+BulletDefs.bullet_kit_ironman_fx_drone = {
+    ...BulletDefs.bullet_ak47,
+    type: "bullet",
+    damage: 0,
+    obstacleDamage: 0,
+    falloff: 1,
+    variance: 0,
+    shrapnel: false,
+    speed: 0.2,
+    lifetime: 10,
+    distance: 10,
+    noTracer: true,
+    tracerColor: "cw_plasma",
+    tracerWidth: 0.3,
+    sprite: ironAsset("ironman_drone"),
+    spriteSize: 40,
+    noPlayerHit: true,
+    playerPierce: true,
+    noDistAdj: true,
+};
+for (const [id, c] of [["main", IronManCombo.main], ["small", IronManCombo.small]] as const) {
+    BulletDefs[`bullet_kit_ironman_combo_${id}`] = {
+        ...BulletDefs.bullet_ak47,
+        type: "bullet",
+        damage: c.damage,
+        obstacleDamage: 0,
+        falloff: 1,
+        variance: 0,
+        shrapnel: false,
+        ...ironBeam,
+        distance: 60,
+        tracerWidth: c.width,
+        trailSprite: "img/custom-weapons/fx/stardust_laser.png",
+        playerPierce: true,
+        pierceLoss: 0,
+    };
+}
+
 const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
-    // Iron Man repulsor: a wide cyan laser, 40 dmg, 1.4 shots/s, 5 energy a shot, no extra cooldown
+    // Iron Man repulsor: a wide cyan piercing laser, 50 dmg, 1.4 shots/s, 10 energy a shot, no extra cooldown
     kitGun("kit_ironman_blast", "sv98", {
-        damage: 40,
+        damage: 50,
+        playerPierce: true,
+        pierceLoss: 0,
         beam: true,
         speed: 400,
         distance: 80,
@@ -3775,8 +3869,39 @@ const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
         fireMode: "single",
         fireDelay: 0.714,
         energyCost: 10,
+        sound: { shoot: "ironman_laser" },
         shotSpread: 0,
         moveSpread: 0,
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
+    // Laser Spin: fires nothing itself, Player.updateIronSpin sweeps the two lasers (the client draws them);
+    // 6 s cooldown, 30 energy
+    kitGun("kit_ironman_spin", "barrett", { damage: 0 }, {
+        name: "Laser Spin",
+        fireMode: "single",
+        fireDelay: IronManSpin.cooldown,
+        energyCost: IronManSpin.energy,
+        bulletCount: 0,
+        caseTiming: "reload",
+        sound: { shoot: "ironman_laser" },
+        shotSpread: 0,
+        moveSpread: 0,
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
+    // the source of Blast Combo's lasers (the skill itself is the melee kit_ironman_combo); never held
+    kitGun("kit_ironman_combo_laser", "barrett", { damage: 0 }, {
+        name: "Blast Combo",
+        fireMode: "single",
+        bulletCount: 0,
+        caseTiming: "reload",
+        sound: { shoot: "ironman_laser" },
+        energyCost: 0,
         maxClip: 250,
         maxReload: 250,
         extendedClip: 250,
@@ -3933,25 +4058,58 @@ for (const [color, tracer] of Object.entries(orbColorTracer)) {
         tracerWidth: 0.35,
     });
 }
-// the Summoner's blade minions
-kitBullet("bullet_kit_dagger", {
-    // a spinning blade minion, not a magic beam: only the dagger sprite is drawn
-    damage: 30,
-    speed: 55,
-    // chases its target until it lands (it ends if they die or leave)
-    distance: 1000,
-    spin: 14,
+// Ultron's Combo (see UltronCombo). The ring, the orbs and the portals are parked sprite shots that hurt no one
+// (Player.updateUltronCombo does the ring's damage, sets the orbs off and times the rest): the ring's fly out at the ring's speed,
+// the others sit for the `lifetime` they are fired with (an `age` makes the rest of it)
+const comboFx = (id: string, b: Partial<BulletDef>) =>
+    kitBullet(`bullet_kit_ultron_fx_${id}`, {
+        damage: 0,
+        noPlayerHit: true,
+        playerPierce: true,
+        noDistAdj: true,
+        noTracer: true,
+        tracerColor: "cw_poison",
+        tracerWidth: 0.3,
+        ...b,
+    });
+comboFx("ring", {
+    speed: UltronCombo.ring.speed,
+    distance: UltronCombo.ring.radius,
+    sprite: kitAsset("orb_green"),
+    spriteSize: 30,
+});
+const comboHover = { speed: 0.2, lifetime: 10 };
+comboFx("red", { ...comboHover, sprite: kitAsset("orb_red"), spriteSize: 44 });
+comboFx("blue", { ...comboHover, sprite: kitAsset("ultron_orb_blue"), spriteSize: 48 });
+comboFx("portal", { ...comboHover, sprite: kitAsset("ultron_portal"), spriteSize: 80, spin: 5 });
+// the real shots: a blast from each portal, then a piercing laser (the same beam as his skill 1)
+kitBullet("bullet_kit_ultron_combo_blast", {
+    damage: UltronCombo.blast.damage,
+    speed: 160,
+    distance: 60,
     noTracer: true,
+    tracerColor: "cw_holy",
+    tracerWidth: 0.3,
+    sprite: kitAsset("ultron_blast"),
+    spriteSize: 110,
+});
+kitBullet("bullet_kit_ultron_combo_laser", {
+    damage: UltronCombo.laser.damage,
+    speed: 400,
+    distance: 60,
+    obstacleDamage: 40,
+    beam: true,
+    playerPierce: true,
+    pierceLoss: 0,
     tracerColor: "cw_magic",
-    tracerWidth: 0.12,
-    sprite: kitAsset("enchanted_dagger"),
-    // screen px across at zoom 1 (the Christmas Ultimatum tree is 80); the same size as the circle's swords
-    spriteSize: 55,
+    tracerWidth: 0.6,
+    trailSprite: kitAsset("star_wrath_proj"),
 });
 // the Summoner's whip: a chain that lashes out 36 tiles from the hand
 kitBullet("bullet_kit_whip", {
     damage: 14,
-    speed: 70,
+    // twice as fast as it was
+    speed: 140,
     distance: 36,
     beam: true,
     tracerColor: "cw_white",
@@ -3960,17 +4118,66 @@ kitBullet("bullet_kit_whip", {
     trailSprite: kitAsset("spinal_tap_proj"),
 });
 
-// Spider-Man's passive: a white web ball at the nearest enemy, as far and fast as the web shooter, no swing
-kitBullet("bullet_kit_spider_auto", {
-    damage: 30,
-    speed: 120,
-    distance: 40,
+// Wolverine's Claw Combo (see Player.updateClawCombo, which does the hitting). The claw is only the picture: damage 0,
+// it flies through everyone, as far as the dash's streak and twice as fast, and is drawn the same size
+kitBullet("bullet_kit_wolverine_claw", {
+    damage: 0,
+    speed: WolverineCombo.speed,
+    distance: WolverineCombo.distance,
+    noPlayerHit: true,
+    noDistAdj: true,
+    noTracer: true,
     tracerColor: "cw_white",
     tracerWidth: 0.3,
-    tracerLength: 1.2,
-    sprite: kitAsset("web_ball"),
-    spriteSize: 28,
+    sprite: kitAsset("wolverine_claw"),
+    // screen px at zoom 1, the same as the dash's streak
+    spriteSize: 120,
 });
+// the same claw left where it ended: it only creeps along at 0.2 u/s, and is fired with a range of that speed
+// times how long it should stay (WolverineCombo.linger), so it goes away by itself
+kitBullet("bullet_kit_wolverine_claw_rest", {
+    damage: 0,
+    speed: WolverineCombo.clawSpeed,
+    distance: 60,
+    noPlayerHit: true,
+    noDistAdj: true,
+    noTracer: true,
+    tracerColor: "cw_white",
+    tracerWidth: 0.3,
+    sprite: kitAsset("wolverine_claw"),
+    spriteSize: 120,
+});
+
+// Spider-Man's Portal Combo (see Player.updateSpiderCombo, which does the hitting). The portal is a picture only,
+// parked where it opens (fired with a range of its slow speed times how long it stays); the slash is drawn flying
+// with each dash, one sprite per direction since a bullet's sprite is not turned to face where it goes
+kitBullet("bullet_kit_spider_portal", {
+    damage: 0,
+    speed: SpiderCombo.parkSpeed,
+    distance: 60,
+    noPlayerHit: true,
+    noDistAdj: true,
+    noTracer: true,
+    tracerColor: "cw_white",
+    tracerWidth: 0.3,
+    sprite: kitAsset("spider_portal"),
+    // screen px at zoom 1, like the claws
+    spriteSize: 120,
+});
+for (const side of ["r", "l", "t", "b"]) {
+    kitBullet(`bullet_kit_spider_slash_${side}`, {
+        damage: 0,
+        speed: SpiderCombo.speed,
+        distance: SpiderCombo.distance,
+        noPlayerHit: true,
+        noDistAdj: true,
+        noTracer: true,
+        tracerColor: "cw_white",
+        tracerWidth: 0.3,
+        sprite: kitAsset(`spider_slash_${side}`),
+        spriteSize: 120,
+    });
+}
 
 // Green Goblin's pumpkin bomb: an orange orb that goes off on the first enemy it touches or when its 10 s are
 // up, whichever comes first, bouncing off every wall in between (the 10 s runs through the bounces). The
@@ -4046,25 +4253,122 @@ const GreenGoblinGunDefs: Record<string, GunDef> = Object.fromEntries([
 ]);
 
 const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
-    // Wolverine dash: 16 tiles forward, 50 dmg and a bleed to whoever he slashes through, 8 s cooldown.
-    // The streak flies alongside him and does the damage
-    kitGun("kit_wolverine_dash", "barrett", {
-        damage: 50,
-        speed: 40,
-        distance: 16,
+    // Sentry Solar Explosion: no bullet, the wave is run by Player.updateSentryNova (see WeaponManager); 8 s cooldown
+    kitGun("kit_sentry_solar", "barrett", {
+        damage: 0,
+        noTracer: true,
+    }, {
+        name: "Solar Explosion",
+        fireMode: "single",
+        fireDelay: SentryNova.cooldown,
+        bulletCount: 0,
+        energyCost: 0,
+        shotSpread: 0,
+        moveSpread: 0,
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
+    // Sentry Charge: a 30 tile dash at Ahri's dash speed behind a wide crescent that does 120, burns, bleeds and
+    // stuns for 3 s, strips perks for 5 s, ignores 80% of armor and reaches flying / dodging targets. His own body
+    // hits too (see Player.updateSentryDash) and everyone hit is dragged along for the dash. It heals him 30% of his max hp on
+    // every cast, hit or miss, and he flies for 2 s (see WeaponManager); 3 s cooldown
+    kitGun("kit_sentry_charge", "barrett", {
+        damage: SentryCharge.damage,
+        speed: SentryCharge.speed,
+        distance: SentryCharge.distance,
         falloff: 1,
         playerPierce: true,
         pierceLoss: 0,
         noTracer: true,
+        tracerColor: "cw_holy",
+        tracerWidth: 0.3,
+        hitRadius: SentryCharge.hitRadius,
+        hitsFlying: true,
+        armorPenetration: SentryCharge.armorPen,
+        sprite: kitAsset("sentry_charge"),
+        // screen px across at zoom 1 (the Christmas Ultimatum tree is 80): a huge slash, about 28 tiles tall,
+        // the same as its hit width (2 x hitRadius)
+        spriteSize: 280,
+    }, {
+        name: "Sentry Charge",
+        fireMode: "single",
+        fireDelay: SentryCharge.cooldown,
+        energyCost: 0,
+        shotSpread: 0,
+        moveSpread: 0,
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
+    // Wolverine's skill 1, Claw Combo: it fires nothing itself, the combo does (see Player.startClawCombo). Using it
+    // needs a marked enemy. 10 s cooldown. Each claw plays one of the two sounds below, taking turns (shotAlt); the
+    // claws come from the target's side of the map, not his hands, so there is no recoil or casing
+    kitGun("kit_wolverine_combo", "deagle", {}, {
+        name: "Claw Combo",
+        fireMode: "single",
+        fireDelay: WolverineCombo.cooldown,
+        energyCost: 0,
+        bulletCount: 0,
+        mounted: true,
+        caseTiming: "reload",
+        sound: { shoot: "wolverine_combo_devourer", shootAlt: "wolverine_combo_murasama" },
+        shotSpread: 0,
+        moveSpread: 0,
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
+    // Wolverine's skill 2, Adamantium Dash: the Claw Combo with one claw, from below (see Player.startClawCombo).
+    // It fires nothing itself, needs a marked enemy, does 50 dmg and a 4 s bleed, 8 s cooldown, and plays the
+    // combo's first sound. It is held as its slot icon
+    kitGun("kit_wolverine_dash", "barrett", {}, {
+        name: "Adamantium Dash",
+        bulletCount: 0,
+        mounted: true,
+        caseTiming: "reload",
+        sound: { shoot: "wolverine_combo_devourer" },
+        // the slot icon (168 wide) is the held sprite too; its art fills the whole image, where the old world
+        // sprite's filled 112 of 128, so it is drawn at that share of the usual size to look the same size
+        worldImg: {
+            sprite: `img/custom-weapons/loot/kit_wolverine_dash.png?v=${CustomWeaponsVersion}`,
+            scale: {
+                x: ((BaseGunLengths.barrett ?? 48) / 80) * (112 / 168),
+                y: ((BaseGunLengths.barrett ?? 48) / 80) * (112 / 168),
+            },
+        },
+        fireMode: "single",
+        fireDelay: WolverineDash.cooldown,
+        energyCost: 0,
+        shotSpread: 0,
+        moveSpread: 0,
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
+    // Spider-Man's passive (see Player.updateAutoFire): a white web ball at the nearest enemy, as far and fast as
+    // the web shooter, no swing. It is a gun only for its sound: nothing ever holds it, and it fires no recoil or
+    // casings
+    kitGun("kit_spider_auto", "deagle", {
+        damage: 30,
+        speed: 120,
+        distance: 40,
         tracerColor: "cw_white",
         tracerWidth: 0.3,
-        sprite: kitAsset("flint_shot"),
-        // screen px at zoom 1, sized like the Christmas Ultimatum tree (80) so it reads at 15x zoom
-        spriteSize: 120,
+        tracerLength: 1.2,
+        sprite: kitAsset("web_ball"),
+        spriteSize: 28,
     }, {
-        name: "Adamantium Dash",
+        name: "Web Burst",
         fireMode: "single",
-        fireDelay: 8,
+        bulletCount: 0,
+        mounted: true,
+        caseTiming: "reload",
+        sound: { shoot: "spider_auto_splatshot" },
         energyCost: 0,
         shotSpread: 0,
         moveSpread: 0,
@@ -4086,6 +4390,8 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
         spriteSize: 28,
     }, {
         name: "Web Shooter",
+        // the same splat as his auto web
+        sound: { shoot: "spider_auto_splatshot" },
         fireMode: "single",
         // infinite: no ammo count, no reload
         energyCost: 0,
@@ -4097,10 +4403,10 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
         extendedClip: 250,
         extendedReload: 250,
     }),
-    // Ultron laser: a lasting purple beam while held, 12 dmg per 0.5 s, through enemies not walls,
+    // Ultron laser: a lasting purple beam while held, 15 dmg per 0.1 s (each hit also gives him 4 energy), through enemies not walls,
     // 25 energy per second
     kitGun("kit_ultron_laser", "m249", {
-        damage: 1.5,
+        damage: 15,
         speed: 400,
         // 1.5x range, and it tears through obstacles
         distance: 52.5,
@@ -4123,28 +4429,29 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
         extendedClip: 250,
         extendedReload: 250,
     }),
-    // Ultron energy blast: six coloured orbs in a wider cone, 80 energy, 5 s cooldown
+    // Ultron's Combo (skill 2): all his energy, 15 s cooldown. The gun is only the key and the cooldown, the
+    // player runs the whole combo (Player.updateUltronCombo). No headshots, so its damage is what UltronCombo says
     kitGun("kit_ultron_blast", "barrett", { damage: 0 }, {
-        name: "Energy Blast",
+        name: "Ultron Combo",
         fireMode: "single",
-        fireDelay: 7,
-        energyCost: 80,
-        bulletCount: 6,
-        fanShot: true,
-        shotSpread: 16,
+        fireDelay: UltronCombo.cooldown,
+        // any energy will do: the combo takes all of it
+        energyCost: 1,
+        headshotMult: 1,
+        shotSpread: 0,
         moveSpread: 0,
-        bulletTypes: ["red", "blue", "green", "yellow", "purple", "orange"].map((c) => `bullet_kit_ultron_orb_${c}`),
         maxClip: 250,
         maxReload: 250,
         extendedClip: 250,
         extendedReload: 250,
     }),
-    // Wizard magic blast: a flaming laser to max range plus 3 homing bolts in a cone, 50 energy, 1.2 s cooldown
+    // Wizard magic blast: a flaming laser to max range plus 3 homing bolts in a cone, 50 energy, 0.9 s cooldown
     kitGun("kit_wizard_blast", "famas", { damage: 0 }, {
         name: "Magic Blast",
         fireMode: "single",
-        fireDelay: 1.6,
+        fireDelay: 0.9,
         energyCost: 50,
+        sound: { shoot: "wizard_cast" },
         bulletCount: 4,
         shotAngles: [0, -15, 0, 15],
         bulletTypes: [
@@ -4181,6 +4488,69 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
         extendedClip: 250,
         extendedReload: 250,
     }),
+    // a Summoner minion's dash: the key for its sound and damage rules (see Player.updateDaggers), never held
+    kitGun("kit_summoner_dagger", "barrett", { damage: 0 }, {
+        name: "Minion Dash",
+        fireMode: "single",
+        bulletCount: 0,
+        // true damage: no headshot roll
+        headshotMult: 1,
+        caseTiming: "reload",
+        sound: { shoot: "summoner_dash" },
+        energyCost: 0,
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
+    // Wizard Crystal Burst: a spinning crystal then two spinning circles, 45 / 30 dmg and bleeding, 40 energy,
+    // 5 s cooldown. The crystal's burst is Player.burstWizardCrystal
+    kitGun("kit_wizard_crystals", "famas", { damage: 0 }, {
+        name: "Crystal Burst",
+        fireMode: "burst",
+        burstCount: 3,
+        burstDelay: 0.22,
+        fireDelay: WizardCrystals.cooldown,
+        energyCost: WizardCrystals.energy,
+        caseTiming: "reload",
+        sound: { shoot: "wizard_cast" },
+        shotSpread: 0,
+        moveSpread: 0,
+        bulletTypes: [
+            kitBullet("bullet_kit_wizard_crystal_main", {
+                damage: WizardCrystals.crystal,
+                speed: 50,
+                distance: 50,
+                noTracer: true,
+                tracerColor: "cw_star",
+                tracerWidth: 0.2,
+                sprite: kitAsset("wizard_crystal"),
+                spriteSize: 112,
+                // as wide as it is drawn, so it lands on anyone it passes close to
+                hitRadius: 3,
+                spin: 8,
+            }),
+            ...[0, 1].map((i) =>
+                kitBullet(`bullet_kit_wizard_crystal_circle_${i}`, {
+                    damage: WizardCrystals.circle,
+                    speed: 50,
+                    distance: 50,
+                    noTracer: true,
+                    tracerColor: "cw_star",
+                    tracerWidth: 0.2,
+                    sprite: kitAsset("wizard_circle"),
+                    spriteSize: 104,
+                    hitRadius: 2.8,
+                    spin: -10,
+                })
+            ),
+        ],
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
+    // Wizard Stun Wave: nothing to fire, the player runs the ring (Player.updateWizardWave); 9 s cooldown
     // Wizard star blast: 9 bolts one after another within a second, starting spread out and closing
     // in, then homing, 7 dmg each, 100 energy, 3 s cooldown
     kitGun("kit_wizard_stars", "famas", { damage: 0 }, {

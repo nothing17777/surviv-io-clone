@@ -1088,6 +1088,23 @@ const SkinDefs: Record<string, OutfitDef> = {
         },
         lootImg: { sprite: "loot-shirt-01.img", tint: 0xc8cad0 },
     }),
+    // a yellow circle, lighter and greener than Wolverine's gold so the two read apart
+    outfitKitSentry: defineOutfitSkin("outfitBase", {
+        name: "Sentry",
+        noDropOnDeath: true,
+        rarity: Rarity.Common,
+        skinImg: {
+            baseTint: 0xfff04a,
+            baseSprite: "player-base-01.img",
+            handTint: 0xe8d530,
+            handSprite: "player-hands-01.img",
+            footTint: 0xe8d530,
+            footSprite: "player-feet-01.img",
+            backpackTint: 0xc9b820,
+            backpackSprite: "player-circle-base-01.img",
+        },
+        lootImg: { sprite: "loot-shirt-01.img", tint: 0xfff04a },
+    }),
     outfitKitGreengoblin: defineOutfitSkin("outfitBase", {
         name: "Green Goblin",
         noDropOnDeath: true,

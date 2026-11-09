@@ -652,8 +652,8 @@ export class Bullet {
                     !(
                         !obj.dead
                         && !this.noPlayerHit
-                        // Iron Man in flight can't be hit: shots fly straight through him
-                        && !obj.untargetable
+                        // Iron Man in flight can't be hit: shots fly straight through him (unless they hit flyers)
+                        && (!obj.untargetable || GameObjectDefs.typeToDef(this.bulletType, "bullet").hitsFlying)
                         // the super hacker's shots reach into bunkers and up from them too
                         && (util.sameLayer(obj.layer, this.layer) || 2 & obj.layer || this.devShot)
                         && (obj.__id !== this.playerId || this.damageSelf)
@@ -720,7 +720,7 @@ export class Bullet {
                     posOld,
                     this.pos,
                     obj.pos,
-                    obj.rad,
+                    obj.rad + (GameObjectDefs.typeToDef(this.bulletType, "bullet").hitRadius ?? 0),
                 );
                 if (
                     collision
@@ -826,6 +826,11 @@ export class Bullet {
                 // Continue travelling if non-collidable
                 hit = col.collidable && !this.pierce;
             } else if (col.type == "player") {
+                // a wide shot overlaps the same player for several ticks as it passes: it hits each only once
+                if (GameObjectDefs.typeToDef(this.bulletType, "bullet").hitRadius) {
+                    if (this.damagedObjIds.has(col.player!.__id)) continue;
+                    this.damagedObjIds.add(col.player!.__id);
+                }
                 if (!shooterDead) {
                     const isHighValueTarget = this.player?.hasPerk("targeting") && col.player!.perks.length;
 
@@ -852,7 +857,8 @@ export class Bullet {
                             ? 1
                             : this.apRounds
                             ? PerkProperties.ap_rounds.armorPenetration
-                            : undefined,
+                            : GameObjectDefs.typeToDef(this.bulletType, "bullet").armorPenetration,
+                        hitsFlying: GameObjectDefs.typeToDef(this.bulletType, "bullet").hitsFlying,
                     });
                 }
                 hit = col.collidable && !this.pierce;
@@ -878,6 +884,10 @@ export class Bullet {
                 // custom explosive shots go off on the player they hit, so the blast can't miss them
                 if (col.type == "player" && this.onHitFx?.startsWith("explosion_cw")) {
                     this.pos = v2.copy(col.player!.pos);
+                }
+                // Wizard's crystal bursts into mini crystals on whatever it touches
+                if (this.bulletType === "bullet_kit_wizard_crystal_main" && this.player && !this.player.dead) {
+                    this.player.burstWizardCrystal(v2.copy(this.pos), this.layer);
                 }
                 this.alive = false;
                 break;

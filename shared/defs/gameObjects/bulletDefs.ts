@@ -69,6 +69,12 @@ export interface BulletDef {
     flame?: boolean;
     /** draw only the sprite, without the usual bullet tracer */
     noTracer?: boolean;
+    /** world units added to a player's radius when checking this shot's hit, so it is wider than its line */
+    hitRadius?: number;
+    /** also hits players who can't normally be targeted (Iron Man's flight, Spider-Man's dodge) */
+    hitsFlying?: boolean;
+    /** multiplies the armor reduction it meets, like ap_rounds: 0.2 ignores 80% of it */
+    armorPenetration?: number;
 }
 
 export const BaseDefs: Record<string, BulletDef> = {

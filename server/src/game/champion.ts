@@ -81,6 +81,9 @@ interface Zone {
     dir: Vec2;
 }
 
+/** seconds Guardian Angel holds a champion in stasis */
+const GuardianAngelStasis = 4;
+
 /** a champion's state: cooldowns, buffs, item passives */
 export class Champion {
     def;
@@ -182,7 +185,9 @@ export class Champion {
 
     cast(i: number) {
         const p = this.player;
-        if (p.dead || p.downed || p.debuffs.silence > 0 || p.debuffs.airborne > 0 || this.buff("zhonya")) return;
+        // stunned (Spider-Man's Portal Combo, the Sentry's charge) or silenced: no casting
+        if (p.dead || p.downed || p.stunned || p.debuffs.silence > 0 || p.debuffs.airborne > 0) return;
+        if (this.buff("zhonya")) return;
         const key = AbilityKeys[i];
         // Spirit Rush: the second and third dash are free while it lasts
         if (this.id === "ahri" && key === "r" && this.ahriCharges > 0 && this.buff("ahri_r")) {
@@ -204,7 +209,7 @@ export class Champion {
 
     useItem() {
         const p = this.player;
-        if (!this.active || this.itemCooldown > 0 || p.dead) return;
+        if (!this.active || this.itemCooldown > 0 || p.dead || p.stunned) return;
         if (this.active.kind === "stridebreaker") {
             for (const e of p.enemiesWithin(5)) {
                 this.hit(e, 40, "item");
@@ -851,12 +856,14 @@ export class Champion {
             this.addShield(60);
         }
         if (this.passives.has("guardian_angel") && !this.guardianAngelUsed && amount >= p.health + p.shield) {
-            // Guardian Angel: stasis for 2 s, then back at half health
+            // Guardian Angel: stasis (a yellow circle round him) then back at half health
             this.guardianAngelUsed = true;
             p.health = Math.max(p.health, 1);
-            p.dodgeTime = 2;
-            p.debuffs.root = 2;
-            this.later(2, () => this.heal(p.maxHealth * 0.5));
+            p.dodgeTime = GuardianAngelStasis;
+            p.stasisTime = GuardianAngelStasis;
+            p.debuffs.root = GuardianAngelStasis;
+            p.setDirty();
+            this.later(GuardianAngelStasis, () => this.heal(p.maxHealth * 0.5));
             this.announce(CastItem);
             return 0;
         }
@@ -877,6 +884,7 @@ export class Champion {
 
     update(dt: number) {
         // Death's Dance pays out what it put off, over 3 s
+        if (this.deferredDamage > 0 && this.player.stasis) this.deferredDamage = 0;
         if (this.deferredDamage > 0) {
             const bite = Math.min(this.deferredDamage, (this.deferredDamage / 3) * dt + 0.01);
             this.deferredDamage -= bite;

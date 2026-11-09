@@ -37,6 +37,41 @@ const ChampionSoundDefs: Record<string, SoundDef> = Object.fromEntries(
 const Sounds: Record<string, Record<string, SoundDef>> = {
     players: {
         ...ChampionSoundDefs,
+        // Wolverine's Claw Combo: its claws take turns playing these two
+        wolverine_combo_devourer: {
+            path: "audio/kits/wolverine_combo_devourer.ogg",
+            volume: 1,
+            maxInstances: 4,
+        },
+        wolverine_combo_murasama: {
+            path: "audio/kits/wolverine_combo_murasama.ogg",
+            volume: 1,
+            maxInstances: 4,
+        },
+        // all three of the Wizard's skills
+        wizard_cast: {
+            path: "audio/kits/wizard_cast.ogg",
+            volume: 1,
+            maxInstances: 4,
+        },
+        // a Summoner minion's dash landing
+        summoner_dash: {
+            path: "audio/kits/summoner_dash.ogg",
+            volume: 1,
+            maxInstances: 4,
+        },
+        // Iron Man's three skills
+        ironman_laser: {
+            path: "audio/kits/ironman_laser.ogg",
+            volume: 1,
+            maxInstances: 4,
+        },
+        // Spider-Man's auto web
+        spider_auto_splatshot: {
+            path: "audio/kits/spider_auto_splatshot.ogg",
+            volume: 1,
+            maxInstances: 4,
+        },
         m9_01: {
             path: "audio/guns/m9_01.mp3",
             volume: 1,

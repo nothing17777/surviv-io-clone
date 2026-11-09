@@ -1,3 +1,5 @@
+import { UltronCombo } from "./kitDefs.ts";
+
 export type ExplosionDef =
     & {
         type: "explosion";
@@ -509,6 +511,30 @@ export const ExplosionDefs: Record<string, ExplosionDef> = {
         explosionEffectType: "rounds",
         decalType: "",
     },
+    // Ultron's Combo: each red orb goes off in a wide blast, full damage out to rad.min (see UltronCombo.orbs)
+    explosion_kit_ultron_orb: {
+        type: "explosion",
+        damage: UltronCombo.orbs.damage,
+        obstacleDamage: 1,
+        rad: UltronCombo.orbs.blast,
+        shrapnelCount: 0,
+        shrapnelType: "",
+        explosionEffectType: "frag",
+        decalType: "",
+        ownerSafe: true,
+    },
+    // Ultron's Combo: where its ring deletes a projectile. No damage; clients end the shots near it
+    explosion_kit_pop: {
+        type: "explosion",
+        damage: 0,
+        obstacleDamage: 0,
+        rad: { min: 0.5, max: 1 },
+        shrapnelCount: 0,
+        shrapnelType: "",
+        explosionEffectType: "rounds",
+        decalType: "",
+        ownerSafe: true,
+    },
     // Green Goblin's pumpkin bombs (and the bomb his Tricky Swap leaves behind): 25 dmg, and they set the
     // enemy burning for 3 s (see Player.damage). They never hurt the goblin or his team
     explosion_kit_pumpkin: {
@@ -520,6 +546,18 @@ export const ExplosionDefs: Record<string, ExplosionDef> = {
         shrapnelType: "",
         explosionEffectType: "frag",
         decalType: "decal_frag_small_explosion",
+        ownerSafe: true,
+    },
+    // Wizard's mini crystals: 15 dmg to whoever touched one, and they bleed (see Player.damage)
+    explosion_kit_wizard_shard: {
+        type: "explosion",
+        damage: 15,
+        obstacleDamage: 0,
+        rad: { min: 2, max: 3 },
+        shrapnelCount: 0,
+        shrapnelType: "",
+        explosionEffectType: "frag",
+        decalType: "",
         ownerSafe: true,
     },
     // Ultron's minions blow up after 20 s or when destroyed: 25 dmg

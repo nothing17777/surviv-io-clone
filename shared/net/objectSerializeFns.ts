@@ -1,5 +1,5 @@
 import { type Action, type Anim, GameConfig, HasteType } from "../gameConfig.ts";
-import type { Vec2 } from "../utils/v2.ts";
+import { v2, type Vec2 } from "../utils/v2.ts";
 import { BitSizes, type BitStream, Constants } from "./net.ts";
 
 export enum ObjectType {
@@ -100,8 +100,32 @@ export interface ObjectsFullData {
         kitAura: number;
         /** Green Goblin: where his main drone is round him, radians in [0, 2pi) */
         droneAngle: number;
+        /** Sentry Solar Explosion cast counter (3 bits); a change starts the ring */
+        solarCast: number;
+        /** Iron Man Laser Spin cast counter (3 bits); a change starts the beams */
+        ironSpinCast: number;
+        /** Wizard Stun Wave cast counter (3 bits); a change starts the ring */
+        wizardWaveCast: number;
+        /** Summoner: where each blade minion is, relative to him (the minions are not objects of their own) */
+        daggerOffsets: Vec2[];
+        /** a training dummy: its health bar is drawn over it, so its health goes on the wire */
+        dummy: boolean;
+        /** the dummy's health as a fraction in [0, 1] */
+        dummyHealth: number;
         /** inside an enhanced Wizard's circle: a sigil under them */
         wizardMarked: boolean;
+        /** Wolverine's mark: a red sigil under them, which his Claw Combo needs */
+        wolverineMarked: boolean;
+        /** mid Claw Combo: unseen by everyone but his team, who see him dim */
+        hidden: boolean;
+        /** stunned by Spider-Man's Portal Combo: webbed up */
+        webbed: boolean;
+        /** held in stasis by Guardian Angel */
+        stasis: boolean;
+        /** stunned by the Wizard's Stun Wave: a green outline */
+        wizardStunned: boolean;
+        /** marked by an Ultron's Combo: an orange target under them */
+        ultronMarked: boolean;
         /** hit by the Summoner's whip: a rainbow circle under them while minion hits land harder */
         vulnerable: boolean;
         /** Excalibur: a dim yellow circle under them while it halves their damage taken */
@@ -254,7 +278,23 @@ export const ObjectSerializeFns: {
             s.writeBoolean(data.charmed);
             s.writeBits(data.kitAura, 3);
             s.writeFloat(data.droneAngle, 0, Math.PI * 2, 8);
+            s.writeBits(data.solarCast, 3);
+            s.writeBits(data.ironSpinCast, 3);
+            s.writeBits(data.wizardWaveCast, 3);
+            s.writeBits(data.daggerOffsets.length, 3);
+            for (const o of data.daggerOffsets) {
+                s.writeFloat(o.x, -48, 48, 10);
+                s.writeFloat(o.y, -48, 48, 10);
+            }
+            s.writeBoolean(data.dummy);
+            if (data.dummy) s.writeFloat(data.dummyHealth, 0, 1, 10);
             s.writeBoolean(data.wizardMarked);
+            s.writeBoolean(data.wolverineMarked);
+            s.writeBoolean(data.hidden);
+            s.writeBoolean(data.webbed);
+            s.writeBoolean(data.stasis);
+            s.writeBoolean(data.wizardStunned);
+            s.writeBoolean(data.ultronMarked);
             s.writeBoolean(data.vulnerable);
             s.writeBoolean(data.excaliburActive);
             s.writeBoolean(data.flying);
@@ -339,7 +379,22 @@ export const ObjectSerializeFns: {
             data.charmed = s.readBoolean();
             data.kitAura = s.readBits(3);
             data.droneAngle = s.readFloat(0, Math.PI * 2, 8);
+            data.solarCast = s.readBits(3);
+            data.ironSpinCast = s.readBits(3);
+            data.wizardWaveCast = s.readBits(3);
+            data.daggerOffsets = [];
+            for (let n = s.readBits(3); n > 0; n--) {
+                data.daggerOffsets.push(v2.create(s.readFloat(-48, 48, 10), s.readFloat(-48, 48, 10)));
+            }
+            data.dummy = s.readBoolean();
+            data.dummyHealth = data.dummy ? s.readFloat(0, 1, 10) : 1;
             data.wizardMarked = s.readBoolean();
+            data.wolverineMarked = s.readBoolean();
+            data.hidden = s.readBoolean();
+            data.webbed = s.readBoolean();
+            data.stasis = s.readBoolean();
+            data.wizardStunned = s.readBoolean();
+            data.ultronMarked = s.readBoolean();
             data.vulnerable = s.readBoolean();
             data.excaliburActive = s.readBoolean();
             data.flying = s.readBoolean();

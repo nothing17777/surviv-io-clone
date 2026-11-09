@@ -31,6 +31,28 @@ export interface ChampionDef {
 }
 
 /** what an item gives in surviv terms */
+/**
+ * A kit item's effect that fires when health drops below `below` (a share of max HP) and then can't fire again for
+ * `cooldown` s, counted from when it fired. Its buffs last `duration` s. Every effect is optional, and a kit
+ * runs one of each kind at a time
+ */
+export interface ItemTrigger {
+    below: number;
+    cooldown: number;
+    duration: number;
+    /** health recovered, as a share of max HP once any max HP it adds is in */
+    heal?: number;
+    /** max HP added for `duration`, +0.3 is +30%; it joins the build's other max HP multipliers, which are added */
+    maxHealthMult?: number;
+    /** a shield of this share of max HP for `duration`; whatever is left of it then goes */
+    shield?: number;
+    /**
+     * damage taken cut by `start` for `duration`, a layer of its own on top of the kit's reductions: each hit taken
+     * lowers it by `perHit`, down to `floor`
+     */
+    wall?: { start: number; perHit: number; floor: number };
+}
+
 export interface ItemDef {
     name: string;
     /** basic attack damage multiplier, added up across items */
@@ -40,7 +62,20 @@ export interface ItemDef {
     /** basic attack speed, added up (0.25 = 25% shorter cooldown between attacks) */
     attackSpeed?: number;
     moveSpeed?: number;
+    /** flat max health, added before any health multiplier */
     health?: number;
+    /** kit items (Sentry): max health, +0.44 is +44%. Every multiplier on a build is added together first */
+    healthMult?: number;
+    /** kit items (Sentry): all damage dealt to players, +0.44 is +44%, added together like healthMult */
+    allDamage?: number;
+    /** kit items (Sentry): less damage taken from everything, +0.2 is 20% less; added together with the kit's own */
+    damageTakenReduction?: number;
+    /** kit items (Sentry): share of the enemy's damage reduction ignored, like Sentry Charge's armor penetration */
+    ignoreReduction?: number;
+    /** kit items (Sentry): an effect that fires by itself when health is low, then waits out a cooldown */
+    trigger?: ItemTrigger;
+    /** HUD image, for the kits that show their build */
+    icon?: string;
     /** chance a basic attack crits, added up and capped at 1 */
     crit?: number;
     /** crit damage on top of the base 1.75x */
@@ -59,7 +94,7 @@ export interface ItemDef {
         | "kraken" // every 3rd basic hit deals 35 bonus damage
         | "botrk" // basic hits deal 6% of the target's current health
         | "collector" // enemies below 5% health are executed
-        | "guardian_angel" // revive once at half health
+        | "guardian_angel" // a killing blow is cancelled once: 4 s of stasis, then half health back
         | "shieldbow" // a 60 shield when dropping below 30% health, every 90 s
         | "spellblade" // the next basic attack after an ability deals 40% more
         | "lich_bane" // the next basic attack after an ability deals 75% more
@@ -143,6 +178,47 @@ export const ItemDefs: Record<string, ItemDef> = {
     guinsoos_rageblade: { name: "Guinsoo's Rageblade", attackSpeed: 0.25, passive: "guinsoo" },
     wits_end: { name: "Wit's End", attackSpeed: 0.5, damage: 0.08, damageReduction: 0.1 },
     lich_bane: { name: "Lich Bane", abilityPower: 0.15, moveSpeed: 0.3, passive: "lich_bane" },
+    // Sentry's build (see KitDefs.sentry)
+    sentry_heal: { name: "Heal", health: 812, icon: "img/kit-items/sentry_heal.png" },
+    sentry_artifact: {
+        name: "Sentry Artifact",
+        healthMult: 0.44,
+        allDamage: 0.44,
+        icon: "img/kit-items/sentry_artifact.png",
+    },
+    sentry_liberation: {
+        name: "Liberation",
+        healthMult: 0.25,
+        damageTakenReduction: 0.2,
+        icon: "img/kit-items/sentry_liberation.png",
+    },
+    sentry_jeff: {
+        name: "Jeff",
+        allDamage: 0.89,
+        ignoreReduction: 0.1,
+        healthMult: 0.44,
+        icon: "img/kit-items/sentry_jeff.png",
+    },
+    sentry_conquest: {
+        name: "Conquest",
+        // below half health: recover 20% of max HP and gain +30% max HP, and a Wall that blocks all damage at first
+        trigger: {
+            below: 0.5,
+            cooldown: 11,
+            duration: 6,
+            heal: 0.2,
+            maxHealthMult: 0.3,
+            wall: { start: 1, perHit: 0.03, floor: 0.8 },
+        },
+        icon: "img/kit-items/sentry_conquest.png",
+    },
+    sentry_rescue: {
+        name: "Rescue",
+        healthMult: 0.25,
+        // below 99% health: a shield of half his max HP
+        trigger: { below: 0.99, cooldown: 10, duration: 5, shield: 0.5 },
+        icon: "img/kit-items/sentry_rescue.png",
+    },
 };
 
 /**
@@ -1236,7 +1312,7 @@ export const ChampionDefs: Record<string, ChampionDef> = {
     jinx: {
         name: "Jinx",
         title: "the Loose Cannon",
-        health: 130,
+        health: 115,
         speedBonus: 0,
         gun: true,
         basic: { damage: 14, cooldown: 0.16 },
@@ -1271,7 +1347,7 @@ export const ChampionDefs: Record<string, ChampionDef> = {
     caitlyn: {
         name: "Caitlyn",
         title: "the Sheriff of Piltover",
-        health: 125,
+        health: 110,
         speedBonus: 0,
         gun: true,
         basic: { damage: 30, cooldown: 0.75, range: 120 },
@@ -1298,7 +1374,7 @@ export const ChampionDefs: Record<string, ChampionDef> = {
     ashe: {
         name: "Ashe",
         title: "the Frost Archer",
-        health: 120,
+        health: 105,
         speedBonus: 0,
         gun: true,
         basic: { damage: 24, cooldown: 0.5 },
@@ -1459,7 +1535,7 @@ export const ChampionDefs: Record<string, ChampionDef> = {
     garen: {
         name: "Garen",
         title: "the Might of Demacia",
-        health: 220,
+        health: 115,
         speedBonus: 0.5,
         gun: false,
         basic: { damage: 28, cooldown: 0.6 },
@@ -1491,7 +1567,7 @@ export const ChampionDefs: Record<string, ChampionDef> = {
     darius: {
         name: "Darius",
         title: "the Hand of Noxus",
-        health: 220,
+        health: 115,
         speedBonus: 0,
         gun: false,
         basic: { damage: 30, cooldown: 0.65 },

@@ -3,8 +3,8 @@ import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
 import {
     isKitItem,
     KitDefs,
-    SpiderDodgeTime,
-    WolverineDashDistance,
+    SentryCharge,
+    SentryNova,
 } from "../../../shared/defs/gameObjects/kitDefs.ts";
 import type { MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
 import { PerkProperties } from "../../../shared/defs/gameObjects/perkDefs.ts";
@@ -431,19 +431,20 @@ export class WeaponManager {
             player.animType !== GameConfig.Anim.Melee
             && (player.shootStart || (player.shootHold && itemDef.autoAttack))
             && weapon.cooldown < 0
+            && (this.activeWeapon !== "kit_spider_dodge" || this.player.canStartSpiderCombo())
+            && (this.activeWeapon !== "kit_ironman_combo" || this.player.canStartIronCombo())
             && this.payEnergy(itemDef.energyCost)
         ) {
             this.player.cancelAction();
             // abilities in the melee slot
             if (this.activeWeapon === "kit_ultron_minions") this.player.spawnMinions();
+            if (this.activeWeapon === "kit_ironman_combo") this.player.startIronCombo();
             if (this.activeWeapon === "kit_spider_dodge") {
-                this.player.dodgeTime = SpiderDodgeTime;
-                // the faster webs start straight away
-                this.player.autoFireTimer = 0;
-                this.player.setDirty();
+                this.player.startSpiderCombo();
             }
             // Green Goblin's Tricky Swap
             if (this.activeWeapon === "kit_goblin_swap") this.player.goblinSwap();
+            if (this.activeWeapon === "kit_wizard_wave") this.player.startWizardWave();
             if (this.activeWeapon === "kit_wizard_enhance") {
                 this.player.kitEnhanceTime = 9;
                 this.player.setDirty();
@@ -818,6 +819,11 @@ export class WeaponManager {
         this.scheduledReload = weapon.ammo <= 1;
 
         if (weapon.ammo <= 0) return;
+        // Wolverine's skills need a marked enemy; without one nothing is used and no cooldown starts
+        if (
+            (this.activeWeapon === "kit_wolverine_combo" || this.activeWeapon === "kit_wolverine_dash")
+            && !this.player.canStartClawCombo()
+        ) return;
         // only one Judge rocket in the air at a time
         if (this.activeWeapon === "pg_judge") {
             const live = this.player.activeJudgeRocket;
@@ -867,14 +873,54 @@ export class WeaponManager {
         }
         // Green Goblin's Golden Upgrade: the sub drones come out and he runs faster for its duration
         if (this.activeWeapon === "kit_goblin_upgrade") this.player.startGoblinUpgrade();
-        // Wolverine's dash: he slides 16 tiles alongside his streak (walls still stop him)
-        if (this.activeWeapon === "kit_wolverine_dash") {
-            const bullet = GameObjectDefs.typeToDef(itemDef.bulletType, "bullet");
+        // Wolverine's Claw Combo (ten claws) and Adamantium Dash (one, from below): he vanishes while the claws
+        // chain his mark around
+        if (this.activeWeapon === "kit_wolverine_combo" || this.activeWeapon === "kit_wolverine_dash") {
+            this.player.startClawCombo(this.activeWeapon);
+        }
+
+        // Iron Man's Laser Spin: the player runs the two lasers (see IronManSpin)
+        if (this.activeWeapon === "kit_ironman_spin") this.player.startIronSpin();
+
+        // Ultron's Combo: the skill is a timeline the player runs, not a volley of bullets (see UltronCombo)
+        if (this.activeWeapon === "kit_ultron_blast") {
+            this.player.startUltronCombo();
+            return;
+        }
+
+        // Sentry Charge: a 30 tile dash at Ahri's dash speed, flying for 2 s; it heals him whether or not it hits.
+        // His body hits and drags along whoever he runs through for as long as the dash lasts
+        if (this.activeWeapon === "kit_sentry_charge") {
+            const dashTime = SentryCharge.distance / SentryCharge.speed + 0.1;
             this.player.webPull = {
-                target: v2.add(this.player.pos, v2.mul(this.player.dir, WolverineDashDistance)),
-                speed: bullet.speed,
-                time: WolverineDashDistance / bullet.speed + 0.1,
+                target: v2.add(this.player.pos, v2.mul(this.player.dir, SentryCharge.distance)),
+                speed: SentryCharge.speed,
+                time: dashTime,
             };
+            this.player.startSentryDash(this.player.dir, dashTime);
+            this.player.startFlight(
+                { duration: SentryCharge.flight, untargetable: 0, waveAt: 0, speedBonus: 0 },
+                this.activeWeapon,
+            );
+            this.player.health = Math.min(
+                this.player.health + this.player.maxHealth * SentryCharge.healPercent,
+                this.player.maxHealth,
+            );
+            this.player.setDirty();
+        }
+
+        // Sentry Solar Explosion: a ring bursts out of him, heals him, guards him against armor penetration and lifts him
+        if (this.activeWeapon === "kit_sentry_solar") {
+            this.player.startSentryNova();
+            this.player.startFlight(
+                { duration: SentryNova.flight, untargetable: 0, waveAt: 0, speedBonus: 0 },
+                this.activeWeapon,
+            );
+            this.player.health = Math.min(
+                this.player.health + this.player.maxHealth * SentryNova.heal,
+                this.player.maxHealth,
+            );
+            this.player.setDirty();
         }
 
         const collisionLayer = util.toGroundLayer(this.player.layer);

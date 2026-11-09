@@ -1364,6 +1364,18 @@ export class Game {
                     }
                 }
             }
+            // Ultron's Combo deleted a projectile here: it ends on this screen too (its own effects stay)
+            if (e.type === "explosion_kit_pop") {
+                for (const b of this.m_bulletBarn.bullets) {
+                    if (
+                        b.alive && !b.bulletType.startsWith("bullet_kit_ultron_fx_")
+                        && v2.distance(b.pos, e.pos) < 4
+                    ) {
+                        b.alive = false;
+                        b.collided = true;
+                    }
+                }
+            }
             // the Judge rocket that made this blast ends here
             if (e.type === "explosion_cw_judge") {
                 let rocket;
