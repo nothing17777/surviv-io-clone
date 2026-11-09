@@ -311,6 +311,7 @@ export class LoadoutDisplay {
             wolverineMarked: false,
             hidden: false,
             webbed: false,
+            stasis: false,
             wizardStunned: false,
             ultronMarked: false,
             vulnerable: false,

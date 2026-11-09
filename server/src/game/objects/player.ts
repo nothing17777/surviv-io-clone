@@ -852,6 +852,13 @@ export class Player extends BaseGameObject {
         grabbed: Player[];
     };
 
+    /** seconds left of a champion's Guardian Angel stasis (drawn as a yellow circle) */
+    stasisTime = 0;
+
+    get stasis() {
+        return this.stasisTime > 0 && !this.dead;
+    }
+
     /** seconds left of the web stun Spider-Man's Portal Combo put on this player (see `webbed`) */
     webStunTime = 0;
 
@@ -3032,6 +3039,14 @@ export class Player extends BaseGameObject {
                 }
             }
 
+            if (this.stasisTime > 0) {
+                this.stasisTime -= dt;
+                if (this.stasisTime <= 0) {
+                    this.stasisTime = 0;
+                    this.setDirty();
+                }
+            }
+
             // the web Spider-Man's Portal Combo put on them goes with the stun (they need not be a kit player)
             if (this.webStunTime > 0) {
                 this.webStunTime -= dt;
@@ -4157,6 +4172,7 @@ export class Player extends BaseGameObject {
         this.endClawCombo();
         this.spiderCombo = undefined;
         this.webStunTime = 0;
+        this.stasisTime = 0;
         this.setMarkTarget(undefined);
         for (const w of [...this.markedBy]) w.setMarkTarget(undefined);
         this.flightTime = 0;

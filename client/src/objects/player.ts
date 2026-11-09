@@ -347,6 +347,7 @@ export class Player implements AbstractObject {
         wolverineMarked: boolean;
         hidden: boolean;
         webbed: boolean;
+        stasis: boolean;
         wizardStunned: boolean;
         ultronMarked: boolean;
         vulnerable: boolean;
@@ -540,6 +541,7 @@ export class Player implements AbstractObject {
             wolverineMarked: false,
             hidden: false,
             webbed: false,
+            stasis: false,
             wizardStunned: false,
             ultronMarked: false,
             vulnerable: false,
@@ -647,6 +649,7 @@ export class Player implements AbstractObject {
             this.m_netData.wolverineMarked = data.wolverineMarked;
             this.m_netData.hidden = data.hidden;
             this.m_netData.webbed = data.webbed;
+            this.m_netData.stasis = data.stasis;
             this.m_netData.wizardStunned = data.wizardStunned;
             this.m_netData.ultronMarked = data.ultronMarked;
             this.m_netData.vulnerable = data.vulnerable;
@@ -2892,6 +2895,7 @@ export class Player implements AbstractObject {
     kitCircle: PIXI.Sprite | null = null;
     kitSigil: PIXI.Sprite | null = null;
     webbedSprite: PIXI.Sprite | null = null;
+    stasisRing: PIXI.Graphics | null = null;
     wizardStunRing: PIXI.Graphics | null = null;
     vulnerableRing: PIXI.Graphics | null = null;
     ultronReticle: PIXI.Graphics | null = null;
@@ -3213,6 +3217,20 @@ export class Player implements AbstractObject {
                     reticle.lineTo(Math.cos(a) * r * 1.2, Math.sin(a) * r * 1.2);
                 }
                 reticle.rotation += dt * 2.5;
+            }
+        }
+        // Guardian Angel: a yellow circle outlines the champion while it holds them in stasis
+        if (this.m_netData.stasis || this.stasisRing) {
+            if (!this.stasisRing) {
+                this.stasisRing = new PIXI.Graphics();
+                this.auraContainer.addChild(this.stasisRing);
+            }
+            const ring = this.stasisRing;
+            ring.visible = this.m_netData.stasis && !dead;
+            if (ring.visible) {
+                ring.clear();
+                ring.lineStyle(0.35 * px, 0xffd600, 0.95);
+                ring.drawCircle(0, 0, 2.6 * px);
             }
         }
         if (this.m_netData.vulnerable || this.vulnerableRing) {

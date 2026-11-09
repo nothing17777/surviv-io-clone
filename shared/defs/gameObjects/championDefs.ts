@@ -94,7 +94,7 @@ export interface ItemDef {
         | "kraken" // every 3rd basic hit deals 35 bonus damage
         | "botrk" // basic hits deal 6% of the target's current health
         | "collector" // enemies below 5% health are executed
-        | "guardian_angel" // revive once at half health
+        | "guardian_angel" // a killing blow is cancelled once: 4 s of stasis, then half health back
         | "shieldbow" // a 60 shield when dropping below 30% health, every 90 s
         | "spellblade" // the next basic attack after an ability deals 40% more
         | "lich_bane" // the next basic attack after an ability deals 75% more
@@ -334,7 +334,7 @@ export const ChampionDefs: Record<string, ChampionDef> = {
     jinx: {
         name: "Jinx",
         title: "the Loose Cannon",
-        health: 130,
+        health: 115,
         speedBonus: 0,
         gun: true,
         basic: { damage: 14, cooldown: 0.16 },
@@ -369,7 +369,7 @@ export const ChampionDefs: Record<string, ChampionDef> = {
     caitlyn: {
         name: "Caitlyn",
         title: "the Sheriff of Piltover",
-        health: 125,
+        health: 110,
         speedBonus: 0,
         gun: true,
         basic: { damage: 30, cooldown: 0.75, range: 120 },
@@ -396,7 +396,7 @@ export const ChampionDefs: Record<string, ChampionDef> = {
     ashe: {
         name: "Ashe",
         title: "the Frost Archer",
-        health: 120,
+        health: 105,
         speedBonus: 0,
         gun: true,
         basic: { damage: 24, cooldown: 0.5 },
@@ -557,7 +557,7 @@ export const ChampionDefs: Record<string, ChampionDef> = {
     garen: {
         name: "Garen",
         title: "the Might of Demacia",
-        health: 220,
+        health: 115,
         speedBonus: 0.5,
         gun: false,
         basic: { damage: 28, cooldown: 0.6 },
@@ -589,7 +589,7 @@ export const ChampionDefs: Record<string, ChampionDef> = {
     darius: {
         name: "Darius",
         title: "the Hand of Noxus",
-        health: 220,
+        health: 115,
         speedBonus: 0,
         gun: false,
         basic: { damage: 30, cooldown: 0.65 },
