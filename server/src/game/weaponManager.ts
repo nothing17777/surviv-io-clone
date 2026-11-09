@@ -1,6 +1,6 @@
 import { SwingShots } from "../../../shared/defs/gameObjects/customWeaponEffects.ts";
 import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
-import { isKitItem, KitDefs, SentryCharge, SentryNova } from "../../../shared/defs/gameObjects/kitDefs.ts";
+import { isKitItem, KitDefs, SentryCharge, SentryNova, SummonerRod } from "../../../shared/defs/gameObjects/kitDefs.ts";
 import type { MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
 import { PerkProperties } from "../../../shared/defs/gameObjects/perkDefs.ts";
 import { type ThrowableDef, ThrowableDefs } from "../../../shared/defs/gameObjects/throwableDefs.ts";
@@ -437,8 +437,6 @@ export class WeaponManager {
             if (this.activeWeapon === "kit_spider_dodge") {
                 this.player.startSpiderCombo();
             }
-            // Green Goblin's Tricky Swap
-            if (this.activeWeapon === "kit_goblin_swap") this.player.goblinSwap();
             if (this.activeWeapon === "kit_wizard_wave") this.player.startWizardWave();
             if (this.activeWeapon === "kit_wizard_enhance") {
                 this.player.kitEnhanceTime = 9;
@@ -819,6 +817,8 @@ export class WeaponManager {
             (this.activeWeapon === "kit_wolverine_combo" || this.activeWeapon === "kit_wolverine_dash")
             && !this.player.canStartClawCombo()
         ) return;
+        // the Rod of Discord costs hp, and never the last of it
+        if (this.activeWeapon === "kit_summoner_rod" && this.player.health <= SummonerRod.cost) return;
         // only one Judge rocket in the air at a time
         if (this.activeWeapon === "pg_judge") {
             const live = this.player.activeJudgeRocket;
@@ -861,18 +861,17 @@ export class WeaponManager {
         this.player.weapsDirty = true;
         // Iron Man's rockets take him into the air for a while
         if (itemDef.flight) this.player.startFlight(itemDef.flight, this.activeWeapon);
-        // War Machine's Second Fire: the left shoulder mount switches on for its duration
-        if (this.activeWeapon === "kit_warmachine_secondfire") {
-            this.player.kitEnhanceTime = KitDefs.warmachine.mounts!.secondDuration;
-            this.player.setDirty();
-        }
-        // Green Goblin's Golden Upgrade: the sub drones come out and he runs faster for its duration
-        if (this.activeWeapon === "kit_goblin_upgrade") this.player.startGoblinUpgrade();
         // Wolverine's Claw Combo (ten claws) and Adamantium Dash (one, from below): he vanishes while the claws
         // chain his mark around
         if (this.activeWeapon === "kit_wolverine_combo" || this.activeWeapon === "kit_wolverine_dash") {
             this.player.startClawCombo(this.activeWeapon);
         }
+
+        // Summoner's Rod of Discord: he pays hp and appears at the cursor
+        if (this.activeWeapon === "kit_summoner_rod") this.player.teleportToCursor();
+
+        // Summoner's Bundle of Potions: the player runs the buffs
+        if (this.activeWeapon === "kit_summoner_potions") this.player.startPotions();
 
         // Iron Man's Laser Spin: the player runs the two lasers (see IronManSpin)
         if (this.activeWeapon === "kit_ironman_spin") this.player.startIronSpin();

@@ -199,7 +199,7 @@ export class ShotBarn {
                         });
                     }
 
-                    // a body-mounted gun (War Machine) doesn't kick the shooter's hands
+                    // a body-mounted gun doesn't kick the shooter's hands
                     if (player && !weaponDef.mounted) {
                         // If it's our shot, play a cycling or pull sound if needed
                         if (

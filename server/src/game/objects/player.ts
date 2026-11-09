@@ -12,7 +12,6 @@ import {
 } from "../../../../shared/defs/gameObjects/gearDefs.ts";
 import type { GunDef } from "../../../../shared/defs/gameObjects/gunDefs.ts";
 import {
-    dronePos,
     IronManCombo,
     IronManSpin,
     isKitItem,
@@ -21,6 +20,8 @@ import {
     SentryCharge,
     SentryNova,
     SpiderCombo,
+    SummonerPotions,
+    SummonerRod,
     UltronCombo,
     UltronComboTimes,
     UltronMinion,
@@ -784,17 +785,6 @@ export class Player extends BaseGameObject {
     /** Spider-Man: seconds since he last took damage, and until his next auto web */
     calmTime = 0;
     autoFireTimer = 0;
-    /** War Machine: seconds until the right and left shoulder mounts fire next (the left runs on kitEnhanceTime) */
-    mountTimers = [0, 0];
-    /**
-     * Green Goblin: where his main drone is round him (radians counter clockwise from +x, kept in [0, 2pi) since
-     * clients are sent it), where it was a tick ago (for the hit check), the seconds before each enemy it hit
-     * can be hit by it again, and the seconds until his sub drones throw their next bombs
-     */
-    droneAngle = 0;
-    dronePrev?: Vec2;
-    droneHits = new Map<number, number>();
-    droneBombTimer = 0;
     private wasCooling = false;
     /** Ultron minion: who summoned it and how long it has left */
     minionOwner?: Player;
@@ -994,7 +984,7 @@ export class Player extends BaseGameObject {
     get hasDebuff() {
         const d = this.debuffs;
         return this.burnDuration > 0 || this.bleedDotDuration > 0 || this.poisonDuration > 0
-            || this.charmDuration > 0 || this.vulnerableTime > 0 || this.stunTime > 0
+            || this.charmDuration > 0 || this.vulnerable || this.stunTime > 0
             || this.strippedPerks.length > 0 || d.root > 0 || d.slow > 0 || d.silence > 0 || d.airborne > 0;
     }
 
@@ -1762,11 +1752,47 @@ export class Player extends BaseGameObject {
     // Charm (Aphrodite Crossbow): attacks half as fast
     charmDuration = 0;
 
-    /** Summoner's whip: seconds left taking extra damage from each minion hit */
-    vulnerableTime = 0;
+    /** Summoner's whips: seconds left of each whip's mark (index = its place in KitDefs.summoner.whips.list) */
+    whipMarks: number[] = [0, 0, 0];
+    /** the whip fired next, and seconds until it is */
+    whipIdx = 0;
+    whipTimer = 0;
 
     get vulnerable() {
-        return this.vulnerableTime > 0;
+        return this.whipMarks.some((t) => t > 0);
+    }
+
+    /** Summoner's Bundle of Potions: seconds left of its buffs (see SummonerPotions) */
+    potionTime = 0;
+
+    get potions() {
+        return this.potionTime > 0;
+    }
+
+    /** Summoner's Rod of Discord: pay hp, appear where the cursor is (kept inside the map) */
+    teleportToCursor() {
+        this.health -= SummonerRod.cost;
+        const to = v2.add(this.pos, v2.mul(this.dir, this.toMouseLen));
+        this.game.map.clampToMapBounds(to, this.rad);
+        v2.set(this.pos, to);
+        this.setPartDirty();
+        this.game.grid.updateObject(this);
+        this.setDirty();
+    }
+
+    startPotions() {
+        const p = SummonerPotions;
+        if (!this.potions) this.setDirty();
+        this.potionTime = p.duration;
+        this.burnDuration = 0;
+        this.health = math.min(this.health + p.heal, this.maxHealth);
+        this.setDirty();
+    }
+
+    /** the extra damage a Summoner's minion hit does to this enemy, from all the whips that marked it */
+    whipExtraDamage() {
+        const list = KitDefs.summoner.whips!.list;
+        return this.whipMarks.reduce((sum, t, i) => sum + (t > 0 ? list[i].extra ?? 0 : 0), 0);
     }
 
     get charmed() {
@@ -1792,6 +1818,8 @@ export class Player extends BaseGameObject {
     burnWeapon = "pg_frozen_dragon";
 
     applyBurn(duration: number, source?: Player, weapon = "pg_frozen_dragon") {
+        // the potions make him immune to fire
+        if (this.potionTime > 0) return;
         if (this.burnDuration <= 0) this.setDirty();
         this.burnWeapon = weapon;
         this.burnDuration = Math.max(this.burnDuration, duration);
@@ -3016,9 +3044,9 @@ export class Player extends BaseGameObject {
                 if (this.charmDuration <= 0) this.setDirty();
             }
 
-            if (this.vulnerableTime > 0) {
-                this.vulnerableTime -= dt;
-                if (this.vulnerableTime <= 0) this.setDirty();
+            if (this.vulnerable) {
+                this.whipMarks = this.whipMarks.map((t) => Math.max(t - dt, 0));
+                if (!this.vulnerable) this.setDirty();
             }
 
             if (this.wizardStunTime > 0) {
@@ -3823,7 +3851,7 @@ export class Player extends BaseGameObject {
 
         // vulnerable to the Summoner (marked by the whip): each minion dash lands harder
         const trueHit = params.gameSourceType === "kit_summoner_dagger";
-        if (this.vulnerable && trueHit) finalDamage += KitDefs.summoner.vulnerable!.extraDamage;
+        if (this.vulnerable && trueHit) finalDamage += this.whipExtraDamage();
 
         // Excalibur: 50% less damage taken while actively firing it
         if (this.excaliburActive && !trueHit) finalDamage *= 0.5;
@@ -3850,6 +3878,15 @@ export class Player extends BaseGameObject {
         // Sentry: less damage from everything, and an armor-ignoring hit cuts that too
         const sentryReduction = KitDefs[this.kit]?.damageReduction;
         if (sentryReduction) reduceDamage(sentryReduction);
+
+        // Summoner's potions: 10% less, then 4 less from each hit (not from the gas or a bleed's ticks)
+        if (this.potionTime > 0) {
+            reduceDamage(SummonerPotions.reduction);
+            if (
+                finalDamage > 0 && params.damageType !== GameConfig.DamageType.Bleeding
+                && params.damageType !== GameConfig.DamageType.Gas
+            ) finalDamage = Math.max(finalDamage - SummonerPotions.flat, 0);
+        }
 
         // Conquest's Wall is a layer of its own on top of that; every hit that comes in (not the gas or a bleed)
         // wears it down
@@ -3981,7 +4018,7 @@ export class Player extends BaseGameObject {
             else if (src === "kit_wolverine_combo") {
                 this.applyBleed(WolverineCombo.bleed, playerSource);
             } // Iron Man: rockets burn, the repulsor blast bleeds
-            else if (src === "kit_ironman_rockets" || src === "kit_ironman_spin" || src === "kit_warmachine_barrage") {
+            else if (src === "kit_ironman_rockets" || src === "kit_ironman_spin") {
                 this.applyBurn(4, playerSource, src);
             } else if (src === "kit_ironman_blast") this.applyBleed(4, playerSource);
             // Ultron's orb lasers: orange burns, red bleeds, purple poisons, 3s each
@@ -3999,19 +4036,22 @@ export class Player extends BaseGameObject {
                     speed: 20,
                     time: 0.12,
                 };
-            } else if (
-                src === "kit_summoner_whip"
-            ) {
-                // the whip's lash (it hits softer than a dagger) sets the minions' target and leaves them vulnerable
+            } else if (KitDefs.summoner.whips!.list.some((w) => w.gun === src)) {
+                // a whip's lash sets the minions' target and marks it, each whip its own mark (they stack)
+                const w = KitDefs.summoner.whips!;
                 playerSource.summonerFocusId = this.__id;
                 if (!this.vulnerable) this.setDirty();
-                this.vulnerableTime = KitDefs.summoner.vulnerable!.duration;
+                this.whipMarks[w.list.findIndex((x) => x.gun === src)] = w.duration;
+            } else if (src === "kit_summoner_dagger") {
+                // a minion hit on an enemy a fire whip marked sets them burning
+                const w = KitDefs.summoner.whips!;
+                w.list.forEach((x, i) => {
+                    if (x.burn && this.whipMarks[i] > 0) this.applyBurn(x.burn, playerSource, x.gun);
+                });
             } else if (src === "pg_acid_shotgun") this.applyPoison(4, playerSource);
             else if (src === "pg_frozen_dragon") this.applyBurn(2, playerSource);
             else if (src === "pg_photon_sniper_rifle") this.applyBurn(4, playerSource, src);
             else if (src === "pg_mercenary") this.applyBurn(2, playerSource, src);
-            else if (src === "kit_goblin_drone") this.applyBleed(KitDefs.greengoblin.drone!.bleed, playerSource);
-            else if (src === "kit_goblin_pumpkin") this.applyBurn(3, playerSource, src);
             else if (src === "pg_fake_pistol") this.applyBleed(3, playerSource);
             else if (src === "pg_goo_substance_rifle") this.applyPoison(2, playerSource);
             else if (src === "pg_aphrodite_crossbow") {
@@ -6459,11 +6499,6 @@ export class Player extends BaseGameObject {
         this.wizardWave = undefined;
         this.wizardShards = [];
         this.daggerMinions = [];
-        // Green Goblin starts with his drone on his right, no upgrade running
-        this.droneAngle = 0;
-        this.dronePrev = undefined;
-        this.droneHits.clear();
-        this.droneBombTimer = 0;
         this.kitEnhanceTime = 0;
         this.sentryReviveUsed = false;
         this.cleanseCooldown = 0;
@@ -6532,12 +6567,6 @@ export class Player extends BaseGameObject {
             if (calmHealing) rate = kit.calmRegen!.rate;
             this.health = math.min(this.health + rate * dt, this.maxHealth);
         }
-        // War Machine: the shield refills on its own, four times as fast once he has been left alone
-        if (kit.armorRegen && this.shield < this.maxShield) {
-            const rate = this.calmTime >= kit.armorRegen.after ? kit.armorRegen.calmRate : kit.armorRegen.rate;
-            this.shield = math.min(this.shield + rate * dt, this.maxShield);
-            this.shieldDirty = true;
-        }
         const e = kit.energy;
         if (e) {
             const before = Math.round(this.energy);
@@ -6574,6 +6603,11 @@ export class Player extends BaseGameObject {
         const cooling = this.abilityCooldowns.some((c) => c > 0) || this.champCooldowns.some((c) => c > 0);
         if (cooling || this.wasCooling) this.energyDirty = true;
         this.wasCooling = cooling;
+        if (this.potionTime > 0) {
+            this.potionTime = Math.max(this.potionTime - dt, 0);
+            this.health = math.min(this.health + SummonerPotions.regen * dt, this.maxHealth);
+            if (this.potionTime === 0) this.setDirty();
+        }
         if (kit.regenPulse) {
             this.regenPulseTimer += dt;
             if (this.regenPulseTimer >= kit.regenPulse.every) {
@@ -6587,9 +6621,8 @@ export class Player extends BaseGameObject {
         }
         if (kit.mark) this.updateMark(kit.mark);
         if (kit.autoFire) this.updateAutoFire(dt, kit.autoFire);
-        if (kit.mounts) this.updateMounts(dt, kit.mounts);
-        if (kit.drone) this.updateDrone(dt, kit.drone);
         if (kit.daggers) this.updateDaggers(dt, kit.daggers);
+        if (kit.whips) this.updateWhips(dt, kit.whips);
         if (kit.aura) this.updateAura(dt, kit.aura);
         if (kit.cleanse) this.updateCleanse(dt, kit.cleanse);
         if (kit.items?.length) this.updateItemTriggers(dt, kit);
@@ -6692,7 +6725,8 @@ export class Player extends BaseGameObject {
         this.bleedDotDuration = 0;
         this.poisonDuration = 0;
         this.charmDuration = 0;
-        this.vulnerableTime = 0;
+        this.whipMarks = [0, 0, 0];
+        this.potionTime = 0;
         this.stunTime = 0;
         const d = this.debuffs;
         d.root =
@@ -6732,183 +6766,33 @@ export class Player extends BaseGameObject {
         );
     }
 
-    /** where a War Machine shoulder mount sits: a little behind the player and to the right (or left) of his back */
-    mountPos(m: NonNullable<(typeof KitDefs)[string]["mounts"]>, left: boolean) {
-        // world y points up, so the player's right hand is (dir.y, -dir.x)
-        const right = v2.create(this.dir.y, -this.dir.x);
-        return v2.add(v2.sub(this.pos, v2.mul(this.dir, m.back)), v2.mul(right, left ? -m.side : m.side));
-    }
-
-    /**
-     * War Machine: each running shoulder mount shoots the nearest enemy in range, `rate` times a second. The
-     * right mount is always on, the left one only while Second Fire is up (kitEnhanceTime)
-     */
-    updateMounts(dt: number, m: NonNullable<(typeof KitDefs)[string]["mounts"]>) {
-        const second = this.kitEnhanceTime > 0;
-        for (let i = 0; i < 2; i++) {
-            if (i === 1 && !second) {
-                // idle: when it starts up again it fires half a beat after the right one
-                this.mountTimers[1] = 0.5 / m.rate;
-                continue;
-            }
-            this.mountTimers[i] -= dt;
-            if (this.mountTimers[i] > 0) continue;
-            const near = this.enemiesWithin(m.range);
-            if (!near.length) {
-                this.mountTimers[i] = 0;
-                continue;
-            }
-            // carry the leftover so the rate holds whatever the tick length
-            // both mounts speed up to flyingRate while the Missile Barrage flight lasts
-            this.mountTimers[i] = Math.max(this.mountTimers[i] + 1 / (this.flying ? m.flyingRate : m.rate), 0);
-            const target = near.reduce((x, y) =>
-                v2.length(v2.sub(x.pos, this.pos)) < v2.length(v2.sub(y.pos, this.pos)) ? x : y
-            );
-            const pos = this.mountPos(m, i === 1);
-            this.game.bulletBarn.fireBullet(
-                {
-                    playerId: this.__id,
-                    bulletType: m.bullet,
-                    gameSourceType: m.gun,
-                    damageType: GameConfig.DamageType.Player,
-                    pos,
-                    dir: v2.normalizeSafe(v2.sub(target.pos, pos), this.dir),
-                    layer: this.layer,
-                    damageMult: 1,
-                    // the shot is heard (quietly) but never kicks the shooter's hands
-                    shotFx: true,
-                    shotOffhand: false,
-                    lastShot: false,
-                    reflectCount: 0,
-                } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
-            );
-        }
-        if (second) {
-            this.kitEnhanceTime = Math.max(0, this.kitEnhanceTime - dt);
-            // the aura id (one mount or two) changes when it runs out
-            if (this.kitEnhanceTime === 0) this.setDirty();
-        }
-    }
-
-    /** Green Goblin: every drone's angle and position, the main one first, then the sub drones while the upgrade lasts */
-    dronePositions(d: NonNullable<(typeof KitDefs)[string]["drone"]>, around: Vec2 = this.pos) {
-        const count = this.kitEnhanceTime > 0 ? 1 + d.upgrade.subDrones : 1;
-        return Array.from({ length: count }, (_, i) => {
-            const angle = this.droneAngle + (i * Math.PI * 2) / count;
-            return { angle, pos: dronePos(around, d.radius, angle) };
-        });
-    }
-
-    /** Green Goblin: the point of a drone's triangle and the way it points (counter clockwise round its circle) */
-    droneTip(d: NonNullable<(typeof KitDefs)[string]["drone"]>, drone: { angle: number; pos: Vec2 }) {
-        const dir = v2.create(-Math.sin(drone.angle), Math.cos(drone.angle));
-        return { dir, pos: v2.add(drone.pos, v2.mul(dir, d.tip)) };
-    }
-
-    /** Green Goblin: a pumpkin bomb (or the parked swap bomb) from `pos` along `dir`, silent */
-    fireGoblinBomb(d: NonNullable<(typeof KitDefs)[string]["drone"]>, bullet: string, from: Vec2, dir: Vec2) {
-        const pos = v2.copy(from);
-        this.game.map.clampToMapBounds(pos);
+    /** Summoner: the next of his whips at the nearest enemy in range, every 1/rate seconds */
+    updateWhips(dt: number, w: NonNullable<(typeof KitDefs)[string]["whips"]>) {
+        this.whipTimer -= dt;
+        if (this.whipTimer > 0) return;
+        const near = this.enemiesWithin(w.range);
+        if (!near.length) return;
+        // carry the leftover so the rate holds at the 0.1 s test tick too
+        this.whipTimer = Math.max(this.whipTimer + 1 / w.rate, 0);
+        const target = near.reduce((x, y) =>
+            v2.length(v2.sub(x.pos, this.pos)) < v2.length(v2.sub(y.pos, this.pos)) ? x : y
+        );
+        const gun = w.list[this.whipIdx % w.list.length].gun;
+        this.whipIdx = (this.whipIdx + 1) % w.list.length;
         this.game.bulletBarn.fireBullet(
             {
                 playerId: this.__id,
-                bulletType: bullet,
-                // the gun's id is what makes the explosion burn (see Player.damage)
-                gameSourceType: d.bombGun,
+                bulletType: `bullet_${gun}`,
+                gameSourceType: gun,
                 damageType: GameConfig.DamageType.Player,
-                pos,
-                dir: v2.normalizeSafe(dir, this.dir),
+                pos: v2.copy(this.pos),
+                dir: v2.normalizeSafe(v2.sub(target.pos, this.pos), this.dir),
                 layer: this.layer,
                 damageMult: 1,
-                shotFx: false,
+                shotFx: true,
                 reflectCount: 0,
             } as Parameters<typeof this.game.bulletBarn.fireBullet>[0],
         );
-    }
-
-    /**
-     * Green Goblin: the drone circles him, and whatever enemy its path crosses takes damage and bleeds. The check
-     * is on the segment it covered this tick, since at 4 rad/s it moves further than an enemy is wide. The sub
-     * drones of Golden Upgrade throw their bombs off their tips instead, and the angle is sent to clients every tick
-     */
-    updateDrone(dt: number, d: NonNullable<(typeof KitDefs)[string]["drone"]>) {
-        const prevAngle = this.droneAngle;
-        const before = this.dronePrev ?? dronePos(this.pos, d.radius, prevAngle);
-        this.droneAngle = (this.droneAngle + d.turnRate * dt) % (Math.PI * 2);
-        const after = dronePos(this.pos, d.radius, this.droneAngle);
-        this.dronePrev = after;
-        // the sub drones of Golden Upgrade are spaced evenly round the same circle and cut just like the main one
-        const count = this.kitEnhanceTime > 0 ? 1 + d.upgrade.subDrones : 1;
-        const sweeps = Array.from({ length: count }, (_, i) => {
-            if (i === 0) return { before, after };
-            const off = (i * Math.PI * 2) / count;
-            return {
-                before: dronePos(this.pos, d.radius, prevAngle + off),
-                after: dronePos(this.pos, d.radius, this.droneAngle + off),
-            };
-        });
-
-        for (const [id, left] of this.droneHits) {
-            if (left - dt <= 0) this.droneHits.delete(id);
-            else this.droneHits.set(id, left - dt);
-        }
-        const reach = d.radius + d.hitRadius + 3;
-        for (const enemy of this.enemiesWithin(reach)) {
-            if (this.droneHits.has(enemy.__id)) continue;
-            const r2 = (enemy.rad + d.hitRadius) ** 2;
-            const hitBy = sweeps.find((w) => math.distToSegmentSq(enemy.pos, w.before, w.after) <= r2);
-            if (!hitBy) continue;
-            this.droneHits.set(enemy.__id, d.hitCooldown);
-            enemy.damage({
-                amount: d.damage,
-                damageType: GameConfig.DamageType.Player,
-                source: this,
-                gameSourceType: "kit_goblin_drone",
-                weaponSourceType: "kit_goblin_drone",
-                dir: v2.normalizeSafe(v2.sub(enemy.pos, hitBy.after), this.dir),
-            });
-        }
-
-        if (this.kitEnhanceTime > 0) {
-            this.droneBombTimer -= dt;
-            if (this.droneBombTimer <= 1e-6) {
-                this.droneBombTimer += d.upgrade.bombEvery;
-                // every sub drone (not the main one) throws a bomb forward off its tip
-                for (const sub of this.dronePositions(d).slice(1)) {
-                    const tip = this.droneTip(d, sub);
-                    this.fireGoblinBomb(d, d.bomb, tip.pos, tip.dir);
-                }
-            }
-            this.kitEnhanceTime = this.kitEnhanceTime - dt < 1e-6 ? 0 : this.kitEnhanceTime - dt;
-        }
-        this.setDirty();
-    }
-
-    /** Green Goblin's Golden Upgrade: the sub drones come out and he runs faster, for the upgrade's duration */
-    startGoblinUpgrade() {
-        const d = KitDefs.greengoblin.drone!;
-        this.kitEnhanceTime = d.upgrade.duration;
-        this.droneBombTimer = d.upgrade.bombEvery;
-        this.setDirty();
-    }
-
-    /**
-     * Green Goblin's Tricky Swap: he and the main drone trade places, which puts the drone where he stood (the
-     * circle just turns half a lap), and a pumpkin bomb is left where he was
-     */
-    goblinSwap() {
-        const d = KitDefs.greengoblin.drone!;
-        const old = v2.copy(this.pos);
-        const to = dronePos(this.pos, d.radius, this.droneAngle);
-        this.game.map.clampToMapBounds(to, this.rad);
-        v2.set(this.pos, to);
-        this.droneAngle = (this.droneAngle + Math.PI) % (Math.PI * 2);
-        // the drone's hit path starts again from its new spot rather than sweeping across the jump
-        this.dronePrev = dronePos(this.pos, d.radius, this.droneAngle);
-        this.setPartDirty();
-        this.game.grid.updateObject(this);
-        this.setDirty();
-        this.fireGoblinBomb(d, d.swapBomb, old, this.dir);
     }
 
     enemiesWithin(rad: number): Player[] {
@@ -7557,8 +7441,7 @@ export class Player extends BaseGameObject {
         else if (this.botBrain?.level === "scripter") this.speed *= 1.3;
 
         this.speed += KitDefs[this.kit]?.speedBonus ?? 0;
-        // Green Goblin's Golden Upgrade
-        if (this.kitEnhanceTime > 0) this.speed += KitDefs[this.kit]?.drone?.upgrade.speedBonus ?? 0;
+        if (this.potionTime > 0) this.speed += SummonerPotions.speed;
         if (this.champ) this.speed = this.champ.speed(this.speed);
         this.speed = this.debuffs.speed(this.speed, !!this.champ?.buff("highlander"));
         if (this.minionOwner) this.speed *= UltronMinion.speedMult;

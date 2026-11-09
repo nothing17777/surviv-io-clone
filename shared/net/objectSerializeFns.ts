@@ -96,10 +96,8 @@ export interface ObjectsFullData {
         poisoned: boolean;
         burning: boolean;
         charmed: boolean;
-        /** kit aura drawn round the player: 0 none, 1 summoner daggers, 2 wizard circle, 3 enhanced, 4-5 War Machine's mounts, 6-7 Green Goblin's drones */
+        /** kit aura drawn round the player: 0 none, 1 summoner daggers, 2 wizard circle, 3 enhanced */
         kitAura: number;
-        /** Green Goblin: where his main drone is round him, radians in [0, 2pi) */
-        droneAngle: number;
         /** Sentry Solar Explosion cast counter (3 bits); a change starts the ring */
         solarCast: number;
         /** Iron Man Laser Spin cast counter (3 bits); a change starts the beams */
@@ -128,6 +126,7 @@ export interface ObjectsFullData {
         ultronMarked: boolean;
         /** hit by the Summoner's whip: a rainbow circle under them while minion hits land harder */
         vulnerable: boolean;
+        potions: boolean;
         /** Excalibur: a dim yellow circle under them while it halves their damage taken */
         excaliburActive: boolean;
         /** Iron Man's flight: untargetable and through walls */
@@ -277,7 +276,6 @@ export const ObjectSerializeFns: {
             s.writeBoolean(data.burning);
             s.writeBoolean(data.charmed);
             s.writeBits(data.kitAura, 3);
-            s.writeFloat(data.droneAngle, 0, Math.PI * 2, 8);
             s.writeBits(data.solarCast, 3);
             s.writeBits(data.ironSpinCast, 3);
             s.writeBits(data.wizardWaveCast, 3);
@@ -296,6 +294,7 @@ export const ObjectSerializeFns: {
             s.writeBoolean(data.wizardStunned);
             s.writeBoolean(data.ultronMarked);
             s.writeBoolean(data.vulnerable);
+            s.writeBoolean(data.potions);
             s.writeBoolean(data.excaliburActive);
             s.writeBoolean(data.flying);
             s.writeBits(data.championIndex, 4);
@@ -378,7 +377,6 @@ export const ObjectSerializeFns: {
             data.burning = s.readBoolean();
             data.charmed = s.readBoolean();
             data.kitAura = s.readBits(3);
-            data.droneAngle = s.readFloat(0, Math.PI * 2, 8);
             data.solarCast = s.readBits(3);
             data.ironSpinCast = s.readBits(3);
             data.wizardWaveCast = s.readBits(3);
@@ -396,6 +394,7 @@ export const ObjectSerializeFns: {
             data.wizardStunned = s.readBoolean();
             data.ultronMarked = s.readBoolean();
             data.vulnerable = s.readBoolean();
+            data.potions = s.readBoolean();
             data.excaliburActive = s.readBoolean();
             data.flying = s.readBoolean();
             data.championIndex = s.readBits(4);

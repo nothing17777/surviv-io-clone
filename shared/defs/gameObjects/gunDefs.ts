@@ -12,6 +12,8 @@ import {
     SentryCharge,
     SentryNova,
     SpiderCombo,
+    SummonerPotions,
+    SummonerRod,
     UltronCombo,
     WizardCrystals,
     WolverineCombo,
@@ -129,7 +131,7 @@ export interface GunDef extends BaseWeaponDef {
     energyCost?: number;
     /** a kit's energy each reload costs; no reload without it */
     reloadEnergy?: number;
-    /** fired from a body-mounted gun (War Machine, Wolverine's claws): no hand recoil or fire delay for the shooter */
+    /** fired from a body-mounted gun (Wolverine's claws): no hand recoil or fire delay for the shooter */
     mounted?: boolean;
     /** multiplies the volume of this gun's shot sound (default 1) */
     shotVolume?: number;
@@ -3940,76 +3942,6 @@ const IronManGunDefs: Record<string, GunDef> = Object.fromEntries([
     }),
 ]);
 
-// War Machine's shoulder mounts: a plain bullet, 6 dmg (30 dps a mount at 5 shots/s), 30 range. The gun def is
-// never held, it is only the source of the mounts' shots, so the client knows the (quiet) sound to play
-BulletDefs.bullet_kit_warmachine_mount = {
-    ...BulletDefs.bullet_ak47,
-    damage: 6,
-    distance: 30,
-    falloff: 1,
-    variance: 0,
-    shrapnel: false,
-};
-const WarMachineGunDefs: Record<string, GunDef> = {
-    // Skill 1: Second Fire fires nothing itself (the left shoulder mount switches on, see WeaponManager), 12 s
-    ...Object.fromEntries([
-        kitGun("kit_warmachine_secondfire", "deagle", {}, {
-            name: "Second Fire",
-            fireMode: "single",
-            fireDelay: 12,
-            energyCost: 0,
-            bulletCount: 0,
-            shotSpread: 0,
-            moveSpread: 0,
-            maxClip: 250,
-            maxReload: 250,
-            extendedClip: 250,
-            extendedReload: 250,
-        }),
-        // Skill 2: Missile Barrage is Iron Man's rocket flight (1.5 s in the air, untargetable, through walls,
-        // faster, 10 s cooldown) with only 2 rockets, 10 dmg each, burning for the same 4 s
-        kitGun("kit_warmachine_barrage", "barrett", {
-            damage: 10,
-            speed: 55,
-            distance: 110,
-            falloff: 1,
-            homing: true,
-            homingFromAim: true,
-            homingDelay: 0.2,
-            tracerColor: "cw_flame",
-            tracerWidth: 0.25,
-            tracerLength: 0.4,
-            sprite: "img/custom-weapons/fx/lava_rocket.png",
-            spriteSize: 40,
-        }, {
-            name: "Missile Barrage",
-            fireMode: "single",
-            fireDelay: 10,
-            energyCost: 0,
-            bulletCount: 2,
-            ringShot: true,
-            ghostShots: true,
-            // waveAt 0: no second volley
-            flight: { duration: 1.5, untargetable: 1.5, waveAt: 0, speedBonus: 6 },
-            shotSpread: 0,
-            moveSpread: 0,
-            maxClip: 250,
-            maxReload: 250,
-            extendedClip: 250,
-            extendedReload: 250,
-        }),
-    ]),
-    kit_warmachine_mount: defineGunSkin("mac10", {
-        name: "Shoulder Mount",
-        noPotatoSwap: true,
-        bulletType: "bullet_kit_warmachine_mount",
-        ammoInfinite: true,
-        mounted: true,
-        shotVolume: 0.3,
-        fireDelay: 0.2,
-    }),
-};
-
 const kitAsset = (name: string) => `img/custom-weapons/fx/kit/${name}.png?v=${CustomWeaponsVersion}`;
 const kitBullet = (id: string, b: Partial<BulletDef>) => {
     BulletDefs[id] = {
@@ -4103,19 +4035,6 @@ kitBullet("bullet_kit_ultron_combo_laser", {
     tracerWidth: 0.6,
     trailSprite: kitAsset("star_wrath_proj"),
 });
-// the Summoner's whip: a chain that lashes out 36 tiles from the hand
-kitBullet("bullet_kit_whip", {
-    damage: 14,
-    // twice as fast as it was
-    speed: 140,
-    distance: 36,
-    beam: true,
-    tracerColor: "cw_white",
-    // a rainbow lash that arcs onto the target with sparkles, as tall as its image needs
-    tracerWidth: 1.6,
-    trailSprite: kitAsset("spinal_tap_proj"),
-});
-
 // Wolverine's Claw Combo (see Player.updateClawCombo, which does the hitting). The claw is only the picture: damage 0,
 // it flies through everyone, as far as the dash's streak and twice as fast, and is drawn the same size
 kitBullet("bullet_kit_wolverine_claw", {
@@ -4176,79 +4095,6 @@ for (const side of ["r", "l", "t", "b"]) {
         spriteSize: 120,
     });
 }
-
-// Green Goblin's pumpkin bomb: an orange orb that goes off on the first enemy it touches or when its 10 s are
-// up, whichever comes first, bouncing off every wall in between (the 10 s runs through the bounces). The
-// explosion does the 25 dmg and, via Player.damage, the 3 s burn; it never hurts the goblin or his team
-// (its bullet, bullet_kit_goblin_pumpkin, is made by kitGun below: damage 0, speed 70 and 700 u of range,
-// so a 10 s lifetime)
-// the bomb Tricky Swap leaves behind: the same orb, parked, going off after its 0.5 s (0.2 u/s over 0.1 u)
-kitBullet("bullet_kit_goblin_trap", {
-    damage: 0,
-    speed: 0.2,
-    distance: 0.1,
-    noSelfDamage: true,
-    noPlayerHit: true,
-    noDistAdj: true,
-    onHit: "explosion_kit_pumpkin",
-    tracerColor: "cw_flame",
-    tracerWidth: 0.3,
-    sprite: kitAsset("pumpkin_bomb"),
-    spriteSize: 48,
-});
-
-// Green Goblin's skills 1 and 2 are guns whose only job is the cooldown (like War Machine's); skill 3 is a
-// melee (Tricky Swap, see meleeDefs.ts). The spread is never cancelled (recoilTime 1e10), or the three
-// bombs would leave on one line
-const GreenGoblinGunDefs: Record<string, GunDef> = Object.fromEntries([
-    // Skill 1: Pumpkin Bombs: 3 bombs in a 60 degree cone, 6 s cooldown
-    kitGun("kit_goblin_pumpkin", "deagle", {
-        damage: 0,
-        speed: 70,
-        distance: 700,
-        falloff: 1,
-        variance: 0,
-        shrapnel: false,
-        lifetime: 10,
-        bounce: true,
-        maxBounces: 99,
-        noSelfDamage: true,
-        noDistAdj: true,
-        onHit: "explosion_kit_pumpkin",
-        tracerColor: "cw_flame",
-        tracerWidth: 0.3,
-        sprite: kitAsset("pumpkin_bomb"),
-        spriteSize: 48,
-    }, {
-        name: "Pumpkin Bombs",
-        fireMode: "single",
-        fireDelay: 6,
-        energyCost: 0,
-        bulletCount: 3,
-        fanShot: true,
-        shotSpread: 60,
-        moveSpread: 0,
-        recoilTime: 1e10,
-        maxClip: 250,
-        maxReload: 250,
-        extendedClip: 250,
-        extendedReload: 250,
-    }),
-    // Skill 2: Golden Upgrade fires nothing itself (the drones and the speed come on, see WeaponManager), 12 s
-    kitGun("kit_goblin_upgrade", "deagle", {}, {
-        name: "Golden Upgrade",
-        fireMode: "single",
-        fireDelay: 12,
-        energyCost: 0,
-        bulletCount: 0,
-        shotSpread: 0,
-        moveSpread: 0,
-        maxClip: 250,
-        maxReload: 250,
-        extendedClip: 250,
-        extendedReload: 250,
-    }),
-]);
 
 const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
     // Sentry Solar Explosion: no bullet, the wave is run by Player.updateSentryNova (see WeaponManager); 8 s cooldown
@@ -4481,6 +4327,71 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
                 })
             ),
         ],
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
+    // the Summoner's three whips (see Player.updateWhips): chains that lash out from the hand, 10 dmg each, fired
+    // automatically in turn. The guns are only the shot's sound and source, never held; each one's mark is in KitDefs
+    ...(
+        [
+            ["kit_summoner_whip", "Spinal Tap", "spinal_tap_proj", 1.6, "cw_white"],
+            ["kit_summoner_whip_blue", "Frost Lash", "whip_blue", 0.7, "cw_bubble"],
+            ["kit_summoner_whip_fire", "Ember Lash", "whip_fire", 0.8, "cw_flame"],
+        ] as const
+    ).map(([id, name, img, width, tracer]) =>
+        kitGun(id, "deagle", {
+            damage: 10,
+            speed: 140,
+            distance: 36,
+            beam: true,
+            tracerColor: tracer,
+            tracerWidth: width,
+            trailSprite: kitAsset(img),
+        }, {
+            name,
+            fireMode: "single",
+            bulletCount: 0,
+            mounted: true,
+            caseTiming: "reload",
+            sound: { shoot: "summoner_whip" },
+            energyCost: 0,
+            shotSpread: 0,
+            moveSpread: 0,
+            maxClip: 250,
+            maxReload: 250,
+            extendedClip: 250,
+            extendedReload: 250,
+        })
+    ),
+    // Summoner skill 1, Bundle of Potions: fires nothing, Player.startPotions does it (see WeaponManager); 20 s cooldown
+    kitGun("kit_summoner_potions", "barrett", {}, {
+        name: "Bundle of Potions",
+        fireMode: "single",
+        fireDelay: SummonerPotions.cooldown,
+        energyCost: 0,
+        bulletCount: 0,
+        mounted: true,
+        caseTiming: "reload",
+        shotSpread: 0,
+        moveSpread: 0,
+        maxClip: 250,
+        maxReload: 250,
+        extendedClip: 250,
+        extendedReload: 250,
+    }),
+    // Summoner skill 2, Rod of Discord: fires nothing, Player.teleportToCursor does it (see WeaponManager); 1.5 s cooldown
+    kitGun("kit_summoner_rod", "barrett", {}, {
+        name: "Rod of Discord",
+        fireMode: "single",
+        fireDelay: SummonerRod.cooldown,
+        energyCost: 0,
+        bulletCount: 0,
+        mounted: true,
+        caseTiming: "reload",
+        shotSpread: 0,
+        moveSpread: 0,
         maxClip: 250,
         maxReload: 250,
         extendedClip: 250,
@@ -4883,8 +4794,6 @@ export const GunDefs: Record<string, GunDef> = {
     ...SkinDefs,
     ...CustomGunDefs,
     ...IronManGunDefs,
-    ...WarMachineGunDefs,
-    ...GreenGoblinGunDefs,
     ...KitGunDefs,
     ...ChampionGunDefs,
     ...ChampionAbilityDefs,
