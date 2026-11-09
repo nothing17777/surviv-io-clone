@@ -74,7 +74,7 @@ export default defineConfig(({ mode }) => {
 
     return {
         appType: "mpa",
-        base: "",
+        base: process.env.VITE_BASE ?? "",
         build: {
             target: "es2022",
             chunkSizeWarningLimit: 2000,
