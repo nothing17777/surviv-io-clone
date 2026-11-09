@@ -13,19 +13,19 @@ import {
 import type { GunDef } from "../../../../shared/defs/gameObjects/gunDefs.ts";
 import {
     dronePos,
-    isKitItem,
-    kitAura,
     IronManCombo,
     IronManSpin,
+    isKitItem,
+    kitAura,
     KitDefs,
     SentryCharge,
     SentryNova,
     SpiderCombo,
     UltronCombo,
-    WizardCrystals,
-    WizardWave,
     UltronComboTimes,
     UltronMinion,
+    WizardCrystals,
+    WizardWave,
     WolverineCombo,
     WolverineComboStep,
     WolverineDash,
@@ -775,6 +775,10 @@ export class Player extends BaseGameObject {
     get daggerOffsets(): Vec2[] {
         return this.dead ? [] : this.daggerMinions.map((m) => v2.sub(m.pos, this.pos));
     }
+    /** which blade minions are mid-dash (flying at or back from a target) */
+    get daggerDashing(): boolean[] {
+        return this.dead ? [] : this.daggerMinions.map((m) => m.phase !== 0);
+    }
     /** Summoner: the enemy the whip last hit, which the daggers go after first */
     summonerFocusId = 0;
     /** Spider-Man: swinging to where the web hit */
@@ -1285,9 +1289,7 @@ export class Player extends BaseGameObject {
         const C = IronManCombo;
         const toward = v2.normalizeSafe(v2.sub(target.pos, this.pos), this.dir);
         const side = v2.perp(toward);
-        const drones = C.drones.map((d) =>
-            v2.add(this.pos, v2.add(v2.mul(side, d.side), v2.mul(toward, d.fwd)))
-        );
+        const drones = C.drones.map((d) => v2.add(this.pos, v2.add(v2.mul(side, d.side), v2.mul(toward, d.fwd))));
         target.stunTime = Math.max(target.stunTime, C.duration);
         target.webPull = undefined;
         target.setDirty();
@@ -3993,8 +3995,7 @@ export class Player extends BaseGameObject {
             // the burst's own pop deals nothing and doesn't)
             else if (src === "kit_wizard_crystals" && (params.amount ?? 0) > 0) {
                 this.applyBleed(WizardCrystals.bleed, playerSource);
-            }
-            else if (weap === "bullet_kit_ultron_orb_laser_purple") this.applyPoison(3, playerSource);
+            } else if (weap === "bullet_kit_ultron_orb_laser_purple") this.applyPoison(3, playerSource);
             else if ((src === "kit_ultron_blast" || src === "kit_wizard_stars") && params.dir && !this.webPull) {
                 // slight knockback, moved like a short slide so walls still stop it
                 this.webPull = {
@@ -6698,7 +6699,11 @@ export class Player extends BaseGameObject {
         this.vulnerableTime = 0;
         this.stunTime = 0;
         const d = this.debuffs;
-        d.root = d.slow = d.silence = d.airborne = 0;
+        d.root =
+            d.slow =
+            d.silence =
+            d.airborne =
+                0;
         this.restorePerks();
         this.setDirty();
     }
@@ -7300,7 +7305,10 @@ export class Player extends BaseGameObject {
         const focus = near.find((p) => p.__id === this.summonerFocusId);
         const target = focus
             ?? (near.length
-                ? near.reduce((a, b) => (v2.length(v2.sub(a.pos, this.pos)) < v2.length(v2.sub(b.pos, this.pos)) ? a : b))
+                ? near.reduce((
+                    a,
+                    b,
+                ) => (v2.length(v2.sub(a.pos, this.pos)) < v2.length(v2.sub(b.pos, this.pos)) ? a : b))
                 : undefined);
         const foes = this.enemiesWithin(d.leash + d.dashFrom + 4);
         const toTarget = target ? v2.normalizeSafe(v2.sub(target.pos, this.pos), this.dir) : this.dir;

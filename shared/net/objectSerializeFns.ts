@@ -108,6 +108,7 @@ export interface ObjectsFullData {
         wizardWaveCast: number;
         /** Summoner: where each blade minion is, relative to him (the minions are not objects of their own) */
         daggerOffsets: Vec2[];
+        daggerDashing: boolean[];
         /** a training dummy: its health bar is drawn over it, so its health goes on the wire */
         dummy: boolean;
         /** the dummy's health as a fraction in [0, 1] */
@@ -286,6 +287,9 @@ export const ObjectSerializeFns: {
                 s.writeFloat(o.x, -48, 48, 10);
                 s.writeFloat(o.y, -48, 48, 10);
             }
+            for (let n = 0; n < data.daggerOffsets.length; n++) {
+                s.writeBoolean(!!data.daggerDashing[n]);
+            }
             s.writeBoolean(data.dummy);
             if (data.dummy) s.writeFloat(data.dummyHealth, 0, 1, 10);
             s.writeBoolean(data.wizardMarked);
@@ -383,8 +387,12 @@ export const ObjectSerializeFns: {
             data.ironSpinCast = s.readBits(3);
             data.wizardWaveCast = s.readBits(3);
             data.daggerOffsets = [];
+            data.daggerDashing = [];
             for (let n = s.readBits(3); n > 0; n--) {
                 data.daggerOffsets.push(v2.create(s.readFloat(-48, 48, 10), s.readFloat(-48, 48, 10)));
+            }
+            for (let n = 0; n < data.daggerOffsets.length; n++) {
+                data.daggerDashing.push(s.readBoolean());
             }
             data.dummy = s.readBoolean();
             data.dummyHealth = data.dummy ? s.readFloat(0, 1, 10) : 1;

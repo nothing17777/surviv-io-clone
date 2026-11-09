@@ -309,7 +309,16 @@ export const KitDefs: Record<string, KitDef> = {
         outfit: "outfitKitSummoner",
         melee: "kit_summoner_whip",
         regenPulse: { amount: 20, every: 5 },
-        daggers: { count: 4, damage: 8, range: 13, leash: 35, dashFrom: 5, dashEvery: 1, dashSpeed: 55, hitRadius: 1.5 },
+        daggers: {
+            count: 4,
+            damage: 8,
+            range: 13,
+            leash: 35,
+            dashFrom: 5,
+            dashEvery: 1,
+            dashSpeed: 55,
+            hitRadius: 1.5,
+        },
         vulnerable: { extraDamage: 5, duration: 4 },
     },
     wizard: {
@@ -524,7 +533,16 @@ export const UltronComboTimes = {
  * `range` long, hurts everyone it sweeps past once (`damage`, and they burn for `burn` s) and destroys every
  * obstacle it touches
  */
-export const IronManSpin = { cooldown: 6, energy: 30, range: 40, damage: 30, burn: 3, time: 0.3, beamRadius: 0.4, width: 0.7 };
+export const IronManSpin = {
+    cooldown: 6,
+    energy: 30,
+    range: 40,
+    damage: 30,
+    burn: 3,
+    time: 0.3,
+    beamRadius: 0.4,
+    width: 0.7,
+};
 
 /**
  * Iron Man skill 3, Blast Combo (a melee-slot ability, needs the marked enemy): the target is stunned for `duration` s and Iron Man
@@ -574,7 +592,7 @@ export const WizardCrystals = {
  */
 export const WizardWave = { cooldown: 9, energy: 50, damage: 30, stun: 3, speed: 90 };
 
-export const UltronMinion ={ count: 4, health: 17.5, speedMult: 0.75, life: 15, explosion: "explosion_kit_minion" };
+export const UltronMinion = { count: 4, health: 17.5, speedMult: 0.75, life: 15, explosion: "explosion_kit_minion" };
 
 /** Ultron's energy blast orbs, one per colour, and the laser each one's blast fires */
 export const UltronOrbColors = ["red", "blue", "green", "yellow", "purple", "orange"] as const;
