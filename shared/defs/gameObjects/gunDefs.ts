@@ -4496,7 +4496,7 @@ const KitGunDefs: Record<string, GunDef> = Object.fromEntries([
             bulletCount: 0,
             mounted: true,
             caseTiming: "reload",
-            sound: { shoot: "spider_auto_splatshot" },
+            sound: { shoot: "summoner_whip" },
             energyCost: 0,
             shotSpread: 0,
             moveSpread: 0,

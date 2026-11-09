@@ -60,6 +60,12 @@ const Sounds: Record<string, Record<string, SoundDef>> = {
             volume: 1,
             maxInstances: 4,
         },
+        // the Summoner's whips
+        summoner_whip: {
+            path: "audio/kits/summoner_whip.ogg",
+            volume: 1,
+            maxInstances: 4,
+        },
         // Iron Man's three skills
         ironman_laser: {
             path: "audio/kits/ironman_laser.ogg",
