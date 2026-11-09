@@ -66,6 +66,9 @@ interface Zone {
     dir: Vec2;
 }
 
+/** seconds Guardian Angel holds a champion in stasis */
+const GuardianAngelStasis = 4;
+
 /** a champion's state: cooldowns, buffs, item passives */
 export class Champion {
     def;
@@ -787,12 +790,14 @@ export class Champion {
             this.addShield(60);
         }
         if (this.passives.has("guardian_angel") && !this.guardianAngelUsed && amount >= p.health + p.shield) {
-            // Guardian Angel: stasis for 2 s, then back at half health
+            // Guardian Angel: stasis (a yellow circle round him) then back at half health
             this.guardianAngelUsed = true;
             p.health = Math.max(p.health, 1);
-            p.dodgeTime = 2;
-            p.debuffs.root = 2;
-            this.later(2, () => this.heal(p.maxHealth * 0.5));
+            p.dodgeTime = GuardianAngelStasis;
+            p.stasisTime = GuardianAngelStasis;
+            p.debuffs.root = GuardianAngelStasis;
+            p.setDirty();
+            this.later(GuardianAngelStasis, () => this.heal(p.maxHealth * 0.5));
             this.announce(CastItem);
             return 0;
         }

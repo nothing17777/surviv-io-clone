@@ -120,6 +120,8 @@ export interface ObjectsFullData {
         hidden: boolean;
         /** stunned by Spider-Man's Portal Combo: webbed up */
         webbed: boolean;
+        /** held in stasis by Guardian Angel */
+        stasis: boolean;
         /** stunned by the Wizard's Stun Wave: a green outline */
         wizardStunned: boolean;
         /** marked by an Ultron's Combo: an orange target under them */
@@ -290,6 +292,7 @@ export const ObjectSerializeFns: {
             s.writeBoolean(data.wolverineMarked);
             s.writeBoolean(data.hidden);
             s.writeBoolean(data.webbed);
+            s.writeBoolean(data.stasis);
             s.writeBoolean(data.wizardStunned);
             s.writeBoolean(data.ultronMarked);
             s.writeBoolean(data.vulnerable);
@@ -389,6 +392,7 @@ export const ObjectSerializeFns: {
             data.wolverineMarked = s.readBoolean();
             data.hidden = s.readBoolean();
             data.webbed = s.readBoolean();
+            data.stasis = s.readBoolean();
             data.wizardStunned = s.readBoolean();
             data.ultronMarked = s.readBoolean();
             data.vulnerable = s.readBoolean();
