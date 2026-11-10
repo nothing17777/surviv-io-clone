@@ -115,7 +115,7 @@ type Stat = "moveSpeed" | "attackSpeed" | "damage" | "damageReduction";
 const applied = new WeakMap<Champion, Map<string, Array<[Stat, number]>>>();
 function temp(c: Champion, name: string, secs: number, stats: Partial<Record<Stat, number>>) {
     let mine = applied.get(c);
-    if (!mine) applied.set(c, (mine = new Map()));
+    if (!mine) applied.set(c, mine = new Map());
     // take off whatever this buff last put on, so recasting refreshes it instead of stacking it —
     // and so a revert dropped because the champion died can't leave the stat inflated for good
     const off = () => {

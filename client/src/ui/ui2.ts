@@ -707,6 +707,34 @@ export class UiManager2 {
     }
 
     kitItemBar?: HTMLDivElement;
+    potionBar?: HTMLDivElement;
+
+    /** Summoner's Bundle of Potions: a dot per buff over the bottom bar while they last */
+    updatePotionBar(active: boolean) {
+        if (!this.potionBar) {
+            if (!active) return;
+            const bar = document.createElement("div");
+            bar.style.cssText =
+                "position:absolute;left:50%;bottom:190px;transform:translateX(-50%);display:flex;gap:6px;pointer-events:auto;z-index:10;";
+            const buffs: [string, string][] = [
+                ["#9e9e9e", "10% less damage taken"],
+                ["#ffd600", "4 less damage from each hit"],
+                ["#9c27b0", "immune to burning"],
+                ["#ff69b4", "regenerating 2 HP/s"],
+                ["#90ee90", "+20 speed"],
+            ];
+            for (const [color, text] of buffs) {
+                const el = document.createElement("div");
+                el.title = text;
+                el.style.cssText =
+                    `width:22px;height:22px;border-radius:50%;border:2px solid #fff;background:${color};box-shadow:0 0 6px ${color};`;
+                bar.appendChild(el);
+            }
+            document.getElementById("ui-game")?.appendChild(bar);
+            this.potionBar = bar;
+        }
+        this.potionBar.style.display = active ? "flex" : "none";
+    }
     kitItemBarOutfit = "";
     /** the items of the non-champion kit that wears this outfit (the client is only told the outfit) */
     kitItemsByOutfit = new globalThis.Map<string, string[]>();
@@ -922,6 +950,7 @@ export class UiManager2 {
             activePlayer.m_localData.champCooldowns ?? [],
         );
         this.updateKitItemBar(activePlayer.m_netData.m_dead ? "" : activePlayer.m_netData.m_outfit);
+        this.updatePotionBar(!activePlayer.m_netData.m_dead && activePlayer.m_netData.potions);
         this.dom.health.shieldText.textContent = shield > 0 ? `${Math.ceil(shield)}` : "";
         state.boost = activePlayer.m_localData.m_boost;
         state.downed = activePlayer.m_netData.m_downed;

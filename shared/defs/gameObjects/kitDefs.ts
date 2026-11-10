@@ -46,7 +46,7 @@ export interface KitDef {
     /**
      * Summoner: `count` blade minions that circle him, can't be hit and only go when he does. They never go more than
      * `leash` from him. An enemy he can see (at least `range` out) gets dashed at by each of them once every
-     * `dashEvery` s (staggered): the minion waits `dashFrom` away, dashes through them at `dashSpeed` (hitting
+     * `dashEvery` s (staggered): the minion waits `dashFrom` away, runs at them at `dashSpeed` (hitting
      * within `hitRadius`, `damage`, ignoring every armor and damage reduction) and dashes back
      */
     daggers?: {
@@ -59,52 +59,14 @@ export interface KitDef {
         dashSpeed: number;
         hitRadius: number;
     };
-    /** Summoner: the whip leaves its target taking `extraDamage` more from each minion dash for `duration` seconds */
-    vulnerable?: { extraDamage: number; duration: number };
+    /**
+     * Summoner: whips fired automatically at the nearest enemy within `range`, `rate` a second, one after another
+     * (each is a gun, for its shot and source). A hit marks the enemy for `duration` seconds: minion hits do
+     * `extra` more damage and/or set them burning for `burn` seconds. Different whips' marks stack
+     */
+    whips?: { range: number; rate: number; duration: number; list: { gun: string; extra?: number; burn?: number }[] };
     /** Wizard: a circle around the player that burns enemies inside for `damage`/s; per enemy inside, per second: energy, shield, hp */
     aura?: { radius: number; damage: number; energy: number; shield: number; health: number; enhanceTime: number };
-    /** War Machine: the shield refills for free, `rate`/s, or `calmRate`/s once `after` s have gone by unhurt */
-    armorRegen?: { rate: number; calmRate: number; after: number };
-    /**
-     * War Machine: shoulder-mounted guns that fire `bullet` (shot sound and source `gun`) at the nearest enemy
-     * within `range`, `rate` shots/s each. The right mount is always on; the left one runs for `secondDuration`
-     * seconds after the skill. `back` and `side` place a mount behind and to the right (or left) of the player
-     */
-    mounts?: {
-        gun: string;
-        bullet: string;
-        range: number;
-        rate: number;
-        /** shots/s each while the Missile Barrage flight is on */
-        flyingRate: number;
-        back: number;
-        side: number;
-        secondDuration: number;
-    };
-    /**
-     * Green Goblin: a drone circling the player counter clockwise at `radius`, `turnRate` rad/s, its point leading.
-     * An enemy it touches takes `damage` and bleeds for `bleed` s (and can't be hit again by it for `hitCooldown` s).
-     * Golden Upgrade (`upgrade.duration` s) adds `speedBonus` move speed and `subDrones` more drones, evenly spaced
-     * round the same circle, that each throw a pumpkin bomb off their tip every `bombEvery` s. Tricky Swap trades
-     * places with the main drone and leaves a bomb that goes off `swapBombFuse` s later
-     */
-    drone?: {
-        radius: number;
-        turnRate: number;
-        damage: number;
-        bleed: number;
-        /** how far from the drone's centre an enemy's edge can be and still be hit */
-        hitRadius: number;
-        hitCooldown: number;
-        /** how far the tip is from the drone's centre (the drawn triangle's size) */
-        tip: number;
-        /** the pumpkin bomb the sub drones throw (and Tricky Swap leaves): gun id for the damage source, bullets */
-        bombGun: string;
-        bomb: string;
-        swapBomb: string;
-        upgrade: { duration: number; speedBonus: number; subDrones: number; bombEvery: number };
-        swapBombFuse: number;
-    };
     /** Wolverine and Spider-Man: the nearest enemy within `range` is marked (a sigil under them), which their combos need */
     mark?: { range: number };
     /** Sentry: takes this fraction less damage from everything (a hit's armor penetration cuts it too) */
@@ -229,57 +191,6 @@ export const KitDefs: Record<string, KitDef> = {
         energy: { max: 200, perSecond: 20, heal: 0, healCost: 0, shieldRegen: 2, shieldCost: 3 },
         calmRegen: { rate: 5, after: 5 },
     },
-    warmachine: {
-        name: "War Machine",
-        health: 50,
-        shield: 150,
-        helmet: "helmet04",
-        chest: "chest04",
-        outfit: "outfitKitWarmachine",
-        // skill 1 (Second Fire) and skill 2 (Missile Barrage) are guns that fire nothing or the rockets; left
-        // click on the slot to use them. Slot 3 is Iron Man's gauntlets
-        primary: "kit_warmachine_secondfire",
-        secondary: "kit_warmachine_barrage",
-        melee: "kit_warmachine_fists",
-        armorRegen: { rate: 2, calmRate: 8, after: 5 },
-        mounts: {
-            gun: "kit_warmachine_mount",
-            bullet: "bullet_kit_warmachine_mount",
-            range: 30,
-            rate: 5,
-            flyingRate: 10,
-            back: 0.6,
-            side: 1,
-            secondDuration: 10,
-        },
-    },
-    greengoblin: {
-        name: "Green Goblin",
-        health: 150,
-        helmet: "helmet04",
-        chest: "chest04",
-        outfit: "outfitKitGreengoblin",
-        // skills 1 and 2 are guns used for their cooldowns (left click on the slot); skill 3 is a melee
-        primary: "kit_goblin_pumpkin",
-        secondary: "kit_goblin_upgrade",
-        melee: "kit_goblin_swap",
-        regen: 1,
-        calmRegen: { rate: 4, after: 5 },
-        drone: {
-            radius: 25,
-            turnRate: 4.2,
-            damage: 25,
-            bleed: 4,
-            hitRadius: 1.2,
-            hitCooldown: 1,
-            tip: 1.4,
-            bombGun: "kit_goblin_pumpkin",
-            bomb: "bullet_kit_goblin_pumpkin",
-            swapBomb: "bullet_kit_goblin_trap",
-            upgrade: { duration: 8, speedBonus: 4, subDrones: 2, bombEvery: 2 },
-            swapBombFuse: 0.5,
-        },
-    },
     sentry: {
         name: "Sentry",
         // 300 base + Heal's 812, then +138% (Artifact 44, Liberation 25, Jeff 44, Rescue 25, added together): 2647
@@ -307,10 +218,31 @@ export const KitDefs: Record<string, KitDef> = {
         helmet: "",
         chest: "",
         outfit: "outfitKitSummoner",
-        melee: "kit_summoner_whip",
+        // skill 1 is a gun used for its cooldown (see WeaponManager)
+        primary: "kit_summoner_potions",
+        secondary: "kit_summoner_rod",
+        melee: "fists",
         regenPulse: { amount: 20, every: 5 },
-        daggers: { count: 4, damage: 8, range: 13, leash: 35, dashFrom: 5, dashEvery: 1, dashSpeed: 55, hitRadius: 1.5 },
-        vulnerable: { extraDamage: 5, duration: 4 },
+        daggers: {
+            count: 4,
+            damage: 8,
+            range: 13,
+            leash: 35,
+            dashFrom: 10,
+            dashEvery: 1,
+            dashSpeed: 55,
+            hitRadius: 1.5,
+        },
+        whips: {
+            range: 30,
+            rate: 1.5,
+            duration: 4,
+            list: [
+                { gun: "kit_summoner_whip", extra: 6 },
+                { gun: "kit_summoner_whip_blue", extra: 4 },
+                { gun: "kit_summoner_whip_fire", burn: 4 },
+            ],
+        },
     },
     wizard: {
         name: "Wizard",
@@ -469,6 +401,15 @@ export const SentryCharge = {
  * `hitEvery` s). It heals `heal` of his max hp, halves the armor penetration of what hits him for `penGuardTime` s,
  * and he flies for `flight` s
  */
+/**
+ * Summoner skill 1, Bundle of Potions: for `duration` s he takes `reduction` less damage (then `flat` less from each
+ * hit), is immune to burning, regenerates `regen` hp/s and runs `speed` faster; using it also heals `heal` hp
+ */
+export const SummonerPotions = { cooldown: 20, duration: 12, heal: 30, reduction: 0.1, flat: 4, regen: 2, speed: 20 };
+
+/** Summoner skill 2, Rod of Discord: teleports him to the cursor for `cost` hp (never the last of it) */
+export const SummonerRod = { cooldown: 1.5, cost: 30 };
+
 export const SentryNova = {
     speed: 220,
     radius: 100,
@@ -524,7 +465,16 @@ export const UltronComboTimes = {
  * `range` long, hurts everyone it sweeps past once (`damage`, and they burn for `burn` s) and destroys every
  * obstacle it touches
  */
-export const IronManSpin = { cooldown: 6, energy: 30, range: 40, damage: 30, burn: 3, time: 0.3, beamRadius: 0.4, width: 0.7 };
+export const IronManSpin = {
+    cooldown: 6,
+    energy: 30,
+    range: 40,
+    damage: 30,
+    burn: 3,
+    time: 0.3,
+    beamRadius: 0.4,
+    width: 0.7,
+};
 
 /**
  * Iron Man skill 3, Blast Combo (a melee-slot ability, needs the marked enemy): the target is stunned for `duration` s and Iron Man
@@ -574,27 +524,19 @@ export const WizardCrystals = {
  */
 export const WizardWave = { cooldown: 9, energy: 50, damage: 30, stun: 3, speed: 90 };
 
-export const UltronMinion ={ count: 4, health: 17.5, speedMult: 0.75, life: 15, explosion: "explosion_kit_minion" };
+export const UltronMinion = { count: 4, health: 17.5, speedMult: 0.75, life: 15, explosion: "explosion_kit_minion" };
 
 /** Ultron's energy blast orbs, one per colour, and the laser each one's blast fires */
 export const UltronOrbColors = ["red", "blue", "green", "yellow", "purple", "orange"] as const;
 
 /**
- * the kit's player aura id sent to clients: 0 none, 1 summoner daggers, 2 wizard circle, 3 enhanced,
- * 4 War Machine's right shoulder mount, 5 both mounts, 6 Green Goblin's drone, 7 the drone and its two sub drones.
- * The field is 3 bits on the wire, so 7 is the last id
+ * the kit's player aura id sent to clients: 0 none, 1 summoner daggers, 2 wizard circle, 3 enhanced.
+ * The field is 3 bits on the wire
  */
 export function kitAura(kit: string, enhanced: boolean) {
     if (kit === "summoner") return 1;
     if (kit === "wizard") return enhanced ? 3 : 2;
-    if (kit === "warmachine") return enhanced ? 5 : 4;
-    if (kit === "greengoblin") return enhanced ? 7 : 6;
     return 0;
-}
-
-/** where a Green Goblin drone is: `angle` round the player (counter clockwise from +x, world y up) */
-export function dronePos(center: { x: number; y: number }, radius: number, angle: number) {
-    return { x: center.x + Math.cos(angle) * radius, y: center.y + Math.sin(angle) * radius };
 }
 
 export function isKitItem(type: string) {

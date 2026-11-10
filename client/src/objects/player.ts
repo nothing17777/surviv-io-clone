@@ -336,7 +336,6 @@ export class Player implements AbstractObject {
         burning: boolean;
         charmed: boolean;
         kitAura: number;
-        droneAngle: number;
         dummy: boolean;
         dummyHealth: number;
         solarCast: number;
@@ -351,6 +350,7 @@ export class Player implements AbstractObject {
         wizardStunned: boolean;
         ultronMarked: boolean;
         vulnerable: boolean;
+        potions: boolean;
         excaliburActive: boolean;
         championIndex: number;
         champCastSeq: number;
@@ -530,7 +530,6 @@ export class Player implements AbstractObject {
             burning: false,
             charmed: false,
             kitAura: 0,
-            droneAngle: 0,
             dummy: false,
             dummyHealth: 1,
             solarCast: 0,
@@ -545,6 +544,7 @@ export class Player implements AbstractObject {
             wizardStunned: false,
             ultronMarked: false,
             vulnerable: false,
+            potions: false,
             excaliburActive: false,
             championIndex: 0,
             champCastSeq: 0,
@@ -638,7 +638,6 @@ export class Player implements AbstractObject {
             this.m_netData.burning = data.burning;
             this.m_netData.charmed = data.charmed;
             this.m_netData.kitAura = data.kitAura;
-            this.m_netData.droneAngle = data.droneAngle;
             this.m_netData.dummy = data.dummy;
             this.m_netData.dummyHealth = data.dummyHealth;
             this.m_netData.solarCast = data.solarCast;
@@ -653,6 +652,7 @@ export class Player implements AbstractObject {
             this.m_netData.wizardStunned = data.wizardStunned;
             this.m_netData.ultronMarked = data.ultronMarked;
             this.m_netData.vulnerable = data.vulnerable;
+            this.m_netData.potions = data.potions;
             this.m_netData.excaliburActive = data.excaliburActive;
             this.m_netData.flying = data.flying;
             this.m_netData.championIndex = data.championIndex;
@@ -1563,7 +1563,7 @@ export class Player implements AbstractObject {
         this.vanish = !this.m_netData.hidden
             ? 1
             : isActivePlayer
-                || playerBarn.getPlayerInfo(this.__id).teamId == playerBarn.getPlayerInfo(activeId).teamId
+                    || playerBarn.getPlayerInfo(this.__id).teamId == playerBarn.getPlayerInfo(activeId).teamId
             ? 0.35
             : 0;
 
@@ -2900,22 +2900,9 @@ export class Player implements AbstractObject {
     vulnerableRing: PIXI.Graphics | null = null;
     ultronReticle: PIXI.Graphics | null = null;
     kitDaggers: PIXI.Sprite[] = [];
+    /** a ring at the radius the Summoner's blades may roam */
+    summonerRange: PIXI.Graphics | null = null;
     kitDaggerSeen: boolean[] = [];
-    /** the streaks the blade minions leave when they dash: world-unit segments that fade out */
-    kitDaggerTrail: { a: Vec2; b: Vec2; life: number }[] = [];
-    kitDaggerTrailGfx: PIXI.Graphics | null = null;
-    /** War Machine's right and left shoulder mounts */
-    kitMounts: (PIXI.Graphics | undefined)[] = [];
-    /**
-     * Green Goblin's drones, drawn as triangles whose point leads. The server sends the main drone's angle each
-     * tick; between updates it turns on its own at the kit's rate and eases toward the latest one
-     */
-    kitDrones: PIXI.Graphics[] = [];
-    droneDraw = 0;
-    droneSync = 0;
-    droneSyncAge = 0;
-    droneSyncSeen = -1;
-    droneShown = false;
     kitTicker = 0;
     excaliburRing: PIXI.Graphics | null = null;
     flightGlow: PIXI.Graphics | null = null;
@@ -2989,7 +2976,9 @@ export class Player implements AbstractObject {
             this.wizardWaveR += WizardWave.speed * dt;
             const rr = Math.min(this.wizardWaveR, maxR);
             // it fades over the last fifth of a second once it has spread all the way
-            const fade = this.wizardWaveR > maxR ? Math.max(0, 1 - (this.wizardWaveR - maxR) / (WizardWave.speed * 0.2)) : 1;
+            const fade = this.wizardWaveR > maxR
+                ? Math.max(0, 1 - (this.wizardWaveR - maxR) / (WizardWave.speed * 0.2))
+                : 1;
             const tex = this.wizardWave.texture;
             const sc = (2 * Math.max(rr, 0.1) * px) / Math.max(tex.width, 1);
             this.wizardWave.scale.set(sc, sc);
@@ -3055,77 +3044,6 @@ export class Player implements AbstractObject {
                 this.solarR = -1;
                 this.solarRing.clear();
             }
-        }
-        // War Machine's shoulder mounts (aura 4: the right one, 5: both), turning with the player's aim
-        const mounts = aura === 4 ? 1 : aura === 5 ? 2 : 0;
-        for (let i = 0; i < 2; i++) {
-            let g = this.kitMounts[i];
-            if (!g && !mounts) continue;
-            if (!g) {
-                g = new PIXI.Graphics();
-                // the gun body, then its barrel pointing the way he aims
-                g.beginFill(0x8c8e94);
-                g.drawRoundedRect(-0.45 * px, -0.35 * px, 0.9 * px, 0.7 * px, 0.15 * px);
-                g.endFill();
-                g.beginFill(0x4a4c52);
-                g.drawRect(0.35 * px, -0.12 * px, 0.85 * px, 0.24 * px);
-                g.endFill();
-                const bodyIdx = this.bodyContainer.getChildIndex(this.bodySprite);
-                this.bodyContainer.addChildAt(g, bodyIdx + 1);
-                this.kitMounts[i] = g;
-            }
-            g.visible = !dead && i < mounts;
-            const m = KitDefs.warmachine.mounts!;
-            // bodyContainer's +x is where he aims and +y his right hand
-            g.position.set(-m.back * px, (i === 0 ? m.side : -m.side) * px);
-        }
-        // Green Goblin's drones (aura 6: the main one, 7: it and two sub drones a third of a lap apart)
-        const drones = aura === 7 ? 3 : aura === 6 ? 1 : 0;
-        if (drones || this.kitDrones.length) {
-            const dd = KitDefs.greengoblin.drone!;
-            const TAU = Math.PI * 2;
-            if (drones) {
-                if (this.m_netData.droneAngle !== this.droneSyncSeen) {
-                    this.droneSyncSeen = this.m_netData.droneAngle;
-                    this.droneSync = this.m_netData.droneAngle;
-                    this.droneSyncAge = 0;
-                }
-                this.droneSyncAge += dt;
-                const target = this.droneSync + dd.turnRate * this.droneSyncAge;
-                this.droneDraw += dd.turnRate * dt;
-                // shortest way round to where the server says it is: snap if it's far (a swap), else ease
-                const err = ((target - this.droneDraw) % TAU + TAU + Math.PI) % TAU - Math.PI;
-                if (!this.droneShown || Math.abs(err) > 0.8) this.droneDraw = target;
-                else this.droneDraw += err * Math.min(1, dt * 12);
-            }
-            this.droneShown = drones > 0;
-            while (this.kitDrones.length < 3) {
-                const g = new PIXI.Graphics();
-                // the main drone is gray, the sub drones yellow; the point (the head) is along +x
-                const r = dd.tip * px;
-                g.lineStyle(2, this.kitDrones.length === 0 ? 0x3a3c42 : 0x7a5f00);
-                g.beginFill(this.kitDrones.length === 0 ? 0xa0a2a8 : 0xf5cd1e);
-                g.drawPolygon([
-                    r,
-                    0,
-                    r * Math.cos((2 * Math.PI) / 3),
-                    r * Math.sin((2 * Math.PI) / 3),
-                    r * Math.cos((4 * Math.PI) / 3),
-                    r * Math.sin((4 * Math.PI) / 3),
-                ]);
-                g.endFill();
-                this.container.addChild(g);
-                this.kitDrones.push(g);
-            }
-            this.kitDrones.forEach((g, i) => {
-                g.visible = !dead && i < drones;
-                if (!g.visible) return;
-                const a = this.droneDraw + (i * TAU) / drones;
-                // the server's circle runs counter clockwise with y up; the screen has y down
-                g.position.set(Math.cos(a) * dd.radius * px, -Math.sin(a) * dd.radius * px);
-                // heading: counter clockwise along the circle, which is (-sin a, -cos a) on the screen
-                g.rotation = Math.atan2(-Math.cos(a), -Math.sin(a));
-            });
         }
         const wizardAura = aura === 2 || aura === 3;
         if (wizardAura || this.kitCircle) {
@@ -3255,6 +3173,16 @@ export class Player implements AbstractObject {
                 ring.rotation += dt * 2;
             }
         }
+        // the radius the blades may roam, a thin ring round the Summoner
+        if (aura === 1 || this.summonerRange) {
+            if (!this.summonerRange) {
+                this.summonerRange = new PIXI.Graphics();
+                this.auraContainer.addChildAt(this.summonerRange, 0);
+                this.summonerRange.lineStyle(0.18 * px, 0xb39ddb, 0.55);
+                this.summonerRange.drawCircle(0, 0, KitDefs.summoner.daggers!.leash * px);
+            }
+            this.summonerRange.visible = aura === 1;
+        }
         // Summoner's blade minions: drawn where the server has them, smoothed between updates, pointing the way they fly
         const offsets = aura === 1 ? this.m_netData.daggerOffsets : [];
         while (this.kitDaggers.length < offsets.length) {
@@ -3263,28 +3191,22 @@ export class Player implements AbstractObject {
             this.container.addChild(d);
             this.kitDaggers.push(d);
         }
-        if (!this.kitDaggerTrailGfx) {
-            this.kitDaggerTrailGfx = new PIXI.Graphics();
-            this.container.addChild(this.kitDaggerTrailGfx);
-        }
         this.kitDaggers.forEach((d, i) => {
             d.visible = i < offsets.length;
             if (!d.visible) return;
-            const to = offsets[i];
+            // world offsets are y-up; the container is y-down
+            const tx = offsets[i].x * px;
+            const ty = -offsets[i].y * px;
             if (!this.kitDaggerSeen[i]) {
-                d.position.set(to.x * px, to.y * px);
+                d.position.set(tx, ty);
                 this.kitDaggerSeen[i] = true;
             }
             const k = 1 - Math.exp(-dt * 60);
-            const nx = d.position.x + (to.x * px - d.position.x) * k;
-            const ny = d.position.y + (to.y * px - d.position.y) * k;
+            const nx = d.position.x + (tx - d.position.x) * k;
+            const ny = d.position.y + (ty - d.position.y) * k;
             const mx = nx - d.position.x;
             const my = ny - d.position.y;
             const moved = Math.hypot(mx, my) / px;
-            // a dash (or a quick flight) leaves a bright streak behind the blade
-            if (moved > 0.35) {
-                this.kitDaggerTrail.push({ a: v2.create(d.position.x, d.position.y), b: v2.create(nx, ny), life: 1 });
-            }
             // the blade points the way it moves; at rest, away from him
             if (moved > 0.05) d.rotation = Math.atan2(my, mx) + Math.PI / 2;
             else if (Math.abs(nx) + Math.abs(ny) > 1) d.rotation = Math.atan2(ny, nx) + Math.PI / 2;
@@ -3292,14 +3214,6 @@ export class Player implements AbstractObject {
             const s = 55 / Math.max(d.texture.width, 1);
             d.scale.set(s, s);
         });
-        const trail = this.kitDaggerTrailGfx;
-        trail.clear();
-        this.kitDaggerTrail = this.kitDaggerTrail.filter((t) => (t.life -= dt * 5) > 0);
-        for (const t of this.kitDaggerTrail) {
-            trail.lineStyle(0.8 * px, 0xcfeaff, 0.55 * t.life);
-            trail.moveTo(t.a.x, t.a.y);
-            trail.lineTo(t.b.x, t.b.y);
-        }
     }
 
     debuffDots: PIXI.Graphics | null = null;
