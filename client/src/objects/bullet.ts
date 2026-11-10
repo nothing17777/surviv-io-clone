@@ -218,10 +218,22 @@ export class BulletBarn {
         if (bulletDef.trailSprite) {
             const tex = PIXI.Texture.from(bulletDef.trailSprite);
             b.bulletTrail.texture = tex;
-            b.bulletTrail.scale.set(
-                0.8 * plainTrail.width / Math.max(tex.width, 1),
-                tracerWidth * plainTrail.height / Math.max(tex.height, 1),
-            );
+            const fit = () => {
+                b.bulletTrail.scale.set(
+                    0.8 * plainTrail.width / Math.max(tex.width, 1),
+                    tracerWidth * plainTrail.height / Math.max(tex.height, 1),
+                );
+            };
+            if (tex.baseTexture.valid) {
+                fit();
+            } else {
+                // the first shot with an image that isn't loaded yet: an unloaded texture is 1x1, so sizing by it
+                // would stretch the beam over the whole screen. Draw nothing until it has loaded, then size it
+                b.bulletTrail.scale.set(0, 0);
+                tex.baseTexture.once("loaded", () => {
+                    if (b.bulletTrail.texture === tex) fit();
+                });
+            }
         } else if (b.bulletTrail.texture !== plainTrail) {
             b.bulletTrail.texture = plainTrail;
         }
@@ -745,6 +757,8 @@ export class BulletBarn {
                         s *= 0.35 + 1.65 * Math.sqrt(t);
                         b.fxSprite.alpha = (1 - t ** 1.6 * 0.9) * (b.collided ? b.scale : 1);
                     }
+                    // not loaded yet (the first shot with this image) it would be 1x1 and blow up to fill the screen
+                    if (!tex.baseTexture.valid) s = 0;
                     b.fxSprite.scale.set(s, s);
                     b.fxSprite.rotation = b.fxSpin
                         ? b.fxSprite.rotation + b.fxSpin * 0.016
