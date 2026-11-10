@@ -615,6 +615,17 @@ export class UiManager2 {
 
         window.removeEventListener("mouseup", this.clearQueuedItemActions);
         window.removeEventListener("keyup", this.onKeyUp);
+
+        // a new UiManager2 is built per game, so these hand-made bars would be orphaned
+        // in #ui-game — and the weapon slots left hidden — for every game after a champion one
+        this.championBar?.remove();
+        this.championBar = undefined;
+        this.championBarIndex = 0;
+        this.kitItemBar?.remove();
+        this.kitItemBar = undefined;
+        this.kitItemBarOutfit = "";
+        const weaponSlots = document.getElementById("ui-weapon-container");
+        if (weaponSlots) weaponSlots.style.display = "";
     }
 
     championBar?: HTMLDivElement;
